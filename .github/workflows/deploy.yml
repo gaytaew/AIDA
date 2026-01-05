@@ -1,0 +1,26 @@
+name: Deploy AIDA to Server
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /root/AIDA || git clone git@github.com:gaytaew/AIDA.git /root/AIDA
+            cd /root/AIDA
+            git fetch origin
+            git reset --hard origin/main
+            npm ci --production
+            npm run check || true
+            sudo systemctl restart aida || echo "Service not configured yet"
+
