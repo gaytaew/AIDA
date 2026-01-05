@@ -347,10 +347,10 @@ export async function generateShootFrame({
       hasClothingRefs: clothingImages.length > 0
     });
 
-    // Convert to text for Gemini
-    const promptText = jsonPromptToText(promptJson);
+    // Send JSON directly to Gemini
+    const promptText = JSON.stringify(promptJson, null, 2);
 
-    console.log('[ShootGenerator] Prompt built, length:', promptText.length);
+    console.log('[ShootGenerator] JSON Prompt built, length:', promptText.length);
 
     // Pack identity and clothing images
     const referenceImages = [];
