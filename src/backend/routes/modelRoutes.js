@@ -14,6 +14,7 @@ import {
   getModelsDir
 } from '../store/modelStore.js';
 import { analyzeModelPhotos, validateImageData } from '../services/modelAnalyzer.js';
+import { generateAvatarShots, generateSingleShot, AVATAR_SHOTS } from '../services/avatarGenerator.js';
 import { BODY_TYPES } from '../schema/model.js';
 
 const router = express.Router();
@@ -25,7 +26,8 @@ router.get('/options', (req, res) => {
   res.json({
     ok: true,
     data: {
-      bodyTypes: BODY_TYPES
+      bodyTypes: BODY_TYPES,
+      avatarShots: AVATAR_SHOTS.map(s => ({ id: s.id, label: s.label }))
     }
   });
 });
@@ -244,6 +246,98 @@ router.post('/generate-and-save', async (req, res) => {
     });
   } catch (error) {
     console.error('[ModelRoutes] Error generating and saving model:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// POST /api/models/generate-avatars — Generate multi-angle avatar shots
+// ═══════════════════════════════════════════════════════════════
+router.post('/generate-avatars', async (req, res) => {
+  try {
+    const { images, extraPrompt } = req.body;
+    
+    // Validate images
+    const validation = validateImageData(images);
+    if (!validation.valid) {
+      return res.status(400).json({
+        ok: false,
+        error: validation.error
+      });
+    }
+    
+    console.log(`[ModelRoutes] Generating avatar shots from ${images.length} image(s)`);
+    
+    // Generate all avatar shots
+    const result = await generateAvatarShots(images, { extraPrompt: extraPrompt || '' });
+    
+    res.json({
+      ok: true,
+      data: {
+        shots: result.shots.map(s => ({
+          id: s.id,
+          label: s.label,
+          status: s.status,
+          imageDataUrl: s.image ? `data:${s.image.mimeType};base64,${s.image.base64}` : null,
+          error: s.error
+        })),
+        collage: result.collage ? {
+          mimeType: result.collage.mimeType,
+          dataUrl: `data:${result.collage.mimeType};base64,${result.collage.base64}`
+        } : null,
+        modelDescription: result.modelDescription
+      }
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error generating avatars:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// POST /api/models/generate-avatar-shot — Generate single avatar shot
+// ═══════════════════════════════════════════════════════════════
+router.post('/generate-avatar-shot', async (req, res) => {
+  try {
+    const { images, shotId, extraPrompt } = req.body;
+    
+    // Validate images
+    const validation = validateImageData(images);
+    if (!validation.valid) {
+      return res.status(400).json({
+        ok: false,
+        error: validation.error
+      });
+    }
+    
+    if (!shotId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'shotId is required'
+      });
+    }
+    
+    console.log(`[ModelRoutes] Generating avatar shot: ${shotId}`);
+    
+    const result = await generateSingleShot(images, shotId, { extraPrompt: extraPrompt || '' });
+    
+    res.json({
+      ok: true,
+      data: {
+        id: result.id,
+        label: result.label,
+        status: result.status,
+        imageDataUrl: result.image ? `data:${result.image.mimeType};base64,${result.image.base64}` : null
+      }
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error generating avatar shot:', error);
     res.status(500).json({
       ok: false,
       error: error.message

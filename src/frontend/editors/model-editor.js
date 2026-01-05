@@ -11,6 +11,8 @@ const API_BASE = '/api/models';
 let uploadedImages = [];
 let currentModel = null;
 let allModels = [];
+let generatedAvatarShots = [];
+let generatedCollage = null;
 
 // DOM Elements
 const elements = {
@@ -28,6 +30,11 @@ const elements = {
   modelPrompt: null,
   modelExpressions: null,
   modelPoses: null,
+  btnGenerateAvatars: null,
+  statusAvatars: null,
+  avatarShotsPreview: null,
+  collagePreview: null,
+  collageImage: null,
   btnSave: null,
   btnClear: null,
   statusSave: null,
@@ -61,6 +68,11 @@ function initElements() {
   elements.modelPrompt = document.getElementById('model-prompt');
   elements.modelExpressions = document.getElementById('model-expressions');
   elements.modelPoses = document.getElementById('model-poses');
+  elements.btnGenerateAvatars = document.getElementById('btn-generate-avatars');
+  elements.statusAvatars = document.getElementById('status-avatars');
+  elements.avatarShotsPreview = document.getElementById('avatar-shots-preview');
+  elements.collagePreview = document.getElementById('collage-preview');
+  elements.collageImage = document.getElementById('collage-image');
   elements.btnSave = document.getElementById('btn-save');
   elements.btnClear = document.getElementById('btn-clear');
   elements.statusSave = document.getElementById('status-save');
@@ -92,6 +104,7 @@ function initEventListeners() {
 
   // Buttons
   elements.btnGenerate.addEventListener('click', generateDescription);
+  elements.btnGenerateAvatars.addEventListener('click', generateAvatarShots);
   elements.btnSave.addEventListener('click', saveModel);
   elements.btnClear.addEventListener('click', clearForm);
 }
@@ -201,6 +214,86 @@ function fillFormWithModel(model) {
   elements.modelPrompt.value = model.promptSnippet || '';
   elements.modelExpressions.value = model.faceExpressions || '';
   elements.modelPoses.value = model.poses || '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AVATAR SHOTS GENERATION
+// ═══════════════════════════════════════════════════════════════
+
+async function generateAvatarShots() {
+  if (uploadedImages.length === 0) {
+    showStatus('statusAvatars', 'Сначала загрузите фотографии модели', 'error');
+    return;
+  }
+
+  showStatus('statusAvatars', '🎭 Генерируем ракурсы (это может занять 1-2 минуты)...', 'loading');
+  elements.btnGenerateAvatars.disabled = true;
+  elements.avatarShotsPreview.innerHTML = '';
+  elements.collagePreview.style.display = 'none';
+
+  try {
+    const response = await fetch(`${API_BASE}/generate-avatars`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        images: uploadedImages.map(img => ({
+          mimeType: img.mimeType,
+          base64: img.base64
+        })),
+        extraPrompt: elements.modelHint.value.trim()
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || 'Ошибка генерации ракурсов');
+    }
+
+    generatedAvatarShots = data.data.shots || [];
+    generatedCollage = data.data.collage || null;
+
+    // Render avatar shots
+    renderAvatarShots();
+
+    // Render collage
+    if (generatedCollage && generatedCollage.dataUrl) {
+      elements.collageImage.src = generatedCollage.dataUrl;
+      elements.collagePreview.style.display = 'block';
+    }
+
+    const successCount = generatedAvatarShots.filter(s => s.status === 'ok').length;
+    showStatus('statusAvatars', `✅ Сгенерировано ${successCount}/${generatedAvatarShots.length} ракурсов. Коллаж готов!`, 'success');
+
+  } catch (error) {
+    console.error('Generate avatars error:', error);
+    showStatus('statusAvatars', `❌ Ошибка: ${error.message}`, 'error');
+  } finally {
+    elements.btnGenerateAvatars.disabled = false;
+  }
+}
+
+function renderAvatarShots() {
+  if (!generatedAvatarShots || generatedAvatarShots.length === 0) {
+    elements.avatarShotsPreview.innerHTML = '';
+    return;
+  }
+
+  elements.avatarShotsPreview.innerHTML = generatedAvatarShots.map((shot, index) => {
+    if (shot.status === 'ok' && shot.imageDataUrl) {
+      return `
+        <div class="image-thumb" title="${shot.label}">
+          <img src="${shot.imageDataUrl}" alt="${shot.label}">
+        </div>
+      `;
+    } else {
+      return `
+        <div class="image-thumb" title="${shot.label}: ${shot.error || 'Ошибка'}" style="display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15);">
+          <span style="font-size: 24px;">❌</span>
+        </div>
+      `;
+    }
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -423,6 +516,8 @@ async function deleteModel(id) {
 function clearForm() {
   uploadedImages = [];
   currentModel = null;
+  generatedAvatarShots = [];
+  generatedCollage = null;
   
   elements.imagesPreview.innerHTML = '';
   elements.modelHint.value = '';
@@ -435,9 +530,13 @@ function clearForm() {
   elements.modelExpressions.value = '';
   elements.modelPoses.value = '';
   elements.fileInput.value = '';
+  elements.avatarShotsPreview.innerHTML = '';
+  elements.collagePreview.style.display = 'none';
+  elements.collageImage.src = '';
   
   hideStatus('statusGenerate');
   hideStatus('statusSave');
+  hideStatus('statusAvatars');
   updateButtonStates();
   
   // Deselect in list
