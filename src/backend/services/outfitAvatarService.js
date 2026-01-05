@@ -1,7 +1,7 @@
 /**
  * Outfit Avatar Service
  * 
- * Generates full-body avatars of models wearing specific clothing.
+ * Generates full-body avatars of models wearing specific clothing using Gemini.
  * Used when 2+ models with clothing are in a shoot to reduce reference count.
  * 
  * Flow:
@@ -12,7 +12,7 @@
  * 5. Avatar is used instead of raw clothing refs in final generation
  */
 
-import config from '../config.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -108,7 +108,7 @@ export async function packIdentityToBoard(identityImages, options = {}) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Generate a full-body outfit avatar
+ * Generate a full-body outfit avatar using Gemini
  * 
  * @param {Object} params
  * @param {Array<{mimeType: string, base64: string}>} params.identityImages - Model identity photos
@@ -129,11 +129,6 @@ export async function generateOutfitAvatar({
 
   if (!clothingImages || clothingImages.length === 0) {
     return { ok: false, error: 'Clothing images are required' };
-  }
-
-  const apiKey = config.OPENAI_API_KEY;
-  if (!apiKey) {
-    return { ok: false, error: 'OPENAI_API_KEY is not configured' };
   }
 
   try {
@@ -166,96 +161,32 @@ export async function generateOutfitAvatar({
       finalPrompt += `\n\nADDITIONAL INSTRUCTIONS:\n${extraPrompt}`;
     }
 
-    // Build image contents for GPT-4o
-    const imageContents = [];
+    // Build reference images array for Gemini
+    const referenceImages = [];
 
     if (identityBoard) {
-      imageContents.push({
-        type: 'image_url',
-        image_url: {
-          url: `data:${identityBoard.mimeType || 'image/jpeg'};base64,${identityBoard.base64}`,
-          detail: 'high'
-        }
-      });
+      referenceImages.push(identityBoard);
     }
 
     if (clothingBoard) {
-      imageContents.push({
-        type: 'image_url',
-        image_url: {
-          url: `data:${clothingBoard.mimeType || 'image/jpeg'};base64,${clothingBoard.base64}`,
-          detail: 'high'
-        }
-      });
+      referenceImages.push(clothingBoard);
     }
 
-    console.log('[OutfitAvatarService] Generating outfit avatar...');
+    console.log('[OutfitAvatarService] Generating outfit avatar with Gemini...');
 
-    // Use GPT-4o to generate via DALL-E
-    // First, get a detailed description
-    const descResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a fashion photography assistant. Analyze the provided images and create a detailed description for generating a full-body photo. The first image(s) show the MODEL's identity/face. The second image(s) show the CLOTHING to dress the model in. Output a detailed prompt that combines both.`
-          },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: finalPrompt },
-              ...imageContents
-            ]
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.3
-      })
+    // Generate with Gemini (Nano Banana Pro)
+    const result = await requestGeminiImage({
+      prompt: finalPrompt,
+      referenceImages,
+      imageConfig: {
+        aspectRatio: '9:16', // Portrait for full-body
+        imageSize: '1K'
+      }
     });
 
-    if (!descResponse.ok) {
-      const errorText = await descResponse.text();
-      console.error('[OutfitAvatarService] GPT-4o error:', errorText);
-      return { ok: false, error: `API error: ${descResponse.status}` };
-    }
-
-    const descData = await descResponse.json();
-    const refinedPrompt = descData.choices?.[0]?.message?.content || finalPrompt;
-
-    // Generate with DALL-E 3
-    const dalleResponse = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: refinedPrompt,
-        n: 1,
-        size: '1024x1792', // Portrait for full-body
-        quality: 'hd',
-        response_format: 'b64_json'
-      })
-    });
-
-    if (!dalleResponse.ok) {
-      const errorText = await dalleResponse.text();
-      console.error('[OutfitAvatarService] DALL-E error:', errorText);
-      return { ok: false, error: `DALL-E error: ${dalleResponse.status}` };
-    }
-
-    const dalleData = await dalleResponse.json();
-    const b64 = dalleData.data?.[0]?.b64_json;
-
-    if (!b64) {
-      return { ok: false, error: 'No image data in DALL-E response' };
+    if (!result.ok) {
+      console.error('[OutfitAvatarService] Gemini error:', result.error);
+      return { ok: false, error: result.error };
     }
 
     console.log('[OutfitAvatarService] Outfit avatar generated successfully');
@@ -263,10 +194,10 @@ export async function generateOutfitAvatar({
     return {
       ok: true,
       image: {
-        mimeType: 'image/png',
-        base64: b64
+        mimeType: result.mimeType,
+        base64: result.base64
       },
-      prompt: refinedPrompt
+      prompt: finalPrompt
     };
 
   } catch (error) {
@@ -299,4 +230,3 @@ export function isOutfitAvatarRecommended(clothingImages) {
   // Recommend if more than 5 clothing items
   return clothingImages.length > 5;
 }
-
