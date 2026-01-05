@@ -63,9 +63,25 @@ function getMimeType(dataUrl) {
 
 function showStatus(message, type = 'loading') {
   const { status } = getElements();
-  status.textContent = message;
+  
+  // Build content with spinner for loading state
+  if (type === 'loading') {
+    status.innerHTML = `<span class="spinner"></span>${escapeHtml(message)}`;
+  } else {
+    status.textContent = message;
+  }
+  
   status.className = `status-message ${type}`;
   status.style.display = 'block';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function hideStatus() {

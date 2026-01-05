@@ -3,6 +3,9 @@
  * Main entry point for the backend.
  */
 
+// Initialize console log capture FIRST (before any other imports that might log)
+import './dev/consoleTap.js';
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -12,6 +15,7 @@ import config from './config.js';
 
 // Routes
 import healthRoutes from './routes/healthRoutes.js';
+import devRoutes from './routes/devRoutes.js';
 import universeRoutes from './routes/universeRoutes.js';
 import locationRoutes from './routes/locationRoutes.js';
 import frameRoutes from './routes/frameRoutes.js';
@@ -38,6 +42,7 @@ app.use('/api/models/images', express.static(modelsStorePath));
 
 // API Routes
 app.use('/api', healthRoutes);
+app.use('/api/dev', devRoutes);
 app.use('/api/universes', universeRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/frames', frameRoutes);

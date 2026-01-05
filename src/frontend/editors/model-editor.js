@@ -574,7 +574,13 @@ function showStatus(elementId, message, type) {
   const el = document.getElementById(elementId);
   if (!el) return;
   
-  el.textContent = message;
+  // Build content with spinner for loading state
+  if (type === 'loading') {
+    el.innerHTML = `<span class="spinner"></span>${escapeHtml(message)}`;
+  } else {
+    el.textContent = message;
+  }
+  
   el.className = `status-message visible ${type}`;
 }
 
