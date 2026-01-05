@@ -665,6 +665,38 @@ router.post('/:id/generate', async (req, res) => {
       delayMs: 2000
     });
     
+    // Build refs preview for debug info
+    const refsPreview = [];
+    
+    // Add identity refs
+    if (identityImages.length > 0) {
+      refsPreview.push({
+        kind: 'identity',
+        label: `Модель (${identityImages.length} фото)`,
+        previewUrl: identityImages[0] ? `data:${identityImages[0].mimeType};base64,${identityImages[0].base64}` : null
+      });
+    }
+    
+    // Add clothing refs
+    if (clothingImages.length > 0) {
+      clothingImages.slice(0, 3).forEach((img, idx) => {
+        refsPreview.push({
+          kind: 'clothing',
+          label: `Одежда ${idx + 1}`,
+          previewUrl: `data:${img.mimeType};base64,${img.base64}`
+        });
+      });
+    }
+    
+    // Add universe ref if available
+    if (shoot.universe?.previewSrc) {
+      refsPreview.push({
+        kind: 'universe',
+        label: shoot.universe.label || 'Вселенная',
+        previewUrl: shoot.universe.previewSrc
+      });
+    }
+    
     // Convert results to response format
     const generatedFrames = results.map(r => ({
       frameId: r.frameId,
@@ -672,7 +704,8 @@ router.post('/:id/generate', async (req, res) => {
       status: r.ok ? 'ok' : 'error',
       imageUrl: r.ok && r.image ? `data:${r.image.mimeType};base64,${r.image.base64}` : null,
       error: r.error || null,
-      prompt: r.prompt
+      prompt: r.prompt,
+      refs: refsPreview
     }));
     
     console.log(`[ShootRoutes] Generation complete: ${generatedFrames.filter(f => f.status === 'ok').length}/${generatedFrames.length} successful`);

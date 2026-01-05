@@ -1119,20 +1119,55 @@ async function generateShoot() {
           </div>
         `;
       } else {
-        elements.imagesGallery.innerHTML = successFrames.map((frame, i) => `
-          <div class="selection-card" style="cursor: default;">
-            <div class="selection-card-preview" style="aspect-ratio: 3/4;">
-              <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000;">
+        elements.imagesGallery.innerHTML = successFrames.map((frame, i) => {
+          // Build refs HTML
+          const refs = frame.refs || [];
+          const refsHtml = refs.length > 0
+            ? `<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px;">
+                ${refs.map(r => {
+                  const url = r.previewUrl || '';
+                  const label = r.label || r.kind || 'ref';
+                  if (!url) return '';
+                  return `
+                    <div style="text-align: center;">
+                      <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${escapeHtml(label)}</div>
+                      <img src="${url}" alt="${escapeHtml(label)}" 
+                           style="width:100%; height:80px; object-fit:cover; border-radius:6px; border:1px solid var(--color-border);">
+                    </div>
+                  `;
+                }).join('')}
+              </div>`
+            : '<div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">Нет сохранённых референсов</div>';
+          
+          return `
+            <div class="selection-card" style="cursor: default;">
+              <div class="selection-card-preview" style="aspect-ratio: 3/4;">
+                <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000;">
+              </div>
+              <div class="selection-card-title">${escapeHtml(frame.frameLabel || `Кадр ${i + 1}`)}</div>
+              <div style="margin-top: 8px; display: flex; gap: 8px;">
+                <a href="${frame.imageUrl}" download="shoot-${state.currentShoot.id}-${frame.frameId}.png" 
+                   class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+                  💾 Скачать
+                </a>
+              </div>
+              
+              <!-- Debug: Prompt + Refs -->
+              <details style="margin-top: 12px; width: 100%;">
+                <summary style="cursor: pointer; font-size: 12px; color: var(--color-text-muted); user-select: none;">
+                  📋 Промпт и референсы
+                </summary>
+                <div style="margin-top: 10px; text-align: left;">
+                  <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-bottom: 6px; text-transform: uppercase;">Промпт</div>
+                  <pre style="white-space: pre-wrap; word-break: break-word; background: var(--color-surface-elevated); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 200px; overflow: auto; font-size: 11px; font-family: monospace; border: 1px solid var(--color-border);">${escapeHtml(frame.prompt || 'Промпт не сохранён')}</pre>
+                  
+                  <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-top: 12px; margin-bottom: 6px; text-transform: uppercase;">Референсы</div>
+                  ${refsHtml}
+                </div>
+              </details>
             </div>
-            <div class="selection-card-title">${escapeHtml(frame.frameLabel || `Кадр ${i + 1}`)}</div>
-            <div style="margin-top: 8px; display: flex; gap: 8px;">
-              <a href="${frame.imageUrl}" download="shoot-${state.currentShoot.id}-${frame.frameId}.png" 
-                 class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
-                💾 Скачать
-              </a>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
         
         if (errorFrames.length > 0) {
           elements.imagesGallery.innerHTML += `
