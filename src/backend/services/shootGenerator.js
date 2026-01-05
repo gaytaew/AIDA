@@ -79,8 +79,17 @@ export function buildShootPromptJson({
       notes: clothingNotes || null
     },
 
-    // Frame / Scene
+    // Frame / Scene (ONLY pose, camera, composition - NO location)
     frame: buildFrameBlock(frame),
+    
+    // Frame interpretation rules
+    frameRules: [
+      'FRAME describes ONLY: pose, body position, camera angle, shot size, composition.',
+      'FRAME does NOT define: location, background, environment, props, weather.',
+      'Location and environment come from UNIVERSE module, not from frame.',
+      'If frame description mentions any location hints (snow, beach, studio, etc.) — IGNORE them.',
+      'Apply the pose/camera from FRAME to whatever location is defined in UNIVERSE.'
+    ],
 
     // Anti-AI markers
     antiAi: {

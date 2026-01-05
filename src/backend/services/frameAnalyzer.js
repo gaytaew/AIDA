@@ -21,7 +21,14 @@ import {
 // SYSTEM PROMPTS
 // ═══════════════════════════════════════════════════════════════
 
-const ANALYZE_SKETCH_PROMPT = `You are an expert fashion photography analyst. Your task is to analyze a sketch or reference image and extract technical shot parameters.
+const ANALYZE_SKETCH_PROMPT = `You are an expert fashion photography analyst. Your task is to analyze a sketch or reference image and extract ONLY technical shot parameters.
+
+CRITICAL RULES:
+- Extract ONLY: pose, camera angle, shot size, composition, body position
+- Do NOT mention: location, background, environment, props, weather, setting
+- Do NOT describe: clothing, hair, face details, accessories
+- The frame should be UNIVERSAL - applicable to ANY location
+- Ignore any background/environment in the reference image
 
 Analyze the image and determine:
 
@@ -40,26 +47,36 @@ Options: ${COMPOSITION_OPTIONS.join(', ')}
 ### 5. FOCUS POINT (what part of the subject should be in focus)
 Free text: e.g., "face", "hands", "full figure", "eyes"
 
-### 6. POSE DESCRIPTION (detailed description of the pose)
-Free text: Describe the specific pose in detail. Focus ONLY on body position, limbs, posture. Do NOT describe clothing, hair, face, or any appearance details.
+### 6. POSE DESCRIPTION (detailed description of the pose ONLY)
+Free text: Describe the specific pose in detail. Focus ONLY on:
+- Body position (standing, sitting, leaning, etc.)
+- Limb placement (arms, legs, hands position)
+- Posture and weight distribution
+- Head tilt and gaze direction
+Do NOT mention location, background, clothing, hair, or appearance!
 
 ### 7. LABEL (short name for this shot)
-A concise, descriptive name for this shot type
+A concise name for this POSE type (e.g., "Seated Relaxed", "Dynamic Walk", "Three-Quarter Turn")
+Do NOT include location in the label!
 
-### 8. DESCRIPTION (full description for prompt generation)
-2-3 sentences describing the shot for image generation
+### 8. DESCRIPTION (description for prompt generation)
+2-3 sentences describing the shot. Focus ONLY on:
+- Camera framing and angle
+- Subject's pose and body language
+- Composition
+Do NOT mention any location, background, or environment!
 
 Return a valid JSON object:
 {
-  "label": "Shot name",
-  "description": "Full description for prompts",
+  "label": "Pose name (no location)",
+  "description": "Description focusing on pose and camera, no location",
   "technical": {
     "shotSize": "medium",
     "cameraAngle": "eye_level",
     "poseType": "static",
     "composition": "rule_of_thirds",
     "focusPoint": "face",
-    "poseDescription": "Standing with arms relaxed at sides, weight on left leg, slight hip tilt..."
+    "poseDescription": "Sitting with legs dangling, slight forward lean, arms resting on support..."
   }
 }
 
