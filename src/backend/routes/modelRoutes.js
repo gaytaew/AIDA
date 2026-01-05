@@ -1,60 +1,254 @@
 /**
  * Model Routes
  * CRUD operations for model avatars (identity presets).
- * 
- * TODO: Implement full CRUD when model store is ready.
+ * Includes AI-powered generation from photos.
  */
 
 import express from 'express';
+import {
+  getAllModels,
+  getModelById,
+  createModel,
+  updateModel,
+  deleteModel,
+  getModelsDir
+} from '../store/modelStore.js';
+import { analyzeModelPhotos, validateImageData } from '../services/modelAnalyzer.js';
+import { BODY_TYPES } from '../schema/model.js';
 
 const router = express.Router();
 
-// GET /api/models — List all models
-router.get('/', (req, res) => {
-  // TODO: Load from store
+// ═══════════════════════════════════════════════════════════════
+// GET /api/models/options — Get available options for model fields
+// ═══════════════════════════════════════════════════════════════
+router.get('/options', (req, res) => {
   res.json({
     ok: true,
-    data: [],
-    message: 'Model store not yet implemented'
+    data: {
+      bodyTypes: BODY_TYPES
+    }
   });
 });
 
+// ═══════════════════════════════════════════════════════════════
+// GET /api/models — List all models
+// ═══════════════════════════════════════════════════════════════
+router.get('/', async (req, res) => {
+  try {
+    const models = await getAllModels();
+    res.json({
+      ok: true,
+      data: models,
+      total: models.length
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error getting models:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // GET /api/models/:id — Get model by ID
-router.get('/:id', (req, res) => {
-  const { id } = req.params;
-  // TODO: Load from store
-  res.json({
-    ok: false,
-    error: `Model "${id}" not found (store not yet implemented)`
-  });
+// ═══════════════════════════════════════════════════════════════
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const model = await getModelById(id);
+    
+    if (!model) {
+      return res.status(404).json({
+        ok: false,
+        error: `Model "${id}" not found`
+      });
+    }
+    
+    res.json({
+      ok: true,
+      data: model
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error getting model:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
 
+// ═══════════════════════════════════════════════════════════════
 // POST /api/models — Create new model
-router.post('/', (req, res) => {
-  // TODO: Validate and save
-  res.json({
-    ok: false,
-    error: 'Model creation not yet implemented'
-  });
+// ═══════════════════════════════════════════════════════════════
+router.post('/', async (req, res) => {
+  try {
+    const { images, ...modelData } = req.body;
+    
+    // Parse images if provided
+    const imageArray = Array.isArray(images) ? images : [];
+    
+    const result = await createModel(modelData, imageArray);
+    
+    if (!result.success) {
+      return res.status(400).json({
+        ok: false,
+        errors: result.errors
+      });
+    }
+    
+    res.status(201).json({
+      ok: true,
+      data: result.model
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error creating model:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
 
+// ═══════════════════════════════════════════════════════════════
 // PUT /api/models/:id — Update model
-router.put('/:id', (req, res) => {
-  // TODO: Validate and update
-  res.json({
-    ok: false,
-    error: 'Model update not yet implemented'
-  });
+// ═══════════════════════════════════════════════════════════════
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { images, ...updates } = req.body;
+    
+    // Parse new images if provided
+    const newImages = Array.isArray(images) ? images : null;
+    
+    const result = await updateModel(id, updates, newImages);
+    
+    if (!result.success) {
+      return res.status(400).json({
+        ok: false,
+        errors: result.errors
+      });
+    }
+    
+    res.json({
+      ok: true,
+      data: result.model
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error updating model:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
 
+// ═══════════════════════════════════════════════════════════════
 // DELETE /api/models/:id — Delete model
-router.delete('/:id', (req, res) => {
-  // TODO: Delete from store
-  res.json({
-    ok: false,
-    error: 'Model deletion not yet implemented'
-  });
+// ═══════════════════════════════════════════════════════════════
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await deleteModel(id);
+    
+    if (!result.success) {
+      return res.status(404).json({
+        ok: false,
+        errors: result.errors
+      });
+    }
+    
+    res.json({
+      ok: true,
+      message: `Model "${id}" deleted`
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error deleting model:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// POST /api/models/generate — AI-generate model from photos
+// ═══════════════════════════════════════════════════════════════
+router.post('/generate', async (req, res) => {
+  try {
+    const { images, hint } = req.body;
+    
+    // Validate images
+    const validation = validateImageData(images);
+    if (!validation.valid) {
+      return res.status(400).json({
+        ok: false,
+        error: validation.error
+      });
+    }
+    
+    console.log(`[ModelRoutes] Generating model from ${images.length} image(s)`);
+    
+    // Analyze photos with AI
+    const generatedModel = await analyzeModelPhotos(images, hint || '');
+    
+    res.json({
+      ok: true,
+      data: generatedModel,
+      message: 'Model generated successfully. Review and save to create.'
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error generating model:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// POST /api/models/generate-and-save — AI-generate and save model
+// ═══════════════════════════════════════════════════════════════
+router.post('/generate-and-save', async (req, res) => {
+  try {
+    const { images, hint } = req.body;
+    
+    // Validate images
+    const validation = validateImageData(images);
+    if (!validation.valid) {
+      return res.status(400).json({
+        ok: false,
+        error: validation.error
+      });
+    }
+    
+    console.log(`[ModelRoutes] Generating and saving model from ${images.length} image(s)`);
+    
+    // Analyze photos with AI
+    const generatedModel = await analyzeModelPhotos(images, hint || '');
+    
+    // Save to disk with images
+    const result = await createModel(generatedModel, images);
+    
+    if (!result.success) {
+      return res.status(400).json({
+        ok: false,
+        errors: result.errors
+      });
+    }
+    
+    res.status(201).json({
+      ok: true,
+      data: result.model,
+      message: 'Model generated and saved successfully.'
+    });
+  } catch (error) {
+    console.error('[ModelRoutes] Error generating and saving model:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
 
 export default router;
-

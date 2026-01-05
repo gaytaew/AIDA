@@ -9,9 +9,13 @@ node_modules/
 # Secrets
 secrets/
 
-# Generated
+# Generated / User Data
 src/backend/store/assets/*
 !src/backend/store/assets/.gitkeep
+src/backend/store/models/
+src/backend/store/universes/
+src/backend/store/frames/
+src/backend/store/locations/
 
 # OS
 .DS_Store

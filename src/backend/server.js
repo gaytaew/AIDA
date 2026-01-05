@@ -32,6 +32,10 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const frontendPath = path.resolve(__dirname, '../frontend');
 app.use(express.static(frontendPath));
 
+// Static files (model images)
+const modelsStorePath = path.resolve(__dirname, 'store/models');
+app.use('/api/models/images', express.static(modelsStorePath));
+
 // API Routes
 app.use('/api', healthRoutes);
 app.use('/api/universes', universeRoutes);

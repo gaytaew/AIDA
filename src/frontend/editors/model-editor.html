@@ -5,6 +5,356 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Model Editor — AIDA</title>
   <link rel="stylesheet" href="../styles.css">
+  <style>
+    /* Editor-specific styles */
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 1200px) {
+      .editor-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title-icon {
+      font-size: 20px;
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      background: var(--color-bg);
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 20px;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--color-accent);
+      background: rgba(233, 69, 96, 0.08);
+    }
+
+    .upload-zone-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.7;
+    }
+
+    .upload-zone-text {
+      font-size: 15px;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .upload-zone-hint {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      opacity: 0.7;
+    }
+
+    /* Image Preview Grid */
+    .images-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .image-thumb {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+    }
+
+    .image-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-thumb-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .image-thumb:hover .image-thumb-remove {
+      opacity: 1;
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text);
+      font-family: var(--font-main);
+      font-size: 14px;
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .form-textarea.large {
+      min-height: 150px;
+    }
+
+    /* Buttons */
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .form-actions .btn {
+      flex: 1;
+    }
+
+    /* Status */
+    .status-message {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      display: none;
+    }
+
+    .status-message.visible {
+      display: block;
+    }
+
+    .status-message.loading {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+    }
+
+    .status-message.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22C55E;
+    }
+
+    .status-message.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
+    }
+
+    /* Model List */
+    .model-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .model-card {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      gap: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .model-card:hover {
+      border-color: var(--color-border-hover);
+    }
+
+    .model-card.selected {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 1px var(--color-accent);
+    }
+
+    .model-card-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--radius-md);
+      background: var(--color-surface-elevated);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .model-card-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .model-card-avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--color-text-muted);
+    }
+
+    .model-card-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .model-card-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .model-card-label {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .model-card-meta {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      opacity: 0.7;
+    }
+
+    .model-card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+
+    .icon-btn:hover {
+      color: var(--color-text);
+      border-color: var(--color-border-hover);
+    }
+
+    .icon-btn.danger:hover {
+      color: #EF4444;
+      border-color: #EF4444;
+    }
+
+    /* Prompt Preview */
+    .prompt-preview {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-top: 20px;
+    }
+
+    .prompt-preview-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .prompt-preview-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--color-text);
+      font-family: var(--font-mono);
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -50,7 +400,7 @@
       <div class="sidebar-footer">
         <div class="status-badge">
           <span class="status-dot"></span>
-          <span>Сервер работает</span>
+          <span id="server-status">Загрузка...</span>
         </div>
       </div>
     </aside>
@@ -60,22 +410,124 @@
       <header class="page-header">
         <h1 class="page-title">Редактор моделей</h1>
         <p class="page-subtitle">
-          Управляй аватарами моделей: внешность, типаж, референсы для сохранения идентичности.
+          Загрузи фотографии модели и AI создаст детальное описание внешности для консистентной генерации.
         </p>
       </header>
 
       <div class="page-content">
-        <div class="empty-state">
-          <div class="empty-state-icon">🚧</div>
-          <div class="empty-state-title">В разработке</div>
-          <div class="empty-state-text">
-            Редактор моделей будет доступен в следующем обновлении.
+        <div class="editor-layout">
+          <!-- Left Panel: Input -->
+          <div class="panel">
+            <div class="panel-title">
+              <span class="panel-title-icon">📸</span>
+              <span>Создание модели</span>
+            </div>
+
+            <!-- Upload Zone -->
+            <label id="upload-zone" class="upload-zone">
+              <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+              <div class="upload-zone-icon">👤</div>
+              <div class="upload-zone-text">Перетащи фотографии модели сюда</div>
+              <div class="upload-zone-hint">или кликни для выбора файлов (до 10 изображений)</div>
+            </label>
+
+            <!-- Image Previews -->
+            <div id="images-preview" class="images-preview"></div>
+
+            <!-- Hint Input -->
+            <div class="form-group full" style="margin-bottom: 20px;">
+              <label class="form-label">Подсказка для AI (опционально)</label>
+              <input type="text" id="model-hint" class="form-input" 
+                     placeholder="Например: модель в духе 90-х, андрогинная внешность">
+            </div>
+
+            <!-- Generate Button -->
+            <button id="btn-generate" class="btn btn-primary" style="width: 100%;" disabled>
+              ✨ Сгенерировать описание с AI
+            </button>
+
+            <div id="status-generate" class="status-message"></div>
+
+            <!-- Form (appears after generation) -->
+            <div id="model-form" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--color-border);">
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label class="form-label">Имя модели</label>
+                  <input type="text" id="model-name" class="form-input" placeholder="Например: Elegant Brunette">
+                </div>
+
+                <div class="form-group full">
+                  <label class="form-label">Краткое описание</label>
+                  <input type="text" id="model-label" class="form-input" placeholder="Одна строка для UI">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Рост (см)</label>
+                  <input type="number" id="model-height" class="form-input" placeholder="175" min="100" max="250">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Тип телосложения</label>
+                  <select id="model-body-type" class="form-select">
+                    <option value="">— Выберите —</option>
+                    <option value="slim">Slim</option>
+                    <option value="athletic">Athletic</option>
+                    <option value="curvy">Curvy</option>
+                    <option value="petite">Petite</option>
+                    <option value="tall">Tall</option>
+                    <option value="average">Average</option>
+                    <option value="plus-size">Plus-size</option>
+                  </select>
+                </div>
+
+                <div class="form-group full">
+                  <label class="form-label">Детальное описание внешности (promptSnippet)</label>
+                  <textarea id="model-prompt" class="form-textarea large" 
+                            placeholder="Полное описание физических характеристик..."></textarea>
+                </div>
+
+                <div class="form-group full">
+                  <label class="form-label">Характерные выражения лица</label>
+                  <textarea id="model-expressions" class="form-textarea" 
+                            placeholder="Типичные выражения и эмоции модели..."></textarea>
+                </div>
+
+                <div class="form-group full">
+                  <label class="form-label">Типичные позы</label>
+                  <textarea id="model-poses" class="form-textarea" 
+                            placeholder="Манера позирования, движения..."></textarea>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button id="btn-save" class="btn btn-primary">💾 Сохранить модель</button>
+                <button id="btn-clear" class="btn btn-secondary">Очистить</button>
+              </div>
+
+              <div id="status-save" class="status-message"></div>
+            </div>
           </div>
-          <a href="/" class="btn btn-secondary">← Назад на Dashboard</a>
+
+          <!-- Right Panel: Model List -->
+          <div class="panel">
+            <div class="panel-title">
+              <span class="panel-title-icon">👥</span>
+              <span>Каталог моделей</span>
+            </div>
+
+            <div id="model-list" class="model-list">
+              <div class="empty-state">
+                <div class="empty-state-icon">👤</div>
+                <div class="empty-state-title">Нет сохранённых моделей</div>
+                <div class="empty-state-text">Загрузи фотографии и создай первую модель.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
   </div>
+
+  <script type="module" src="model-editor.js"></script>
 </body>
 </html>
-
