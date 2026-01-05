@@ -5,6 +5,341 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Frame Editor — AIDA</title>
   <link rel="stylesheet" href="../styles.css">
+  <style>
+    /* Editor-specific styles */
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 1200px) {
+      .editor-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title-icon {
+      font-size: 20px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      padding: 4px;
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--color-text-muted);
+      font-family: var(--font-main);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab:hover {
+      color: var(--color-text);
+    }
+
+    .tab.active {
+      background: var(--color-accent);
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .form-group select,
+    .form-group input,
+    .form-group textarea {
+      padding: 10px 12px;
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text);
+      font-family: var(--font-main);
+      font-size: 13px;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    .form-group textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      background: var(--color-bg);
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--color-accent);
+      background: rgba(233, 69, 96, 0.08);
+    }
+
+    .upload-zone-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.7;
+    }
+
+    .upload-zone-text {
+      font-size: 14px;
+      color: var(--color-text-muted);
+    }
+
+    /* Sketch preview */
+    .sketch-preview {
+      margin-top: 16px;
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--color-bg);
+    }
+
+    .sketch-preview img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+    }
+
+    .sketch-preview-remove {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Frame gallery */
+    .gallery-filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .gallery-filters select {
+      padding: 8px 12px;
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text);
+      font-family: var(--font-main);
+      font-size: 13px;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .frame-card {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .frame-card:hover {
+      border-color: var(--color-border-hover);
+      transform: translateY(-2px);
+    }
+
+    .frame-card.selected {
+      border-color: var(--color-accent);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .frame-card-image {
+      aspect-ratio: 3/4;
+      background: var(--color-surface-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      opacity: 0.3;
+    }
+
+    .frame-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .frame-card-info {
+      padding: 12px;
+    }
+
+    .frame-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .frame-card-meta {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      display: flex;
+      gap: 8px;
+    }
+
+    .frame-card-tag {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--color-surface-elevated);
+      border-radius: 4px;
+    }
+
+    /* Actions */
+    .form-actions {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Status */
+    .status-message {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+    }
+
+    .status-message.loading {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+    }
+
+    .status-message.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22C55E;
+    }
+
+    .status-message.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
+    }
+
+    /* Prompt preview */
+    .prompt-preview {
+      margin-top: 16px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+    }
+
+    .prompt-preview-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* Empty state */
+    .empty-gallery {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--color-text-muted);
+    }
+
+    .empty-gallery-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -50,7 +385,7 @@
       <div class="sidebar-footer">
         <div class="status-badge">
           <span class="status-dot"></span>
-          <span>Сервер работает</span>
+          <span id="status-text">Загрузка...</span>
         </div>
       </div>
     </aside>
@@ -60,22 +395,171 @@
       <header class="page-header">
         <h1 class="page-title">Каталог кадров</h1>
         <p class="page-subtitle">
-          Создавай и редактируй эскизы кадров для съёмок: позы, ракурсы, композиция.
+          Создавай эскизы кадров с техническими параметрами: план, ракурс, поза, композиция.
         </p>
       </header>
 
       <div class="page-content">
-        <div class="empty-state">
-          <div class="empty-state-icon">🚧</div>
-          <div class="empty-state-title">В разработке</div>
-          <div class="empty-state-text">
-            Редактор кадров будет доступен в следующем обновлении.
+        <div class="editor-layout">
+          <!-- Left: Create/Edit Panel -->
+          <div class="panel">
+            <div class="panel-title">
+              <span class="panel-title-icon">✏️</span>
+              <span>Создание кадра</span>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+              <button class="tab active" data-tab="manual">Вручную</button>
+              <button class="tab" data-tab="from-sketch">Из скетча</button>
+              <button class="tab" data-tab="from-text">Из текста</button>
+            </div>
+
+            <!-- Manual Tab -->
+            <div id="tab-manual" class="tab-content active">
+              <form id="frame-form">
+                <div class="form-grid">
+                  <div class="form-group full">
+                    <label for="frame-label">Название</label>
+                    <input type="text" id="frame-label" placeholder="Например: Medium Portrait, Walking Full Body">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="frame-shot-size">План</label>
+                    <select id="frame-shot-size"></select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="frame-angle">Ракурс</label>
+                    <select id="frame-camera-angle"></select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="frame-pose">Тип позы</label>
+                    <select id="frame-pose-type"></select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="frame-composition">Композиция</label>
+                    <select id="frame-composition"></select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="frame-category">Категория</label>
+                    <select id="frame-category"></select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="frame-orientation">Ориентация</label>
+                    <select id="frame-orientation"></select>
+                  </div>
+
+                  <div class="form-group full">
+                    <label for="frame-focus">Точка фокуса</label>
+                    <input type="text" id="frame-focus" placeholder="Например: face, hands, eyes, full figure">
+                  </div>
+
+                  <div class="form-group full">
+                    <label for="frame-pose-desc">Описание позы</label>
+                    <textarea id="frame-pose-desc" placeholder="Подробное описание позы модели..."></textarea>
+                  </div>
+
+                  <div class="form-group full">
+                    <label for="frame-description">Описание для промпта</label>
+                    <textarea id="frame-description" placeholder="Полное описание кадра для генерации изображений..."></textarea>
+                  </div>
+                </div>
+
+                <div id="prompt-preview" class="prompt-preview" style="display: none;">
+                  <div class="prompt-preview-label">Prompt Snippet</div>
+                  <div id="prompt-text"></div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">💾 Сохранить кадр</button>
+                  <button type="button" id="btn-clear-form" class="btn btn-secondary">Очистить</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- From Sketch Tab -->
+            <div id="tab-from-sketch" class="tab-content">
+              <label id="sketch-upload-zone" class="upload-zone">
+                <input type="file" id="sketch-file-input" accept="image/*" style="display: none;">
+                <div class="upload-zone-icon">🖼️</div>
+                <div class="upload-zone-text">Загрузи скетч или референс позы</div>
+              </label>
+
+              <div id="sketch-preview" class="sketch-preview" style="display: none;">
+                <img id="sketch-preview-img" src="" alt="Sketch preview">
+                <button type="button" id="sketch-remove" class="sketch-preview-remove">×</button>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" id="btn-analyze-sketch" class="btn btn-primary" disabled>
+                  🔍 Анализировать скетч
+                </button>
+              </div>
+            </div>
+
+            <!-- From Text Tab -->
+            <div id="tab-from-text" class="tab-content">
+              <div class="form-group">
+                <label for="text-description">Описание кадра</label>
+                <textarea id="text-description" rows="4" placeholder="Опиши кадр словами: позу, ракурс, композицию..."></textarea>
+              </div>
+
+              <div class="form-grid" style="margin-top: 16px;">
+                <div class="form-group">
+                  <label for="text-shot-size">План</label>
+                  <select id="text-shot-size"></select>
+                </div>
+                <div class="form-group">
+                  <label for="text-pose-type">Тип позы</label>
+                  <select id="text-pose-type"></select>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" id="btn-generate-sketch" class="btn btn-primary">
+                  🎨 Сгенерировать скетч
+                </button>
+              </div>
+
+              <div id="generated-sketch" class="sketch-preview" style="display: none; margin-top: 16px;">
+                <img id="generated-sketch-img" src="" alt="Generated sketch">
+              </div>
+            </div>
+
+            <div id="status" class="status-message" style="display: none;"></div>
           </div>
-          <a href="/" class="btn btn-secondary">← Назад на Dashboard</a>
+
+          <!-- Right: Gallery Panel -->
+          <div class="panel">
+            <div class="panel-title">
+              <span class="panel-title-icon">📚</span>
+              <span>Каталог кадров</span>
+            </div>
+
+            <div class="gallery-filters">
+              <select id="filter-category">
+                <option value="">Все категории</option>
+              </select>
+              <input type="text" id="filter-search" placeholder="Поиск..." style="flex: 1; min-width: 150px;">
+            </div>
+
+            <div id="frames-gallery" class="gallery-grid">
+              <div class="empty-gallery">
+                <div class="empty-gallery-icon">🖼️</div>
+                <div>Пока нет сохранённых кадров</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
   </div>
+
+  <script type="module" src="frame-editor.js"></script>
 </body>
 </html>
-
