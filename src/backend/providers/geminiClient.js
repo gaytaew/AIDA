@@ -310,6 +310,87 @@ function createGeminiBody(prompt, processedImages, imageConfig) {
 }
 
 /**
+ * Request text completion via Gemini API.
+ * @param {string} prompt - Text prompt
+ * @param {Array<{mimeType: string, base64: string}>} images - Reference images (optional)
+ * @returns {Promise<{ok: boolean, text?: string, error?: string}>}
+ */
+export async function requestGeminiText({ prompt, images = [] }) {
+  const apiKey = config.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    return { ok: false, error: 'GEMINI_API_KEY is not configured' };
+  }
+
+  const parts = [];
+  
+  if (prompt) {
+    parts.push({ text: prompt });
+  }
+
+  if (Array.isArray(images) && images.length > 0) {
+    images.forEach(img => {
+      if (!img || !img.base64) return;
+      parts.push({
+        inlineData: {
+          mimeType: img.mimeType || 'image/jpeg',
+          data: img.base64
+        }
+      });
+    });
+  }
+
+  const body = {
+    contents: [{ parts }],
+    generationConfig: {
+      responseModalities: ['TEXT']
+    }
+  };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('[Gemini] Text API error:', text.slice(0, 500));
+      return { ok: false, error: `Gemini API error: ${response.status}` };
+    }
+
+    const data = await response.json();
+    
+    if (data.promptFeedback?.blockReason) {
+      return { ok: false, error: `Blocked: ${data.promptFeedback.blockReason}` };
+    }
+
+    const candidate = data.candidates?.[0];
+    const textPart = candidate?.content?.parts?.find(p => p.text);
+    
+    if (!textPart) {
+      return { ok: false, error: 'No text in Gemini response' };
+    }
+
+    return { ok: true, text: textPart.text };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error('[Gemini] Text request error:', error.message);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
  * Request image generation via Gemini API.
  * @param {string} prompt - Text prompt
  * @param {Array<{mimeType: string, base64: string}>} referenceImages - Reference images

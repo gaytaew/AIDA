@@ -87,6 +87,9 @@ function initElements() {
   elements.summaryWarnings = document.getElementById('summary-warnings');
   elements.btnBackToFrames = document.getElementById('btn-back-to-frames');
   elements.btnExportJson = document.getElementById('btn-export-json');
+  elements.btnGenerateShoot = document.getElementById('btn-generate-shoot');
+  elements.generatedImages = document.getElementById('generated-images');
+  elements.imagesGallery = document.getElementById('images-gallery');
   elements.stepSummaryStatus = document.getElementById('step-summary-status');
   
   // Summary values
@@ -134,6 +137,7 @@ function initEventListeners() {
   // Step 6: Summary
   elements.btnBackToFrames.addEventListener('click', () => goToStep('frames'));
   elements.btnExportJson.addEventListener('click', exportShootJson);
+  elements.btnGenerateShoot.addEventListener('click', generateShoot);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1072,6 +1076,100 @@ function exportShootJson() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+async function generateShoot() {
+  if (!state.currentShoot) return;
+  
+  const btn = elements.btnGenerateShoot;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Генерация...';
+  
+  // Show gallery area
+  elements.generatedImages.style.display = 'block';
+  elements.imagesGallery.innerHTML = `
+    <div class="empty-state" style="grid-column: 1 / -1; padding: 60px;">
+      <div class="empty-state-icon" style="font-size: 48px; animation: pulse 1s infinite;">🎨</div>
+      <div class="empty-state-title">Генерация изображения...</div>
+      <div class="empty-state-text">Это может занять 30-60 секунд</div>
+    </div>
+  `;
+  
+  try {
+    const res = await fetch(`/api/shoots/${state.currentShoot.id}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok && data.data) {
+      // Display generated images from frames array
+      const frames = data.data.frames || [];
+      const successFrames = frames.filter(f => f.status === 'ok' && f.imageUrl);
+      const errorFrames = frames.filter(f => f.status !== 'ok');
+      
+      if (successFrames.length === 0) {
+        elements.imagesGallery.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+            <div class="empty-state-icon">❌</div>
+            <div class="empty-state-title">Не удалось сгенерировать изображения</div>
+            <div class="empty-state-text">${errorFrames.length > 0 ? escapeHtml(errorFrames[0].error || 'Неизвестная ошибка') : 'Попробуйте еще раз'}</div>
+          </div>
+        `;
+      } else {
+        elements.imagesGallery.innerHTML = successFrames.map((frame, i) => `
+          <div class="selection-card" style="cursor: default;">
+            <div class="selection-card-preview" style="aspect-ratio: 3/4;">
+              <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000;">
+            </div>
+            <div class="selection-card-title">${escapeHtml(frame.frameLabel || `Кадр ${i + 1}`)}</div>
+            <div style="margin-top: 8px; display: flex; gap: 8px;">
+              <a href="${frame.imageUrl}" download="shoot-${state.currentShoot.id}-${frame.frameId}.png" 
+                 class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+                💾 Скачать
+              </a>
+            </div>
+          </div>
+        `).join('');
+        
+        if (errorFrames.length > 0) {
+          elements.imagesGallery.innerHTML += `
+            <div class="selection-card" style="cursor: default; border-color: var(--color-accent);">
+              <div class="empty-state" style="padding: 20px;">
+                <div class="empty-state-icon">⚠️</div>
+                <div class="empty-state-title">${errorFrames.length} кадр(ов) с ошибками</div>
+              </div>
+            </div>
+          `;
+        }
+      }
+      
+      elements.summaryStatus.textContent = `✓ Сгенерировано ${successFrames.length} из ${frames.length}`;
+      elements.summaryStatus.style.color = '#22C55E';
+    } else {
+      elements.imagesGallery.innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+          <div class="empty-state-icon">❌</div>
+          <div class="empty-state-title">Ошибка генерации</div>
+          <div class="empty-state-text">${escapeHtml(data.error || 'Неизвестная ошибка')}</div>
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.error('Error generating shoot:', e);
+    elements.imagesGallery.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+        <div class="empty-state-icon">❌</div>
+        <div class="empty-state-title">Ошибка сети</div>
+        <div class="empty-state-text">${escapeHtml(e.message)}</div>
+      </div>
+    `;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -573,6 +573,21 @@
       font-size: 14px;
       font-weight: 500;
     }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    .btn-generate {
+      background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+      transition: all 0.2s;
+    }
+
+    .btn-generate:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -887,13 +902,25 @@
 
               <div id="summary-warnings" style="margin-top: 24px;"></div>
 
+              <!-- Generated Images Preview -->
+              <div id="generated-images" style="margin-top: 24px; display: none;">
+                <h3 class="section-title" style="margin-bottom: 16px;">Сгенерированные изображения</h3>
+                <div id="images-gallery" class="selection-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+                </div>
+              </div>
+
               <div class="composer-nav">
                 <button class="btn btn-secondary" id="btn-back-to-frames">
                   ← Назад
                 </button>
-                <button class="btn btn-primary" id="btn-export-json">
-                  📥 Экспортировать JSON
-                </button>
+                <div style="display: flex; gap: 12px;">
+                  <button class="btn btn-secondary" id="btn-export-json">
+                    📥 JSON
+                  </button>
+                  <button class="btn btn-primary" id="btn-generate-shoot" style="background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);">
+                    🚀 Сгенерировать съёмку
+                  </button>
+                </div>
               </div>
             </div>
 
