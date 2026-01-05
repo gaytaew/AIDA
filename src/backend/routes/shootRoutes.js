@@ -705,6 +705,7 @@ router.post('/:id/generate', async (req, res) => {
       imageUrl: r.ok && r.image ? `data:${r.image.mimeType};base64,${r.image.base64}` : null,
       error: r.error || null,
       prompt: r.prompt,
+      promptJson: r.promptJson || null,
       refs: refsPreview
     }));
     

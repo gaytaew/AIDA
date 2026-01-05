@@ -8,153 +8,281 @@
  * - Frame parameters
  * 
  * Uses Gemini (Nano Banana Pro) for image generation.
+ * 
+ * Промпт собирается в JSON-формате из модулей.
  */
 
 import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
 
 // ═══════════════════════════════════════════════════════════════
-// PROMPT BUILDER
+// JSON PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Build the final image generation prompt
+ * Build the structured JSON prompt from modules
  */
-export function buildShootPrompt({
+export function buildShootPromptJson({
   universe,
   frame,
   modelDescription = '',
   clothingNotes = '',
-  extraPrompt = ''
+  extraPrompt = '',
+  modelCount = 1,
+  hasIdentityRefs = false,
+  hasClothingRefs = false
 }) {
-  const parts = [];
+  const promptJson = {
+    format: 'aida_shoot_prompt_v1',
+    formatVersion: 1,
+    generatedAt: new Date().toISOString(),
 
-  // Header
-  parts.push(`REAL FASHION PHOTO (NOT illustration, NOT CGI, NOT 3D render).
-Photographic realism: natural skin texture, believable fabric behavior, real optics.
+    // Global hard rules
+    hardRules: [
+      'Return photorealistic images (no illustration, no CGI, no 3D render, no painterly look).',
+      'Natural skin texture, believable fabric behavior, real optics.',
+      'No watermarks, no text overlays, no captions, no logos.',
+      'STRICTLY match identity reference images (faces, anatomy) for models.',
+      'STRICTLY match clothing reference images (silhouette, color, construction, materials).',
+      'Do NOT invent brands/logos/text.',
+      modelCount === 1 
+        ? 'Keep the SAME model identity across all frames.'
+        : `Keep the SAME ${modelCount} model identities across all frames.`
+    ],
 
-GLOBAL HARD RULES:
-1) STRICTLY match identity reference images (faces, anatomy) for models.
-2) STRICTLY match clothing reference images (silhouette, color, construction, materials).
-3) Do NOT invent brands/logos/text. No captions, no watermarks.
-4) Keep it consistent: same cast and same overall photographic character.`);
+    // Universe / Visual DNA
+    universe: buildUniverseBlock(universe),
 
-  // Universe block
-  if (universe) {
-    const universeLines = ['', 'UNIVERSE (VISUAL DNA):'];
-    
-    if (universe.shortDescription) {
-      universeLines.push(universe.shortDescription);
-    }
-    
-    // Capture
-    if (universe.capture) {
-      const c = universe.capture;
-      universeLines.push(`Medium: ${c.mediumType || 'photo'}, ${c.cameraSystem || '35mm'}`);
-      if (c.grainStructure && c.grainStructure !== 'none') {
-        universeLines.push(`Grain: ${c.grainStructure}`);
-      }
-    }
-    
-    // Light
-    if (universe.light) {
-      const l = universe.light;
-      universeLines.push(`Lighting: ${l.primaryLightType || 'natural'}, ${l.flashCharacter || 'soft'}`);
-      universeLines.push(`Shadows: ${l.shadowBehavior || 'soft_falloff'}`);
-    }
-    
-    // Color
-    if (universe.color) {
-      const c = universe.color;
-      universeLines.push(`Color: ${c.baseColorCast || 'neutral'} cast, ${c.dominantPalette || 'natural'} palette`);
-      if (c.skinToneRendering) {
-        universeLines.push(`Skin: ${c.skinToneRendering}`);
-      }
-    }
-    
-    // Era
-    if (universe.era) {
-      const e = universe.era;
-      universeLines.push(`Era: ${e.eraReference || 'contemporary'}, ${e.editorialReference || 'european_fashion'}`);
-    }
-    
-    // Post-process
-    if (universe.postProcess) {
-      const p = universe.postProcess;
-      if (p.hdrForbidden) universeLines.push('NO HDR.');
-      if (p.aiArtifactsPrevention) universeLines.push('NO AI artifacts, NO plastic skin.');
-      if (!p.skinSmoothing) universeLines.push('Preserve skin texture.');
-    }
-    
-    parts.push(universeLines.join('\n'));
+    // Identity references
+    identity: {
+      hasRefs: hasIdentityRefs,
+      rules: [
+        'Use the uploaded person photo(s) as strict identity reference.',
+        'Generate the same person, preserving exact facial identity and proportions.',
+        'Do not beautify, do not stylize the face.',
+        'Match face structure, hairline, eye spacing, nose, lips exactly.'
+      ],
+      description: modelDescription || null
+    },
+
+    // Clothing references
+    clothing: {
+      hasRefs: hasClothingRefs,
+      rules: [
+        'Carefully inspect the clothing reference images.',
+        'Recreate ALL garments with MAXIMUM accuracy.',
+        'Preserve exact silhouettes, proportions, lengths, fabric behavior.',
+        'Match exact colors, prints, patterns.',
+        'Do NOT invent new garments or accessories not in the refs.',
+        'Do NOT change construction: buttons, zippers, pockets must match refs.'
+      ],
+      notes: clothingNotes || null
+    },
+
+    // Frame / Scene
+    frame: buildFrameBlock(frame),
+
+    // Anti-AI markers
+    antiAi: {
+      preset: 'medium',
+      rules: [
+        'Natural skin texture with pores, small imperfections.',
+        'Real fabric behavior, natural wrinkles and folds.',
+        'Subtle lens imperfections OK (soft edges, slight vignette).',
+        'NOT too perfect, NOT too symmetrical.',
+        'NO plastic/glossy skin.',
+        'NO HDR look.',
+        'NO watermarks or text.',
+        'NO AI artifacts.'
+      ]
+    },
+
+    // Extra instructions
+    extra: extraPrompt || null
+  };
+
+  return promptJson;
+}
+
+/**
+ * Build universe block from universe data
+ */
+function buildUniverseBlock(universe) {
+  if (!universe) {
+    return {
+      shortDescription: null,
+      capture: null,
+      light: null,
+      color: null,
+      era: null,
+      postProcess: null
+    };
   }
 
-  // Identity block
-  parts.push(`
-IDENTITY (MUST MATCH EXACTLY):
-Use the uploaded person photo(s) as strict identity reference.
-Generate the same person, preserving exact facial identity and proportions.
-Do not beautify, do not stylize the face.`);
-
-  if (modelDescription) {
-    parts.push(`\nMODEL DESCRIPTION:\n${modelDescription}`);
-  }
-
-  // Clothing block
-  parts.push(`
-CLOTHING (MUST MATCH EXACTLY):
-Carefully inspect the clothing reference images.
-Recreate ALL garments with MAXIMUM accuracy:
-- Preserve exact silhouettes, proportions, lengths, fabric behavior
-- Match exact colors, prints, patterns
-- Do NOT invent new garments or accessories not in the refs`);
-
-  if (clothingNotes) {
-    parts.push(`\nCLOTHING NOTES:\n${clothingNotes}`);
-  }
-
-  // Frame block
-  if (frame) {
-    const frameLines = ['', 'FRAME / SHOT:'];
+  return {
+    shortDescription: universe.shortDescription || null,
     
-    if (frame.label) {
-      frameLines.push(`Shot: ${frame.label}`);
+    capture: universe.capture ? {
+      mediumType: universe.capture.mediumType || 'photo',
+      cameraSystem: universe.capture.cameraSystem || '35mm',
+      grainStructure: universe.capture.grainStructure || 'none'
+    } : null,
+    
+    light: universe.light ? {
+      primaryLightType: universe.light.primaryLightType || 'natural',
+      flashCharacter: universe.light.flashCharacter || 'soft',
+      shadowBehavior: universe.light.shadowBehavior || 'soft_falloff'
+    } : null,
+    
+    color: universe.color ? {
+      baseColorCast: universe.color.baseColorCast || 'neutral',
+      dominantPalette: universe.color.dominantPalette || 'natural',
+      skinToneRendering: universe.color.skinToneRendering || 'natural'
+    } : null,
+    
+    era: universe.era ? {
+      eraReference: universe.era.eraReference || 'contemporary',
+      editorialReference: universe.era.editorialReference || 'european_fashion'
+    } : null,
+    
+    postProcess: universe.postProcess ? {
+      hdrForbidden: universe.postProcess.hdrForbidden ?? true,
+      aiArtifactsPrevention: universe.postProcess.aiArtifactsPrevention ?? true,
+      skinSmoothing: universe.postProcess.skinSmoothing ?? false
+    } : null
+  };
+}
+
+/**
+ * Build frame block from frame data
+ */
+function buildFrameBlock(frame) {
+  if (!frame) {
+    return {
+      label: null,
+      description: null,
+      technical: null
+    };
+  }
+
+  return {
+    label: frame.label || null,
+    description: frame.description || null,
+    
+    technical: frame.technical ? {
+      shotSize: frame.technical.shotSize || null,
+      cameraAngle: frame.technical.cameraAngle || null,
+      poseType: frame.technical.poseType || null,
+      composition: frame.technical.composition || null,
+      focusPoint: frame.technical.focusPoint || null,
+      poseDescription: frame.technical.poseDescription || null
+    } : {
+      shotSize: frame.shotSize || null,
+      cameraAngle: frame.cameraAngle || null,
+      poseType: frame.poseType || null,
+      composition: frame.composition || null,
+      focusPoint: frame.focusPoint || null,
+      poseDescription: frame.poseDescription || null
     }
-    
-    if (frame.description) {
-      frameLines.push(frame.description);
+  };
+}
+
+/**
+ * Convert JSON prompt to text for Gemini
+ * Gemini works with text, so we serialize the JSON in a structured way
+ */
+export function jsonPromptToText(promptJson) {
+  const sections = [];
+
+  // Header with format info
+  sections.push(`PROMPT FORMAT: ${promptJson.format} v${promptJson.formatVersion}`);
+  sections.push('');
+
+  // Hard rules
+  sections.push('HARD RULES:');
+  promptJson.hardRules.forEach((rule, i) => {
+    sections.push(`${i + 1}. ${rule}`);
+  });
+  sections.push('');
+
+  // Universe
+  if (promptJson.universe) {
+    sections.push('UNIVERSE (VISUAL DNA):');
+    const u = promptJson.universe;
+    if (u.shortDescription) sections.push(u.shortDescription);
+    if (u.capture) {
+      sections.push(`Medium: ${u.capture.mediumType}, ${u.capture.cameraSystem}`);
+      if (u.capture.grainStructure !== 'none') sections.push(`Grain: ${u.capture.grainStructure}`);
     }
-    
-    if (frame.technical) {
-      const t = frame.technical;
-      if (t.shotSize) frameLines.push(`Size: ${t.shotSize.replace(/_/g, ' ')}`);
-      if (t.cameraAngle) frameLines.push(`Angle: ${t.cameraAngle.replace(/_/g, ' ')}`);
-      if (t.poseType) frameLines.push(`Pose type: ${t.poseType}`);
-      if (t.composition) frameLines.push(`Composition: ${t.composition.replace(/_/g, ' ')}`);
-      if (t.focusPoint) frameLines.push(`Focus: ${t.focusPoint}`);
-      if (t.poseDescription) frameLines.push(`Pose: ${t.poseDescription}`);
+    if (u.light) {
+      sections.push(`Lighting: ${u.light.primaryLightType}, ${u.light.flashCharacter}`);
+      sections.push(`Shadows: ${u.light.shadowBehavior}`);
     }
-    
-    parts.push(frameLines.join('\n'));
+    if (u.color) {
+      sections.push(`Color: ${u.color.baseColorCast} cast, ${u.color.dominantPalette} palette`);
+      if (u.color.skinToneRendering) sections.push(`Skin: ${u.color.skinToneRendering}`);
+    }
+    if (u.era) {
+      sections.push(`Era: ${u.era.eraReference}, ${u.era.editorialReference}`);
+    }
+    if (u.postProcess) {
+      if (u.postProcess.hdrForbidden) sections.push('NO HDR.');
+      if (u.postProcess.aiArtifactsPrevention) sections.push('NO AI artifacts, NO plastic skin.');
+      if (!u.postProcess.skinSmoothing) sections.push('Preserve skin texture.');
+    }
+    sections.push('');
   }
 
-  // Anti-AI block
-  parts.push(`
-ANTI-AI MARKERS:
-- Natural skin texture with pores, small imperfections
-- Real fabric behavior, natural wrinkles and folds
-- Subtle lens imperfections OK (soft edges, slight vignette)
-- NOT too perfect, NOT too symmetrical
-- NO plastic/glossy skin
-- NO HDR look
-- NO watermarks or text`);
+  // Identity
+  sections.push('IDENTITY (MUST MATCH EXACTLY):');
+  promptJson.identity.rules.forEach(rule => sections.push(`- ${rule}`));
+  if (promptJson.identity.description) {
+    sections.push('');
+    sections.push('MODEL DESCRIPTION:');
+    sections.push(promptJson.identity.description);
+  }
+  sections.push('');
 
-  // Extra prompt
-  if (extraPrompt) {
-    parts.push(`\nADDITIONAL INSTRUCTIONS:\n${extraPrompt}`);
+  // Clothing
+  sections.push('CLOTHING (MUST MATCH EXACTLY):');
+  promptJson.clothing.rules.forEach(rule => sections.push(`- ${rule}`));
+  if (promptJson.clothing.notes) {
+    sections.push('');
+    sections.push('CLOTHING NOTES:');
+    sections.push(promptJson.clothing.notes);
+  }
+  sections.push('');
+
+  // Frame
+  if (promptJson.frame) {
+    sections.push('FRAME / SHOT:');
+    const f = promptJson.frame;
+    if (f.label) sections.push(`Shot: ${f.label}`);
+    if (f.description) sections.push(f.description);
+    if (f.technical) {
+      const t = f.technical;
+      if (t.shotSize) sections.push(`Size: ${String(t.shotSize).replace(/_/g, ' ')}`);
+      if (t.cameraAngle) sections.push(`Angle: ${String(t.cameraAngle).replace(/_/g, ' ')}`);
+      if (t.poseType) sections.push(`Pose type: ${t.poseType}`);
+      if (t.composition) sections.push(`Composition: ${String(t.composition).replace(/_/g, ' ')}`);
+      if (t.focusPoint) sections.push(`Focus: ${t.focusPoint}`);
+      if (t.poseDescription) sections.push(`Pose: ${t.poseDescription}`);
+    }
+    sections.push('');
   }
 
-  return parts.join('\n');
+  // Anti-AI
+  sections.push('ANTI-AI MARKERS:');
+  promptJson.antiAi.rules.forEach(rule => sections.push(`- ${rule}`));
+  sections.push('');
+
+  // Extra
+  if (promptJson.extra) {
+    sections.push('ADDITIONAL INSTRUCTIONS:');
+    sections.push(promptJson.extra);
+  }
+
+  return sections.join('\n');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -192,7 +320,7 @@ async function packImagesToBoard(images, options = {}) {
  * @param {string} params.clothingNotes - Notes about clothing
  * @param {string} params.extraPrompt - Additional instructions
  * @param {Object} params.imageConfig - Image configuration
- * @returns {Promise<{ok: boolean, image?: Object, prompt?: string, error?: string}>}
+ * @returns {Promise<{ok: boolean, image?: Object, prompt?: string, promptJson?: Object, error?: string}>}
  */
 export async function generateShootFrame({
   universe,
@@ -207,16 +335,22 @@ export async function generateShootFrame({
   try {
     console.log('[ShootGenerator] Starting frame generation...');
 
-    // Build the prompt
-    const prompt = buildShootPrompt({
+    // Build the JSON prompt
+    const promptJson = buildShootPromptJson({
       universe,
       frame,
       modelDescription,
       clothingNotes,
-      extraPrompt
+      extraPrompt,
+      modelCount: 1,
+      hasIdentityRefs: identityImages.length > 0,
+      hasClothingRefs: clothingImages.length > 0
     });
 
-    console.log('[ShootGenerator] Prompt built, length:', prompt.length);
+    // Convert to text for Gemini
+    const promptText = jsonPromptToText(promptJson);
+
+    console.log('[ShootGenerator] Prompt built, length:', promptText.length);
 
     // Pack identity and clothing images
     const referenceImages = [];
@@ -249,7 +383,7 @@ export async function generateShootFrame({
 
     // Generate with Gemini
     const result = await requestGeminiImage({
-      prompt,
+      prompt: promptText,
       referenceImages,
       imageConfig: {
         aspectRatio: imageConfig.aspectRatio || '3:4',
@@ -262,7 +396,8 @@ export async function generateShootFrame({
       return {
         ok: false,
         error: result.error,
-        prompt
+        prompt: promptText,
+        promptJson
       };
     }
 
@@ -274,7 +409,8 @@ export async function generateShootFrame({
         mimeType: result.mimeType,
         base64: result.base64
       },
-      prompt
+      prompt: promptText,
+      promptJson
     };
 
   } catch (error) {
@@ -330,4 +466,3 @@ export async function generateAllShootFrames({
 
   return results;
 }
-

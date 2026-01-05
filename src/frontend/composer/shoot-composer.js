@@ -1158,7 +1158,13 @@ async function generateShoot() {
                   📋 Промпт и референсы
                 </summary>
                 <div style="margin-top: 10px; text-align: left;">
-                  <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-bottom: 6px; text-transform: uppercase;">Промпт</div>
+                  <!-- JSON Prompt -->
+                  ${frame.promptJson ? `
+                    <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-bottom: 6px; text-transform: uppercase;">JSON Промпт (структура)</div>
+                    <pre style="white-space: pre-wrap; word-break: break-word; background: #0d1117; color: #c9d1d9; padding: 10px; border-radius: 8px; max-height: 200px; overflow: auto; font-size: 10px; font-family: 'SF Mono', Monaco, monospace; border: 1px solid var(--color-border);">${escapeHtml(JSON.stringify(frame.promptJson, null, 2))}</pre>
+                  ` : ''}
+                  
+                  <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-top: 12px; margin-bottom: 6px; text-transform: uppercase;">Текстовый промпт (отправлен в Gemini)</div>
                   <pre style="white-space: pre-wrap; word-break: break-word; background: var(--color-surface-elevated); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 200px; overflow: auto; font-size: 11px; font-family: monospace; border: 1px solid var(--color-border);">${escapeHtml(frame.prompt || 'Промпт не сохранён')}</pre>
                   
                   <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-top: 12px; margin-bottom: 6px; text-transform: uppercase;">Референсы</div>
