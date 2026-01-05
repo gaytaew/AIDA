@@ -2,10 +2,11 @@
  * Universe Analyzer Service
  * 
  * Analyzes reference images using OpenAI Vision API
- * and generates universe parameters based on the visual style.
+ * and generates universe parameters + locations based on the visual style.
  */
 
-import { UNIVERSE_OPTIONS, createEmptyUniverse } from '../schema/universe.js';
+import { createEmptyUniverse, DEFAULT_FRAME_PARAMS } from '../schema/universe.js';
+import { generateLocationId, LOCATION_CATEGORIES } from '../schema/location.js';
 import config from '../config.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -76,6 +77,25 @@ You must analyze the images and fill in ALL parameters for a "universe" — a co
 - printBehavior: magazine_scan_feel | ink_softness | digital_clean
 - formatBias: vertical | horizontal | spread_friendly | square
 
+### 9. DEFAULT FRAME PARAMS (fallback when no specific frame is selected)
+- defaultFraming: close_up | medium | full_body | wide
+- defaultAngle: eye_level | low_angle | high_angle | overhead
+- defaultComposition: centered | rule_of_thirds | off_center
+- defaultExpression: neutral | confident | contemplative | playful
+- defaultPoseType: static | dynamic | candid
+- defaultPoseNotes: string (brief pose description)
+
+### 10. LOCATIONS (generate 5-10 logical locations for this visual style)
+
+For each location, provide:
+- label: Short name (e.g. "Neon Alley", "Soviet Kitchen", "Parking Garage")
+- description: 1-2 sentences describing the place for prompt generation
+- category: urban | interior | industrial | nature | transport | commercial | cultural | domestic | abstract
+- lighting: { type: natural|artificial|mixed, quality: soft|hard|dramatic|flat, temperature: warm|cool|neutral|mixed }
+- atmosphere: { spaceFeeling: intimate|expansive|claustrophobic|open, timeOfDay: day|night|golden_hour|blue_hour|any, mood: string }
+- surfaces: { materials: array of strings, colors: array of dominant colors }
+- promptSnippet: A ready-to-use prompt snippet for this location
+
 ## OUTPUT FORMAT:
 
 Return a valid JSON object with this structure:
@@ -89,21 +109,34 @@ Return a valid JSON object with this structure:
   "optical": { ... all optical parameters ... },
   "composition": { ... all composition parameters ... },
   "postProcess": { ... all postProcess parameters ... },
-  "era": { ... all era parameters ... }
+  "era": { ... all era parameters ... },
+  "defaultFrameParams": { ... default frame parameters ... },
+  "locations": [
+    {
+      "label": "Location Name",
+      "description": "Detailed description...",
+      "category": "urban",
+      "lighting": { "type": "artificial", "quality": "hard", "temperature": "warm" },
+      "atmosphere": { "spaceFeeling": "intimate", "timeOfDay": "night", "mood": "moody and atmospheric" },
+      "surfaces": { "materials": ["concrete", "neon"], "colors": ["pink", "cyan", "black"] },
+      "promptSnippet": "dimly lit urban alley with neon signs..."
+    },
+    ... 4-9 more locations ...
+  ]
 }
 
-Be precise. Use ONLY the allowed values listed above. Base your analysis on what you actually see in the images.`;
+Be precise. Use ONLY the allowed values listed above. Base your analysis on what you actually see in the images. Generate locations that would logically fit the visual style you've analyzed.`;
 
 // ═══════════════════════════════════════════════════════════════
 // OPENAI API CALL
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Analyze reference images and generate universe parameters
+ * Analyze reference images and generate universe parameters + locations
  * 
  * @param {Array<{mimeType: string, base64: string}>} images - Reference images
  * @param {string} userNotes - Optional user notes/preferences
- * @returns {Promise<Object>} - Generated universe object
+ * @returns {Promise<Object>} - Generated universe object with locations
  */
 export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '') {
   const apiKey = config.OPENAI_API_KEY;
@@ -126,8 +159,8 @@ export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '
   }));
 
   const userMessage = userNotes
-    ? `Analyze these reference images and generate a universe definition.\n\nUser notes/preferences:\n${userNotes}\n\nTake the user's preferences into account when choosing parameter values.`
-    : 'Analyze these reference images and generate a universe definition based on what you see.';
+    ? `Analyze these reference images and generate a universe definition with locations.\n\nUser notes/preferences:\n${userNotes}\n\nTake the user's preferences into account when choosing parameter values and generating locations.`
+    : 'Analyze these reference images and generate a universe definition with 5-10 fitting locations based on what you see.';
 
   const messages = [
     {
@@ -154,8 +187,8 @@ export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '
     body: JSON.stringify({
       model: 'gpt-4o',
       messages,
-      max_tokens: 4000,
-      temperature: 0.3,
+      max_tokens: 6000,
+      temperature: 0.4,
       response_format: { type: 'json_object' }
     })
   });
@@ -196,12 +229,67 @@ export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '
     optical: { ...template.optical, ...(parsed.optical || {}) },
     composition: { ...template.composition, ...(parsed.composition || {}) },
     postProcess: { ...template.postProcess, ...(parsed.postProcess || {}) },
-    era: { ...template.era, ...(parsed.era || {}) }
+    era: { ...template.era, ...(parsed.era || {}) },
+    defaultFrameParams: { ...DEFAULT_FRAME_PARAMS, ...(parsed.defaultFrameParams || {}) },
+    locations: processLocations(parsed.locations || [], template.id)
   };
 
-  console.log('[UniverseAnalyzer] Generated universe:', universe.label);
+  console.log('[UniverseAnalyzer] Generated universe:', universe.label, 'with', universe.locations.length, 'locations');
 
   return universe;
+}
+
+/**
+ * Process and validate locations from AI response
+ */
+function processLocations(rawLocations, universeId) {
+  if (!Array.isArray(rawLocations)) return [];
+  
+  const now = new Date().toISOString();
+  
+  return rawLocations.slice(0, 10).map((loc, idx) => {
+    // Validate category
+    let category = loc.category || 'urban';
+    if (!LOCATION_CATEGORIES.includes(category)) {
+      category = 'urban';
+    }
+    
+    return {
+      id: generateLocationId(loc.label || `Location ${idx + 1}`),
+      label: loc.label || `Location ${idx + 1}`,
+      description: loc.description || '',
+      category,
+      tags: [],
+      originUniverseId: universeId,
+      lighting: {
+        type: loc.lighting?.type || 'natural',
+        quality: loc.lighting?.quality || 'soft',
+        temperature: loc.lighting?.temperature || 'neutral',
+        notes: ''
+      },
+      atmosphere: {
+        spaceFeeling: loc.atmosphere?.spaceFeeling || 'open',
+        crowdLevel: 'quiet',
+        timeOfDay: loc.atmosphere?.timeOfDay || 'any',
+        season: 'any',
+        mood: loc.atmosphere?.mood || ''
+      },
+      surfaces: {
+        materials: Array.isArray(loc.surfaces?.materials) ? loc.surfaces.materials : [],
+        textures: [],
+        colors: Array.isArray(loc.surfaces?.colors) ? loc.surfaces.colors : []
+      },
+      composition: {
+        suggestedAngles: ['eye level'],
+        framingOptions: ['medium shot'],
+        backgroundType: 'neutral',
+        depthPotential: true
+      },
+      promptSnippet: loc.promptSnippet || loc.description || '',
+      createdAt: now,
+      updatedAt: now
+    };
+  });
 }
 
 /**
@@ -235,4 +323,3 @@ export function validateImageData(images) {
 
   return { valid: true };
 }
-

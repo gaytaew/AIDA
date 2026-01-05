@@ -253,10 +253,11 @@ async function renderResult() {
     { key: 'optical', title: '5. Optical Imperfections' },
     { key: 'composition', title: '6. Compositional Feel' },
     { key: 'postProcess', title: '7. Post-Process Philosophy' },
-    { key: 'era', title: '8. Era & Visual Context' }
+    { key: 'era', title: '8. Era & Visual Context' },
+    { key: 'defaultFrameParams', title: '9. Default Frame Params' }
   ];
   
-  paramsContainer.innerHTML = sections.map(section => {
+  let html = sections.map(section => {
     const data = currentUniverse[section.key] || {};
     const params = Object.entries(data).filter(([k, v]) => v !== undefined && v !== null);
     
@@ -288,6 +289,29 @@ async function renderResult() {
       </div>
     `;
   }).join('');
+  
+  // Render locations
+  if (currentUniverse.locations && currentUniverse.locations.length > 0) {
+    html += `
+      <div class="param-section">
+        <div class="param-section-title">10. Locations (${currentUniverse.locations.length})</div>
+        <div class="locations-grid">
+          ${currentUniverse.locations.map(loc => `
+            <div class="location-card">
+              <div class="location-card-header">
+                <span class="location-category">${loc.category || 'urban'}</span>
+                <strong>${loc.label}</strong>
+              </div>
+              <div class="location-card-desc">${loc.description || ''}</div>
+              ${loc.promptSnippet ? `<div class="location-card-prompt">${loc.promptSnippet}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  paramsContainer.innerHTML = html;
 }
 
 function generatePromptBlock(universe) {

@@ -13,6 +13,7 @@ import config from './config.js';
 // Routes
 import healthRoutes from './routes/healthRoutes.js';
 import universeRoutes from './routes/universeRoutes.js';
+import locationRoutes from './routes/locationRoutes.js';
 import frameRoutes from './routes/frameRoutes.js';
 import modelRoutes from './routes/modelRoutes.js';
 import shootRoutes from './routes/shootRoutes.js';
@@ -34,6 +35,7 @@ app.use(express.static(frontendPath));
 // API Routes
 app.use('/api', healthRoutes);
 app.use('/api/universes', universeRoutes);
+app.use('/api/locations', locationRoutes);
 app.use('/api/frames', frameRoutes);
 app.use('/api/models', modelRoutes);
 app.use('/api/shoots', shootRoutes);

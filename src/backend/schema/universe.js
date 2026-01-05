@@ -262,16 +262,39 @@ export const DEFAULT_ERA = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// LOCATIONS & STYLE VARIANTS (sub-entities within Universe)
+// 9. DEFAULT FRAME PARAMS (fallback when no frame is selected)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * @typedef {Object} Location
- * @property {string} id
- * @property {string} label
- * @property {string} description
- * @property {Partial<LightPhysics>} lightOverride - Optional light overrides for this location
+ * @typedef {Object} DefaultFrameParams
+ * @property {'close_up'|'medium'|'full_body'|'wide'} defaultFraming
+ * @property {'eye_level'|'low_angle'|'high_angle'|'overhead'} defaultAngle
+ * @property {'centered'|'rule_of_thirds'|'off_center'} defaultComposition
+ * @property {'neutral'|'confident'|'contemplative'|'playful'} defaultExpression
+ * @property {'static'|'dynamic'|'candid'} defaultPoseType
+ * @property {string} defaultPoseNotes
  */
+
+export const DEFAULT_FRAME_PARAMS_OPTIONS = {
+  defaultFraming: ['close_up', 'medium', 'full_body', 'wide'],
+  defaultAngle: ['eye_level', 'low_angle', 'high_angle', 'overhead'],
+  defaultComposition: ['centered', 'rule_of_thirds', 'off_center'],
+  defaultExpression: ['neutral', 'confident', 'contemplative', 'playful'],
+  defaultPoseType: ['static', 'dynamic', 'candid']
+};
+
+export const DEFAULT_FRAME_PARAMS = {
+  defaultFraming: 'medium',
+  defaultAngle: 'eye_level',
+  defaultComposition: 'rule_of_thirds',
+  defaultExpression: 'neutral',
+  defaultPoseType: 'static',
+  defaultPoseNotes: ''
+};
+
+// ═══════════════════════════════════════════════════════════════
+// STYLE VARIANTS (sub-entities within Universe)
+// ═══════════════════════════════════════════════════════════════
 
 /**
  * @typedef {Object} StyleVariant
@@ -308,6 +331,9 @@ export function createEmptyUniverse(label = 'Новая вселенная') {
     composition: { ...DEFAULT_COMPOSITION },
     postProcess: { ...DEFAULT_POST_PROCESS },
     era: { ...DEFAULT_ERA },
+    
+    // Default frame params (fallback when no frame selected)
+    defaultFrameParams: { ...DEFAULT_FRAME_PARAMS },
     
     // Sub-entities
     locations: [],
@@ -378,7 +404,7 @@ export function mergeUniverseUpdates(existing, updates) {
   const merged = { ...existing };
   
   // Deep merge each block
-  const blocks = ['capture', 'light', 'color', 'texture', 'optical', 'composition', 'postProcess', 'era'];
+  const blocks = ['capture', 'light', 'color', 'texture', 'optical', 'composition', 'postProcess', 'era', 'defaultFrameParams'];
   for (const block of blocks) {
     if (updates[block] && typeof updates[block] === 'object') {
       merged[block] = { ...(existing[block] || {}), ...updates[block] };
@@ -504,5 +530,6 @@ export const UNIVERSE_OPTIONS = {
   optical: OPTICAL_OPTIONS,
   composition: COMPOSITION_OPTIONS,
   postProcess: POST_PROCESS_OPTIONS,
-  era: ERA_OPTIONS
+  era: ERA_OPTIONS,
+  defaultFrameParams: DEFAULT_FRAME_PARAMS_OPTIONS
 };
