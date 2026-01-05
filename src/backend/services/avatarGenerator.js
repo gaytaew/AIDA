@@ -1,11 +1,11 @@
 /**
  * Avatar Generator Service
  * 
- * Generates model avatars from different angles using AI image generation.
+ * Generates model avatars from different angles using Gemini (Nano Banana Pro).
  * The results are packed into a single identity collage.
  */
 
-import config from '../config.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildIdentityCollage } from '../utils/imageCollage.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -36,7 +36,7 @@ export const AVATAR_SHOTS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// MASTER PROMPT
+// MASTER PROMPT (Nano Banana Pro style)
 // ═══════════════════════════════════════════════════════════════
 
 const MASTER_PROMPT = `IDENTITY (MUST MATCH EXACTLY):
@@ -79,116 +79,12 @@ function buildAvatarPrompt(shotId, extraPrompt = '') {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// IMAGE GENERATION (OpenAI DALL-E 3)
-// ═══════════════════════════════════════════════════════════════
-
-async function generateImageWithDALLE(prompt, referenceImages) {
-  const apiKey = config.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-
-  // Note: DALL-E 3 doesn't support reference images directly.
-  // We'll use GPT-4o Vision to describe the reference and incorporate into prompt.
-  // For now, we'll use a simplified approach with detailed prompt.
-
-  const url = 'https://api.openai.com/v1/images/generations';
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt: prompt,
-      n: 1,
-      size: '1024x1024',
-      quality: 'hd',
-      response_format: 'b64_json'
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[AvatarGenerator] DALL-E error:', errorText);
-    throw new Error(`DALL-E API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const b64 = data.data?.[0]?.b64_json;
-
-  if (!b64) {
-    throw new Error('No image data in DALL-E response');
-  }
-
-  return {
-    mimeType: 'image/png',
-    base64: b64
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ALTERNATIVE: Use GPT-4o to get description, then generate
-// ═══════════════════════════════════════════════════════════════
-
-async function describeModelForGeneration(images) {
-  const apiKey = config.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-
-  const imageContents = images.slice(0, 3).map(img => ({
-    type: 'image_url',
-    image_url: {
-      url: `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}`,
-      detail: 'high'
-    }
-  }));
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a portrait photographer assistant. Analyze the person in the photo and create a detailed physical description for image generation. Focus on: face shape, bone structure, skin tone, eye shape/color, nose shape, lip shape, hair color/style/length, any distinctive features. Be extremely precise and objective. Output only the description, no commentary.`
-        },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Describe this person for portrait generation:' },
-            ...imageContents
-          ]
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.3
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`GPT-4o error: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
-}
-
-// ═══════════════════════════════════════════════════════════════
 // MAIN GENERATION FUNCTION
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Generate avatar shots from reference images
- * @param {Array<{mimeType: string, base64: string}>} identityImages
+ * Generate avatar shots from reference images using Gemini
+ * @param {Array<{mimeType: string, base64: string}>} identityImages - Reference photos of the model
  * @param {Object} options
  * @returns {Promise<{shots: Array, collage: Object|null}>}
  */
@@ -199,11 +95,7 @@ export async function generateAvatarShots(identityImages, options = {}) {
 
   const { extraPrompt = '', delayMs = 2000 } = options;
 
-  console.log(`[AvatarGenerator] Starting generation of ${AVATAR_SHOTS.length} shots`);
-
-  // First, get a detailed description of the model
-  const modelDescription = await describeModelForGeneration(identityImages);
-  console.log('[AvatarGenerator] Model description generated');
+  console.log(`[AvatarGenerator] Starting generation of ${AVATAR_SHOTS.length} shots using Gemini`);
 
   const results = [];
 
@@ -211,23 +103,40 @@ export async function generateAvatarShots(identityImages, options = {}) {
     try {
       console.log(`[AvatarGenerator] Generating: ${shot.label}`);
 
-      // Build prompt with model description and shot specifics
-      const fullPrompt = `${MASTER_PROMPT}
+      // Build prompt with shot specifics
+      const prompt = buildAvatarPrompt(shot.id, extraPrompt);
 
-PERSON TO GENERATE (MUST MATCH EXACTLY):
-${modelDescription}
-
-${extraPrompt ? `ADDITIONAL NOTES:\n${extraPrompt}\n\n` : ''}${shot.shot}`;
-
-      const image = await generateImageWithDALLE(fullPrompt, identityImages);
-
-      results.push({
-        id: shot.id,
-        label: shot.label,
-        status: 'ok',
-        image,
-        error: null
+      // Call Gemini with identity images as reference
+      const result = await requestGeminiImage({
+        prompt,
+        referenceImages: identityImages,
+        imageConfig: {
+          aspectRatio: '1:1',
+          imageSize: '1K'
+        }
       });
+
+      if (!result.ok) {
+        console.error(`[AvatarGenerator] Error generating ${shot.id}:`, result.error);
+        results.push({
+          id: shot.id,
+          label: shot.label,
+          status: 'error',
+          image: null,
+          error: result.error
+        });
+      } else {
+        results.push({
+          id: shot.id,
+          label: shot.label,
+          status: 'ok',
+          image: {
+            mimeType: result.mimeType,
+            base64: result.base64
+          },
+          error: null
+        });
+      }
 
       // Delay between requests to avoid rate limits
       if (delayMs > 0) {
@@ -263,13 +172,12 @@ ${extraPrompt ? `ADDITIONAL NOTES:\n${extraPrompt}\n\n` : ''}${shot.shot}`;
 
   return {
     shots: results,
-    collage,
-    modelDescription
+    collage
   };
 }
 
 /**
- * Generate a single avatar shot
+ * Generate a single avatar shot using Gemini
  */
 export async function generateSingleShot(identityImages, shotId, options = {}) {
   const shot = AVATAR_SHOTS.find(s => s.id === shotId);
@@ -277,22 +185,34 @@ export async function generateSingleShot(identityImages, shotId, options = {}) {
     throw new Error(`Unknown shotId: ${shotId}`);
   }
 
-  const modelDescription = await describeModelForGeneration(identityImages);
+  if (!identityImages || identityImages.length === 0) {
+    throw new Error('At least one identity image is required');
+  }
 
-  const fullPrompt = `${MASTER_PROMPT}
+  console.log(`[AvatarGenerator] Generating single shot: ${shot.label}`);
 
-PERSON TO GENERATE (MUST MATCH EXACTLY):
-${modelDescription}
+  const prompt = buildAvatarPrompt(shotId, options.extraPrompt);
 
-${options.extraPrompt ? `ADDITIONAL NOTES:\n${options.extraPrompt}\n\n` : ''}${shot.shot}`;
+  const result = await requestGeminiImage({
+    prompt,
+    referenceImages: identityImages,
+    imageConfig: {
+      aspectRatio: '1:1',
+      imageSize: '1K'
+    }
+  });
 
-  const image = await generateImageWithDALLE(fullPrompt, identityImages);
+  if (!result.ok) {
+    throw new Error(result.error || 'Failed to generate image');
+  }
 
   return {
     id: shot.id,
     label: shot.label,
     status: 'ok',
-    image
+    image: {
+      mimeType: result.mimeType,
+      base64: result.base64
+    }
   };
 }
-
