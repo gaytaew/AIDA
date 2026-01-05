@@ -559,4 +559,252 @@ router.post('/:id/pack-clothing', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// IMAGE GENERATION
+// ═══════════════════════════════════════════════════════════════
+
+import { generateShootFrame, generateAllShootFrames } from '../services/shootGenerator.js';
+
+/**
+ * POST /api/shoots/:id/generate — Generate images for all frames
+ */
+router.post('/:id/generate', async (req, res) => {
+  try {
+    const shoot = await getShootById(req.params.id);
+    
+    if (!shoot) {
+      return res.status(404).json({ ok: false, error: 'Shoot not found' });
+    }
+    
+    if (!shoot.frames || shoot.frames.length === 0) {
+      return res.status(400).json({ ok: false, error: 'No frames in shoot' });
+    }
+    
+    if (!shoot.models || shoot.models.length === 0) {
+      return res.status(400).json({ ok: false, error: 'No models in shoot' });
+    }
+    
+    console.log(`[ShootRoutes] Starting generation for shoot ${shoot.id} with ${shoot.frames.length} frames`);
+    
+    // Collect identity images from first model
+    const identityImages = [];
+    const firstModel = shoot.models[0];
+    if (firstModel) {
+      const model = await getModelById(firstModel.modelId);
+      if (model && model.imageFiles) {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const { getModelsDir } = await import('../store/modelStore.js');
+        
+        for (const filename of model.imageFiles.slice(0, 5)) {
+          const filePath = path.default.join(getModelsDir(), model.id, filename);
+          try {
+            const buffer = await fs.default.readFile(filePath);
+            identityImages.push({
+              mimeType: 'image/jpeg',
+              base64: buffer.toString('base64')
+            });
+          } catch (e) {
+            console.warn(`[ShootRoutes] Could not read identity image: ${filePath}`);
+          }
+        }
+      }
+    }
+    
+    // Collect clothing images
+    const clothingImages = [];
+    if (shoot.clothing && shoot.clothing.length > 0) {
+      for (const clothing of shoot.clothing) {
+        if (clothing.refs) {
+          for (const ref of clothing.refs) {
+            if (ref.url && ref.url.startsWith('data:')) {
+              const match = ref.url.match(/^data:([^;]+);base64,(.+)$/);
+              if (match) {
+                clothingImages.push({ mimeType: match[1], base64: match[2] });
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Collect frame data
+    const frames = [];
+    for (const shootFrame of shoot.frames) {
+      const frameData = await getFrameById(shootFrame.frameId);
+      if (frameData) {
+        frames.push({
+          ...frameData,
+          extraPrompt: shootFrame.extraPrompt || ''
+        });
+      }
+    }
+    
+    if (frames.length === 0) {
+      return res.status(400).json({ ok: false, error: 'No valid frames found' });
+    }
+    
+    // Get model description
+    let modelDescription = '';
+    if (firstModel) {
+      const model = await getModelById(firstModel.modelId);
+      if (model) {
+        modelDescription = model.promptSnippet || model.label || '';
+      }
+    }
+    
+    // Generate all frames
+    const results = await generateAllShootFrames({
+      universe: shoot.universe,
+      frames,
+      identityImages,
+      clothingImages,
+      modelDescription,
+      clothingNotes: '',
+      imageConfig: shoot.globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '1K' },
+      delayMs: 2000
+    });
+    
+    // Convert results to response format
+    const generatedFrames = results.map(r => ({
+      frameId: r.frameId,
+      frameLabel: r.frameLabel,
+      status: r.ok ? 'ok' : 'error',
+      imageUrl: r.ok && r.image ? `data:${r.image.mimeType};base64,${r.image.base64}` : null,
+      error: r.error || null,
+      prompt: r.prompt
+    }));
+    
+    console.log(`[ShootRoutes] Generation complete: ${generatedFrames.filter(f => f.status === 'ok').length}/${generatedFrames.length} successful`);
+    
+    res.json({
+      ok: true,
+      data: {
+        shootId: shoot.id,
+        frames: generatedFrames
+      }
+    });
+    
+  } catch (error) {
+    console.error('[ShootRoutes] Error generating shoot:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/shoots/:id/generate-frame — Generate a single frame
+ * Body: { frameIndex: number }
+ */
+router.post('/:id/generate-frame', async (req, res) => {
+  try {
+    const { frameIndex } = req.body;
+    const shoot = await getShootById(req.params.id);
+    
+    if (!shoot) {
+      return res.status(404).json({ ok: false, error: 'Shoot not found' });
+    }
+    
+    if (frameIndex === undefined || frameIndex < 0 || frameIndex >= (shoot.frames?.length || 0)) {
+      return res.status(400).json({ ok: false, error: 'Invalid frameIndex' });
+    }
+    
+    const shootFrame = shoot.frames[frameIndex];
+    const frameData = await getFrameById(shootFrame.frameId);
+    
+    if (!frameData) {
+      return res.status(404).json({ ok: false, error: 'Frame not found' });
+    }
+    
+    // Collect identity images
+    const identityImages = [];
+    if (shoot.models && shoot.models.length > 0) {
+      const firstModel = shoot.models[0];
+      const model = await getModelById(firstModel.modelId);
+      if (model && model.imageFiles) {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const { getModelsDir } = await import('../store/modelStore.js');
+        
+        for (const filename of model.imageFiles.slice(0, 5)) {
+          const filePath = path.default.join(getModelsDir(), model.id, filename);
+          try {
+            const buffer = await fs.default.readFile(filePath);
+            identityImages.push({
+              mimeType: 'image/jpeg',
+              base64: buffer.toString('base64')
+            });
+          } catch (e) {
+            console.warn(`[ShootRoutes] Could not read identity image: ${filePath}`);
+          }
+        }
+      }
+    }
+    
+    // Collect clothing images
+    const clothingImages = [];
+    if (shoot.clothing && shoot.clothing.length > 0) {
+      for (const clothing of shoot.clothing) {
+        if (clothing.refs) {
+          for (const ref of clothing.refs) {
+            if (ref.url && ref.url.startsWith('data:')) {
+              const match = ref.url.match(/^data:([^;]+);base64,(.+)$/);
+              if (match) {
+                clothingImages.push({ mimeType: match[1], base64: match[2] });
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Get model description
+    let modelDescription = '';
+    if (shoot.models && shoot.models.length > 0) {
+      const model = await getModelById(shoot.models[0].modelId);
+      if (model) {
+        modelDescription = model.promptSnippet || model.label || '';
+      }
+    }
+    
+    // Generate single frame
+    const result = await generateShootFrame({
+      universe: shoot.universe,
+      frame: {
+        ...frameData,
+        extraPrompt: shootFrame.extraPrompt || ''
+      },
+      identityImages,
+      clothingImages,
+      modelDescription,
+      clothingNotes: '',
+      extraPrompt: shootFrame.extraPrompt || '',
+      imageConfig: shoot.globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '1K' }
+    });
+    
+    if (!result.ok) {
+      return res.json({
+        ok: false,
+        error: result.error,
+        prompt: result.prompt
+      });
+    }
+    
+    const imageUrl = `data:${result.image.mimeType};base64,${result.image.base64}`;
+    
+    res.json({
+      ok: true,
+      data: {
+        frameId: frameData.id,
+        frameLabel: frameData.label,
+        imageUrl,
+        prompt: result.prompt
+      }
+    });
+    
+  } catch (error) {
+    console.error('[ShootRoutes] Error generating frame:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 export default router;
