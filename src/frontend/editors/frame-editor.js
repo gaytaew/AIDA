@@ -400,6 +400,23 @@ function initSketchUpload() {
     els.btnAnalyzeSketch.disabled = true;
   });
   
+  // Paste (Cmd+V / Ctrl+V)
+  document.addEventListener('paste', async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          await loadSketchFile(file);
+          break;
+        }
+      }
+    }
+  });
+  
   // Analyze button
   els.btnAnalyzeSketch.addEventListener('click', analyzeSketch);
 }

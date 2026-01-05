@@ -618,6 +618,25 @@ function initDragDrop() {
       addFiles(e.dataTransfer.files);
     }
   });
+  
+  // Paste (Cmd+V / Ctrl+V)
+  document.addEventListener('paste', (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    
+    const imageFiles = [];
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) imageFiles.push(file);
+      }
+    }
+    
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      addFiles(imageFiles);
+    }
+  });
 }
 
 function initButtons() {

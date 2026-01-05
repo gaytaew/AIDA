@@ -102,11 +102,36 @@ function initEventListeners() {
     handleFiles(e.target.files);
   });
 
+  // Paste (Cmd+V / Ctrl+V)
+  document.addEventListener('paste', handlePaste);
+
   // Buttons
   elements.btnGenerate.addEventListener('click', generateDescription);
   elements.btnGenerateAvatars.addEventListener('click', generateAvatarShots);
   elements.btnSave.addEventListener('click', saveModel);
   elements.btnClear.addEventListener('click', clearForm);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PASTE HANDLER (Cmd+V)
+// ═══════════════════════════════════════════════════════════════
+
+function handlePaste(e) {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+
+  const imageFiles = [];
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) imageFiles.push(file);
+    }
+  }
+
+  if (imageFiles.length > 0) {
+    e.preventDefault();
+    handleFiles(imageFiles);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

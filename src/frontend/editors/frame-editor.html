@@ -6,39 +6,7 @@
   <title>Frame Editor — AIDA</title>
   <link rel="stylesheet" href="../styles.css">
   <style>
-    /* Editor-specific styles */
-    .editor-layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 32px;
-      align-items: start;
-    }
-
-    @media (max-width: 1200px) {
-      .editor-layout {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .panel {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: 24px;
-    }
-
-    .panel-title {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .panel-title-icon {
-      font-size: 20px;
-    }
+    /* Frame Editor specific styles */
 
     /* Tabs */
     .tabs {
@@ -81,81 +49,13 @@
       display: block;
     }
 
-    /* Form */
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
-
+    /* Form group label override for this page */
     .form-group label {
       font-size: 12px;
       font-weight: 600;
       color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.03em;
-    }
-
-    .form-group select,
-    .form-group input,
-    .form-group textarea {
-      padding: 10px 12px;
-      background: var(--color-surface-elevated);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      color: var(--color-text);
-      font-family: var(--font-main);
-      font-size: 13px;
-    }
-
-    .form-group select:focus,
-    .form-group input:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: var(--color-accent);
-    }
-
-    .form-group textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-
-    /* Upload zone */
-    .upload-zone {
-      background: var(--color-bg);
-      border: 2px dashed var(--color-border);
-      border-radius: var(--radius-md);
-      padding: 40px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .upload-zone:hover,
-    .upload-zone.dragover {
-      border-color: var(--color-accent);
-      background: rgba(233, 69, 96, 0.08);
-    }
-
-    .upload-zone-icon {
-      font-size: 40px;
-      margin-bottom: 12px;
-      opacity: 0.7;
-    }
-
-    .upload-zone-text {
-      font-size: 14px;
-      color: var(--color-text-muted);
     }
 
     /* Sketch preview */
