@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frame Editor — AIDA</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <div class="logo-icon">A</div>
+          <div class="logo-text">AIDA</div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Главное</div>
+          <a href="/" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="/composer/shoot-composer.html" class="nav-item">
+            <span class="nav-item-icon">🎬</span>
+            <span>Конструктор съёмок</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Редакторы</div>
+          <a href="/editors/universe-editor.html" class="nav-item">
+            <span class="nav-item-icon">🌌</span>
+            <span>Вселенные</span>
+          </a>
+          <a href="/editors/frame-editor.html" class="nav-item active">
+            <span class="nav-item-icon">🖼️</span>
+            <span>Каталог кадров</span>
+          </a>
+          <a href="/editors/model-editor.html" class="nav-item">
+            <span class="nav-item-icon">👤</span>
+            <span>Модели</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>Сервер работает</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="page-header">
+        <h1 class="page-title">Каталог кадров</h1>
+        <p class="page-subtitle">
+          Создавай и редактируй эскизы кадров для съёмок: позы, ракурсы, композиция.
+        </p>
+      </header>
+
+      <div class="page-content">
+        <div class="empty-state">
+          <div class="empty-state-icon">🚧</div>
+          <div class="empty-state-title">В разработке</div>
+          <div class="empty-state-text">
+            Редактор кадров будет доступен в следующем обновлении.
+          </div>
+          <a href="/" class="btn btn-secondary">← Назад на Dashboard</a>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+

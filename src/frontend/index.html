@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIDA — Модульный конструктор съёмок</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <div class="logo-icon">A</div>
+          <div class="logo-text">AIDA</div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Главное</div>
+          <a href="/" class="nav-item active">
+            <span class="nav-item-icon">🏠</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="/composer/shoot-composer.html" class="nav-item">
+            <span class="nav-item-icon">🎬</span>
+            <span>Конструктор съёмок</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Редакторы</div>
+          <a href="/editors/universe-editor.html" class="nav-item">
+            <span class="nav-item-icon">🌌</span>
+            <span>Вселенные</span>
+          </a>
+          <a href="/editors/frame-editor.html" class="nav-item">
+            <span class="nav-item-icon">🖼️</span>
+            <span>Каталог кадров</span>
+          </a>
+          <a href="/editors/model-editor.html" class="nav-item">
+            <span class="nav-item-icon">👤</span>
+            <span>Модели</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="status-text">Загрузка...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="page-header">
+        <h1 class="page-title">Добро пожаловать в AIDA</h1>
+        <p class="page-subtitle">
+          Модульный конструктор съёмок. Создавай вселенные, модели и кадры, затем собирай из них полноценные фотосессии.
+        </p>
+      </header>
+
+      <div class="page-content">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">Модули конструктора</h2>
+          </div>
+
+          <div class="dashboard-grid">
+            <!-- Universe Editor -->
+            <a href="/editors/universe-editor.html" class="dashboard-card">
+              <div class="dashboard-card-icon purple">🌌</div>
+              <h3 class="dashboard-card-title">Вселенные</h3>
+              <p class="dashboard-card-desc">
+                Визуальная ДНК съёмок: камера, свет, цвет, текстуры, оптика, эпоха и эстетика. 
+                Загрузи референсы — AI создаст вселенную.
+              </p>
+              <span class="dashboard-card-badge">AI-генерация</span>
+            </a>
+
+            <!-- Frame Catalog -->
+            <a href="/editors/frame-editor.html" class="dashboard-card">
+              <div class="dashboard-card-icon blue">🖼️</div>
+              <h3 class="dashboard-card-title">Каталог кадров</h3>
+              <p class="dashboard-card-desc">
+                Эскизы и описания кадров для съёмок. Позы, ракурсы, композиция и дополнительные инструкции.
+              </p>
+              <span class="dashboard-card-badge coming">Скоро</span>
+            </a>
+
+            <!-- Model Editor -->
+            <a href="/editors/model-editor.html" class="dashboard-card">
+              <div class="dashboard-card-icon green">👤</div>
+              <h3 class="dashboard-card-title">Модели</h3>
+              <p class="dashboard-card-desc">
+                Аватары моделей: внешность, типаж, референсы лица и тела для сохранения идентичности в съёмках.
+              </p>
+              <span class="dashboard-card-badge coming">Скоро</span>
+            </a>
+
+            <!-- Shoot Composer -->
+            <a href="/composer/shoot-composer.html" class="dashboard-card">
+              <div class="dashboard-card-icon pink">🎬</div>
+              <h3 class="dashboard-card-title">Конструктор съёмок</h3>
+              <p class="dashboard-card-desc">
+                Собирай полноценные съёмки: выбери вселенную, моделей, загрузи одежду, добавь кадры и настрой параметры.
+              </p>
+              <span class="dashboard-card-badge coming">Скоро</span>
+            </a>
+
+            <!-- Global Settings -->
+            <a href="/editors/global-settings.html" class="dashboard-card">
+              <div class="dashboard-card-icon orange">⚙️</div>
+              <h3 class="dashboard-card-title">Глобальные настройки</h3>
+              <p class="dashboard-card-desc">
+                Anti-AI параметры, блокировка идентичности модели, консистентность одежды и визуального стиля.
+              </p>
+              <span class="dashboard-card-badge coming">Скоро</span>
+            </a>
+          </div>
+        </section>
+
+        <!-- Quick Stats -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">Статистика</h2>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="dashboard-card" style="cursor: default;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="dashboard-card-icon purple" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">🌌</div>
+                <div>
+                  <div id="stat-universes" style="font-size: 28px; font-weight: 700;">—</div>
+                  <div style="font-size: 13px; color: var(--color-text-muted);">Вселенных</div>
+                </div>
+              </div>
+            </div>
+            <div class="dashboard-card" style="cursor: default;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="dashboard-card-icon blue" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">🖼️</div>
+                <div>
+                  <div id="stat-frames" style="font-size: 28px; font-weight: 700;">—</div>
+                  <div style="font-size: 13px; color: var(--color-text-muted);">Кадров</div>
+                </div>
+              </div>
+            </div>
+            <div class="dashboard-card" style="cursor: default;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="dashboard-card-icon green" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">👤</div>
+                <div>
+                  <div id="stat-models" style="font-size: 28px; font-weight: 700;">—</div>
+                  <div style="font-size: 13px; color: var(--color-text-muted);">Моделей</div>
+                </div>
+              </div>
+            </div>
+            <div class="dashboard-card" style="cursor: default;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="dashboard-card-icon pink" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">📸</div>
+                <div>
+                  <div id="stat-shoots" style="font-size: 28px; font-weight: 700;">—</div>
+                  <div style="font-size: 13px; color: var(--color-text-muted);">Съёмок</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Health check and stats
+    async function init() {
+      const statusText = document.getElementById('status-text');
+      
+      try {
+        // Health check
+        const healthRes = await fetch('/api/health');
+        const health = await healthRes.json();
+        statusText.textContent = health.ok ? 'Сервер работает' : 'Ошибка сервера';
+        
+        // Load stats
+        const [universesRes] = await Promise.all([
+          fetch('/api/universes')
+        ]);
+        
+        const universes = await universesRes.json();
+        
+        document.getElementById('stat-universes').textContent = universes.ok ? universes.total : 0;
+        document.getElementById('stat-frames').textContent = '0';
+        document.getElementById('stat-models').textContent = '0';
+        document.getElementById('stat-shoots').textContent = '0';
+        
+      } catch (e) {
+        console.error('Init error:', e);
+        statusText.textContent = 'Нет связи';
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

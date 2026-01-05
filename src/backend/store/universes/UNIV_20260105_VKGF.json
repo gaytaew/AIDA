@@ -1,0 +1,79 @@
+{
+  "id": "UNIV_20260105_VKGF",
+  "label": "High Voltage Runway",
+  "shortDescription": "Late 90s European fashion editorial with harsh flash",
+  "capture": {
+    "mediumType": "film",
+    "cameraSystem": "35mm",
+    "lensBehavior": "sharp_center_soft_edges",
+    "shutterBehavior": "flash_freeze",
+    "dynamicRange": "natural",
+    "grainStructure": "visible",
+    "scanArtifacts": [
+      "dust"
+    ]
+  },
+  "light": {
+    "primaryLightType": "on_camera_flash",
+    "flashCharacter": "harsh",
+    "ambientLightType": "mixed",
+    "exposureBias": 0,
+    "shadowBehavior": "hard_edges",
+    "highlightBehavior": "clipped_allowed",
+    "lightImperfections": [
+      "uneven_falloff",
+      "reflections"
+    ]
+  },
+  "color": {
+    "baseColorCast": "cool",
+    "dominantPalette": "high_contrast",
+    "accentColors": [
+      "rust",
+      "sodium_yellow"
+    ],
+    "skinToneRendering": "natural",
+    "whiteBalanceBehavior": "imperfect",
+    "colorNoise": "subtle"
+  },
+  "texture": {
+    "surfaceResponse": "mixed",
+    "materialTruthVisible": true,
+    "skinTextureVisible": true,
+    "imperfectionsAllowed": [
+      "dust",
+      "fingerprints"
+    ],
+    "microDetailLevel": "natural"
+  },
+  "optical": {
+    "focusAccuracy": "slightly_imperfect",
+    "chromaticAberration": "subtle",
+    "vignetting": "natural",
+    "halation": "subtle",
+    "naturalLensDistortionAllowed": true
+  },
+  "composition": {
+    "horizonBehavior": "slightly_imperfect",
+    "editorialBias": "editorial",
+    "negativeSpaceDefault": "present",
+    "notes": ""
+  },
+  "postProcess": {
+    "retouchingLevel": "editorial_only",
+    "skinSmoothing": false,
+    "sharpening": "none",
+    "hdrForbidden": true,
+    "aiArtifactsPrevention": true
+  },
+  "era": {
+    "eraReference": "early_2000s",
+    "editorialReference": "european_fashion",
+    "printBehavior": "magazine_scan_feel",
+    "formatBias": "vertical"
+  },
+  "locations": [],
+  "styleVariants": [],
+  "createdAt": "2026-01-05T14:40:06.099Z",
+  "updatedAt": "2026-01-05T14:40:06.104Z"
+}

@@ -1,0 +1,31 @@
+{
+  "name": "aida",
+  "version": "0.1.0",
+  "description": "AIDA — модульный конструктор съёмок",
+  "type": "module",
+  "main": "src/backend/server.js",
+  "scripts": {
+    "start": "node src/backend/server.js",
+    "dev": "node --watch src/backend/server.js",
+    "check": "node --check src/backend/server.js"
+  },
+  "keywords": [
+    "fashion",
+    "shoot",
+    "constructor",
+    "ai",
+    "image-generation"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  }
+}
+

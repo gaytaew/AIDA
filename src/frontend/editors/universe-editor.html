@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universe Editor — AIDA</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    /* Editor-specific styles */
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      .editor-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .upload-zone {
+      background: var(--color-surface);
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--color-accent);
+      background: rgba(233, 69, 96, 0.05);
+    }
+
+    .upload-zone-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.7;
+    }
+
+    .upload-zone-text {
+      font-size: 15px;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .upload-zone-hint {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      opacity: 0.7;
+    }
+
+    .refs-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .ref-thumb {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--color-surface-elevated);
+    }
+
+    .ref-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ref-thumb-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .ref-thumb:hover .ref-thumb-remove {
+      opacity: 1;
+    }
+
+    .notes-field {
+      margin-top: 20px;
+    }
+
+    .notes-field textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 14px;
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text);
+      font-family: var(--font-main);
+      font-size: 14px;
+      resize: vertical;
+    }
+
+    .notes-field textarea:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    .notes-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .generate-actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .status-message {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+    }
+
+    .status-message.loading {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+    }
+
+    .status-message.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22C55E;
+    }
+
+    .status-message.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
+    }
+
+    /* Result panel */
+    .result-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .result-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .result-content {
+      padding: 24px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .param-section {
+      margin-bottom: 28px;
+    }
+
+    .param-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .param-section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .param-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .param-field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+
+    .param-field select,
+    .param-field input {
+      padding: 10px 12px;
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text);
+      font-family: var(--font-main);
+      font-size: 13px;
+    }
+
+    .param-field select:focus,
+    .param-field input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    .param-value {
+      font-size: 14px;
+      color: var(--color-text);
+      padding: 8px 12px;
+      background: var(--color-surface-elevated);
+      border-radius: var(--radius-sm);
+    }
+
+    .param-value.array {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .param-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--color-accent-alt);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+    }
+
+    .prompt-preview {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      color: var(--color-text-muted);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* Universe list */
+    .universe-list {
+      margin-top: 32px;
+    }
+
+    .universe-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .universe-card:hover {
+      border-color: var(--color-border-hover);
+    }
+
+    .universe-card.selected {
+      border-color: var(--color-accent);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .universe-card-info {
+      flex: 1;
+    }
+
+    .universe-card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .universe-card-desc {
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+
+    .universe-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+
+    .icon-btn:hover {
+      color: var(--color-text);
+      border-color: var(--color-border-hover);
+    }
+
+    .icon-btn.danger:hover {
+      color: #EF4444;
+      border-color: #EF4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <div class="logo-icon">A</div>
+          <div class="logo-text">AIDA</div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Главное</div>
+          <a href="/" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="/composer/shoot-composer.html" class="nav-item">
+            <span class="nav-item-icon">🎬</span>
+            <span>Конструктор съёмок</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Редакторы</div>
+          <a href="/editors/universe-editor.html" class="nav-item active">
+            <span class="nav-item-icon">🌌</span>
+            <span>Вселенные</span>
+          </a>
+          <a href="/editors/frame-editor.html" class="nav-item">
+            <span class="nav-item-icon">🖼️</span>
+            <span>Каталог кадров</span>
+          </a>
+          <a href="/editors/model-editor.html" class="nav-item">
+            <span class="nav-item-icon">👤</span>
+            <span>Модели</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="status-text">Загрузка...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="page-header">
+        <h1 class="page-title">Universe Editor</h1>
+        <p class="page-subtitle">
+          Загрузи референсы съёмки — AI проанализирует их и создаст вселенную с полным набором визуальных параметров.
+        </p>
+      </header>
+
+      <div class="page-content">
+        <div class="editor-layout">
+          <!-- Left: Upload & Controls -->
+          <div class="upload-panel">
+            <label id="upload-zone" class="upload-zone">
+              <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+              <div class="upload-zone-icon">📸</div>
+              <div class="upload-zone-text">Перетащи референсы сюда</div>
+              <div class="upload-zone-hint">или кликни для выбора файлов (до 10 изображений)</div>
+            </label>
+
+            <div id="refs-preview" class="refs-preview"></div>
+
+            <div class="notes-field">
+              <label for="user-notes">Пожелания (опционально)</label>
+              <textarea 
+                id="user-notes" 
+                placeholder="Например: больше плёночности, меньше стерильности, ближе к i-D, без глянца, late 90s European vibe..."
+              ></textarea>
+            </div>
+
+            <div class="generate-actions">
+              <button id="btn-generate" class="btn btn-primary" disabled>
+                🔮 Сгенерировать вселенную
+              </button>
+              <button id="btn-clear" class="btn btn-secondary">
+                Очистить
+              </button>
+            </div>
+
+            <div id="status" class="status-message" style="display: none;"></div>
+
+            <!-- Existing universes -->
+            <div class="universe-list">
+              <div class="section-header">
+                <h2 class="section-title">Сохранённые вселенные</h2>
+              </div>
+              <div id="universe-list-container"></div>
+            </div>
+          </div>
+
+          <!-- Right: Result Panel -->
+          <div id="result-panel" class="result-panel" style="display: none;">
+            <div class="result-header">
+              <div>
+                <h2 id="result-title" class="result-title">Новая вселенная</h2>
+                <p id="result-desc" class="page-subtitle" style="margin: 4px 0 0; font-size: 13px;"></p>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button id="btn-save" class="btn btn-primary">💾 Сохранить</button>
+                <button id="btn-copy-prompt" class="btn btn-secondary">📋 Скопировать промпт</button>
+              </div>
+            </div>
+
+            <div class="result-content">
+              <!-- Prompt Preview -->
+              <div class="param-section">
+                <div class="param-section-title">Prompt Block (автогенерация)</div>
+                <pre id="prompt-preview" class="prompt-preview"></pre>
+              </div>
+
+              <!-- Parameters by section -->
+              <div id="params-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="universe-editor.js"></script>
+</body>
+</html>
+
