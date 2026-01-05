@@ -9,31 +9,45 @@
     /* Editor-specific styles */
     .editor-layout {
       display: grid;
-      grid-template-columns: 380px 1fr;
+      grid-template-columns: 460px 1fr;
       gap: 32px;
       align-items: start;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1200px) {
       .editor-layout {
         grid-template-columns: 1fr;
       }
     }
 
-    .upload-zone {
+    .left-column {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .upload-panel {
       background: var(--color-surface);
-      border: 2px dashed var(--color-border);
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      padding: 40px 24px;
+      padding: 24px;
+    }
+
+    .upload-zone {
+      background: var(--color-bg);
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 32px 20px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s ease;
+      display: block;
     }
 
     .upload-zone:hover,
     .upload-zone.dragover {
       border-color: var(--color-accent);
-      background: rgba(233, 69, 96, 0.05);
+      background: rgba(233, 69, 96, 0.08);
     }
 
     .upload-zone-icon {
@@ -56,15 +70,15 @@
 
     .refs-preview {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 12px;
-      margin-top: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 16px;
     }
 
     .ref-thumb {
       position: relative;
       aspect-ratio: 1;
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       overflow: hidden;
       background: var(--color-surface-elevated);
     }
@@ -77,16 +91,16 @@
 
     .ref-thumb-remove {
       position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 24px;
-      height: 24px;
+      top: 4px;
+      right: 4px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       color: white;
       border: none;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -104,8 +118,8 @@
 
     .notes-field textarea {
       width: 100%;
-      min-height: 100px;
-      padding: 14px;
+      min-height: 90px;
+      padding: 12px;
       background: var(--color-surface-elevated);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
@@ -130,8 +144,13 @@
 
     .generate-actions {
       margin-top: 20px;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto;
       gap: 12px;
+    }
+
+    .generate-actions .btn {
+      white-space: nowrap;
     }
 
     .status-message {
@@ -156,139 +175,36 @@
       color: #EF4444;
     }
 
-    /* Result panel */
-    .result-panel {
+    /* Universe list */
+    .universe-list-panel {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      overflow: hidden;
+      padding: 20px;
     }
 
-    .result-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--color-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .result-title {
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .result-content {
-      padding: 24px;
-      max-height: 70vh;
-      overflow-y: auto;
-    }
-
-    .param-section {
-      margin-bottom: 28px;
-    }
-
-    .param-section:last-child {
-      margin-bottom: 0;
-    }
-
-    .param-section-title {
+    .universe-list-title {
       font-size: 14px;
       font-weight: 700;
-      color: var(--color-accent);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
       margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--color-border);
-    }
-
-    .param-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-    }
-
-    .param-field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .param-field label {
-      font-size: 12px;
-      font-weight: 600;
       color: var(--color-text-muted);
-    }
-
-    .param-field select,
-    .param-field input {
-      padding: 10px 12px;
-      background: var(--color-surface-elevated);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      color: var(--color-text);
-      font-family: var(--font-main);
-      font-size: 13px;
-    }
-
-    .param-field select:focus,
-    .param-field input:focus {
-      outline: none;
-      border-color: var(--color-accent);
-    }
-
-    .param-value {
-      font-size: 14px;
-      color: var(--color-text);
-      padding: 8px 12px;
-      background: var(--color-surface-elevated);
-      border-radius: var(--radius-sm);
-    }
-
-    .param-value.array {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .param-tag {
-      display: inline-block;
-      padding: 4px 10px;
-      background: var(--color-accent-alt);
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-    }
-
-    .prompt-preview {
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      font-family: 'SF Mono', Monaco, Consolas, monospace;
-      font-size: 12px;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      color: var(--color-text-muted);
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    /* Universe list */
-    .universe-list {
-      margin-top: 32px;
     }
 
     .universe-card {
-      background: var(--color-surface);
+      background: var(--color-bg);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
-      padding: 16px 20px;
-      margin-bottom: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
       transition: all 0.15s;
+    }
+
+    .universe-card:last-child {
+      margin-bottom: 0;
     }
 
     .universe-card:hover {
@@ -302,27 +218,35 @@
 
     .universe-card-info {
       flex: 1;
+      min-width: 0;
     }
 
     .universe-card-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .universe-card-desc {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--color-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .universe-card-actions {
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      margin-left: 12px;
     }
 
     .icon-btn {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: var(--radius-sm);
       background: var(--color-surface-elevated);
       border: 1px solid var(--color-border);
@@ -331,7 +255,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
       transition: all 0.15s;
     }
 
@@ -343,6 +267,140 @@
     .icon-btn.danger:hover {
       color: #EF4444;
       border-color: #EF4444;
+    }
+
+    /* Result panel */
+    .result-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .result-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .result-header-info {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .result-desc {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .result-content {
+      padding: 24px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
+    .param-section {
+      margin-bottom: 28px;
+    }
+
+    .param-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .param-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .param-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .param-field label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .param-value {
+      font-size: 13px;
+      color: var(--color-text);
+      padding: 8px 10px;
+      background: var(--color-surface-elevated);
+      border-radius: var(--radius-sm);
+    }
+
+    .param-value.array {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .param-tag {
+      display: inline-block;
+      padding: 3px 8px;
+      background: var(--color-accent-alt);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+    }
+
+    .prompt-preview {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      color: var(--color-text-muted);
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .empty-list {
+      text-align: center;
+      padding: 24px 16px;
+      color: var(--color-text-muted);
+      font-size: 13px;
+    }
+
+    .empty-list-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+      opacity: 0.5;
     }
   </style>
 </head>
@@ -406,62 +464,68 @@
 
       <div class="page-content">
         <div class="editor-layout">
-          <!-- Left: Upload & Controls -->
-          <div class="upload-panel">
-            <label id="upload-zone" class="upload-zone">
-              <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
-              <div class="upload-zone-icon">📸</div>
-              <div class="upload-zone-text">Перетащи референсы сюда</div>
-              <div class="upload-zone-hint">или кликни для выбора файлов (до 10 изображений)</div>
-            </label>
+          <!-- Left Column -->
+          <div class="left-column">
+            <!-- Upload Panel -->
+            <div class="upload-panel">
+              <label id="upload-zone" class="upload-zone">
+                <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+                <div class="upload-zone-icon">📸</div>
+                <div class="upload-zone-text">Перетащи референсы сюда</div>
+                <div class="upload-zone-hint">или кликни для выбора файлов (до 10 изображений)</div>
+              </label>
 
-            <div id="refs-preview" class="refs-preview"></div>
+              <div id="refs-preview" class="refs-preview"></div>
 
-            <div class="notes-field">
-              <label for="user-notes">Пожелания (опционально)</label>
-              <textarea 
-                id="user-notes" 
-                placeholder="Например: больше плёночности, меньше стерильности, ближе к i-D, без глянца, late 90s European vibe..."
-              ></textarea>
-            </div>
-
-            <div class="generate-actions">
-              <button id="btn-generate" class="btn btn-primary" disabled>
-                🔮 Сгенерировать вселенную
-              </button>
-              <button id="btn-clear" class="btn btn-secondary">
-                Очистить
-              </button>
-            </div>
-
-            <div id="status" class="status-message" style="display: none;"></div>
-
-            <!-- Existing universes -->
-            <div class="universe-list">
-              <div class="section-header">
-                <h2 class="section-title">Сохранённые вселенные</h2>
+              <div class="notes-field">
+                <label for="user-notes">Пожелания (опционально)</label>
+                <textarea 
+                  id="user-notes" 
+                  placeholder="Например: больше плёночности, меньше стерильности, ближе к i-D, без глянца, late 90s European vibe..."
+                ></textarea>
               </div>
-              <div id="universe-list-container"></div>
+
+              <div class="generate-actions">
+                <button id="btn-generate" class="btn btn-primary" disabled>
+                  🔮 Сгенерировать
+                </button>
+                <button id="btn-clear" class="btn btn-secondary">
+                  Очистить
+                </button>
+              </div>
+
+              <div id="status" class="status-message" style="display: none;"></div>
+            </div>
+
+            <!-- Saved Universes -->
+            <div class="universe-list-panel">
+              <div class="universe-list-title">Сохранённые вселенные</div>
+              <div id="universe-list-container">
+                <div class="empty-list">
+                  <div class="empty-list-icon">🌌</div>
+                  <div>Пока нет сохранённых вселенных</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Right: Result Panel -->
+          <!-- Right Column: Result Panel -->
           <div id="result-panel" class="result-panel" style="display: none;">
             <div class="result-header">
-              <div>
+              <div class="result-header-info">
                 <h2 id="result-title" class="result-title">Новая вселенная</h2>
-                <p id="result-desc" class="page-subtitle" style="margin: 4px 0 0; font-size: 13px;"></p>
+                <p id="result-desc" class="result-desc"></p>
               </div>
-              <div style="display: flex; gap: 12px;">
+              <div class="result-actions">
                 <button id="btn-save" class="btn btn-primary">💾 Сохранить</button>
-                <button id="btn-copy-prompt" class="btn btn-secondary">📋 Скопировать промпт</button>
+                <button id="btn-copy-prompt" class="btn btn-secondary">📋 Копировать</button>
               </div>
             </div>
 
             <div class="result-content">
               <!-- Prompt Preview -->
               <div class="param-section">
-                <div class="param-section-title">Prompt Block (автогенерация)</div>
+                <div class="param-section-title">Prompt Block</div>
                 <pre id="prompt-preview" class="prompt-preview"></pre>
               </div>
 
@@ -477,4 +541,3 @@
   <script type="module" src="universe-editor.js"></script>
 </body>
 </html>
-

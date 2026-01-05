@@ -455,9 +455,9 @@ function renderUniverseList() {
   
   if (savedUniverses.length === 0) {
     universeListContainer.innerHTML = `
-      <div class="empty-state" style="padding: 30px 20px;">
-        <div class="empty-state-icon">🌌</div>
-        <div class="empty-state-text">Пока нет сохранённых вселенных</div>
+      <div class="empty-list">
+        <div class="empty-list-icon">🌌</div>
+        <div>Пока нет сохранённых вселенных</div>
       </div>
     `;
     return;
