@@ -517,6 +517,20 @@ function fillFormFromAnalysis(result) {
     if (t.poseDescription) els.poseDescTextarea.value = t.poseDescription;
   }
   
+  // If we have a generated sketch, store it for saving
+  if (result.generatedSketch && result.generatedSketch.base64) {
+    const dataUrl = `data:${result.generatedSketch.mimeType || 'image/png'};base64,${result.generatedSketch.base64}`;
+    sketchImage = {
+      dataUrl,
+      mimeType: result.generatedSketch.mimeType || 'image/png',
+      base64: result.generatedSketch.base64
+    };
+    
+    // Show the generated sketch in the "From Text" tab preview area
+    els.generatedSketchImg.src = dataUrl;
+    els.generatedSketch.style.display = 'block';
+  }
+  
   updatePromptPreview();
 }
 

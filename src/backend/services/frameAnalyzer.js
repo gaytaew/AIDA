@@ -3,10 +3,12 @@
  * 
  * AI-powered analysis and generation for frames:
  * 1. analyzeSketch - Extract technical parameters from a sketch/reference image
- * 2. generateSketchFromText - Generate a sketch image from text description
+ * 2. generatePoseSketch - Generate a schematic pose sketch (stick figure style)
+ * 3. analyzeAndGenerateSketch - Full pipeline: analyze + generate sketch
  */
 
 import config from '../config.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import {
   SHOT_SIZE_OPTIONS,
   CAMERA_ANGLE_OPTIONS,
@@ -39,7 +41,7 @@ Options: ${COMPOSITION_OPTIONS.join(', ')}
 Free text: e.g., "face", "hands", "full figure", "eyes"
 
 ### 6. POSE DESCRIPTION (detailed description of the pose)
-Free text: Describe the specific pose in detail
+Free text: Describe the specific pose in detail. Focus ONLY on body position, limbs, posture. Do NOT describe clothing, hair, face, or any appearance details.
 
 ### 7. LABEL (short name for this shot)
 A concise, descriptive name for this shot type
@@ -57,23 +59,33 @@ Return a valid JSON object:
     "poseType": "static",
     "composition": "rule_of_thirds",
     "focusPoint": "face",
-    "poseDescription": "Model standing with arms relaxed..."
+    "poseDescription": "Standing with arms relaxed at sides, weight on left leg, slight hip tilt..."
   }
 }
 
 Use ONLY the allowed values listed above for enum fields. Be precise based on what you see.`;
 
-const GENERATE_SKETCH_PROMPT = `Create a simple, clean fashion sketch showing:
+// Prompt for generating schematic pose sketch
+const POSE_SKETCH_PROMPT = `Generate a MINIMAL schematic pose sketch.
 
-{description}
+STYLE REQUIREMENTS:
+- Simple stick figure or basic mannequin silhouette
+- Black lines on pure white background
+- NO face details, NO facial features
+- NO hair, NO hairstyle
+- NO clothing, NO accessories
+- NO textures, NO shading
+- Just the POSE: body position, limbs, posture
+- Clean, geometric, minimal
 
-Technical specifications:
+POSE TO DRAW:
+{poseDescription}
+
+SHOT FRAMING:
 - Shot size: {shotSize}
 - Camera angle: {cameraAngle}
-- Pose: {poseType}
-- Composition: {composition}
 
-Style: Clean line drawing, fashion illustration style, minimal shading, focus on pose and composition. White background. No color, just black lines on white.`;
+OUTPUT: A simple stick figure or mannequin silhouette showing ONLY the pose. Think of it like a pose reference for artists - just the skeleton/structure.`;
 
 // ═══════════════════════════════════════════════════════════════
 // ANALYZE SKETCH (image -> parameters)
@@ -191,7 +203,91 @@ export async function analyzeSketch(image, notes = '') {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GENERATE SKETCH (text -> image)
+// GENERATE POSE SKETCH (text -> schematic image)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Generate a schematic pose sketch using Gemini
+ * 
+ * @param {Object} technical - Technical parameters with poseDescription
+ * @returns {Promise<Object>} - Generated sketch data
+ */
+export async function generatePoseSketch(technical = {}) {
+  const tech = {
+    ...DEFAULT_TECHNICAL,
+    ...technical
+  };
+
+  const poseDescription = tech.poseDescription || 'Standing neutral pose, arms at sides';
+  
+  // Build prompt
+  const prompt = POSE_SKETCH_PROMPT
+    .replace('{poseDescription}', poseDescription)
+    .replace('{shotSize}', tech.shotSize.replace(/_/g, ' '))
+    .replace('{cameraAngle}', tech.cameraAngle.replace(/_/g, ' '));
+
+  console.log('[FrameAnalyzer] Generating schematic pose sketch with Gemini...');
+
+  const result = await requestGeminiImage({
+    prompt,
+    referenceImages: [],
+    imageConfig: {
+      aspectRatio: '3:4',
+      imageSize: '1K'
+    }
+  });
+
+  if (!result.ok) {
+    console.error('[FrameAnalyzer] Gemini error:', result.error);
+    throw new Error(result.error || 'Failed to generate pose sketch');
+  }
+
+  console.log('[FrameAnalyzer] Pose sketch generated successfully');
+
+  return {
+    image: {
+      mimeType: result.mimeType,
+      base64: result.base64
+    },
+    technical: tech
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FULL PIPELINE: ANALYZE + GENERATE SKETCH
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Analyze reference image and generate schematic pose sketch
+ * 
+ * @param {{mimeType: string, base64: string}} image - The reference image
+ * @param {string} notes - Optional user notes
+ * @returns {Promise<Object>} - Analysis result with generated sketch
+ */
+export async function analyzeAndGenerateSketch(image, notes = '') {
+  // Step 1: Analyze the reference image
+  console.log('[FrameAnalyzer] Step 1: Analyzing reference...');
+  const analysis = await analyzeSketch(image, notes);
+
+  // Step 2: Generate schematic pose sketch based on analysis
+  console.log('[FrameAnalyzer] Step 2: Generating pose sketch...');
+  let sketchResult = null;
+  
+  try {
+    sketchResult = await generatePoseSketch(analysis.technical);
+  } catch (error) {
+    console.error('[FrameAnalyzer] Failed to generate sketch:', error.message);
+    // Continue without sketch - analysis is still valuable
+  }
+
+  return {
+    ...analysis,
+    generatedSketch: sketchResult?.image || null
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENERATE SKETCH FROM TEXT (legacy, uses Gemini now)
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -202,12 +298,6 @@ export async function analyzeSketch(image, notes = '') {
  * @returns {Promise<Object>} - Generated sketch data
  */
 export async function generateSketchFromText(description, technical = {}) {
-  const apiKey = config.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-
   if (!description) {
     throw new Error('Description is required');
   }
@@ -215,57 +305,16 @@ export async function generateSketchFromText(description, technical = {}) {
   // Merge with defaults
   const tech = {
     ...DEFAULT_TECHNICAL,
-    ...technical
+    ...technical,
+    poseDescription: description
   };
-
-  // Build prompt
-  const prompt = GENERATE_SKETCH_PROMPT
-    .replace('{description}', description)
-    .replace('{shotSize}', tech.shotSize.replace(/_/g, ' '))
-    .replace('{cameraAngle}', tech.cameraAngle.replace(/_/g, ' '))
-    .replace('{poseType}', tech.poseType.replace(/_/g, ' '))
-    .replace('{composition}', tech.composition.replace(/_/g, ' '));
 
   console.log('[FrameAnalyzer] Generating sketch from description...');
 
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt,
-      n: 1,
-      size: '1024x1024',
-      quality: 'standard',
-      response_format: 'b64_json'
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[FrameAnalyzer] DALL-E error:', errorText);
-    throw new Error(`DALL-E API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const imageData = data.data?.[0];
-
-  if (!imageData) {
-    throw new Error('No image generated');
-  }
-
-  console.log('[FrameAnalyzer] Sketch generated successfully');
+  const result = await generatePoseSketch(tech);
 
   return {
-    image: {
-      mimeType: 'image/png',
-      base64: imageData.b64_json
-    },
-    revisedPrompt: imageData.revised_prompt || prompt,
-    technical: tech
+    ...result,
+    revisedPrompt: description
   };
 }
-

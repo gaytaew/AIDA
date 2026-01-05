@@ -16,7 +16,7 @@ import {
   deleteFrame
 } from '../store/frameStore.js';
 import { FRAME_OPTIONS } from '../schema/frame.js';
-import { analyzeSketch, generateSketchFromText } from '../services/frameAnalyzer.js';
+import { analyzeSketch, analyzeAndGenerateSketch, generateSketchFromText, generatePoseSketch } from '../services/frameAnalyzer.js';
 
 const router = express.Router();
 
@@ -147,10 +147,10 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// POST /api/frames/analyze-sketch — AI analysis of sketch image
+// POST /api/frames/analyze-sketch — AI analysis of sketch image + generate schematic sketch
 router.post('/analyze-sketch', async (req, res) => {
   try {
-    const { image, notes } = req.body;
+    const { image, notes, generateSketch = true } = req.body;
 
     if (!image || !image.base64) {
       return res.status(400).json({
@@ -159,7 +159,10 @@ router.post('/analyze-sketch', async (req, res) => {
       });
     }
 
-    const result = await analyzeSketch(image, notes || '');
+    // Use full pipeline if generateSketch is true (default)
+    const result = generateSketch
+      ? await analyzeAndGenerateSketch(image, notes || '')
+      : await analyzeSketch(image, notes || '');
 
     res.json({
       ok: true,
