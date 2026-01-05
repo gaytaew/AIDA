@@ -185,16 +185,22 @@
         statusText.textContent = health.ok ? 'Сервер работает' : 'Ошибка сервера';
         
         // Load stats
-        const [universesRes] = await Promise.all([
-          fetch('/api/universes')
+        const [universesRes, framesRes, modelsRes, shootsRes] = await Promise.all([
+          fetch('/api/universes'),
+          fetch('/api/frames'),
+          fetch('/api/models'),
+          fetch('/api/shoots')
         ]);
         
         const universes = await universesRes.json();
+        const frames = await framesRes.json();
+        const models = await modelsRes.json();
+        const shoots = await shootsRes.json();
         
-        document.getElementById('stat-universes').textContent = universes.ok ? universes.total : 0;
-        document.getElementById('stat-frames').textContent = '0';
-        document.getElementById('stat-models').textContent = '0';
-        document.getElementById('stat-shoots').textContent = '0';
+        document.getElementById('stat-universes').textContent = universes.ok ? (universes.total || universes.data?.length || 0) : 0;
+        document.getElementById('stat-frames').textContent = frames.ok ? (frames.data?.length || 0) : 0;
+        document.getElementById('stat-models').textContent = models.ok ? (models.data?.length || 0) : 0;
+        document.getElementById('stat-shoots').textContent = shoots.ok ? (shoots.data?.length || 0) : 0;
         
       } catch (e) {
         console.error('Init error:', e);

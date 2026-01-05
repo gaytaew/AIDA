@@ -16,6 +16,7 @@ src/backend/store/models/
 src/backend/store/universes/
 src/backend/store/frames/
 src/backend/store/locations/
+src/backend/store/shoots/
 
 # OS
 .DS_Store

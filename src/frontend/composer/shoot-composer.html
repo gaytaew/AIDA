@@ -3,8 +3,577 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shoot Composer — AIDA</title>
+  <title>Конструктор съёмок — AIDA</title>
   <link rel="stylesheet" href="../styles.css">
+  <style>
+    /* Composer-specific styles */
+    .composer-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 170px);
+    }
+
+    @media (max-width: 1100px) {
+      .composer-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Steps Sidebar */
+    .steps-sidebar {
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+      padding: 24px;
+    }
+
+    .steps-list {
+      list-style: none;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+    }
+
+    .step-item:hover {
+      background: var(--color-surface-elevated);
+    }
+
+    .step-item.active {
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-accent);
+    }
+
+    .step-item.completed .step-number {
+      background: #22C55E;
+    }
+
+    .step-item.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    .step-status {
+      font-size: 11px;
+      margin-top: 6px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .step-status.pending {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--color-text-muted);
+    }
+
+    .step-status.ready {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22C55E;
+    }
+
+    .step-status.required {
+      background: rgba(233, 69, 96, 0.15);
+      color: var(--color-accent);
+    }
+
+    /* Composer Main Area */
+    .composer-main {
+      padding: 32px;
+      background: var(--color-bg);
+      overflow-y: auto;
+    }
+
+    .step-panel {
+      display: none;
+    }
+
+    .step-panel.active {
+      display: block;
+    }
+
+    .step-panel-header {
+      margin-bottom: 24px;
+    }
+
+    .step-panel-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .step-panel-desc {
+      font-size: 14px;
+      color: var(--color-text-muted);
+    }
+
+    /* Selection Grid */
+    .selection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .selection-card {
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .selection-card:hover {
+      border-color: var(--color-border-hover);
+      transform: translateY(-2px);
+    }
+
+    .selection-card.selected {
+      border-color: var(--color-accent);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .selection-card-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .selection-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .selection-card-desc {
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+
+    .selection-card-preview {
+      width: 100%;
+      aspect-ratio: 4/3;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-bottom: 12px;
+      background: var(--color-surface-elevated);
+    }
+
+    .selection-card-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Model Slots */
+    .model-slots {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .model-slot {
+      background: var(--color-surface);
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .model-slot.filled {
+      border-style: solid;
+    }
+
+    .model-slot:hover {
+      border-color: var(--color-accent);
+    }
+
+    .model-slot-icon {
+      font-size: 48px;
+      opacity: 0.5;
+      margin-bottom: 12px;
+    }
+
+    .model-slot-label {
+      font-size: 14px;
+      color: var(--color-text-muted);
+    }
+
+    .model-slot-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin-bottom: 12px;
+      background: var(--color-surface-elevated);
+    }
+
+    .model-slot-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .model-slot-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .model-slot-remove {
+      font-size: 12px;
+      color: var(--color-accent);
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* Clothing Section */
+    .clothing-sections {
+      display: grid;
+      gap: 24px;
+    }
+
+    .clothing-section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .clothing-section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .clothing-section-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--color-surface-elevated);
+    }
+
+    .clothing-section-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .clothing-section-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Outfit Avatar */
+    .outfit-avatar-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .outfit-avatar-preview {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .outfit-avatar-image {
+      width: 200px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--color-surface-elevated);
+    }
+
+    .outfit-avatar-image img {
+      width: 100%;
+      height: auto;
+    }
+
+    .outfit-avatar-actions {
+      flex: 1;
+    }
+
+    .outfit-avatar-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .outfit-avatar-status.pending {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+    }
+
+    .outfit-avatar-status.ok {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22C55E;
+    }
+
+    .outfit-avatar-status.approved {
+      background: rgba(139, 92, 246, 0.15);
+      color: #A855F7;
+    }
+
+    .outfit-avatar-status.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
+    }
+
+    /* Frames Selection */
+    .frames-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .frame-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .frame-item-order {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--color-surface-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .frame-item-preview {
+      width: 80px;
+      height: 60px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--color-surface-elevated);
+      flex-shrink: 0;
+    }
+
+    .frame-item-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .frame-item-info {
+      flex: 1;
+    }
+
+    .frame-item-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .frame-item-desc {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    .frame-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Summary */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .summary-section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+    }
+
+    .summary-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
+    }
+
+    .summary-section-value {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .summary-full {
+      grid-column: 1 / -1;
+    }
+
+    /* Navigation */
+    .composer-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    /* Shoot List */
+    .shoots-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .shoot-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .shoot-card:hover {
+      border-color: var(--color-border-hover);
+    }
+
+    .shoot-card.selected {
+      border-color: var(--color-accent);
+    }
+
+    .shoot-card-icon {
+      font-size: 32px;
+    }
+
+    .shoot-card-info {
+      flex: 1;
+    }
+
+    .shoot-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .shoot-card-meta {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* Empty Model Picker Dropdown */
+    .model-picker-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+
+    .model-picker-dropdown.open {
+      display: block;
+    }
+
+    .model-picker-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .model-picker-item:hover {
+      background: var(--color-surface-elevated);
+    }
+
+    .model-picker-item-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--color-surface-elevated);
+    }
+
+    .model-picker-item-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .model-picker-item-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -50,7 +619,7 @@
       <div class="sidebar-footer">
         <div class="status-badge">
           <span class="status-dot"></span>
-          <span>Сервер работает</span>
+          <span id="server-status">Загрузка...</span>
         </div>
       </div>
     </aside>
@@ -58,26 +627,282 @@
     <!-- Main Content -->
     <main class="main">
       <header class="page-header">
-        <h1 class="page-title">Конструктор съёмок</h1>
+        <h1 class="page-title">🎬 Конструктор съёмок</h1>
         <p class="page-subtitle">
-          Собирай полноценные фотосессии из вселенных, моделей и кадров.
+          Собери полноценную съёмку: вселенная → модели → одежда → кадры
         </p>
       </header>
 
       <div class="page-content">
-        <div class="empty-state">
-          <div class="empty-state-icon">🚧</div>
-          <div class="empty-state-title">В разработке</div>
-          <div class="empty-state-text">
-            Конструктор съёмок будет доступен после создания базовых редакторов (Вселенные, Кадры, Модели).
-            <br><br>
-            Пока можешь начать с создания вселенных.
+        <div class="composer-layout">
+          <!-- Steps Sidebar -->
+          <div class="steps-sidebar">
+            <ul class="steps-list">
+              <li class="step-item active" data-step="shoot">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                  <div class="step-title">Съёмка</div>
+                  <div class="step-desc">Создать или выбрать</div>
+                  <div class="step-status pending" id="step-shoot-status">Не выбрано</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="universe">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                  <div class="step-title">Вселенная</div>
+                  <div class="step-desc">Визуальный стиль</div>
+                  <div class="step-status pending" id="step-universe-status">Не выбрано</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="models">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                  <div class="step-title">Модели</div>
+                  <div class="step-desc">До 3 моделей</div>
+                  <div class="step-status pending" id="step-models-status">0 / 3</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="clothing">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                  <div class="step-title">Одежда</div>
+                  <div class="step-desc">Референсы луков</div>
+                  <div class="step-status pending" id="step-clothing-status">Опционально</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="frames">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                  <div class="step-title">Кадры</div>
+                  <div class="step-desc">Позы и композиции</div>
+                  <div class="step-status pending" id="step-frames-status">0 кадров</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="summary">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                  <div class="step-title">Итог</div>
+                  <div class="step-desc">Проверка и запуск</div>
+                  <div class="step-status pending" id="step-summary-status">—</div>
+                </div>
+              </li>
+            </ul>
           </div>
-          <a href="/editors/universe-editor.html" class="btn btn-primary">🌌 Создать вселенную</a>
+
+          <!-- Composer Main Area -->
+          <div class="composer-main">
+
+            <!-- Step 1: Select/Create Shoot -->
+            <div class="step-panel active" data-panel="shoot">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Выбери или создай съёмку</h2>
+                <p class="step-panel-desc">
+                  Каждая съёмка — это отдельный проект с собственной вселенной, моделями и кадрами.
+                </p>
+              </div>
+
+              <div class="form-actions" style="margin-bottom: 24px;">
+                <button class="btn btn-primary" id="btn-new-shoot">
+                  ✨ Новая съёмка
+                </button>
+              </div>
+
+              <h3 class="section-title" style="margin-bottom: 16px;">Существующие съёмки</h3>
+              <div id="shoots-list" class="shoots-list">
+                <div class="empty-state">
+                  <div class="empty-state-icon">📸</div>
+                  <div class="empty-state-title">Нет съёмок</div>
+                  <div class="empty-state-text">Создайте первую съёмку, чтобы начать работу</div>
+                </div>
+              </div>
+
+              <div class="composer-nav">
+                <div></div>
+                <button class="btn btn-primary" id="btn-next-to-universe" disabled>
+                  Далее: Вселенная →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2: Select Universe -->
+            <div class="step-panel" data-panel="universe">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Выбери вселенную</h2>
+                <p class="step-panel-desc">
+                  Вселенная определяет визуальный стиль всей съёмки: цвета, свет, текстуры, эпоху.
+                </p>
+              </div>
+
+              <div id="universes-grid" class="selection-grid">
+                <div class="empty-state">
+                  <div class="empty-state-icon">🌌</div>
+                  <div class="empty-state-title">Нет вселенных</div>
+                  <div class="empty-state-text">
+                    <a href="/editors/universe-editor.html">Создайте вселенную</a> в редакторе
+                  </div>
+                </div>
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-shoot">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-models" disabled>
+                  Далее: Модели →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 3: Select Models -->
+            <div class="step-panel" data-panel="models">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Добавь моделей</h2>
+                <p class="step-panel-desc">
+                  Выбери от 1 до 3 моделей для съёмки. Каждая модель сохраняет свою идентичность во всех кадрах.
+                </p>
+              </div>
+
+              <div id="model-slots" class="model-slots">
+                <div class="model-slot" data-slot="0" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 1</div>
+                </div>
+                <div class="model-slot" data-slot="1" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 2 (опц.)</div>
+                </div>
+                <div class="model-slot" data-slot="2" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 3 (опц.)</div>
+                </div>
+              </div>
+
+              <div id="available-models" style="display: none;">
+                <h3 class="section-title" style="margin: 24px 0 16px;">Доступные модели</h3>
+                <div id="models-grid" class="selection-grid"></div>
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-universe">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-clothing" disabled>
+                  Далее: Одежда →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 4: Clothing -->
+            <div class="step-panel" data-panel="clothing">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Загрузи одежду</h2>
+                <p class="step-panel-desc">
+                  Загрузи референсы одежды для каждой модели. При 2+ моделях будут сгенерированы аватары луков.
+                </p>
+              </div>
+
+              <div id="clothing-sections" class="clothing-sections">
+                <!-- Will be populated dynamically -->
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-models">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-frames">
+                  Далее: Кадры →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 5: Frames -->
+            <div class="step-panel" data-panel="frames">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Добавь кадры</h2>
+                <p class="step-panel-desc">
+                  Выбери кадры из каталога или используй параметры вселенной по умолчанию.
+                </p>
+              </div>
+
+              <div id="selected-frames" class="frames-list" style="margin-bottom: 24px;">
+                <div class="empty-state" style="padding: 40px;">
+                  <div class="empty-state-icon">🖼️</div>
+                  <div class="empty-state-title">Нет кадров</div>
+                  <div class="empty-state-text">Добавьте кадры из каталога ниже</div>
+                </div>
+              </div>
+
+              <h3 class="section-title" style="margin-bottom: 16px;">Каталог кадров</h3>
+              <div id="frames-grid" class="selection-grid">
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                  <div class="empty-state-icon">🖼️</div>
+                  <div class="empty-state-title">Нет кадров в каталоге</div>
+                  <div class="empty-state-text">
+                    <a href="/editors/frame-editor.html">Создайте кадры</a> в редакторе
+                  </div>
+                </div>
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-clothing">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-summary">
+                  Далее: Итог →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 6: Summary -->
+            <div class="step-panel" data-panel="summary">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Проверь съёмку</h2>
+                <p class="step-panel-desc">
+                  Убедись, что все параметры верны, перед запуском генерации.
+                </p>
+              </div>
+
+              <div id="shoot-summary" class="summary-grid">
+                <div class="summary-section">
+                  <div class="summary-section-title">Вселенная</div>
+                  <div class="summary-section-value" id="summary-universe">—</div>
+                </div>
+                <div class="summary-section">
+                  <div class="summary-section-title">Модели</div>
+                  <div class="summary-section-value" id="summary-models">—</div>
+                </div>
+                <div class="summary-section">
+                  <div class="summary-section-title">Кадры</div>
+                  <div class="summary-section-value" id="summary-frames">—</div>
+                </div>
+                <div class="summary-section">
+                  <div class="summary-section-title">Одежда</div>
+                  <div class="summary-section-value" id="summary-clothing">—</div>
+                </div>
+                <div class="summary-section summary-full">
+                  <div class="summary-section-title">Статус</div>
+                  <div class="summary-section-value" id="summary-status">—</div>
+                </div>
+              </div>
+
+              <div id="summary-warnings" style="margin-top: 24px;"></div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-frames">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-export-json">
+                  📥 Экспортировать JSON
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     </main>
   </div>
+
+  <script src="shoot-composer.js"></script>
 </body>
 </html>
-
