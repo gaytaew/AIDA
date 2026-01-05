@@ -13,7 +13,7 @@
  */
 
 import config from '../config.js';
-import { buildImageCollage } from '../utils/imageCollage.js';
+import { buildCollage } from '../utils/imageCollage.js';
 
 // ═══════════════════════════════════════════════════════════════
 // PROMPT TEMPLATES
@@ -75,7 +75,7 @@ export async function packClothingToCollage(clothingImages, options = {}) {
     return clothingImages[0];
   }
 
-  return await buildImageCollage(clothingImages, {
+  return await buildCollage(clothingImages, {
     maxSize: options.maxSize || 1536,
     jpegQuality: options.jpegQuality || 90,
     fit: 'contain',
@@ -95,7 +95,7 @@ export async function packIdentityToBoard(identityImages, options = {}) {
     return identityImages[0];
   }
 
-  return await buildImageCollage(identityImages, {
+  return await buildCollage(identityImages, {
     maxSize: options.maxSize || 1024,
     jpegQuality: options.jpegQuality || 90,
     fit: 'cover',

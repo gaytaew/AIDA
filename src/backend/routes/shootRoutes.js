@@ -32,7 +32,7 @@ import {
   FRAME_COMPOSITION_OPTIONS,
   shouldRequireOutfitAvatar
 } from '../schema/shootConfig.js';
-import { buildImageCollage } from '../utils/imageCollage.js';
+import { buildCollage } from '../utils/imageCollage.js';
 
 const router = express.Router();
 
