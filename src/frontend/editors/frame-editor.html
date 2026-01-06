@@ -404,6 +404,39 @@
                   🔍 Анализировать скетч
                 </button>
               </div>
+              
+              <!-- Analysis result with generated sketch preview -->
+              <div id="sketch-analysis-result" style="display: none; margin-top: 20px;">
+                <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--color-text-muted);">📋 Результат анализа</h4>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                  <div>
+                    <div style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px;">Загруженный референс</div>
+                    <img id="analysis-ref-img" src="" alt="Reference" style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border);">
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px;">Сгенерированный эскиз</div>
+                    <img id="analysis-sketch-img" src="" alt="Generated sketch" style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border); background: #fff;">
+                  </div>
+                </div>
+                
+                <div id="analysis-details" style="background: var(--color-bg); padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;">
+                  <div><strong>Название:</strong> <span id="analysis-label"></span></div>
+                  <div style="margin-top: 4px;"><strong>Описание:</strong> <span id="analysis-description"></span></div>
+                </div>
+                
+                <div class="form-actions" style="gap: 8px;">
+                  <button type="button" id="btn-save-analyzed" class="btn btn-primary">
+                    💾 Сохранить кадр
+                  </button>
+                  <button type="button" id="btn-regenerate-sketch" class="btn btn-secondary">
+                    🔄 Перегенерировать эскиз
+                  </button>
+                  <button type="button" id="btn-cancel-analysis" class="btn btn-secondary">
+                    ✕ Отмена
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- From Text Tab -->

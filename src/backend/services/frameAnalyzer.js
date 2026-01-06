@@ -83,7 +83,15 @@ Return a valid JSON object:
 Use ONLY the allowed values listed above for enum fields. Be precise based on what you see.`;
 
 // Prompt for generating schematic pose sketch
-const POSE_SKETCH_PROMPT = `Generate a CONTOUR ANATOMICAL POSE SKETCH.
+const POSE_SKETCH_PROMPT = `Generate a CONTOUR ANATOMICAL POSE SKETCH that EXACTLY matches the reference image pose.
+
+CRITICAL: COPY THE EXACT POSE FROM THE REFERENCE!
+- Match the EXACT angle of every limb (arms, legs)
+- Match the EXACT tilt of the head
+- Match the EXACT twist of the torso
+- Match the EXACT weight distribution
+- Match the EXACT position (sitting, standing, leaning, etc.)
+- If model is sitting on something, draw a schematic outline of that object
 
 STYLE REQUIREMENTS (STRICT):
 - **Pencil/line drawing technique** — thin contour lines, like a fashion illustration sketch
@@ -97,11 +105,11 @@ STYLE REQUIREMENTS (STRICT):
 - **Visible body forms** — muscles/curves implied but not detailed
 - **Clear body position** — arms, legs, torso, head tilt clearly readable
 - **Minimal background** — white or with a simple floor/horizon line
-- **Schematic props if needed** — chair, railing, etc. shown as simple contours only
+- **Schematic props if needed** — chair, railing, bench shown as simple geometric contours
 
 The result should look like a professional fashion artist's pose reference sketch — elegant, minimal, anatomically correct but abstract.
 
-POSE TO DRAW:
+POSE TO REPLICATE EXACTLY:
 {poseDescription}
 
 SHOT FRAMING:
@@ -235,7 +243,7 @@ export async function analyzeSketch(image, notes = '') {
  * @param {Object} technical - Technical parameters with poseDescription
  * @returns {Promise<Object>} - Generated sketch data
  */
-export async function generatePoseSketch(technical = {}) {
+export async function generatePoseSketch(technical = {}, referenceImage = null) {
   const tech = {
     ...DEFAULT_TECHNICAL,
     ...technical
@@ -250,10 +258,13 @@ export async function generatePoseSketch(technical = {}) {
     .replace('{cameraAngle}', tech.cameraAngle.replace(/_/g, ' '));
 
   console.log('[FrameAnalyzer] Generating schematic pose sketch with Gemini...');
+  
+  // Include reference image if provided
+  const referenceImages = referenceImage ? [referenceImage] : [];
 
   const result = await requestGeminiImage({
     prompt,
-    referenceImages: [],
+    referenceImages,
     imageConfig: {
       aspectRatio: '3:4',
       imageSize: '1K'
@@ -293,11 +304,12 @@ export async function analyzeAndGenerateSketch(image, notes = '') {
   const analysis = await analyzeSketch(image, notes);
 
   // Step 2: Generate schematic pose sketch based on analysis
-  console.log('[FrameAnalyzer] Step 2: Generating pose sketch...');
+  // Pass the original image as reference for more accurate pose replication
+  console.log('[FrameAnalyzer] Step 2: Generating pose sketch with reference...');
   let sketchResult = null;
   
   try {
-    sketchResult = await generatePoseSketch(analysis.technical);
+    sketchResult = await generatePoseSketch(analysis.technical, image);
   } catch (error) {
     console.error('[FrameAnalyzer] Failed to generate sketch:', error.message);
     // Continue without sketch - analysis is still valuable

@@ -176,9 +176,10 @@ export const DEFAULT_FRAME = {
 export function generateFrameId(category = 'frame') {
   const now = new Date();
   const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
-  const catCode = String(category || 'frame').toUpperCase().slice(0, 8);
-  return `FR_${catCode}_${datePart}_${randomPart}`;
+  const timePart = now.toISOString().slice(11, 19).replace(/:/g, '');
+  const randomPart = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const catCode = String(category || 'frame').toUpperCase().slice(0, 4);
+  return `FR_${catCode}_${datePart}_${timePart}_${randomPart}`;
 }
 
 export function createEmptyFrame(label = 'Новый кадр', category = 'fashion') {

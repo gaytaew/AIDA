@@ -13,6 +13,8 @@ let frameOptions = null;
 let savedFrames = [];
 let currentFrame = null;
 let sketchImage = null; // { file, dataUrl, mimeType, base64 }
+let analyzedFrameData = null; // Stores analyzed frame data before saving
+let originalReferenceImage = null; // Original uploaded reference
 
 // ═══════════════════════════════════════════════════════════════
 // ELEMENTS
@@ -47,6 +49,16 @@ function getElements() {
     sketchPreviewImg: document.getElementById('sketch-preview-img'),
     sketchRemove: document.getElementById('sketch-remove'),
     btnAnalyzeSketch: document.getElementById('btn-analyze-sketch'),
+    
+    // Sketch analysis result
+    sketchAnalysisResult: document.getElementById('sketch-analysis-result'),
+    analysisRefImg: document.getElementById('analysis-ref-img'),
+    analysisSketchImg: document.getElementById('analysis-sketch-img'),
+    analysisLabel: document.getElementById('analysis-label'),
+    analysisDescription: document.getElementById('analysis-description'),
+    btnSaveAnalyzed: document.getElementById('btn-save-analyzed'),
+    btnRegenerateSketch: document.getElementById('btn-regenerate-sketch'),
+    btnCancelAnalysis: document.getElementById('btn-cancel-analysis'),
     
     // From text
     textDescription: document.getElementById('text-description'),
@@ -435,6 +447,20 @@ function initSketchUpload() {
   
   // Analyze button
   els.btnAnalyzeSketch.addEventListener('click', analyzeSketch);
+  
+  // Analysis result buttons
+  els.btnSaveAnalyzed?.addEventListener('click', saveAnalyzedFrame);
+  els.btnCancelAnalysis?.addEventListener('click', () => {
+    hideAnalysisResult();
+    clearSketchUpload();
+  });
+  els.btnRegenerateSketch?.addEventListener('click', async () => {
+    if (originalReferenceImage) {
+      sketchImage = { ...originalReferenceImage };
+      hideAnalysisResult();
+      await analyzeSketch();
+    }
+  });
 }
 
 async function loadSketchFile(file) {
@@ -467,6 +493,9 @@ async function analyzeSketch() {
   els.btnAnalyzeSketch.disabled = true;
   showStatus('🔍 Анализирую скетч с помощью AI...', 'loading');
   
+  // Store original reference
+  originalReferenceImage = { ...sketchImage };
+  
   try {
     const res = await fetch('/api/frames/analyze-sketch', {
       method: 'POST',
@@ -485,13 +514,13 @@ async function analyzeSketch() {
       throw new Error(data.error || 'Analysis failed');
     }
     
-    // Fill form with analyzed data
-    fillFormFromAnalysis(data.data);
+    // Store analyzed data for later saving
+    analyzedFrameData = data.data;
     
-    // Switch to manual tab
-    document.querySelector('[data-tab="manual"]').click();
+    // Show analysis result with preview
+    showAnalysisResult(data.data);
     
-    showStatus('✅ Скетч проанализирован! Проверь параметры и сохрани.', 'success');
+    hideStatus();
     
   } catch (e) {
     console.error('Analyze error:', e);
@@ -499,6 +528,108 @@ async function analyzeSketch() {
   } finally {
     els.btnAnalyzeSketch.disabled = false;
   }
+}
+
+function showAnalysisResult(result) {
+  const els = getElements();
+  
+  // Show reference image
+  if (originalReferenceImage) {
+    els.analysisRefImg.src = originalReferenceImage.dataUrl;
+  }
+  
+  // Show generated sketch
+  if (result.generatedSketch && result.generatedSketch.base64) {
+    const sketchUrl = `data:${result.generatedSketch.mimeType || 'image/png'};base64,${result.generatedSketch.base64}`;
+    els.analysisSketchImg.src = sketchUrl;
+    
+    // Store the generated sketch for saving
+    sketchImage = {
+      dataUrl: sketchUrl,
+      mimeType: result.generatedSketch.mimeType || 'image/png',
+      base64: result.generatedSketch.base64
+    };
+  }
+  
+  // Show label and description
+  els.analysisLabel.textContent = result.label || 'Без названия';
+  els.analysisDescription.textContent = result.description || 'Нет описания';
+  
+  // Show the result panel
+  els.sketchAnalysisResult.style.display = 'block';
+}
+
+function hideAnalysisResult() {
+  const els = getElements();
+  els.sketchAnalysisResult.style.display = 'none';
+  analyzedFrameData = null;
+}
+
+async function saveAnalyzedFrame() {
+  if (!analyzedFrameData) return;
+  
+  const els = getElements();
+  
+  showStatus('💾 Сохраняю кадр...', 'loading');
+  
+  try {
+    const frameData = {
+      label: analyzedFrameData.label || 'Analyzed Frame',
+      category: analyzedFrameData.category || 'fashion',
+      description: analyzedFrameData.description || '',
+      technical: analyzedFrameData.technical || {}
+    };
+    
+    // Add the generated sketch
+    if (sketchImage) {
+      frameData.sketchAsset = {
+        assetId: `sketch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        url: sketchImage.dataUrl
+      };
+    }
+    
+    // Also save the original reference
+    if (originalReferenceImage) {
+      frameData.poseRefAsset = {
+        assetId: `poseref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        url: originalReferenceImage.dataUrl
+      };
+    }
+    
+    const res = await fetch('/api/frames', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(frameData)
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok || !data.ok) {
+      throw new Error(data.errors?.join(', ') || data.error || 'Failed to save');
+    }
+    
+    showStatus('✅ Кадр сохранён!', 'success');
+    setTimeout(hideStatus, 2000);
+    
+    // Clean up
+    hideAnalysisResult();
+    clearSketchUpload();
+    await loadFrames();
+    
+  } catch (e) {
+    console.error('Save error:', e);
+    showStatus(`❌ Ошибка: ${e.message}`, 'error');
+  }
+}
+
+function clearSketchUpload() {
+  const els = getElements();
+  sketchImage = null;
+  originalReferenceImage = null;
+  analyzedFrameData = null;
+  els.sketchPreview.style.display = 'none';
+  els.sketchUploadZone.style.display = 'flex';
+  els.btnAnalyzeSketch.disabled = true;
 }
 
 function fillFormFromAnalysis(result) {
