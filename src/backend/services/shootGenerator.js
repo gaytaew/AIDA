@@ -503,9 +503,15 @@ export async function generateShootFrame({
     }
 
     // Add pose sketch as reference if available
+    console.log('[ShootGenerator] poseSketchImage received?', !!poseSketchImage);
+    if (poseSketchImage) {
+      console.log('[ShootGenerator] poseSketchImage.base64 length:', poseSketchImage.base64?.length || 0);
+    }
     if (poseSketchImage && poseSketchImage.base64) {
       referenceImages.push(poseSketchImage);
-      console.log('[ShootGenerator] Pose sketch added as reference');
+      console.log('[ShootGenerator] ✅ Pose sketch added as reference, total refs:', referenceImages.length);
+    } else {
+      console.log('[ShootGenerator] ❌ No pose sketch to add');
     }
 
     console.log(`[ShootGenerator] Sending ${referenceImages.length} reference images to Gemini`);

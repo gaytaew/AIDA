@@ -785,15 +785,28 @@ router.post('/:id/generate-frame', async (req, res) => {
       frameData = await getFrameById(shootFrame.frameId);
       
       // Load pose sketch if frame has one
+      console.log('[ShootRoutes] Frame has sketchUrl?', !!frameData?.sketchUrl);
+      console.log('[ShootRoutes] Frame has sketchAsset?', !!frameData?.sketchAsset);
+      console.log('[ShootRoutes] Frame sketchAsset.url length:', frameData?.sketchAsset?.url?.length || 0);
+      
       if (frameData?.sketchUrl || frameData?.sketchAsset?.url) {
         const sketchUrl = frameData.sketchUrl || frameData.sketchAsset?.url;
+        console.log('[ShootRoutes] sketchUrl starts with data:?', sketchUrl?.startsWith('data:'));
+        console.log('[ShootRoutes] sketchUrl length:', sketchUrl?.length || 0);
+        
         if (sketchUrl && sketchUrl.startsWith('data:')) {
           const match = sketchUrl.match(/^data:([^;]+);base64,(.+)$/);
           if (match) {
             poseSketchImage = { mimeType: match[1], base64: match[2] };
-            console.log('[ShootRoutes] Pose sketch loaded from frame');
+            console.log('[ShootRoutes] ✅ Pose sketch loaded! mimeType:', match[1], 'base64 length:', match[2]?.length);
+          } else {
+            console.log('[ShootRoutes] ❌ Failed to parse data URL');
           }
+        } else {
+          console.log('[ShootRoutes] ❌ sketchUrl does not start with data:');
         }
+      } else {
+        console.log('[ShootRoutes] ❌ No sketchUrl or sketchAsset.url found');
       }
     }
     
