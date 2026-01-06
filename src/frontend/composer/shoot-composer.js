@@ -107,6 +107,7 @@ function initElements() {
   elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
   elements.genPosingStyle = document.getElementById('gen-posing-style');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
+  elements.framesToGenerate = document.getElementById('frames-to-generate');
   
   // Summary values
   elements.summaryUniverse = document.getElementById('summary-universe');
@@ -1056,22 +1057,14 @@ function renderSummary() {
     elements.genLocation.innerHTML += `<option value="${loc.id}">${escapeHtml(loc.label)}</option>`;
   });
   
-  // Populate frame dropdown
+  // Populate hidden frame dropdown (for compatibility)
   elements.genFrame.innerHTML = '<option value="">По умолчанию</option>';
   state.frames.forEach(frame => {
     elements.genFrame.innerHTML += `<option value="${frame.id}">${escapeHtml(frame.label)}</option>`;
   });
-  // Also add selected frames from shoot
-  if (state.selectedFrames.length > 0) {
-    elements.genFrame.innerHTML += '<optgroup label="Выбранные для съёмки">';
-    state.selectedFrames.forEach((sf, idx) => {
-      const frame = state.frames.find(f => f.id === sf.frameId);
-      if (frame) {
-        elements.genFrame.innerHTML += `<option value="${frame.id}">${idx + 1}. ${escapeHtml(frame.label)}</option>`;
-      }
-    });
-    elements.genFrame.innerHTML += '</optgroup>';
-  }
+  
+  // Render selected frames as clickable cards for generation
+  renderFramesToGenerate();
   
   // Check readiness
   const warnings = [];
@@ -1108,6 +1101,109 @@ function renderSummary() {
   
   // Render existing generated frames
   renderGeneratedHistory();
+}
+
+/**
+ * Render selected frames as clickable cards for generation
+ */
+function renderFramesToGenerate() {
+  if (!elements.framesToGenerate) return;
+  
+  // If no frames selected — show default option only
+  if (state.selectedFrames.length === 0) {
+    elements.framesToGenerate.innerHTML = `
+      <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
+        <h4 style="margin-bottom: 12px; font-size: 14px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации</h4>
+        <div class="frame-gen-card" data-frame-id="" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 2px solid var(--color-accent); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+          <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+            🎯
+          </div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; margin-bottom: 4px;">По умолчанию</div>
+            <div style="font-size: 12px; color: var(--color-text-muted);">Стандартные параметры кадра</div>
+          </div>
+          <button class="btn btn-primary btn-sm btn-gen-frame" data-frame-id="" style="padding: 8px 16px; font-size: 12px;">
+            🚀 Генерировать
+          </button>
+        </div>
+        <div style="margin-top: 12px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; font-size: 13px; color: var(--color-text-muted);">
+          💡 Добавьте кадры на этапе "Кадры" для генерации с конкретными позами и эскизами
+        </div>
+      </div>
+    `;
+  } else {
+    // Render selected frames as cards
+    const frameCards = state.selectedFrames.map((sf, idx) => {
+      const frame = state.frames.find(f => f.id === sf.frameId);
+      if (!frame) return '';
+      
+      const sketchImg = frame.sketchUrl 
+        ? `<img src="${frame.sketchUrl}" alt="sketch" style="width: 100%; height: 100%; object-fit: contain;">`
+        : '<span style="font-size: 24px;">🖼️</span>';
+      
+      return `
+        <div class="frame-gen-card" data-frame-id="${frame.id}" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;">
+          <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            ${sketchImg}
+          </div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; margin-bottom: 4px;">${idx + 1}. ${escapeHtml(frame.label)}</div>
+            <div style="font-size: 12px; color: var(--color-text-muted);">${frame.technical?.shotSize || 'medium'} • ${frame.technical?.cameraAngle || 'eye_level'}</div>
+          </div>
+          <button class="btn btn-primary btn-sm btn-gen-frame" data-frame-id="${frame.id}" style="padding: 8px 16px; font-size: 12px;">
+            🚀 Генерировать
+          </button>
+        </div>
+      `;
+    }).join('');
+    
+    elements.framesToGenerate.innerHTML = `
+      <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
+        <h4 style="margin-bottom: 12px; font-size: 14px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации (${state.selectedFrames.length})</h4>
+        ${frameCards}
+        <div class="frame-gen-card" data-frame-id="" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: 8px; cursor: pointer; transition: all 0.2s; opacity: 0.7; margin-top: 8px;">
+          <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            🎯
+          </div>
+          <div style="flex: 1;">
+            <div style="font-weight: 500; margin-bottom: 4px;">По умолчанию (без эскиза)</div>
+            <div style="font-size: 12px; color: var(--color-text-muted);">Стандартные параметры</div>
+          </div>
+          <button class="btn btn-secondary btn-sm btn-gen-frame" data-frame-id="" style="padding: 8px 16px; font-size: 12px;">
+            Генерировать
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Add click handlers for generation buttons
+  elements.framesToGenerate.querySelectorAll('.btn-gen-frame').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const frameId = btn.dataset.frameId || '';
+      generateFrameById(frameId);
+    });
+  });
+}
+
+/**
+ * Generate a frame by its ID
+ */
+async function generateFrameById(frameId) {
+  if (!state.currentShoot) return;
+  
+  const modelCount = state.selectedModels.filter(m => m !== null).length;
+  if (modelCount === 0) {
+    alert('Сначала добавьте модель');
+    return;
+  }
+  
+  // Set the hidden select value
+  elements.genFrame.value = frameId;
+  
+  // Call the existing generate function
+  await generateSingleFrame();
 }
 
 function exportShootJson() {
