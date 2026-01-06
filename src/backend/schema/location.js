@@ -108,6 +108,8 @@ export const DEFAULT_LOCATION_TAGS = [
  * @property {LocationLighting} lighting - Параметры освещения
  * @property {Array<string>} props - Объекты в кадре
  * @property {AssetRef|null} sketchAsset - Sketch/reference image
+ * @property {Array<AssetRef>} referenceImages - Reference images for this location (optional)
+ * @property {string|null} sourceUniverseId - ID of universe that generated this location (if auto-created)
  * @property {string} promptSnippet - Ready-to-use prompt snippet
  * @property {string} createdAt - ISO timestamp
  * @property {string} updatedAt - ISO timestamp
@@ -134,6 +136,8 @@ export const DEFAULT_LOCATION = {
   lighting: { ...DEFAULT_LIGHTING },
   props: [],
   sketchAsset: null,
+  referenceImages: [],          // Массив референсных изображений (опционально)
+  sourceUniverseId: null,       // ID вселенной-источника (если создана автоматически)
   promptSnippet: '',
   createdAt: '',
   updatedAt: ''

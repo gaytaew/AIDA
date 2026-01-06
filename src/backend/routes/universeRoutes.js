@@ -11,7 +11,9 @@ import {
   updateUniverse,
   deleteUniverse
 } from '../store/universeStore.js';
+import { createLocation } from '../store/locationStore.js';
 import { UNIVERSE_OPTIONS, createEmptyUniverse, universeToPromptBlock } from '../schema/universe.js';
+import { createEmptyLocation, generateLocationId } from '../schema/location.js';
 import { analyzeReferencesAndGenerateUniverse, validateImageData } from '../services/universeAnalyzer.js';
 
 const router = express.Router();
@@ -78,10 +80,45 @@ router.post('/generate', async (req, res) => {
           data: universe // Still return the generated universe
         });
       }
+      
+      // Auto-save locations from universe to Location module
+      const savedLocations = [];
+      if (universe.recommendedLocations && universe.recommendedLocations.length > 0) {
+        console.log(`[Universe] Auto-saving ${universe.recommendedLocations.length} locations`);
+        
+        for (const loc of universe.recommendedLocations) {
+          try {
+            const locationData = {
+              ...createEmptyLocation(loc.label || 'Локация', loc.category || 'location'),
+              label: loc.label || 'Локация из вселенной',
+              description: loc.description || '',
+              category: loc.category || 'location',
+              environmentType: loc.environmentType || 'outdoor',
+              surface: loc.surface || '',
+              lighting: loc.lighting || { type: 'natural', timeOfDay: 'any', description: '' },
+              props: loc.props || [],
+              promptSnippet: loc.promptSnippet || loc.description || '',
+              sourceUniverseId: universe.id,  // Link to source universe
+              referenceImages: []             // No refs for auto-generated locations
+            };
+            
+            const locResult = await createLocation(locationData);
+            if (locResult.success) {
+              savedLocations.push(locResult.location);
+            }
+          } catch (e) {
+            console.warn(`[Universe] Failed to save location "${loc.label}":`, e.message);
+          }
+        }
+        
+        console.log(`[Universe] Saved ${savedLocations.length} locations to Location module`);
+      }
+      
       return res.json({
         ok: true,
         data: result.universe,
-        saved: true
+        saved: true,
+        savedLocations: savedLocations.length
       });
     }
 

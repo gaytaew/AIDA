@@ -33,6 +33,22 @@ export const DEFAULT_SCENE = {
   }
 };
 
+// Posing style descriptions
+const POSING_STYLE_MAP = {
+  1: { label: 'candid', instruction: 'Capture a completely natural, candid moment. The model should look unaware of the camera, as if caught in a spontaneous moment.' },
+  2: { label: 'natural', instruction: 'Natural but aware pose. The model knows about the camera but the pose should feel relaxed and uncontrived.' },
+  3: { label: 'editorial', instruction: 'Editorial/artistic pose. Deliberate and composed, suitable for fashion magazines. Clear artistic intention.' },
+  4: { label: 'studio', instruction: 'High fashion studio pose. Maximally posed and deliberate. Classic fashion photography positioning.' }
+};
+
+// Pose adherence descriptions
+const POSE_ADHERENCE_MAP = {
+  1: { label: 'loose', instruction: 'Follow the general pose type only (sitting/standing/lying). Exact positioning is flexible.' },
+  2: { label: 'similar', instruction: 'Pose should be similar to the reference. Main body lines should match but details can vary.' },
+  3: { label: 'close', instruction: 'Follow the pose reference closely. Body position, limb angles should match well.' },
+  4: { label: 'exact', instruction: 'STRICTLY match the pose reference sketch. Body contours, limb positions, head tilt must match exactly.' }
+};
+
 /**
  * Build the structured JSON prompt from modules
  */
@@ -45,7 +61,10 @@ export function buildShootPromptJson({
   extraPrompt = '',
   modelCount = 1,
   hasIdentityRefs = false,
-  hasClothingRefs = false
+  hasClothingRefs = false,
+  hasPoseSketch = false,
+  posingStyle = 2,
+  poseAdherence = 2
 }) {
   // Use default scene if no frame provided
   const effectiveFrame = frame || DEFAULT_SCENE;
@@ -111,6 +130,24 @@ export function buildShootPromptJson({
       'If frame description mentions any location hints (snow, beach, studio, etc.) — IGNORE them.',
       'Apply the pose/camera from FRAME to whatever location is defined.'
     ],
+    
+    // Pose sketch reference (if available)
+    poseReference: hasPoseSketch ? {
+      hasSketch: true,
+      rules: [
+        'A POSE SKETCH image is provided as reference.',
+        'Use it to match body position, limb angles, and head tilt.',
+        'The sketch shows only pose - ignore any clothing/face/hair in it.',
+        POSE_ADHERENCE_MAP[poseAdherence]?.instruction || POSE_ADHERENCE_MAP[2].instruction
+      ]
+    } : null,
+    
+    // Posing style
+    posingStyle: {
+      level: posingStyle,
+      label: POSING_STYLE_MAP[posingStyle]?.label || 'natural',
+      instruction: POSING_STYLE_MAP[posingStyle]?.instruction || POSING_STYLE_MAP[2].instruction
+    },
 
     // Anti-AI markers
     antiAi: {
@@ -389,11 +426,14 @@ async function packImagesToBoard(images, options = {}) {
  * @param {Object} params
  * @param {Object} params.universe - Universe/visual DNA
  * @param {Object} params.frame - Frame parameters
+ * @param {Object} params.poseSketchImage - Pose sketch image {mimeType, base64} (optional)
  * @param {Array} params.identityImages - Model identity photos
  * @param {Array} params.clothingImages - Clothing reference photos
  * @param {string} params.modelDescription - Model description text
  * @param {string} params.clothingNotes - Notes about clothing
  * @param {string} params.extraPrompt - Additional instructions
+ * @param {number} params.posingStyle - Posing style 1-4 (1=casual, 4=studio)
+ * @param {number} params.poseAdherence - How strictly to follow pose ref 1-4
  * @param {Object} params.imageConfig - Image configuration
  * @returns {Promise<{ok: boolean, image?: Object, prompt?: string, promptJson?: Object, error?: string}>}
  */
@@ -401,11 +441,14 @@ export async function generateShootFrame({
   universe,
   location,
   frame,
+  poseSketchImage = null,
   identityImages = [],
   clothingImages = [],
   modelDescription = '',
   clothingNotes = '',
   extraPrompt = '',
+  posingStyle = 2,
+  poseAdherence = 2,
   imageConfig = {}
 }) {
   try {
@@ -421,7 +464,10 @@ export async function generateShootFrame({
       extraPrompt,
       modelCount: 1,
       hasIdentityRefs: identityImages.length > 0,
-      hasClothingRefs: clothingImages.length > 0
+      hasClothingRefs: clothingImages.length > 0,
+      hasPoseSketch: !!poseSketchImage,
+      posingStyle,
+      poseAdherence
     });
 
     // Send JSON directly to Gemini
@@ -454,6 +500,12 @@ export async function generateShootFrame({
         referenceImages.push(clothingBoard);
         console.log('[ShootGenerator] Clothing board created');
       }
+    }
+
+    // Add pose sketch as reference if available
+    if (poseSketchImage && poseSketchImage.base64) {
+      referenceImages.push(poseSketchImage);
+      console.log('[ShootGenerator] Pose sketch added as reference');
     }
 
     console.log(`[ShootGenerator] Sending ${referenceImages.length} reference images to Gemini`);

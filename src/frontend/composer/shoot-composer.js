@@ -105,6 +105,8 @@ function initElements() {
   elements.genLocation = document.getElementById('gen-location');
   elements.genFrame = document.getElementById('gen-frame');
   elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
+  elements.genPosingStyle = document.getElementById('gen-posing-style');
+  elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   
   // Summary values
   elements.summaryUniverse = document.getElementById('summary-universe');
@@ -1312,6 +1314,8 @@ async function generateOneFrame() {
   const locationId = elements.genLocation.value || null;
   const frameId = elements.genFrame.value || null;
   const extraPrompt = elements.genExtraPrompt.value.trim();
+  const posingStyle = parseInt(elements.genPosingStyle?.value) || 2;
+  const poseAdherence = parseInt(elements.genPoseAdherence?.value) || 2;
   
   // Find frame index if a frame from shoot is selected
   let frameIndex = undefined;
@@ -1329,7 +1333,9 @@ async function generateOneFrame() {
       body: JSON.stringify({ 
         frameIndex,
         locationId,
-        extraPrompt
+        extraPrompt,
+        posingStyle,
+        poseAdherence
       })
     });
     

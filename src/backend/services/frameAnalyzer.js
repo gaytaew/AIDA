@@ -83,17 +83,23 @@ Return a valid JSON object:
 Use ONLY the allowed values listed above for enum fields. Be precise based on what you see.`;
 
 // Prompt for generating schematic pose sketch
-const POSE_SKETCH_PROMPT = `Generate a MINIMAL schematic pose sketch.
+const POSE_SKETCH_PROMPT = `Generate a CONTOUR ANATOMICAL POSE SKETCH.
 
-STYLE REQUIREMENTS:
-- Simple stick figure or basic mannequin silhouette
-- Black lines on pure white background
-- NO face details, NO facial features
-- NO hair, NO hairstyle
-- NO clothing, NO accessories
-- NO textures, NO shading
-- Just the POSE: body position, limbs, posture
-- Clean, geometric, minimal
+STYLE REQUIREMENTS (STRICT):
+- **Pencil/line drawing technique** — thin contour lines, like a fashion illustration sketch
+- **Monochrome** — black/grey lines on pure white background
+- **Light hatching** for volume (not solid fill) — subtle cross-hatching on body forms
+- **Anatomical silhouette** — proportional human figure, NOT a stick figure
+- **NO face** — head as a smooth oval form, NO facial features, NO eyes, NO mouth
+- **NO hair** — bald head, no hairstyle
+- **NO clothing** — nude silhouette (like an artist's mannequin or anatomy reference)
+- **NO accessories** — no jewelry, no props in hands
+- **Visible body forms** — muscles/curves implied but not detailed
+- **Clear body position** — arms, legs, torso, head tilt clearly readable
+- **Minimal background** — white or with a simple floor/horizon line
+- **Schematic props if needed** — chair, railing, etc. shown as simple contours only
+
+The result should look like a professional fashion artist's pose reference sketch — elegant, minimal, anatomically correct but abstract.
 
 POSE TO DRAW:
 {poseDescription}

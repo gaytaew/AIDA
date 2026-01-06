@@ -752,11 +752,23 @@ router.post('/:id/generate', async (req, res) => {
 
 /**
  * POST /api/shoots/:id/generate-frame — Generate a single frame
- * Body: { frameIndex?: number, locationId?: string, extraPrompt?: string }
+ * Body: { 
+ *   frameIndex?: number, 
+ *   locationId?: string, 
+ *   extraPrompt?: string,
+ *   posingStyle?: number (1-4),
+ *   poseAdherence?: number (1-4)
+ * }
  */
 router.post('/:id/generate-frame', async (req, res) => {
   try {
-    const { frameIndex, locationId, extraPrompt: reqExtraPrompt } = req.body;
+    const { 
+      frameIndex, 
+      locationId, 
+      extraPrompt: reqExtraPrompt,
+      posingStyle = 2,
+      poseAdherence = 2
+    } = req.body;
     const shoot = await getShootById(req.params.id);
     
     if (!shoot) {
@@ -766,10 +778,23 @@ router.post('/:id/generate-frame', async (req, res) => {
     // Frame is optional - use default scene if not provided or invalid
     let frameData = null;
     let shootFrame = null;
+    let poseSketchImage = null;
     
     if (frameIndex !== undefined && frameIndex >= 0 && frameIndex < (shoot.frames?.length || 0)) {
       shootFrame = shoot.frames[frameIndex];
       frameData = await getFrameById(shootFrame.frameId);
+      
+      // Load pose sketch if frame has one
+      if (frameData?.sketchAsset?.url) {
+        const sketchUrl = frameData.sketchAsset.url;
+        if (sketchUrl.startsWith('data:')) {
+          const match = sketchUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            poseSketchImage = { mimeType: match[1], base64: match[2] };
+            console.log('[ShootRoutes] Pose sketch loaded from frame');
+          }
+        }
+      }
     }
     
     // Get location if provided
@@ -859,11 +884,14 @@ router.post('/:id/generate-frame', async (req, res) => {
         ...frameData,
         extraPrompt: reqExtraPrompt || shootFrame?.extraPrompt || ''
       } : null,
+      poseSketchImage,
       identityImages: identityCollage ? [identityCollage] : [],
       clothingImages: clothingCollage ? [clothingCollage] : [],
       modelDescription,
       clothingNotes: '',
       extraPrompt: reqExtraPrompt || shootFrame?.extraPrompt || '',
+      posingStyle: Math.max(1, Math.min(4, parseInt(posingStyle) || 2)),
+      poseAdherence: Math.max(1, Math.min(4, parseInt(poseAdherence) || 2)),
       imageConfig: shoot.globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '1K' }
     });
     
@@ -892,6 +920,13 @@ router.post('/:id/generate-frame', async (req, res) => {
         kind: 'clothing',
         label: `Одежда (коллаж из ${clothingImages.length} фото)`,
         previewUrl: `data:${clothingCollage.mimeType};base64,${clothingCollage.base64}`
+      });
+    }
+    if (poseSketchImage) {
+      refs.push({
+        kind: 'pose_sketch',
+        label: 'Эскиз позы',
+        previewUrl: `data:${poseSketchImage.mimeType};base64,${poseSketchImage.base64}`
       });
     }
     
