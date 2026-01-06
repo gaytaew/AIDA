@@ -1,20 +1,21 @@
 /**
  * Location Routes
  * 
- * API endpoints for managing the global location catalog.
+ * API endpoints for managing locations.
  */
 
 import express from 'express';
 import {
   getAllLocations,
   getLocationById,
-  getLocationsByUniverse,
   getLocationsByCategory,
+  getLocationsByTags,
+  searchLocations,
   createLocation,
   updateLocation,
-  deleteLocation,
-  getLocationOptions
+  deleteLocation
 } from '../store/locationStore.js';
+import { LOCATION_OPTIONS } from '../schema/location.js';
 
 const router = express.Router();
 
@@ -22,25 +23,28 @@ const router = express.Router();
 router.get('/options', (req, res) => {
   res.json({
     ok: true,
-    data: getLocationOptions()
+    data: LOCATION_OPTIONS
   });
 });
 
 // GET /api/locations — List all locations (with optional filters)
 router.get('/', async (req, res) => {
   try {
-    const { universeId, category } = req.query;
-    
+    const { category, tags, search } = req.query;
+
     let locations;
-    
-    if (universeId) {
-      locations = await getLocationsByUniverse(universeId);
+
+    if (search) {
+      locations = await searchLocations(search);
     } else if (category) {
       locations = await getLocationsByCategory(category);
+    } else if (tags) {
+      const tagList = String(tags).split(',').map(t => t.trim()).filter(Boolean);
+      locations = await getLocationsByTags(tagList);
     } else {
       locations = await getAllLocations();
     }
-    
+
     res.json({
       ok: true,
       data: locations,
@@ -57,14 +61,14 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const location = await getLocationById(id);
-    
+
     if (!location) {
       return res.status(404).json({
         ok: false,
         error: `Location "${id}" not found`
       });
     }
-    
+
     res.json({ ok: true, data: location });
   } catch (err) {
     console.error('[Location] Get error:', err);
@@ -77,14 +81,14 @@ router.post('/', async (req, res) => {
   try {
     const data = req.body;
     const result = await createLocation(data);
-    
+
     if (!result.success) {
       return res.status(400).json({
         ok: false,
         errors: result.errors
       });
     }
-    
+
     res.status(201).json({
       ok: true,
       data: result.location
@@ -100,9 +104,9 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
-    
+
     const result = await updateLocation(id, updates);
-    
+
     if (!result.success) {
       const status = result.errors.some(e => e.includes('not found')) ? 404 : 400;
       return res.status(status).json({
@@ -110,7 +114,7 @@ router.put('/:id', async (req, res) => {
         errors: result.errors
       });
     }
-    
+
     res.json({
       ok: true,
       data: result.location
@@ -126,7 +130,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await deleteLocation(id);
-    
+
     if (!result.success) {
       const status = result.errors.some(e => e.includes('not found')) ? 404 : 400;
       return res.status(status).json({
@@ -134,7 +138,7 @@ router.delete('/:id', async (req, res) => {
         errors: result.errors
       });
     }
-    
+
     res.json({ ok: true });
   } catch (err) {
     console.error('[Location] Delete error:', err);
@@ -143,4 +147,3 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
-

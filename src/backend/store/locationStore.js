@@ -2,9 +2,7 @@
  * Location Store
  * 
  * File-based storage for locations.
- * Locations can be:
- * 1. Part of a universe (originUniverseId set)
- * 2. Global (originUniverseId null) — standalone locations for reuse
+ * Supports CRUD operations, filtering by category/tags, and search.
  */
 
 import fs from 'fs/promises';
@@ -14,7 +12,7 @@ import {
   validateLocation,
   createEmptyLocation,
   buildLocationPromptSnippet,
-  LOCATION_CATEGORIES
+  DEFAULT_LIGHTING
 } from '../schema/location.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -71,7 +69,7 @@ async function readLocationFromFile(filePath) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get all locations (global catalog)
+ * Get all locations
  */
 export async function getAllLocations() {
   await ensureLocationsDir();
@@ -87,19 +85,11 @@ export async function getAllLocations() {
       locations.push(res.location);
     }
   }
-  
+
   // Sort by updatedAt (newest first)
   locations.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-  
-  return locations;
-}
 
-/**
- * Get locations filtered by universe
- */
-export async function getLocationsByUniverse(universeId) {
-  const all = await getAllLocations();
-  return all.filter(loc => loc.originUniverseId === universeId);
+  return locations;
 }
 
 /**
@@ -107,7 +97,38 @@ export async function getLocationsByUniverse(universeId) {
  */
 export async function getLocationsByCategory(category) {
   const all = await getAllLocations();
-  return all.filter(loc => loc.category === category);
+  return all.filter(l => l.category === category);
+}
+
+/**
+ * Get locations filtered by tags (any match)
+ */
+export async function getLocationsByTags(tags) {
+  if (!Array.isArray(tags) || tags.length === 0) {
+    return getAllLocations();
+  }
+  
+  const all = await getAllLocations();
+  return all.filter(l => {
+    if (!Array.isArray(l.tags)) return false;
+    return tags.some(tag => l.tags.includes(tag));
+  });
+}
+
+/**
+ * Search locations by text (label, description)
+ */
+export async function searchLocations(query) {
+  const q = String(query || '').toLowerCase().trim();
+  if (!q) return getAllLocations();
+
+  const all = await getAllLocations();
+  return all.filter(l => {
+    const label = (l.label || '').toLowerCase();
+    const desc = (l.description || '').toLowerCase();
+    const tags = (l.tags || []).join(' ').toLowerCase();
+    return label.includes(q) || desc.includes(q) || tags.includes(q);
+  });
 }
 
 /**
@@ -116,10 +137,10 @@ export async function getLocationsByCategory(category) {
 export async function getLocationById(id) {
   const key = String(id || '').trim();
   if (!key) return null;
-  
+
   const filePath = buildLocationFilePath(key);
   if (!filePath || !(await fileExists(filePath))) return null;
-  
+
   const res = await readLocationFromFile(filePath);
   return res.ok ? res.location : null;
 }
@@ -129,38 +150,44 @@ export async function getLocationById(id) {
  */
 export async function createLocation(data) {
   const now = new Date().toISOString();
-  
+
   const newLocation = {
-    ...createEmptyLocation(data.label, data.originUniverseId),
+    ...createEmptyLocation(data.label, data.category),
     ...data,
+    lighting: {
+      ...DEFAULT_LIGHTING,
+      ...(data.lighting || {})
+    },
+    props: Array.isArray(data.props) ? data.props : [],
+    tags: Array.isArray(data.tags) ? data.tags : [],
     createdAt: now,
     updatedAt: now
   };
-  
+
   // Auto-generate prompt snippet if not provided
-  if (!newLocation.promptSnippet && newLocation.description) {
+  if (!newLocation.promptSnippet) {
     newLocation.promptSnippet = buildLocationPromptSnippet(newLocation);
   }
-  
+
   const v = validateLocation(newLocation);
   if (!v.valid) {
     return { success: false, errors: v.errors };
   }
-  
+
   const filePath = buildLocationFilePath(newLocation.id);
   if (!filePath) {
     return { success: false, errors: ['Invalid location ID'] };
   }
-  
+
   if (await fileExists(filePath)) {
     return { success: false, errors: [`Location "${newLocation.id}" already exists`] };
   }
-  
+
   await enqueueWrite(async () => {
     await ensureLocationsDir();
     await fs.writeFile(filePath, JSON.stringify(newLocation, null, 2), 'utf8');
   });
-  
+
   return { success: true, location: newLocation };
 }
 
@@ -172,34 +199,40 @@ export async function updateLocation(id, updates) {
   if (!existing) {
     return { success: false, errors: [`Location "${id}" not found`] };
   }
-  
+
   const updated = {
     ...existing,
     ...updates,
     id: existing.id, // ID cannot change
+    lighting: {
+      ...(existing.lighting || DEFAULT_LIGHTING),
+      ...(updates.lighting || {})
+    },
+    props: Array.isArray(updates.props) ? updates.props : (existing.props || []),
+    tags: Array.isArray(updates.tags) ? updates.tags : (existing.tags || []),
     createdAt: existing.createdAt,
     updatedAt: new Date().toISOString()
   };
-  
-  // Regenerate prompt snippet if description changed
-  if (updates.description && !updates.promptSnippet) {
+
+  // Regenerate prompt snippet if relevant fields changed
+  if (updates.description || updates.environmentType || updates.lighting || updates.surface || updates.props) {
     updated.promptSnippet = buildLocationPromptSnippet(updated);
   }
-  
+
   const v = validateLocation(updated);
   if (!v.valid) {
     return { success: false, errors: v.errors };
   }
-  
+
   const filePath = buildLocationFilePath(id);
   if (!filePath) {
     return { success: false, errors: ['Invalid location ID'] };
   }
-  
+
   await enqueueWrite(async () => {
     await fs.writeFile(filePath, JSON.stringify(updated, null, 2), 'utf8');
   });
-  
+
   return { success: true, location: updated };
 }
 
@@ -211,54 +244,15 @@ export async function deleteLocation(id) {
   if (!filePath || !(await fileExists(filePath))) {
     return { success: false, errors: [`Location "${id}" not found`] };
   }
-  
+
   await enqueueWrite(async () => {
     await fs.unlink(filePath);
   });
-  
-  return { success: true };
-}
 
-/**
- * Bulk save locations (used when saving universe with locations)
- */
-export async function bulkSaveLocations(locations) {
-  if (!Array.isArray(locations)) return { success: false, errors: ['Locations must be an array'] };
-  
-  const results = [];
-  
-  for (const loc of locations) {
-    const existing = await getLocationById(loc.id);
-    
-    if (existing) {
-      const res = await updateLocation(loc.id, loc);
-      results.push({ id: loc.id, action: 'updated', success: res.success });
-    } else {
-      const res = await createLocation(loc);
-      results.push({ id: loc.id, action: 'created', success: res.success });
-    }
-  }
-  
-  return { success: true, results };
+  return { success: true };
 }
 
 /**
  * Get location options for UI
  */
-export function getLocationOptions() {
-  return {
-    categories: LOCATION_CATEGORIES,
-    lighting: {
-      type: ['natural', 'artificial', 'mixed'],
-      quality: ['soft', 'hard', 'dramatic', 'flat'],
-      temperature: ['warm', 'cool', 'neutral', 'mixed']
-    },
-    atmosphere: {
-      spaceFeeling: ['intimate', 'expansive', 'claustrophobic', 'open'],
-      crowdLevel: ['busy', 'quiet', 'isolated', 'public'],
-      timeOfDay: ['day', 'night', 'golden_hour', 'blue_hour', 'any'],
-      season: ['summer', 'winter', 'autumn', 'spring', 'any']
-    }
-  };
-}
-
+export { LOCATION_OPTIONS } from '../schema/location.js';

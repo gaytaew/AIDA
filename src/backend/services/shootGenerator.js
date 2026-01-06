@@ -19,11 +19,26 @@ import { buildCollage } from '../utils/imageCollage.js';
 // JSON PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════
 
+// Default scene parameters when no frame is selected
+export const DEFAULT_SCENE = {
+  label: 'Default Scene',
+  description: 'Fashion photo with natural pose',
+  technical: {
+    shotSize: 'medium_full',
+    cameraAngle: 'eye_level',
+    poseType: 'static',
+    composition: 'rule_of_thirds',
+    focusPoint: 'face',
+    poseDescription: 'Standing relaxed, natural pose, weight slightly on one leg, arms at sides'
+  }
+};
+
 /**
  * Build the structured JSON prompt from modules
  */
 export function buildShootPromptJson({
   universe,
+  location,
   frame,
   modelDescription = '',
   clothingNotes = '',
@@ -32,6 +47,9 @@ export function buildShootPromptJson({
   hasIdentityRefs = false,
   hasClothingRefs = false
 }) {
+  // Use default scene if no frame provided
+  const effectiveFrame = frame || DEFAULT_SCENE;
+
   const promptJson = {
     format: 'aida_shoot_prompt_v1',
     formatVersion: 1,
@@ -52,6 +70,9 @@ export function buildShootPromptJson({
 
     // Universe / Visual DNA
     universe: buildUniverseBlock(universe),
+
+    // Location (physical place)
+    location: buildLocationBlock(location),
 
     // Identity references
     identity: {
@@ -80,15 +101,15 @@ export function buildShootPromptJson({
     },
 
     // Frame / Scene (ONLY pose, camera, composition - NO location)
-    frame: buildFrameBlock(frame),
+    frame: buildFrameBlock(effectiveFrame),
     
     // Frame interpretation rules
     frameRules: [
       'FRAME describes ONLY: pose, body position, camera angle, shot size, composition.',
       'FRAME does NOT define: location, background, environment, props, weather.',
-      'Location and environment come from UNIVERSE module, not from frame.',
+      'Location and environment come from LOCATION module (or UNIVERSE if no location).',
       'If frame description mentions any location hints (snow, beach, studio, etc.) — IGNORE them.',
-      'Apply the pose/camera from FRAME to whatever location is defined in UNIVERSE.'
+      'Apply the pose/camera from FRAME to whatever location is defined.'
     ],
 
     // Anti-AI markers
@@ -159,6 +180,28 @@ function buildUniverseBlock(universe) {
       aiArtifactsPrevention: universe.postProcess.aiArtifactsPrevention ?? true,
       skinSmoothing: universe.postProcess.skinSmoothing ?? false
     } : null
+  };
+}
+
+/**
+ * Build location block from location data
+ */
+function buildLocationBlock(location) {
+  if (!location) {
+    return null;
+  }
+
+  return {
+    label: location.label || null,
+    description: location.description || null,
+    environmentType: location.environmentType || null,
+    surface: location.surface || null,
+    lighting: location.lighting ? {
+      type: location.lighting.type || 'natural',
+      timeOfDay: location.lighting.timeOfDay || 'any',
+      description: location.lighting.description || null
+    } : null,
+    props: Array.isArray(location.props) && location.props.length > 0 ? location.props : null
   };
 }
 
@@ -238,6 +281,29 @@ export function jsonPromptToText(promptJson) {
       if (u.postProcess.hdrForbidden) sections.push('NO HDR.');
       if (u.postProcess.aiArtifactsPrevention) sections.push('NO AI artifacts, NO plastic skin.');
       if (!u.postProcess.skinSmoothing) sections.push('Preserve skin texture.');
+    }
+    sections.push('');
+  }
+
+  // Location
+  if (promptJson.location) {
+    sections.push('LOCATION:');
+    const loc = promptJson.location;
+    if (loc.label) sections.push(`Place: ${loc.label}`);
+    if (loc.description) sections.push(loc.description);
+    if (loc.environmentType) sections.push(`Environment: ${String(loc.environmentType).replace(/_/g, ' ')}`);
+    if (loc.surface) sections.push(`Surface: ${loc.surface}`);
+    if (loc.lighting) {
+      const parts = [];
+      if (loc.lighting.type) parts.push(String(loc.lighting.type).replace(/_/g, ' '));
+      if (loc.lighting.timeOfDay && loc.lighting.timeOfDay !== 'any') {
+        parts.push(String(loc.lighting.timeOfDay).replace(/_/g, ' '));
+      }
+      if (parts.length > 0) sections.push(`Light: ${parts.join(', ')}`);
+      if (loc.lighting.description) sections.push(loc.lighting.description);
+    }
+    if (loc.props && loc.props.length > 0) {
+      sections.push(`Props: ${loc.props.join(', ')}`);
     }
     sections.push('');
   }
@@ -333,6 +399,7 @@ async function packImagesToBoard(images, options = {}) {
  */
 export async function generateShootFrame({
   universe,
+  location,
   frame,
   identityImages = [],
   clothingImages = [],
@@ -347,6 +414,7 @@ export async function generateShootFrame({
     // Build the JSON prompt
     const promptJson = buildShootPromptJson({
       universe,
+      location,
       frame,
       modelDescription,
       clothingNotes,
@@ -436,6 +504,7 @@ export async function generateShootFrame({
  */
 export async function generateAllShootFrames({
   universe,
+  location,
   frames,
   identityImages = [],
   clothingImages = [],
@@ -446,12 +515,16 @@ export async function generateAllShootFrames({
 }) {
   const results = [];
 
-  for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i];
-    console.log(`[ShootGenerator] Generating frame ${i + 1}/${frames.length}: ${frame.label || frame.id}`);
+  // If no frames provided, use default scene
+  const effectiveFrames = (frames && frames.length > 0) ? frames : [{ ...DEFAULT_SCENE, id: 'default' }];
+
+  for (let i = 0; i < effectiveFrames.length; i++) {
+    const frame = effectiveFrames[i];
+    console.log(`[ShootGenerator] Generating frame ${i + 1}/${effectiveFrames.length}: ${frame.label || frame.id}`);
 
     const result = await generateShootFrame({
       universe,
+      location: frame.location || location,
       frame,
       identityImages,
       clothingImages,
@@ -468,7 +541,7 @@ export async function generateAllShootFrames({
     });
 
     // Delay between requests
-    if (i < frames.length - 1 && delayMs > 0) {
+    if (i < effectiveFrames.length - 1 && delayMs > 0) {
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }

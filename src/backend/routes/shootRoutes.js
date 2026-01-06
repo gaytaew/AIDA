@@ -576,17 +576,16 @@ router.post('/:id/generate', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
     
-    if (!shoot.frames || shoot.frames.length === 0) {
-      return res.status(400).json({ ok: false, error: 'No frames in shoot' });
-    }
-    
+    // Models are required
     if (!shoot.models || shoot.models.length === 0) {
       return res.status(400).json({ ok: false, error: 'No models in shoot' });
     }
     
-    console.log(`[ShootRoutes] Starting generation for shoot ${shoot.id} with ${shoot.frames.length} frames`);
+    // Frames are optional - will use default scene if none
+    const hasFrames = shoot.frames && shoot.frames.length > 0;
+    console.log(`[ShootRoutes] Starting generation for shoot ${shoot.id} with ${hasFrames ? shoot.frames.length : 0} frames (default scene if 0)`);
     
-    // Collect identity images from first model
+    // Collect identity images from first model (ALL photos for collage)
     const identityImages = [];
     const firstModel = shoot.models[0];
     if (firstModel) {
@@ -596,7 +595,8 @@ router.post('/:id/generate', async (req, res) => {
         const path = await import('path');
         const { getModelsDir } = await import('../store/modelStore.js');
         
-        for (const filename of model.imageFiles.slice(0, 5)) {
+        // Collect ALL identity images (not just first 5)
+        for (const filename of model.imageFiles) {
           const filePath = path.default.join(getModelsDir(), model.id, filename);
           try {
             const buffer = await fs.default.readFile(filePath);
@@ -628,20 +628,42 @@ router.post('/:id/generate', async (req, res) => {
       }
     }
     
-    // Collect frame data
-    const frames = [];
-    for (const shootFrame of shoot.frames) {
-      const frameData = await getFrameById(shootFrame.frameId);
-      if (frameData) {
-        frames.push({
-          ...frameData,
-          extraPrompt: shootFrame.extraPrompt || ''
-        });
-      }
+    // Build collages for identity and clothing
+    let identityCollage = null;
+    let clothingCollage = null;
+    
+    if (identityImages.length > 0) {
+      identityCollage = await buildCollage(identityImages, {
+        maxSize: 1536,
+        maxCols: 3,
+        jpegQuality: 92
+      });
+      console.log(`[ShootRoutes] Identity collage built from ${identityImages.length} images`);
     }
     
-    if (frames.length === 0) {
-      return res.status(400).json({ ok: false, error: 'No valid frames found' });
+    if (clothingImages.length > 0) {
+      clothingCollage = await buildCollage(clothingImages, {
+        maxSize: 1536,
+        maxCols: 4,
+        jpegQuality: 90,
+        fit: 'contain'
+      });
+      console.log(`[ShootRoutes] Clothing collage built from ${clothingImages.length} images`);
+    }
+    
+    // Collect frame data (or use empty array for default scene)
+    const frames = [];
+    if (hasFrames) {
+      for (const shootFrame of shoot.frames) {
+        const frameData = await getFrameById(shootFrame.frameId);
+        if (frameData) {
+          frames.push({
+            ...frameData,
+            extraPrompt: shootFrame.extraPrompt || '',
+            location: shootFrame.location || null // Support per-frame location
+          });
+        }
+      }
     }
     
     // Get model description
@@ -653,12 +675,17 @@ router.post('/:id/generate', async (req, res) => {
       }
     }
     
+    // Prepare images for generation (use collages)
+    const identityImagesForGen = identityCollage ? [identityCollage] : [];
+    const clothingImagesForGen = clothingCollage ? [clothingCollage] : [];
+    
     // Generate all frames
     const results = await generateAllShootFrames({
       universe: shoot.universe,
+      location: shoot.location || null,
       frames,
-      identityImages,
-      clothingImages,
+      identityImages: identityImagesForGen,
+      clothingImages: clothingImagesForGen,
       modelDescription,
       clothingNotes: '',
       imageConfig: shoot.globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '1K' },
@@ -668,23 +695,21 @@ router.post('/:id/generate', async (req, res) => {
     // Build refs preview for debug info
     const refsPreview = [];
     
-    // Add identity refs
-    if (identityImages.length > 0) {
+    // Add identity collage preview
+    if (identityCollage) {
       refsPreview.push({
         kind: 'identity',
-        label: `Модель (${identityImages.length} фото)`,
-        previewUrl: identityImages[0] ? `data:${identityImages[0].mimeType};base64,${identityImages[0].base64}` : null
+        label: `Модель (коллаж из ${identityImages.length} фото)`,
+        previewUrl: `data:${identityCollage.mimeType};base64,${identityCollage.base64}`
       });
     }
     
-    // Add clothing refs
-    if (clothingImages.length > 0) {
-      clothingImages.slice(0, 3).forEach((img, idx) => {
-        refsPreview.push({
-          kind: 'clothing',
-          label: `Одежда ${idx + 1}`,
-          previewUrl: `data:${img.mimeType};base64,${img.base64}`
-        });
+    // Add clothing collage preview
+    if (clothingCollage) {
+      refsPreview.push({
+        kind: 'clothing',
+        label: `Одежда (коллаж из ${clothingImages.length} фото)`,
+        previewUrl: `data:${clothingCollage.mimeType};base64,${clothingCollage.base64}`
       });
     }
     
@@ -727,29 +752,34 @@ router.post('/:id/generate', async (req, res) => {
 
 /**
  * POST /api/shoots/:id/generate-frame — Generate a single frame
- * Body: { frameIndex: number }
+ * Body: { frameIndex?: number, locationId?: string, extraPrompt?: string }
  */
 router.post('/:id/generate-frame', async (req, res) => {
   try {
-    const { frameIndex } = req.body;
+    const { frameIndex, locationId, extraPrompt: reqExtraPrompt } = req.body;
     const shoot = await getShootById(req.params.id);
     
     if (!shoot) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
     
-    if (frameIndex === undefined || frameIndex < 0 || frameIndex >= (shoot.frames?.length || 0)) {
-      return res.status(400).json({ ok: false, error: 'Invalid frameIndex' });
+    // Frame is optional - use default scene if not provided or invalid
+    let frameData = null;
+    let shootFrame = null;
+    
+    if (frameIndex !== undefined && frameIndex >= 0 && frameIndex < (shoot.frames?.length || 0)) {
+      shootFrame = shoot.frames[frameIndex];
+      frameData = await getFrameById(shootFrame.frameId);
     }
     
-    const shootFrame = shoot.frames[frameIndex];
-    const frameData = await getFrameById(shootFrame.frameId);
-    
-    if (!frameData) {
-      return res.status(404).json({ ok: false, error: 'Frame not found' });
+    // Get location if provided
+    let location = null;
+    if (locationId) {
+      const { getLocationById } = await import('../store/locationStore.js');
+      location = await getLocationById(locationId);
     }
     
-    // Collect identity images
+    // Collect identity images (ALL for collage)
     const identityImages = [];
     if (shoot.models && shoot.models.length > 0) {
       const firstModel = shoot.models[0];
@@ -759,7 +789,7 @@ router.post('/:id/generate-frame', async (req, res) => {
         const path = await import('path');
         const { getModelsDir } = await import('../store/modelStore.js');
         
-        for (const filename of model.imageFiles.slice(0, 5)) {
+        for (const filename of model.imageFiles) {
           const filePath = path.default.join(getModelsDir(), model.id, filename);
           try {
             const buffer = await fs.default.readFile(filePath);
@@ -791,6 +821,27 @@ router.post('/:id/generate-frame', async (req, res) => {
       }
     }
     
+    // Build collages
+    let identityCollage = null;
+    let clothingCollage = null;
+    
+    if (identityImages.length > 0) {
+      identityCollage = await buildCollage(identityImages, {
+        maxSize: 1536,
+        maxCols: 3,
+        jpegQuality: 92
+      });
+    }
+    
+    if (clothingImages.length > 0) {
+      clothingCollage = await buildCollage(clothingImages, {
+        maxSize: 1536,
+        maxCols: 4,
+        jpegQuality: 90,
+        fit: 'contain'
+      });
+    }
+    
     // Get model description
     let modelDescription = '';
     if (shoot.models && shoot.models.length > 0) {
@@ -803,15 +854,16 @@ router.post('/:id/generate-frame', async (req, res) => {
     // Generate single frame
     const result = await generateShootFrame({
       universe: shoot.universe,
-      frame: {
+      location: location || shoot.location || null,
+      frame: frameData ? {
         ...frameData,
-        extraPrompt: shootFrame.extraPrompt || ''
-      },
-      identityImages,
-      clothingImages,
+        extraPrompt: reqExtraPrompt || shootFrame?.extraPrompt || ''
+      } : null,
+      identityImages: identityCollage ? [identityCollage] : [],
+      clothingImages: clothingCollage ? [clothingCollage] : [],
       modelDescription,
       clothingNotes: '',
-      extraPrompt: shootFrame.extraPrompt || '',
+      extraPrompt: reqExtraPrompt || shootFrame?.extraPrompt || '',
       imageConfig: shoot.globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '1K' }
     });
     
@@ -819,24 +871,97 @@ router.post('/:id/generate-frame', async (req, res) => {
       return res.json({
         ok: false,
         error: result.error,
-        prompt: result.prompt
+        prompt: result.prompt,
+        promptJson: result.promptJson
       });
     }
     
     const imageUrl = `data:${result.image.mimeType};base64,${result.image.base64}`;
     
+    // Build refs for debug
+    const refs = [];
+    if (identityCollage) {
+      refs.push({
+        kind: 'identity',
+        label: `Модель (коллаж из ${identityImages.length} фото)`,
+        previewUrl: `data:${identityCollage.mimeType};base64,${identityCollage.base64}`
+      });
+    }
+    if (clothingCollage) {
+      refs.push({
+        kind: 'clothing',
+        label: `Одежда (коллаж из ${clothingImages.length} фото)`,
+        previewUrl: `data:${clothingCollage.mimeType};base64,${clothingCollage.base64}`
+      });
+    }
+    
     res.json({
       ok: true,
       data: {
-        frameId: frameData.id,
-        frameLabel: frameData.label,
+        frameId: frameData?.id || 'default',
+        frameLabel: frameData?.label || 'Default Scene',
         imageUrl,
-        prompt: result.prompt
+        prompt: result.prompt,
+        promptJson: result.promptJson,
+        refs
       }
     });
     
   } catch (error) {
     console.error('[ShootRoutes] Error generating frame:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// UPSCALE ENDPOINT
+// ═══════════════════════════════════════════════════════════════
+
+import sharp from 'sharp';
+
+/**
+ * POST /api/shoots/:id/upscale — Upscale an image
+ * Body: { imageBase64: string, mimeType: string, scale: number }
+ */
+router.post('/:id/upscale', async (req, res) => {
+  try {
+    const { imageBase64, mimeType, scale = 2 } = req.body;
+    
+    if (!imageBase64) {
+      return res.status(400).json({ ok: false, error: 'imageBase64 is required' });
+    }
+    
+    const inputBuffer = Buffer.from(imageBase64, 'base64');
+    
+    // Get image dimensions
+    const metadata = await sharp(inputBuffer).metadata();
+    const newWidth = Math.round((metadata.width || 1024) * scale);
+    const newHeight = Math.round((metadata.height || 1024) * scale);
+    
+    // Upscale using sharp
+    const outputBuffer = await sharp(inputBuffer)
+      .resize(newWidth, newHeight, {
+        kernel: 'lanczos3'
+      })
+      .jpeg({ quality: 95 })
+      .toBuffer();
+    
+    const outputBase64 = outputBuffer.toString('base64');
+    const outputUrl = `data:image/jpeg;base64,${outputBase64}`;
+    
+    console.log(`[ShootRoutes] Upscaled image from ${metadata.width}x${metadata.height} to ${newWidth}x${newHeight}`);
+    
+    res.json({
+      ok: true,
+      data: {
+        imageUrl: outputUrl,
+        width: newWidth,
+        height: newHeight
+      }
+    });
+    
+  } catch (error) {
+    console.error('[ShootRoutes] Error upscaling image:', error);
     res.status(500).json({ ok: false, error: error.message });
   }
 });

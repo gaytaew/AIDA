@@ -25,12 +25,16 @@ const state = {
   universes: [],
   models: [],
   frames: [],
+  locations: [],
   
   // Selected for current shoot
   selectedModels: [null, null, null],
   clothingByModel: [[], [], []],
   outfitAvatars: [null, null, null],
-  selectedFrames: []
+  selectedFrames: [],
+  
+  // Generated frames (for iterative editing)
+  generatedFrames: []
 };
 
 // Step order for navigation
@@ -1119,6 +1123,9 @@ async function generateShoot() {
           </div>
         `;
       } else {
+        // Store generated frames for later actions
+        state.generatedFrames = successFrames;
+        
         elements.imagesGallery.innerHTML = successFrames.map((frame, i) => {
           // Build refs HTML
           const refs = frame.refs || [];
@@ -1140,16 +1147,44 @@ async function generateShoot() {
             : '<div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">Нет сохранённых референсов</div>';
           
           return `
-            <div class="selection-card" style="cursor: default;">
+            <div class="selection-card generated-frame-card" data-frame-index="${i}" style="cursor: default;">
               <div class="selection-card-preview" style="aspect-ratio: 3/4;">
                 <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000;">
               </div>
               <div class="selection-card-title">${escapeHtml(frame.frameLabel || `Кадр ${i + 1}`)}</div>
-              <div style="margin-top: 8px; display: flex; gap: 8px;">
-                <a href="${frame.imageUrl}" download="shoot-${state.currentShoot.id}-${frame.frameId}.png" 
-                   class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
-                  💾 Скачать
-                </a>
+              
+              <!-- Action buttons -->
+              <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; gap: 8px;">
+                  <a href="${frame.imageUrl}" download="shoot-${state.currentShoot.id}-${frame.frameId}.png" 
+                     class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">
+                    💾 Скачать
+                  </a>
+                  <button class="btn btn-secondary btn-regenerate" data-frame-index="${i}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
+                    🔄 Перегенерировать
+                  </button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-secondary btn-edit-prompt" data-frame-index="${i}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
+                    ✏️ Изменить
+                  </button>
+                  <button class="btn btn-secondary btn-upscale" data-frame-index="${i}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
+                    ⬆️ Апскейл
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Edit prompt form (hidden by default) -->
+              <div class="edit-prompt-form" data-frame-index="${i}" style="display: none; margin-top: 12px;">
+                <textarea class="edit-prompt-textarea" placeholder="Введите дополнительный промпт для изменения..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); color: var(--color-text); font-family: inherit; resize: vertical;"></textarea>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                  <button class="btn btn-primary btn-apply-edit" data-frame-index="${i}" style="padding: 8px 16px; font-size: 12px;">
+                    ✓ Применить
+                  </button>
+                  <button class="btn btn-secondary btn-cancel-edit" data-frame-index="${i}" style="padding: 8px 16px; font-size: 12px;">
+                    ✕ Отмена
+                  </button>
+                </div>
               </div>
               
               <!-- Debug: Prompt + Refs -->
@@ -1174,6 +1209,9 @@ async function generateShoot() {
             </div>
           `;
         }).join('');
+        
+        // Add event handlers for action buttons
+        attachFrameActionHandlers();
         
         if (errorFrames.length > 0) {
           elements.imagesGallery.innerHTML += `
@@ -1210,6 +1248,238 @@ async function generateShoot() {
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FRAME ACTION HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+function attachFrameActionHandlers() {
+  // Regenerate buttons
+  elements.imagesGallery.querySelectorAll('.btn-regenerate').forEach(btn => {
+    btn.addEventListener('click', () => regenerateFrame(parseInt(btn.dataset.frameIndex)));
+  });
+  
+  // Edit prompt buttons
+  elements.imagesGallery.querySelectorAll('.btn-edit-prompt').forEach(btn => {
+    btn.addEventListener('click', () => showEditPromptForm(parseInt(btn.dataset.frameIndex)));
+  });
+  
+  // Cancel edit buttons
+  elements.imagesGallery.querySelectorAll('.btn-cancel-edit').forEach(btn => {
+    btn.addEventListener('click', () => hideEditPromptForm(parseInt(btn.dataset.frameIndex)));
+  });
+  
+  // Apply edit buttons
+  elements.imagesGallery.querySelectorAll('.btn-apply-edit').forEach(btn => {
+    btn.addEventListener('click', () => applyEditPrompt(parseInt(btn.dataset.frameIndex)));
+  });
+  
+  // Upscale buttons
+  elements.imagesGallery.querySelectorAll('.btn-upscale').forEach(btn => {
+    btn.addEventListener('click', () => upscaleFrame(parseInt(btn.dataset.frameIndex)));
+  });
+}
+
+function showEditPromptForm(frameIndex) {
+  const form = elements.imagesGallery.querySelector(`.edit-prompt-form[data-frame-index="${frameIndex}"]`);
+  if (form) {
+    form.style.display = 'block';
+  }
+}
+
+function hideEditPromptForm(frameIndex) {
+  const form = elements.imagesGallery.querySelector(`.edit-prompt-form[data-frame-index="${frameIndex}"]`);
+  if (form) {
+    form.style.display = 'none';
+  }
+}
+
+async function regenerateFrame(frameIndex) {
+  if (!state.currentShoot || !state.generatedFrames) return;
+  
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame) return;
+  
+  const btn = elements.imagesGallery.querySelector(`.btn-regenerate[data-frame-index="${frameIndex}"]`);
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳...';
+  
+  try {
+    const res = await fetch(`/api/shoots/${state.currentShoot.id}/generate-frame`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        frameIndex: state.selectedFrames.findIndex(sf => sf.frameId === frame.frameId)
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok && data.data) {
+      // Update the frame in state
+      state.generatedFrames[frameIndex] = {
+        ...state.generatedFrames[frameIndex],
+        imageUrl: data.data.imageUrl,
+        prompt: data.data.prompt,
+        promptJson: data.data.promptJson,
+        refs: data.data.refs
+      };
+      
+      // Update the image in DOM
+      const card = elements.imagesGallery.querySelector(`.generated-frame-card[data-frame-index="${frameIndex}"]`);
+      if (card) {
+        const img = card.querySelector('.selection-card-preview img');
+        if (img) {
+          img.src = data.data.imageUrl;
+        }
+      }
+    } else {
+      alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+    }
+  } catch (e) {
+    console.error('Error regenerating frame:', e);
+    alert('Ошибка перегенерации');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+async function applyEditPrompt(frameIndex) {
+  if (!state.currentShoot || !state.generatedFrames) return;
+  
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame) return;
+  
+  const form = elements.imagesGallery.querySelector(`.edit-prompt-form[data-frame-index="${frameIndex}"]`);
+  const textarea = form.querySelector('.edit-prompt-textarea');
+  const extraPrompt = textarea.value.trim();
+  
+  if (!extraPrompt) {
+    alert('Введите дополнительный промпт');
+    return;
+  }
+  
+  const btn = form.querySelector('.btn-apply-edit');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳...';
+  
+  try {
+    const res = await fetch(`/api/shoots/${state.currentShoot.id}/generate-frame`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        frameIndex: state.selectedFrames.findIndex(sf => sf.frameId === frame.frameId),
+        extraPrompt
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok && data.data) {
+      // Update the frame in state
+      state.generatedFrames[frameIndex] = {
+        ...state.generatedFrames[frameIndex],
+        imageUrl: data.data.imageUrl,
+        prompt: data.data.prompt,
+        promptJson: data.data.promptJson,
+        refs: data.data.refs
+      };
+      
+      // Update the image in DOM
+      const card = elements.imagesGallery.querySelector(`.generated-frame-card[data-frame-index="${frameIndex}"]`);
+      if (card) {
+        const img = card.querySelector('.selection-card-preview img');
+        if (img) {
+          img.src = data.data.imageUrl;
+        }
+      }
+      
+      // Hide the form
+      hideEditPromptForm(frameIndex);
+      textarea.value = '';
+    } else {
+      alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+    }
+  } catch (e) {
+    console.error('Error applying edit prompt:', e);
+    alert('Ошибка применения изменений');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+async function upscaleFrame(frameIndex) {
+  if (!state.currentShoot || !state.generatedFrames) return;
+  
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame) return;
+  
+  const btn = elements.imagesGallery.querySelector(`.btn-upscale[data-frame-index="${frameIndex}"]`);
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳...';
+  
+  try {
+    // Extract base64 from data URL
+    const match = frame.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error('Invalid image format');
+    }
+    
+    const res = await fetch(`/api/shoots/${state.currentShoot.id}/upscale`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        imageBase64: match[2],
+        mimeType: match[1],
+        scale: 2
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok && data.data) {
+      // Update with upscaled image
+      state.generatedFrames[frameIndex] = {
+        ...state.generatedFrames[frameIndex],
+        imageUrl: data.data.imageUrl
+      };
+      
+      // Update the image in DOM
+      const card = elements.imagesGallery.querySelector(`.generated-frame-card[data-frame-index="${frameIndex}"]`);
+      if (card) {
+        const img = card.querySelector('.selection-card-preview img');
+        if (img) {
+          img.src = data.data.imageUrl;
+        }
+        // Update download link
+        const downloadLink = card.querySelector('a[download]');
+        if (downloadLink) {
+          downloadLink.href = data.data.imageUrl;
+        }
+      }
+      
+      btn.textContent = '✓ Апскейл выполнен';
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
+    } else {
+      alert('Ошибка: ' + (data.error || 'Апскейл пока не реализован'));
+    }
+  } catch (e) {
+    console.error('Error upscaling frame:', e);
+    alert('Ошибка апскейла: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent === '⏳...') {
+      btn.textContent = originalText;
+    }
   }
 }
 

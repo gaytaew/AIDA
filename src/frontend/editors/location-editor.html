@@ -3,51 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Frame Editor — AIDA</title>
+  <title>Location Editor — AIDA</title>
   <link rel="stylesheet" href="../styles.css">
   <style>
-    /* Frame Editor specific styles */
-
-    /* Tabs */
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 24px;
-      padding: 4px;
-      background: var(--color-bg);
-      border-radius: var(--radius-md);
-    }
-
-    .tab {
-      flex: 1;
-      padding: 10px 16px;
-      background: transparent;
-      border: none;
-      border-radius: var(--radius-sm);
-      color: var(--color-text-muted);
-      font-family: var(--font-main);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .tab:hover {
-      color: var(--color-text);
-    }
-
-    .tab.active {
-      background: var(--color-accent);
-      color: white;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
+    /* Location Editor specific styles */
 
     /* Form group label override for this page */
     .form-group label {
@@ -90,7 +49,7 @@
       justify-content: center;
     }
 
-    /* Frame gallery */
+    /* Location gallery */
     .gallery-filters {
       display: flex;
       gap: 12px;
@@ -114,7 +73,7 @@
       gap: 16px;
     }
 
-    .frame-card {
+    .location-card {
       background: var(--color-bg);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
@@ -123,18 +82,18 @@
       transition: all 0.15s;
     }
 
-    .frame-card:hover {
+    .location-card:hover {
       border-color: var(--color-border-hover);
       transform: translateY(-2px);
     }
 
-    .frame-card.selected {
+    .location-card.selected {
       border-color: var(--color-accent);
       box-shadow: var(--shadow-glow);
     }
 
-    .frame-card-image {
-      aspect-ratio: 3/4;
+    .location-card-image {
+      aspect-ratio: 4/3;
       background: var(--color-surface-elevated);
       display: flex;
       align-items: center;
@@ -143,17 +102,17 @@
       opacity: 0.3;
     }
 
-    .frame-card-image img {
+    .location-card-image img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
 
-    .frame-card-info {
+    .location-card-info {
       padding: 12px;
     }
 
-    .frame-card-title {
+    .location-card-title {
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 4px;
@@ -162,14 +121,14 @@
       text-overflow: ellipsis;
     }
 
-    .frame-card-meta {
+    .location-card-meta {
       font-size: 11px;
       color: var(--color-text-muted);
       display: flex;
       gap: 8px;
     }
 
-    .frame-card-tag {
+    .location-card-tag {
       display: inline-block;
       padding: 2px 6px;
       background: var(--color-surface-elevated);
@@ -239,6 +198,57 @@
       margin-bottom: 12px;
       opacity: 0.4;
     }
+
+    /* Props editor */
+    .props-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .prop-tag {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .prop-tag-remove {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .prop-tag-remove:hover {
+      color: var(--color-accent);
+    }
+
+    .add-prop-input {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .add-prop-input input {
+      flex: 1;
+    }
+
+    .add-prop-input button {
+      padding: 8px 12px;
+    }
   </style>
 </head>
 <body>
@@ -271,11 +281,11 @@
             <span class="nav-item-icon">🌌</span>
             <span>Вселенные</span>
           </a>
-          <a href="/editors/location-editor.html" class="nav-item">
+          <a href="/editors/location-editor.html" class="nav-item active">
             <span class="nav-item-icon">📍</span>
             <span>Локации</span>
           </a>
-          <a href="/editors/frame-editor.html" class="nav-item active">
+          <a href="/editors/frame-editor.html" class="nav-item">
             <span class="nav-item-icon">🖼️</span>
             <span>Каталог кадров</span>
           </a>
@@ -297,9 +307,9 @@
     <!-- Main Content -->
     <main class="main">
       <header class="page-header">
-        <h1 class="page-title">Каталог кадров</h1>
+        <h1 class="page-title">Каталог локаций</h1>
         <p class="page-subtitle">
-          Создавай эскизы кадров с техническими параметрами: план, ракурс, поза, композиция.
+          Создавай локации с параметрами окружения: тип среды, поверхность, освещение, объекты.
         </p>
       </header>
 
@@ -309,131 +319,87 @@
           <div class="panel">
             <div class="panel-title">
               <span class="panel-title-icon">✏️</span>
-              <span>Создание кадра</span>
+              <span>Создание локации</span>
             </div>
 
-            <!-- Tabs -->
-            <div class="tabs">
-              <button class="tab active" data-tab="manual">Вручную</button>
-              <button class="tab" data-tab="from-sketch">Из скетча</button>
-              <button class="tab" data-tab="from-text">Из текста</button>
-            </div>
+            <form id="location-form">
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label for="location-label">Название</label>
+                  <input type="text" id="location-label" placeholder="Например: Urban Street, Studio Seamless">
+                </div>
 
-            <!-- Manual Tab -->
-            <div id="tab-manual" class="tab-content active">
-              <form id="frame-form">
-                <div class="form-grid">
-                  <div class="form-group full">
-                    <label for="frame-label">Название</label>
-                    <input type="text" id="frame-label" placeholder="Например: Medium Portrait, Walking Full Body">
-                  </div>
+                <div class="form-group">
+                  <label for="location-category">Категория</label>
+                  <select id="location-category"></select>
+                </div>
 
-                  <div class="form-group">
-                    <label for="frame-shot-size">План</label>
-                    <select id="frame-shot-size"></select>
-                  </div>
+                <div class="form-group">
+                  <label for="location-environment">Тип среды</label>
+                  <select id="location-environment"></select>
+                </div>
 
-                  <div class="form-group">
-                    <label for="frame-angle">Ракурс</label>
-                    <select id="frame-camera-angle"></select>
-                  </div>
+                <div class="form-group">
+                  <label for="location-lighting-type">Тип освещения</label>
+                  <select id="location-lighting-type"></select>
+                </div>
 
-                  <div class="form-group">
-                    <label for="frame-pose">Тип позы</label>
-                    <select id="frame-pose-type"></select>
-                  </div>
+                <div class="form-group">
+                  <label for="location-time-of-day">Время суток</label>
+                  <select id="location-time-of-day"></select>
+                </div>
 
-                  <div class="form-group">
-                    <label for="frame-composition">Композиция</label>
-                    <select id="frame-composition"></select>
-                  </div>
+                <div class="form-group full">
+                  <label for="location-surface">Поверхность / Фон</label>
+                  <input type="text" id="location-surface" placeholder="Например: seamless white paper, concrete floor, wooden deck">
+                </div>
 
-                  <div class="form-group">
-                    <label for="frame-category">Категория</label>
-                    <select id="frame-category"></select>
-                  </div>
+                <div class="form-group full">
+                  <label for="location-lighting-desc">Описание освещения</label>
+                  <input type="text" id="location-lighting-desc" placeholder="Например: soft window light from the left">
+                </div>
 
-                  <div class="form-group">
-                    <label for="frame-orientation">Ориентация</label>
-                    <select id="frame-orientation"></select>
-                  </div>
-
-                  <div class="form-group full">
-                    <label for="frame-focus">Точка фокуса</label>
-                    <input type="text" id="frame-focus" placeholder="Например: face, hands, eyes, full figure">
-                  </div>
-
-                  <div class="form-group full">
-                    <label for="frame-pose-desc">Описание позы</label>
-                    <textarea id="frame-pose-desc" placeholder="Подробное описание позы модели..."></textarea>
-                  </div>
-
-                  <div class="form-group full">
-                    <label for="frame-description">Описание для промпта</label>
-                    <textarea id="frame-description" placeholder="Полное описание кадра для генерации изображений..."></textarea>
+                <div class="form-group full">
+                  <label>Объекты в кадре (props)</label>
+                  <div id="props-container" class="props-container"></div>
+                  <div class="add-prop-input">
+                    <input type="text" id="prop-input" placeholder="Добавить объект...">
+                    <button type="button" id="btn-add-prop" class="btn btn-secondary">+</button>
                   </div>
                 </div>
 
-                <div id="prompt-preview" class="prompt-preview" style="display: none;">
-                  <div class="prompt-preview-label">Prompt Snippet</div>
-                  <div id="prompt-text"></div>
+                <div class="form-group full">
+                  <label for="location-description">Описание для промпта</label>
+                  <textarea id="location-description" placeholder="Полное описание локации для генерации изображений..."></textarea>
                 </div>
+              </div>
 
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary">💾 Сохранить кадр</button>
-                  <button type="button" id="btn-clear-form" class="btn btn-secondary">Очистить</button>
-                </div>
-              </form>
-            </div>
-
-            <!-- From Sketch Tab -->
-            <div id="tab-from-sketch" class="tab-content">
-              <label id="sketch-upload-zone" class="upload-zone">
-                <input type="file" id="sketch-file-input" accept="image/*" style="display: none;">
-                <div class="upload-zone-icon">🖼️</div>
-                <div class="upload-zone-text">Загрузи скетч или референс позы</div>
-              </label>
+              <!-- Sketch upload -->
+              <div class="form-group full" style="margin-top: 16px;">
+                <label>Референс локации</label>
+                <label id="sketch-upload-zone" class="upload-zone">
+                  <input type="file" id="sketch-file-input" accept="image/*" style="display: none;">
+                  <div class="upload-zone-icon">🖼️</div>
+                  <div class="upload-zone-text">Загрузи референс или скетч локации</div>
+                </label>
+              </div>
 
               <div id="sketch-preview" class="sketch-preview" style="display: none;">
                 <img id="sketch-preview-img" src="" alt="Sketch preview">
                 <button type="button" id="sketch-remove" class="sketch-preview-remove">×</button>
               </div>
 
-              <div class="form-actions">
-                <button type="button" id="btn-analyze-sketch" class="btn btn-primary" disabled>
-                  🔍 Анализировать скетч
-                </button>
-              </div>
-            </div>
-
-            <!-- From Text Tab -->
-            <div id="tab-from-text" class="tab-content">
-              <div class="form-group">
-                <label for="text-description">Описание кадра</label>
-                <textarea id="text-description" rows="4" placeholder="Опиши кадр словами: позу, ракурс, композицию..."></textarea>
-              </div>
-
-              <div class="form-grid" style="margin-top: 16px;">
-                <div class="form-group">
-                  <label for="text-shot-size">План</label>
-                  <select id="text-shot-size"></select>
-                </div>
-                <div class="form-group">
-                  <label for="text-pose-type">Тип позы</label>
-                  <select id="text-pose-type"></select>
-                </div>
+              <div id="prompt-preview" class="prompt-preview" style="display: none;">
+                <div class="prompt-preview-label">Prompt Snippet</div>
+                <div id="prompt-text"></div>
               </div>
 
               <div class="form-actions">
-                <button type="button" id="btn-generate-sketch" class="btn btn-primary">
-                  🎨 Сгенерировать скетч
-                </button>
+                <button type="submit" class="btn btn-primary">💾 Сохранить локацию</button>
+                <button type="button" id="btn-clear-form" class="btn btn-secondary">Очистить</button>
+                <button type="button" id="btn-delete" class="btn btn-secondary" style="display: none; margin-left: auto; color: var(--color-accent);">🗑️ Удалить</button>
               </div>
-
-              <div id="generated-sketch" class="sketch-preview" style="display: none; margin-top: 16px;">
-                <img id="generated-sketch-img" src="" alt="Generated sketch">
-              </div>
-            </div>
+            </form>
 
             <div id="status" class="status-message" style="display: none;"></div>
           </div>
@@ -442,7 +408,7 @@
           <div class="panel">
             <div class="panel-title">
               <span class="panel-title-icon">📚</span>
-              <span>Каталог кадров</span>
+              <span>Каталог локаций</span>
             </div>
 
             <div class="gallery-filters">
@@ -452,10 +418,10 @@
               <input type="text" id="filter-search" placeholder="Поиск..." style="flex: 1; min-width: 150px;">
             </div>
 
-            <div id="frames-gallery" class="gallery-grid">
+            <div id="locations-gallery" class="gallery-grid">
               <div class="empty-gallery">
-                <div class="empty-gallery-icon">🖼️</div>
-                <div>Пока нет сохранённых кадров</div>
+                <div class="empty-gallery-icon">📍</div>
+                <div>Пока нет сохранённых локаций</div>
               </div>
             </div>
           </div>
@@ -464,7 +430,8 @@
     </main>
   </div>
 
-  <script type="module" src="frame-editor.js"></script>
+  <script type="module" src="location-editor.js"></script>
   <script type="module" src="../shared/dev-console.js"></script>
 </body>
 </html>
+

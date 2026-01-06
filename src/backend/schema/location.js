@@ -1,141 +1,163 @@
 /**
  * Location Schema
  * 
- * Defines a shooting location that can be:
- * 1. Generated as part of a Universe (5-10 locations per universe)
- * 2. Stored in a global catalog for reuse across shoots
- * 3. Selected for individual frames or as shoot-wide default
+ * A location represents a physical/virtual place where a shoot takes place.
+ * Contains environment parameters: type, surface, lighting, props.
  */
+
+// ═══════════════════════════════════════════════════════════════
+// LOCATION OPTIONS
+// ═══════════════════════════════════════════════════════════════
+
+export const ENVIRONMENT_TYPE_OPTIONS = [
+  'studio',      // Студия
+  'indoor',      // Интерьер
+  'outdoor',     // Экстерьер
+  'urban',       // Городская среда
+  'nature',      // Природа
+  'abstract'     // Абстрактный фон
+];
+
+export const LIGHTING_TYPE_OPTIONS = [
+  'natural',           // Естественный свет
+  'artificial',        // Искусственный свет
+  'mixed',             // Смешанный
+  'studio_flash',      // Студийная вспышка
+  'on_camera_flash',   // Накамерная вспышка
+  'ambient',           // Рассеянный
+  'dramatic'           // Драматичный
+];
+
+export const TIME_OF_DAY_OPTIONS = [
+  'golden_hour',   // Золотой час
+  'blue_hour',     // Синий час
+  'midday',        // Полдень
+  'sunset',        // Закат
+  'sunrise',       // Рассвет
+  'night',         // Ночь
+  'overcast',      // Пасмурно
+  'any'            // Любое время
+];
+
+export const SURFACE_TYPE_OPTIONS = [
+  'seamless',      // Бесшовный фон
+  'concrete',      // Бетон
+  'wood',          // Дерево
+  'fabric',        // Ткань
+  'natural',       // Натуральная поверхность
+  'sand',          // Песок
+  'grass',         // Трава
+  'water',         // Вода
+  'pavement',      // Асфальт/плитка
+  'carpet',        // Ковёр
+  'custom'         // Пользовательская
+];
+
+export const DEFAULT_LOCATION_CATEGORIES = [
+  'studio',
+  'street',
+  'nature',
+  'interior',
+  'rooftop',
+  'beach',
+  'urban',
+  'industrial'
+];
+
+export const DEFAULT_LOCATION_TAGS = [
+  // Environment
+  'indoor', 'outdoor', 'studio', 'location',
+  // Lighting
+  'natural-light', 'flash', 'golden-hour', 'night',
+  // Surface
+  'seamless', 'concrete', 'wood', 'grass',
+  // Mood
+  'minimal', 'dramatic', 'cozy', 'industrial'
+];
+
+// ═══════════════════════════════════════════════════════════════
+// TYPE DEFINITIONS
+// ═══════════════════════════════════════════════════════════════
 
 /**
  * @typedef {Object} LocationLighting
- * @property {'natural'|'artificial'|'mixed'} type - Primary light source
- * @property {'soft'|'hard'|'dramatic'|'flat'} quality - Light quality
- * @property {'warm'|'cool'|'neutral'|'mixed'} temperature - Color temperature
- * @property {string} notes - Additional lighting notes
+ * @property {string} type - Тип освещения
+ * @property {string} timeOfDay - Время суток
+ * @property {string} description - Описание освещения
  */
 
 /**
- * @typedef {Object} LocationAtmosphere
- * @property {'intimate'|'expansive'|'claustrophobic'|'open'} spaceFeeling
- * @property {'busy'|'quiet'|'isolated'|'public'} crowdLevel
- * @property {'day'|'night'|'golden_hour'|'blue_hour'|'any'} timeOfDay
- * @property {'summer'|'winter'|'autumn'|'spring'|'any'} season
- * @property {string} mood - Overall mood description
- */
-
-/**
- * @typedef {Object} LocationSurfaces
- * @property {Array<string>} materials - e.g., ['concrete', 'metal', 'glass']
- * @property {Array<string>} textures - e.g., ['rough', 'smooth', 'weathered']
- * @property {Array<string>} colors - Dominant colors in the environment
- */
-
-/**
- * @typedef {Object} LocationComposition
- * @property {Array<string>} suggestedAngles - e.g., ['low angle', 'eye level', 'overhead']
- * @property {Array<string>} framingOptions - e.g., ['wide shot', 'medium shot', 'close-up']
- * @property {string} backgroundType - e.g., 'urban backdrop', 'minimal', 'busy pattern'
- * @property {boolean} depthPotential - Can create depth/layers in composition
+ * @typedef {Object} AssetRef
+ * @property {string} assetId - Asset identifier
+ * @property {string} url - URL or data URL
+ * @property {string} [label] - Optional label
  */
 
 /**
  * @typedef {Object} Location
- * @property {string} id - Unique identifier (e.g., LOC_NEON_ALLEY_01)
- * @property {string} label - Short name (e.g., "Neon Alley")
+ * @property {string} id - Unique identifier
+ * @property {string} label - Human-readable name
  * @property {string} description - Detailed description for prompt generation
- * @property {string} category - Category (e.g., 'urban', 'interior', 'nature', 'studio')
- * @property {Array<string>} tags - Search tags
- * @property {string|null} originUniverseId - Universe this location was generated for (null if global)
- * @property {LocationLighting} lighting - Lighting characteristics
- * @property {LocationAtmosphere} atmosphere - Atmosphere and mood
- * @property {LocationSurfaces} surfaces - Materials and textures
- * @property {LocationComposition} composition - Compositional suggestions
+ * @property {string} category - Primary category
+ * @property {Array<string>} tags - Tags for filtering
+ * @property {string} environmentType - Тип окружения
+ * @property {string} surface - Описание поверхности
+ * @property {LocationLighting} lighting - Параметры освещения
+ * @property {Array<string>} props - Объекты в кадре
+ * @property {AssetRef|null} sketchAsset - Sketch/reference image
  * @property {string} promptSnippet - Ready-to-use prompt snippet
  * @property {string} createdAt - ISO timestamp
  * @property {string} updatedAt - ISO timestamp
  */
 
 // ═══════════════════════════════════════════════════════════════
-// DEFAULT VALUES
+// DEFAULTS
 // ═══════════════════════════════════════════════════════════════
-
-export const LOCATION_CATEGORIES = [
-  'urban',        // Streets, alleys, parking lots, rooftops
-  'interior',     // Apartments, studios, offices, cafes
-  'industrial',   // Factories, warehouses, garages
-  'nature',       // Parks, forests, beaches, fields
-  'transport',    // Cars, trains, buses, stations
-  'commercial',   // Shops, malls, markets
-  'cultural',     // Museums, theaters, galleries
-  'domestic',     // Kitchens, bathrooms, bedrooms
-  'abstract'      // Minimal backgrounds, color walls
-];
 
 export const DEFAULT_LIGHTING = {
   type: 'natural',
-  quality: 'soft',
-  temperature: 'neutral',
-  notes: ''
-};
-
-export const DEFAULT_ATMOSPHERE = {
-  spaceFeeling: 'open',
-  crowdLevel: 'quiet',
   timeOfDay: 'any',
-  season: 'any',
-  mood: ''
-};
-
-export const DEFAULT_SURFACES = {
-  materials: [],
-  textures: [],
-  colors: []
-};
-
-export const DEFAULT_COMPOSITION = {
-  suggestedAngles: ['eye level'],
-  framingOptions: ['medium shot'],
-  backgroundType: 'neutral',
-  depthPotential: true
+  description: ''
 };
 
 export const DEFAULT_LOCATION = {
   id: '',
   label: 'Новая локация',
   description: '',
-  category: 'urban',
+  category: 'studio',
   tags: [],
-  originUniverseId: null,
-  lighting: DEFAULT_LIGHTING,
-  atmosphere: DEFAULT_ATMOSPHERE,
-  surfaces: DEFAULT_SURFACES,
-  composition: DEFAULT_COMPOSITION,
+  environmentType: 'studio',
+  surface: '',
+  lighting: { ...DEFAULT_LIGHTING },
+  props: [],
+  sketchAsset: null,
   promptSnippet: '',
   createdAt: '',
   updatedAt: ''
 };
 
 // ═══════════════════════════════════════════════════════════════
-// UTILITIES
+// UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function generateLocationId(label = 'location') {
-  const base = String(label || 'location')
-    .replace(/[^a-zA-Z0-9]+/g, '_')
-    .toUpperCase()
-    .slice(0, 15);
+export function generateLocationId(category = 'location') {
+  const now = new Date();
+  const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
   const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `LOC_${base}_${randomPart}`;
+  const catCode = String(category || 'location').toUpperCase().slice(0, 8);
+  return `LOC_${catCode}_${datePart}_${randomPart}`;
 }
 
-export function createEmptyLocation(label = 'Новая локация', universeId = null) {
+export function createEmptyLocation(label = 'Новая локация', category = 'studio') {
   const now = new Date().toISOString();
   return {
     ...DEFAULT_LOCATION,
-    id: generateLocationId(label),
+    id: generateLocationId(category),
     label,
-    originUniverseId: universeId,
+    category,
+    lighting: { ...DEFAULT_LIGHTING },
+    props: [],
+    tags: [],
     createdAt: now,
     updatedAt: now
   };
@@ -150,19 +172,27 @@ export function validateLocation(location) {
   }
 
   if (!location.id || typeof location.id !== 'string') {
-    errors.push('ID is required and must be a string');
+    errors.push('Location must have a string id');
   }
 
   if (!location.label || typeof location.label !== 'string') {
-    errors.push('Label is required and must be a string');
+    errors.push('Location must have a string label');
   }
 
-  if (typeof location.description !== 'string') {
-    errors.push('Description must be a string');
+  // Validate environment type if present
+  if (location.environmentType && !ENVIRONMENT_TYPE_OPTIONS.includes(location.environmentType)) {
+    errors.push(`Invalid environmentType: ${location.environmentType}`);
   }
 
-  if (!LOCATION_CATEGORIES.includes(location.category)) {
-    errors.push(`Category must be one of: ${LOCATION_CATEGORIES.join(', ')}`);
+  // Validate lighting if present
+  if (location.lighting) {
+    const l = location.lighting;
+    if (l.type && !LIGHTING_TYPE_OPTIONS.includes(l.type)) {
+      errors.push(`Invalid lighting.type: ${l.type}`);
+    }
+    if (l.timeOfDay && !TIME_OF_DAY_OPTIONS.includes(l.timeOfDay)) {
+      errors.push(`Invalid lighting.timeOfDay: ${l.timeOfDay}`);
+    }
   }
 
   return {
@@ -179,57 +209,76 @@ export function buildLocationPromptSnippet(location) {
 
   const parts = [];
 
-  // Main description
-  if (location.description) {
-    parts.push(location.description);
+  // Environment type
+  if (location.environmentType) {
+    const envMap = {
+      studio: 'studio setting',
+      indoor: 'indoor environment',
+      outdoor: 'outdoor location',
+      urban: 'urban environment',
+      nature: 'natural setting',
+      abstract: 'abstract background'
+    };
+    parts.push(envMap[location.environmentType] || location.environmentType);
+  }
+
+  // Surface
+  if (location.surface) {
+    parts.push(location.surface);
   }
 
   // Lighting
   if (location.lighting) {
     const l = location.lighting;
-    const lightParts = [];
-    if (l.type && l.type !== 'natural') lightParts.push(`${l.type} lighting`);
-    if (l.quality) lightParts.push(`${l.quality} light`);
-    if (l.temperature && l.temperature !== 'neutral') lightParts.push(`${l.temperature} tones`);
-    if (lightParts.length) parts.push(lightParts.join(', '));
+    if (l.type && l.type !== 'natural') {
+      const lightMap = {
+        artificial: 'artificial lighting',
+        mixed: 'mixed lighting',
+        studio_flash: 'studio flash',
+        on_camera_flash: 'on-camera flash',
+        ambient: 'ambient light',
+        dramatic: 'dramatic lighting'
+      };
+      parts.push(lightMap[l.type] || l.type);
+    }
+    if (l.timeOfDay && l.timeOfDay !== 'any') {
+      const timeMap = {
+        golden_hour: 'golden hour light',
+        blue_hour: 'blue hour light',
+        midday: 'midday sun',
+        sunset: 'sunset light',
+        sunrise: 'sunrise light',
+        night: 'night time',
+        overcast: 'overcast/diffused light'
+      };
+      parts.push(timeMap[l.timeOfDay] || l.timeOfDay);
+    }
+    if (l.description) {
+      parts.push(l.description);
+    }
   }
 
-  // Atmosphere
-  if (location.atmosphere) {
-    const a = location.atmosphere;
-    if (a.timeOfDay && a.timeOfDay !== 'any') parts.push(`shot during ${a.timeOfDay.replace('_', ' ')}`);
-    if (a.mood) parts.push(a.mood);
+  // Props
+  if (Array.isArray(location.props) && location.props.length > 0) {
+    parts.push(`props: ${location.props.join(', ')}`);
   }
 
-  // Surfaces
-  if (location.surfaces) {
-    const s = location.surfaces;
-    if (s.materials?.length) parts.push(`environment with ${s.materials.join(', ')}`);
+  // Description
+  if (location.description) {
+    parts.push(location.description);
   }
 
-  return parts.join('; ');
+  return parts.join(', ');
 }
 
 /**
- * Options for UI dropdowns
+ * All options for UI dropdowns
  */
 export const LOCATION_OPTIONS = {
-  categories: LOCATION_CATEGORIES,
-  lighting: {
-    type: ['natural', 'artificial', 'mixed'],
-    quality: ['soft', 'hard', 'dramatic', 'flat'],
-    temperature: ['warm', 'cool', 'neutral', 'mixed']
-  },
-  atmosphere: {
-    spaceFeeling: ['intimate', 'expansive', 'claustrophobic', 'open'],
-    crowdLevel: ['busy', 'quiet', 'isolated', 'public'],
-    timeOfDay: ['day', 'night', 'golden_hour', 'blue_hour', 'any'],
-    season: ['summer', 'winter', 'autumn', 'spring', 'any']
-  },
-  composition: {
-    suggestedAngles: ['low angle', 'eye level', 'high angle', 'overhead', 'dutch angle'],
-    framingOptions: ['extreme wide', 'wide shot', 'medium shot', 'close-up', 'extreme close-up'],
-    backgroundType: ['minimal', 'neutral', 'urban backdrop', 'nature backdrop', 'busy pattern', 'bokeh']
-  }
+  environmentType: ENVIRONMENT_TYPE_OPTIONS,
+  lightingType: LIGHTING_TYPE_OPTIONS,
+  timeOfDay: TIME_OF_DAY_OPTIONS,
+  surfaceType: SURFACE_TYPE_OPTIONS,
+  categories: DEFAULT_LOCATION_CATEGORIES,
+  tags: DEFAULT_LOCATION_TAGS
 };
-
