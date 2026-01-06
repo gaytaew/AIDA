@@ -875,9 +875,9 @@
             <!-- Step 6: Summary -->
             <div class="step-panel" data-panel="summary">
               <div class="step-panel-header">
-                <h2 class="step-panel-title">Проверь съёмку</h2>
+                <h2 class="step-panel-title">Генерация съёмки</h2>
                 <p class="step-panel-desc">
-                  Убедись, что все параметры верны, перед запуском генерации.
+                  Настрой параметры и генерируй кадры итеративно. Каждый кадр сохраняется в историю.
                 </p>
               </div>
 
@@ -891,25 +891,63 @@
                   <div class="summary-section-value" id="summary-models">—</div>
                 </div>
                 <div class="summary-section">
-                  <div class="summary-section-title">Кадры</div>
+                  <div class="summary-section-title">Кадры (шаблоны)</div>
                   <div class="summary-section-value" id="summary-frames">—</div>
                 </div>
                 <div class="summary-section">
                   <div class="summary-section-title">Одежда</div>
                   <div class="summary-section-value" id="summary-clothing">—</div>
                 </div>
-                <div class="summary-section summary-full">
-                  <div class="summary-section-title">Статус</div>
-                  <div class="summary-section-value" id="summary-status">—</div>
-                </div>
               </div>
 
               <div id="summary-warnings" style="margin-top: 24px;"></div>
 
-              <!-- Generated Images Preview -->
-              <div id="generated-images" style="margin-top: 24px; display: none;">
-                <h3 class="section-title" style="margin-bottom: 16px;">Сгенерированные изображения</h3>
-                <div id="images-gallery" class="selection-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+              <!-- Generation Controls -->
+              <div class="generation-controls" style="margin-top: 24px; padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
+                <h4 style="margin-bottom: 16px; font-size: 14px; text-transform: uppercase; color: var(--color-text-muted);">Настройки генерации</h4>
+                
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div class="form-group">
+                    <label for="gen-location">Локация</label>
+                    <select id="gen-location" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                      <option value="">Из вселенной (по умолчанию)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="gen-frame">Кадр / Поза</label>
+                    <select id="gen-frame" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                      <option value="">По умолчанию</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 16px;">
+                  <label for="gen-extra-prompt">Дополнительный промпт (опционально)</label>
+                  <textarea id="gen-extra-prompt" placeholder="Дополнительные инструкции для генерации..." style="width: 100%; min-height: 60px; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); resize: vertical;"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                  <button class="btn btn-primary btn-generate" id="btn-generate-one" style="flex: 1; background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);">
+                    🚀 Сгенерировать кадр
+                  </button>
+                  <button class="btn btn-secondary" id="btn-export-json">
+                    📥 JSON
+                  </button>
+                </div>
+              </div>
+
+              <!-- Generated Images History -->
+              <div id="generated-images" style="margin-top: 32px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                  <h3 class="section-title" style="margin: 0;">История генераций</h3>
+                  <span id="generation-count" style="font-size: 13px; color: var(--color-text-muted);">0 изображений</span>
+                </div>
+                <div id="images-gallery" class="selection-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                  <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+                    <div class="empty-state-icon">🎨</div>
+                    <div class="empty-state-title">Нет сгенерированных кадров</div>
+                    <div class="empty-state-text">Нажми "Сгенерировать кадр" выше</div>
+                  </div>
                 </div>
               </div>
 
@@ -917,14 +955,9 @@
                 <button class="btn btn-secondary" id="btn-back-to-frames">
                   ← Назад
                 </button>
-                <div style="display: flex; gap: 12px;">
-                  <button class="btn btn-secondary" id="btn-export-json">
-                    📥 JSON
-                  </button>
-                  <button class="btn btn-primary" id="btn-generate-shoot" style="background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);">
-                    🚀 Сгенерировать съёмку
-                  </button>
-                </div>
+                <button class="btn btn-secondary" id="btn-clear-history" style="color: var(--color-accent);">
+                  🗑️ Очистить историю
+                </button>
               </div>
             </div>
 

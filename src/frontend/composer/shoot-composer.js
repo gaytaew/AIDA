@@ -33,8 +33,11 @@ const state = {
   outfitAvatars: [null, null, null],
   selectedFrames: [],
   
-  // Generated frames (for iterative editing)
-  generatedFrames: []
+  // Generated frames history (all generated images, not replaced on regenerate)
+  generatedFrames: [],
+  
+  // Current generation settings
+  selectedLocationId: null
 };
 
 // Step order for navigation
@@ -91,17 +94,23 @@ function initElements() {
   elements.summaryWarnings = document.getElementById('summary-warnings');
   elements.btnBackToFrames = document.getElementById('btn-back-to-frames');
   elements.btnExportJson = document.getElementById('btn-export-json');
-  elements.btnGenerateShoot = document.getElementById('btn-generate-shoot');
+  elements.btnGenerateOne = document.getElementById('btn-generate-one');
+  elements.btnClearHistory = document.getElementById('btn-clear-history');
   elements.generatedImages = document.getElementById('generated-images');
   elements.imagesGallery = document.getElementById('images-gallery');
+  elements.generationCount = document.getElementById('generation-count');
   elements.stepSummaryStatus = document.getElementById('step-summary-status');
+  
+  // Generation controls
+  elements.genLocation = document.getElementById('gen-location');
+  elements.genFrame = document.getElementById('gen-frame');
+  elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
   
   // Summary values
   elements.summaryUniverse = document.getElementById('summary-universe');
   elements.summaryModels = document.getElementById('summary-models');
   elements.summaryFrames = document.getElementById('summary-frames');
   elements.summaryClothing = document.getElementById('summary-clothing');
-  elements.summaryStatus = document.getElementById('summary-status');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -141,7 +150,8 @@ function initEventListeners() {
   // Step 6: Summary
   elements.btnBackToFrames.addEventListener('click', () => goToStep('frames'));
   elements.btnExportJson.addEventListener('click', exportShootJson);
-  elements.btnGenerateShoot.addEventListener('click', generateShoot);
+  elements.btnGenerateOne.addEventListener('click', generateOneFrame);
+  elements.btnClearHistory.addEventListener('click', clearGenerationHistory);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -897,6 +907,18 @@ async function loadFrames() {
   }
 }
 
+async function loadLocations() {
+  try {
+    const res = await fetch('/api/locations');
+    const data = await res.json();
+    if (data.ok) {
+      state.locations = data.data || [];
+    }
+  } catch (e) {
+    console.error('Error loading locations:', e);
+  }
+}
+
 function renderSelectedFrames() {
   if (state.selectedFrames.length === 0) {
     elements.selectedFrames.innerHTML = `
@@ -1023,22 +1045,41 @@ function renderSummary() {
   elements.summaryUniverse.textContent = state.currentShoot.universe?.label || 'Не выбрана';
   elements.summaryModels.textContent = modelCount > 0 ? 
     state.selectedModels.filter(m => m).map(m => m.name).join(', ') : 'Не выбраны';
-  elements.summaryFrames.textContent = frameCount > 0 ? `${frameCount} кадров` : 'Не добавлены';
+  elements.summaryFrames.textContent = frameCount > 0 ? `${frameCount} шаблонов` : 'По умолчанию';
   elements.summaryClothing.textContent = hasClothing ? 'Загружена' : 'Без одежды';
+  
+  // Populate location dropdown
+  elements.genLocation.innerHTML = '<option value="">Из вселенной (по умолчанию)</option>';
+  state.locations.forEach(loc => {
+    elements.genLocation.innerHTML += `<option value="${loc.id}">${escapeHtml(loc.label)}</option>`;
+  });
+  
+  // Populate frame dropdown
+  elements.genFrame.innerHTML = '<option value="">По умолчанию</option>';
+  state.frames.forEach(frame => {
+    elements.genFrame.innerHTML += `<option value="${frame.id}">${escapeHtml(frame.label)}</option>`;
+  });
+  // Also add selected frames from shoot
+  if (state.selectedFrames.length > 0) {
+    elements.genFrame.innerHTML += '<optgroup label="Выбранные для съёмки">';
+    state.selectedFrames.forEach((sf, idx) => {
+      const frame = state.frames.find(f => f.id === sf.frameId);
+      if (frame) {
+        elements.genFrame.innerHTML += `<option value="${frame.id}">${idx + 1}. ${escapeHtml(frame.label)}</option>`;
+      }
+    });
+    elements.genFrame.innerHTML += '</optgroup>';
+  }
   
   // Check readiness
   const warnings = [];
   
   if (!state.currentShoot.universe) {
-    warnings.push('⚠️ Вселенная не выбрана');
+    warnings.push('⚠️ Вселенная не выбрана — будут использованы базовые настройки');
   }
   
   if (modelCount === 0) {
-    warnings.push('⚠️ Модели не добавлены');
-  }
-  
-  if (frameCount === 0) {
-    warnings.push('⚠️ Кадры не добавлены (будут использованы параметры по умолчанию)');
+    warnings.push('❌ Модели не добавлены — генерация невозможна');
   }
   
   // Check outfit avatars
@@ -1053,23 +1094,29 @@ function renderSummary() {
   
   if (warnings.length > 0) {
     elements.summaryWarnings.innerHTML = warnings.map(w => `
-      <div style="padding: 12px 16px; background: rgba(233, 69, 96, 0.1); border-radius: 8px; margin-bottom: 8px; color: var(--color-accent);">
+      <div style="padding: 12px 16px; background: ${w.startsWith('❌') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; border-radius: 8px; margin-bottom: 8px; color: ${w.startsWith('❌') ? '#EF4444' : '#F59E0B'};">
         ${w}
       </div>
     `).join('');
-    elements.summaryStatus.textContent = 'Есть предупреждения';
-    elements.summaryStatus.style.color = 'var(--color-accent)';
+    elements.btnGenerateOne.disabled = modelCount === 0;
   } else {
     elements.summaryWarnings.innerHTML = '';
-    elements.summaryStatus.textContent = '✓ Готово к генерации';
-    elements.summaryStatus.style.color = '#22C55E';
+    elements.btnGenerateOne.disabled = false;
   }
+  
+  // Render existing generated frames
+  renderGeneratedHistory();
 }
 
 function exportShootJson() {
   if (!state.currentShoot) return;
   
-  const json = JSON.stringify(state.currentShoot, null, 2);
+  const exportData = {
+    ...state.currentShoot,
+    generatedFrames: state.generatedFrames
+  };
+  
+  const json = JSON.stringify(exportData, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   
@@ -1082,169 +1129,241 @@ function exportShootJson() {
   URL.revokeObjectURL(url);
 }
 
-async function generateShoot() {
-  if (!state.currentShoot) return;
+function clearGenerationHistory() {
+  if (confirm('Очистить всю историю генераций?')) {
+    state.generatedFrames = [];
+    renderGeneratedHistory();
+  }
+}
+
+function renderGeneratedHistory() {
+  const count = state.generatedFrames.length;
+  elements.generationCount.textContent = `${count} изображений`;
   
-  const btn = elements.btnGenerateShoot;
+  if (count === 0) {
+    elements.imagesGallery.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+        <div class="empty-state-icon">🎨</div>
+        <div class="empty-state-title">Нет сгенерированных кадров</div>
+        <div class="empty-state-text">Нажми "Сгенерировать кадр" выше</div>
+      </div>
+    `;
+    return;
+  }
+  
+  // Render in reverse order (newest first)
+  elements.imagesGallery.innerHTML = [...state.generatedFrames].reverse().map((frame, reverseIdx) => {
+    const idx = state.generatedFrames.length - 1 - reverseIdx;
+    const timestamp = frame.timestamp ? new Date(frame.timestamp).toLocaleTimeString() : '';
+    
+    // Build refs HTML
+    const refs = frame.refs || [];
+    const refsHtml = refs.length > 0
+      ? `<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px;">
+          ${refs.map(r => {
+            const url = r.previewUrl || '';
+            const label = r.label || r.kind || 'ref';
+            if (!url) return '';
+            return `
+              <div style="text-align: center;">
+                <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${escapeHtml(label)}</div>
+                <img src="${url}" alt="${escapeHtml(label)}" 
+                     style="width:100%; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--color-border);">
+              </div>
+            `;
+          }).join('')}
+        </div>`
+      : '';
+    
+    return `
+      <div class="selection-card generated-frame-card" data-frame-index="${idx}" style="cursor: default;">
+        <div class="selection-card-preview" style="aspect-ratio: 3/4;">
+          <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000;">
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <div class="selection-card-title" style="margin: 0;">${escapeHtml(frame.frameLabel || 'Кадр')}</div>
+          <span style="font-size: 11px; color: var(--color-text-muted);">${timestamp}</span>
+        </div>
+        ${frame.locationLabel ? `<div style="font-size: 12px; color: var(--color-text-muted);">📍 ${escapeHtml(frame.locationLabel)}</div>` : ''}
+        
+        <!-- Action buttons -->
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 8px;">
+            <a href="${frame.imageUrl}" download="aida-${state.currentShoot?.id || 'shoot'}-${idx}.png" 
+               class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">
+              💾
+            </a>
+            <button class="btn btn-secondary btn-regenerate-from-history" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
+              🔄
+            </button>
+            <button class="btn btn-secondary btn-upscale-from-history" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
+              ⬆️
+            </button>
+            <button class="btn btn-secondary btn-delete-from-history" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">
+              ✕
+            </button>
+          </div>
+        </div>
+        
+        <!-- Debug: Prompt + Refs -->
+        <details style="margin-top: 12px; width: 100%;">
+          <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
+            📋 Промпт и референсы
+          </summary>
+          <div style="margin-top: 10px; text-align: left;">
+            <pre style="white-space: pre-wrap; word-break: break-word; background: var(--color-surface-elevated); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 150px; overflow: auto; font-size: 10px; font-family: monospace; border: 1px solid var(--color-border);">${escapeHtml(frame.prompt || 'N/A')}</pre>
+            ${refsHtml}
+          </div>
+        </details>
+      </div>
+    `;
+  }).join('');
+  
+  // Attach handlers
+  attachHistoryActionHandlers();
+}
+
+function attachHistoryActionHandlers() {
+  // Regenerate buttons
+  elements.imagesGallery.querySelectorAll('.btn-regenerate-from-history').forEach(btn => {
+    btn.addEventListener('click', () => regenerateFromHistory(parseInt(btn.dataset.frameIndex)));
+  });
+  
+  // Upscale buttons
+  elements.imagesGallery.querySelectorAll('.btn-upscale-from-history').forEach(btn => {
+    btn.addEventListener('click', () => upscaleFromHistory(parseInt(btn.dataset.frameIndex)));
+  });
+  
+  // Delete buttons
+  elements.imagesGallery.querySelectorAll('.btn-delete-from-history').forEach(btn => {
+    btn.addEventListener('click', () => deleteFromHistory(parseInt(btn.dataset.frameIndex)));
+  });
+}
+
+async function regenerateFromHistory(frameIndex) {
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame) return;
+  
+  // Use the same settings as the original frame
+  elements.genLocation.value = frame.locationId || '';
+  elements.genFrame.value = frame.frameId || '';
+  elements.genExtraPrompt.value = frame.extraPrompt || '';
+  
+  // Generate new frame (will be added to history)
+  await generateOneFrame();
+}
+
+async function upscaleFromHistory(frameIndex) {
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame || !state.currentShoot) return;
+  
+  const btn = elements.imagesGallery.querySelector(`.btn-upscale-from-history[data-frame-index="${frameIndex}"]`);
   const originalText = btn.textContent;
   btn.disabled = true;
-  btn.textContent = '⏳ Генерация...';
-  
-  // Show gallery area
-  elements.generatedImages.style.display = 'block';
-  elements.imagesGallery.innerHTML = `
-    <div class="empty-state" style="grid-column: 1 / -1; padding: 60px;">
-      <div class="empty-state-icon" style="font-size: 48px; animation: pulse 1s infinite;">🎨</div>
-      <div class="empty-state-title">Генерация изображения...</div>
-      <div class="empty-state-text">Это может занять 30-60 секунд</div>
-    </div>
-  `;
+  btn.textContent = '⏳';
   
   try {
-    const res = await fetch(`/api/shoots/${state.currentShoot.id}/generate`, {
+    const match = frame.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) throw new Error('Invalid image format');
+    
+    const res = await fetch(`/api/shoots/${state.currentShoot.id}/upscale`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: match[2], mimeType: match[1], scale: 2 })
     });
     
     const data = await res.json();
     
     if (data.ok && data.data) {
-      // Display generated images from frames array
-      const frames = data.data.frames || [];
-      const successFrames = frames.filter(f => f.status === 'ok' && f.imageUrl);
-      const errorFrames = frames.filter(f => f.status !== 'ok');
-      
-      if (successFrames.length === 0) {
-        elements.imagesGallery.innerHTML = `
-          <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
-            <div class="empty-state-icon">❌</div>
-            <div class="empty-state-title">Не удалось сгенерировать изображения</div>
-            <div class="empty-state-text">${errorFrames.length > 0 ? escapeHtml(errorFrames[0].error || 'Неизвестная ошибка') : 'Попробуйте еще раз'}</div>
-          </div>
-        `;
-      } else {
-        // Store generated frames for later actions
-        state.generatedFrames = successFrames;
-        
-        elements.imagesGallery.innerHTML = successFrames.map((frame, i) => {
-          // Build refs HTML
-          const refs = frame.refs || [];
-          const refsHtml = refs.length > 0
-            ? `<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px;">
-                ${refs.map(r => {
-                  const url = r.previewUrl || '';
-                  const label = r.label || r.kind || 'ref';
-                  if (!url) return '';
-                  return `
-                    <div style="text-align: center;">
-                      <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${escapeHtml(label)}</div>
-                      <img src="${url}" alt="${escapeHtml(label)}" 
-                           style="width:100%; height:80px; object-fit:cover; border-radius:6px; border:1px solid var(--color-border);">
-                    </div>
-                  `;
-                }).join('')}
-              </div>`
-            : '<div style="font-size:12px; color:var(--color-text-muted); margin-top:8px;">Нет сохранённых референсов</div>';
-          
-          return `
-            <div class="selection-card generated-frame-card" data-frame-index="${i}" style="cursor: default;">
-              <div class="selection-card-preview" style="aspect-ratio: 3/4;">
-                <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000;">
-              </div>
-              <div class="selection-card-title">${escapeHtml(frame.frameLabel || `Кадр ${i + 1}`)}</div>
-              
-              <!-- Action buttons -->
-              <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; gap: 8px;">
-                  <a href="${frame.imageUrl}" download="shoot-${state.currentShoot.id}-${frame.frameId}.png" 
-                     class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">
-                    💾 Скачать
-                  </a>
-                  <button class="btn btn-secondary btn-regenerate" data-frame-index="${i}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
-                    🔄 Перегенерировать
-                  </button>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                  <button class="btn btn-secondary btn-edit-prompt" data-frame-index="${i}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
-                    ✏️ Изменить
-                  </button>
-                  <button class="btn btn-secondary btn-upscale" data-frame-index="${i}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
-                    ⬆️ Апскейл
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Edit prompt form (hidden by default) -->
-              <div class="edit-prompt-form" data-frame-index="${i}" style="display: none; margin-top: 12px;">
-                <textarea class="edit-prompt-textarea" placeholder="Введите дополнительный промпт для изменения..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); color: var(--color-text); font-family: inherit; resize: vertical;"></textarea>
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                  <button class="btn btn-primary btn-apply-edit" data-frame-index="${i}" style="padding: 8px 16px; font-size: 12px;">
-                    ✓ Применить
-                  </button>
-                  <button class="btn btn-secondary btn-cancel-edit" data-frame-index="${i}" style="padding: 8px 16px; font-size: 12px;">
-                    ✕ Отмена
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Debug: Prompt + Refs -->
-              <details style="margin-top: 12px; width: 100%;">
-                <summary style="cursor: pointer; font-size: 12px; color: var(--color-text-muted); user-select: none;">
-                  📋 Промпт и референсы
-                </summary>
-                <div style="margin-top: 10px; text-align: left;">
-                  <!-- JSON Prompt -->
-                  ${frame.promptJson ? `
-                    <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-bottom: 6px; text-transform: uppercase;">JSON Промпт (структура)</div>
-                    <pre style="white-space: pre-wrap; word-break: break-word; background: #0d1117; color: #c9d1d9; padding: 10px; border-radius: 8px; max-height: 200px; overflow: auto; font-size: 10px; font-family: 'SF Mono', Monaco, monospace; border: 1px solid var(--color-border);">${escapeHtml(JSON.stringify(frame.promptJson, null, 2))}</pre>
-                  ` : ''}
-                  
-                  <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-top: 12px; margin-bottom: 6px; text-transform: uppercase;">Текстовый промпт (отправлен в Gemini)</div>
-                  <pre style="white-space: pre-wrap; word-break: break-word; background: var(--color-surface-elevated); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 200px; overflow: auto; font-size: 11px; font-family: monospace; border: 1px solid var(--color-border);">${escapeHtml(frame.prompt || 'Промпт не сохранён')}</pre>
-                  
-                  <div style="font-weight: 600; font-size: 11px; color: var(--color-text-muted); margin-top: 12px; margin-bottom: 6px; text-transform: uppercase;">Референсы</div>
-                  ${refsHtml}
-                </div>
-              </details>
-            </div>
-          `;
-        }).join('');
-        
-        // Add event handlers for action buttons
-        attachFrameActionHandlers();
-        
-        if (errorFrames.length > 0) {
-          elements.imagesGallery.innerHTML += `
-            <div class="selection-card" style="cursor: default; border-color: var(--color-accent);">
-              <div class="empty-state" style="padding: 20px;">
-                <div class="empty-state-icon">⚠️</div>
-                <div class="empty-state-title">${errorFrames.length} кадр(ов) с ошибками</div>
-              </div>
-            </div>
-          `;
-        }
-      }
-      
-      elements.summaryStatus.textContent = `✓ Сгенерировано ${successFrames.length} из ${frames.length}`;
-      elements.summaryStatus.style.color = '#22C55E';
+      // Add upscaled as NEW frame in history
+      state.generatedFrames.push({
+        ...frame,
+        imageUrl: data.data.imageUrl,
+        frameLabel: (frame.frameLabel || 'Кадр') + ' (2x)',
+        timestamp: new Date().toISOString()
+      });
+      renderGeneratedHistory();
     } else {
-      elements.imagesGallery.innerHTML = `
-        <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
-          <div class="empty-state-icon">❌</div>
-          <div class="empty-state-title">Ошибка генерации</div>
-          <div class="empty-state-text">${escapeHtml(data.error || 'Неизвестная ошибка')}</div>
-        </div>
-      `;
+      alert('Ошибка: ' + (data.error || 'Не удалось увеличить'));
     }
   } catch (e) {
-    console.error('Error generating shoot:', e);
-    elements.imagesGallery.innerHTML = `
-      <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
-        <div class="empty-state-icon">❌</div>
-        <div class="empty-state-title">Ошибка сети</div>
-        <div class="empty-state-text">${escapeHtml(e.message)}</div>
-      </div>
-    `;
+    console.error('Error upscaling:', e);
+    alert('Ошибка апскейла: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+function deleteFromHistory(frameIndex) {
+  state.generatedFrames.splice(frameIndex, 1);
+  renderGeneratedHistory();
+}
+
+async function generateOneFrame() {
+  if (!state.currentShoot) return;
+  
+  const btn = elements.btnGenerateOne;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Генерация...';
+  
+  // Get selected options
+  const locationId = elements.genLocation.value || null;
+  const frameId = elements.genFrame.value || null;
+  const extraPrompt = elements.genExtraPrompt.value.trim();
+  
+  // Find frame index if a frame from shoot is selected
+  let frameIndex = undefined;
+  if (frameId) {
+    const idx = state.selectedFrames.findIndex(sf => sf.frameId === frameId);
+    if (idx >= 0) {
+      frameIndex = idx;
+    }
+  }
+  
+  try {
+    const res = await fetch(`/api/shoots/${state.currentShoot.id}/generate-frame`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        frameIndex,
+        locationId,
+        extraPrompt
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok && data.data) {
+      // Find location and frame labels
+      const location = state.locations.find(l => l.id === locationId);
+      const frame = state.frames.find(f => f.id === (data.data.frameId || frameId));
+      
+      // Add to history (don't replace)
+      state.generatedFrames.push({
+        imageUrl: data.data.imageUrl,
+        frameId: data.data.frameId || frameId,
+        frameLabel: data.data.frameLabel || frame?.label || 'Кадр',
+        locationId: locationId,
+        locationLabel: location?.label || null,
+        prompt: data.data.prompt,
+        promptJson: data.data.promptJson,
+        refs: data.data.refs,
+        extraPrompt: extraPrompt,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Clear extra prompt after successful generation
+      elements.genExtraPrompt.value = '';
+      
+      renderGeneratedHistory();
+    } else {
+      alert('Ошибка генерации: ' + (data.error || 'Неизвестная ошибка'));
+    }
+  } catch (e) {
+    console.error('Error generating frame:', e);
+    alert('Ошибка сети: ' + e.message);
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
@@ -1534,7 +1653,8 @@ async function init() {
     loadShoots(),
     loadUniverses(),
     loadModels(),
-    loadFrames()
+    loadFrames(),
+    loadLocations()
   ]);
   
   updateStepStatuses();
