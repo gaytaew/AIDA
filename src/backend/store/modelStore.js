@@ -126,6 +126,31 @@ async function listImageFiles(folderPath) {
 }
 
 /**
+ * Build previewSrc URL for a model
+ * Uses the first image file as preview
+ */
+function buildPreviewUrl(model) {
+  if (!model || !model.id) return '';
+  
+  // If previewSrc is already a full URL, use it
+  if (model.previewSrc && model.previewSrc.startsWith('/api/')) {
+    return model.previewSrc;
+  }
+  
+  // Use first image file as preview
+  if (model.imageFiles && model.imageFiles.length > 0) {
+    return `/api/models/images/${model.id}/${model.imageFiles[0]}`;
+  }
+  
+  // Fallback to previewSrc if it's a filename
+  if (model.previewSrc) {
+    return `/api/models/images/${model.id}/${model.previewSrc}`;
+  }
+  
+  return '';
+}
+
+/**
  * Get all models
  */
 export async function getAllModels() {
@@ -145,6 +170,10 @@ export async function getAllModels() {
       if (!manifest.imageFiles || manifest.imageFiles.length === 0) {
         manifest.imageFiles = await listImageFiles(folderPath);
       }
+      
+      // Build previewSrc URL
+      manifest.previewSrc = buildPreviewUrl(manifest);
+      
       models.push(manifest);
     }
   }
@@ -175,6 +204,9 @@ export async function getModelById(id) {
   if (!manifest.imageFiles || manifest.imageFiles.length === 0) {
     manifest.imageFiles = await listImageFiles(folderPath);
   }
+  
+  // Build previewSrc URL
+  manifest.previewSrc = buildPreviewUrl(manifest);
   
   return manifest;
 }
