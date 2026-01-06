@@ -1178,10 +1178,14 @@ function renderFramesToGenerate() {
   }
   
   // Add click handlers for generation buttons
-  elements.framesToGenerate.querySelectorAll('.btn-gen-frame').forEach(btn => {
+  const buttons = elements.framesToGenerate.querySelectorAll('.btn-gen-frame');
+  console.log('[Composer] Found', buttons.length, 'generation buttons');
+  
+  buttons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const frameId = btn.dataset.frameId || '';
+      console.log('[Composer] Generate button clicked, frameId:', frameId);
       generateFrameById(frameId);
     });
   });
@@ -1191,7 +1195,12 @@ function renderFramesToGenerate() {
  * Generate a frame by its ID
  */
 async function generateFrameById(frameId) {
-  if (!state.currentShoot) return;
+  console.log('[Composer] generateFrameById called with:', frameId);
+  
+  if (!state.currentShoot) {
+    console.error('[Composer] No current shoot!');
+    return;
+  }
   
   const modelCount = state.selectedModels.filter(m => m !== null).length;
   if (modelCount === 0) {
@@ -1203,7 +1212,7 @@ async function generateFrameById(frameId) {
   elements.genFrame.value = frameId;
   
   // Call the existing generate function
-  await generateSingleFrame();
+  await generateOneFrame();
 }
 
 function exportShootJson() {
