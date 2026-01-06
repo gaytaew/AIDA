@@ -754,6 +754,7 @@ router.post('/:id/generate', async (req, res) => {
  * POST /api/shoots/:id/generate-frame — Generate a single frame
  * Body: { 
  *   frameIndex?: number, 
+ *   frameId?: string,  // <-- Direct frame ID
  *   locationId?: string, 
  *   extraPrompt?: string,
  *   posingStyle?: number (1-4),
@@ -764,6 +765,7 @@ router.post('/:id/generate-frame', async (req, res) => {
   try {
     const { 
       frameIndex, 
+      frameId,  // <-- Accept frameId directly
       locationId, 
       extraPrompt: reqExtraPrompt,
       posingStyle = 2,
@@ -780,11 +782,23 @@ router.post('/:id/generate-frame', async (req, res) => {
     let shootFrame = null;
     let poseSketchImage = null;
     
-    if (frameIndex !== undefined && frameIndex >= 0 && frameIndex < (shoot.frames?.length || 0)) {
+    console.log('[ShootRoutes] frameId received:', frameId);
+    console.log('[ShootRoutes] frameIndex received:', frameIndex);
+    
+    // Try to load frame by frameId first (direct selection from catalog)
+    if (frameId) {
+      frameData = await getFrameById(frameId);
+      console.log('[ShootRoutes] Frame loaded by ID:', !!frameData);
+    }
+    // Fallback to frameIndex (from shoot.frames)
+    else if (frameIndex !== undefined && frameIndex >= 0 && frameIndex < (shoot.frames?.length || 0)) {
       shootFrame = shoot.frames[frameIndex];
       frameData = await getFrameById(shootFrame.frameId);
-      
-      // Load pose sketch if frame has one
+      console.log('[ShootRoutes] Frame loaded by index:', !!frameData);
+    }
+    
+    // Load pose sketch if frame has one
+    if (frameData) {
       console.log('[ShootRoutes] Frame has sketchUrl?', !!frameData?.sketchUrl);
       console.log('[ShootRoutes] Frame has sketchAsset?', !!frameData?.sketchAsset);
       console.log('[ShootRoutes] Frame sketchAsset.url length:', frameData?.sketchAsset?.url?.length || 0);
@@ -806,8 +820,10 @@ router.post('/:id/generate-frame', async (req, res) => {
           console.log('[ShootRoutes] ❌ sketchUrl does not start with data:');
         }
       } else {
-        console.log('[ShootRoutes] ❌ No sketchUrl or sketchAsset.url found');
+        console.log('[ShootRoutes] ❌ No sketchUrl or sketchAsset.url found in frameData');
       }
+    } else {
+      console.log('[ShootRoutes] No frame selected, using default scene');
     }
     
     // Get location if provided

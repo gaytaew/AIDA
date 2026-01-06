@@ -1317,7 +1317,7 @@ async function generateOneFrame() {
   const posingStyle = parseInt(elements.genPosingStyle?.value) || 2;
   const poseAdherence = parseInt(elements.genPoseAdherence?.value) || 2;
   
-  // Find frame index if a frame from shoot is selected
+  // Find frame index if a frame from shoot is selected (for backward compat)
   let frameIndex = undefined;
   if (frameId) {
     const idx = state.selectedFrames.findIndex(sf => sf.frameId === frameId);
@@ -1332,6 +1332,7 @@ async function generateOneFrame() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         frameIndex,
+        frameId,  // <-- Pass frameId directly!
         locationId,
         extraPrompt,
         posingStyle,
