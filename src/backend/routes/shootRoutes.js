@@ -785,9 +785,9 @@ router.post('/:id/generate-frame', async (req, res) => {
       frameData = await getFrameById(shootFrame.frameId);
       
       // Load pose sketch if frame has one
-      if (frameData?.sketchAsset?.url) {
-        const sketchUrl = frameData.sketchAsset.url;
-        if (sketchUrl.startsWith('data:')) {
+      if (frameData?.sketchUrl || frameData?.sketchAsset?.url) {
+        const sketchUrl = frameData.sketchUrl || frameData.sketchAsset?.url;
+        if (sketchUrl && sketchUrl.startsWith('data:')) {
           const match = sketchUrl.match(/^data:([^;]+);base64,(.+)$/);
           if (match) {
             poseSketchImage = { mimeType: match[1], base64: match[2] };

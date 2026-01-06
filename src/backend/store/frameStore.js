@@ -69,6 +69,23 @@ async function readFrameFromFile(filePath) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * Add sketchUrl convenience field from sketchAsset
+ */
+function enrichFrameWithSketchUrl(frame) {
+  if (!frame) return frame;
+  
+  // Extract sketchUrl from sketchAsset for frontend convenience
+  if (frame.sketchAsset?.url) {
+    frame.sketchUrl = frame.sketchAsset.url;
+  } else if (frame.sketchAsset?.base64) {
+    const mimeType = frame.sketchAsset.mimeType || 'image/png';
+    frame.sketchUrl = `data:${mimeType};base64,${frame.sketchAsset.base64}`;
+  }
+  
+  return frame;
+}
+
+/**
  * Get all frames
  */
 export async function getAllFrames() {
@@ -82,7 +99,7 @@ export async function getAllFrames() {
   for (const filePath of jsonFiles) {
     const res = await readFrameFromFile(filePath);
     if (res.ok) {
-      frames.push(res.frame);
+      frames.push(enrichFrameWithSketchUrl(res.frame));
     }
   }
 
@@ -145,7 +162,7 @@ export async function getFrameById(id) {
   if (!filePath || !(await fileExists(filePath))) return null;
 
   const res = await readFrameFromFile(filePath);
-  return res.ok ? res.frame : null;
+  return res.ok ? enrichFrameWithSketchUrl(res.frame) : null;
 }
 
 /**
