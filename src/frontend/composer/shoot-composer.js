@@ -788,10 +788,11 @@ async function handleClothingFiles(files, modelIndex) {
   const images = [];
   
   for (const file of files) {
-    const base64 = await readFileAsBase64(file);
+    const compressed = await compressImageAndGetBase64(file);
+    console.log(`[Composer] Compressed clothing ${file.name}: ${Math.round(file.size / 1024)}KB → ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
     images.push({
-      mimeType: file.type,
-      base64: base64
+      mimeType: compressed.mimeType,
+      base64: compressed.base64
     });
   }
   
@@ -1718,16 +1719,52 @@ async function upscaleFrame(frameIndex) {
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
 
-function readFileAsBase64(file) {
+// Compress image to max dimension and quality
+const MAX_IMAGE_SIZE = 1600;
+const JPEG_QUALITY = 0.85;
+
+function compressImageAndGetBase64(file) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      const base64 = result.split(',')[1];
-      resolve(base64);
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    img.onload = () => {
+      let { width, height } = img;
+      
+      if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+        const ratio = Math.min(MAX_IMAGE_SIZE / width, MAX_IMAGE_SIZE / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+      const base64 = dataUrl.split(',')[1];
+      resolve({
+        base64,
+        mimeType: 'image/jpeg',
+        dataUrl
+      });
     };
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
+    
+    const reader = new FileReader();
+    reader.onload = () => { img.src = reader.result; };
     reader.onerror = reject;
     reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsBase64(file) {
+  // Use compression for all image uploads
+  return compressImageAndGetBase64(file).then(result => {
+    console.log(`[Composer] Compressed ${file.name}: ${Math.round(file.size / 1024)}KB → ${Math.round(result.base64.length * 0.75 / 1024)}KB`);
+    return result.base64;
   });
 }
 

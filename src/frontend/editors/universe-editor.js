@@ -115,6 +115,49 @@ function formatParamValue(value) {
 // FILE HANDLING
 // ═══════════════════════════════════════════════════════════════
 
+// Compress image to max dimension and quality
+const MAX_IMAGE_SIZE = 1600; // Max width/height in pixels
+const JPEG_QUALITY = 0.85;   // JPEG compression quality
+
+async function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    img.onload = () => {
+      let { width, height } = img;
+      
+      // Scale down if needed
+      if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+        const ratio = Math.min(MAX_IMAGE_SIZE / width, MAX_IMAGE_SIZE / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Convert to JPEG for smaller size
+      const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+      resolve({
+        dataUrl,
+        mimeType: 'image/jpeg',
+        base64: dataUrlToBase64(dataUrl)
+      });
+    };
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
+    
+    // Read original file
+    const reader = new FileReader();
+    reader.onload = () => { img.src = reader.result; };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function addFiles(files) {
   const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
   
@@ -122,15 +165,18 @@ async function addFiles(files) {
     if (referenceImages.length >= 10) break;
     
     try {
-      const dataUrl = await readFileAsDataURL(file);
+      // Compress image before storing
+      const compressed = await compressImage(file);
+      console.log(`[Universe] Compressed ${file.name}: ${Math.round(file.size / 1024)}KB → ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
+      
       referenceImages.push({
         file,
-        dataUrl,
-        mimeType: getMimeType(dataUrl),
-        base64: dataUrlToBase64(dataUrl)
+        dataUrl: compressed.dataUrl,
+        mimeType: compressed.mimeType,
+        base64: compressed.base64
       });
     } catch (e) {
-      console.error('Failed to read file:', e);
+      console.error('Failed to read/compress file:', e);
     }
   }
   

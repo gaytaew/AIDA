@@ -102,6 +102,46 @@ function getMimeType(dataUrl) {
   return match ? match[1] : 'image/jpeg';
 }
 
+// Compress image to max dimension and quality
+const MAX_IMAGE_SIZE = 1600;
+const JPEG_QUALITY = 0.85;
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    img.onload = () => {
+      let { width, height } = img;
+      
+      if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+        const ratio = Math.min(MAX_IMAGE_SIZE / width, MAX_IMAGE_SIZE / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+      resolve({
+        dataUrl,
+        mimeType: 'image/jpeg',
+        base64: dataUrlToBase64(dataUrl)
+      });
+    };
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
+    
+    const reader = new FileReader();
+    reader.onload = () => { img.src = reader.result; };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function showStatus(message, type = 'loading') {
   const { status } = getElements();
   
@@ -469,20 +509,23 @@ async function loadSketchFile(file) {
   if (!file.type.startsWith('image/')) return;
   
   try {
-    const dataUrl = await readFileAsDataURL(file);
+    // Compress image before storing
+    const compressed = await compressImage(file);
+    console.log(`[Frame] Compressed ${file.name}: ${Math.round(file.size / 1024)}KB → ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
+    
     sketchImage = {
       file,
-      dataUrl,
-      mimeType: getMimeType(dataUrl),
-      base64: dataUrlToBase64(dataUrl)
+      dataUrl: compressed.dataUrl,
+      mimeType: compressed.mimeType,
+      base64: compressed.base64
     };
     
-    els.sketchPreviewImg.src = dataUrl;
+    els.sketchPreviewImg.src = compressed.dataUrl;
     els.sketchPreview.style.display = 'block';
     els.sketchUploadZone.style.display = 'none';
     els.btnAnalyzeSketch.disabled = false;
   } catch (e) {
-    console.error('Failed to load sketch:', e);
+    console.error('Failed to load/compress sketch:', e);
   }
 }
 

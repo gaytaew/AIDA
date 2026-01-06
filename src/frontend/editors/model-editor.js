@@ -138,25 +138,63 @@ function handlePaste(e) {
 // FILE HANDLING
 // ═══════════════════════════════════════════════════════════════
 
-function handleFiles(files) {
-  const fileArray = Array.from(files).slice(0, 10);
-  
-  fileArray.forEach(file => {
-    if (!file.type.startsWith('image/')) return;
+// Compress image to max dimension and quality
+const MAX_IMAGE_SIZE = 1600;
+const JPEG_QUALITY = 0.85;
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    img.onload = () => {
+      let { width, height } = img;
+      
+      if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+        const ratio = Math.min(MAX_IMAGE_SIZE / width, MAX_IMAGE_SIZE / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+      const base64 = dataUrl.split(',')[1];
+      resolve({
+        mimeType: 'image/jpeg',
+        base64,
+        previewUrl: dataUrl
+      });
+    };
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
     
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target.result.split(',')[1];
-      uploadedImages.push({
-        mimeType: file.type,
-        base64,
-        previewUrl: e.target.result
-      });
-      renderImagePreviews();
-      updateButtonStates();
-    };
+    reader.onload = () => { img.src = reader.result; };
+    reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+async function handleFiles(files) {
+  const fileArray = Array.from(files).slice(0, 10);
+  
+  for (const file of fileArray) {
+    if (!file.type.startsWith('image/')) continue;
+    
+    try {
+      const compressed = await compressImage(file);
+      console.log(`[Model] Compressed ${file.name}: ${Math.round(file.size / 1024)}KB → ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
+      uploadedImages.push(compressed);
+      renderImagePreviews();
+      updateButtonStates();
+    } catch (e) {
+      console.error('Failed to compress image:', e);
+    }
+  }
 }
 
 function renderImagePreviews() {
