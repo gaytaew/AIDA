@@ -64,6 +64,9 @@ export const DEFAULT_LOCATION_CATEGORIES = [
   'industrial'
 ];
 
+// Alias for backwards compatibility
+export const LOCATION_CATEGORIES = DEFAULT_LOCATION_CATEGORIES;
+
 export const DEFAULT_LOCATION_TAGS = [
   // Environment
   'indoor', 'outdoor', 'studio', 'location',
