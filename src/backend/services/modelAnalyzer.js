@@ -182,14 +182,12 @@ export async function analyzeModelPhotos(images, hint = '') {
 
   const parsed = await callOpenAIVision(messages);
 
-  // Generate proper ID if not provided or invalid
-  const modelId = parsed.id
-    ? String(parsed.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    : generateModelId();
+  // ALWAYS generate a unique ID (ignore AI-provided ID to prevent duplicates)
+  const uniqueId = generateModelId();
 
   // Build final model object
   const model = {
-    id: `model-${modelId}`,
+    id: uniqueId,
     name: parsed.name || 'Generated Model',
     label: parsed.label || '',
     promptSnippet: parsed.promptSnippet || '',
