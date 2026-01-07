@@ -276,6 +276,10 @@ body {
   background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
 }
 
+.dashboard-card-icon.orange {
+  background: linear-gradient(135deg, #F97316 0%, #FB923C 100%);
+}
+
 .dashboard-card-icon.blue {
   background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
 }

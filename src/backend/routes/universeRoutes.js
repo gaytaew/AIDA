@@ -70,7 +70,45 @@ router.post('/generate', async (req, res) => {
     // Analyze and generate
     const universe = await analyzeReferencesAndGenerateUniverse(images, notes || '');
 
-    // Optionally save immediately
+    // ALWAYS save locations from universe to Location module (even if universe is not saved yet)
+    const savedLocations = [];
+    if (universe.recommendedLocations && universe.recommendedLocations.length > 0) {
+      console.log(`[Universe] Auto-saving ${universe.recommendedLocations.length} locations`);
+      
+      for (const loc of universe.recommendedLocations) {
+        try {
+          const locationData = {
+            ...createEmptyLocation(loc.label || 'Локация', loc.category || 'location'),
+            label: loc.label || 'Локация из вселенной',
+            description: loc.description || '',
+            category: loc.category || 'location',
+            environmentType: loc.environmentType || 'outdoor',
+            surface: loc.surface || '',
+            lighting: loc.lighting || { type: 'natural', timeOfDay: 'any', description: '' },
+            props: loc.props || [],
+            promptSnippet: loc.promptSnippet || loc.description || '',
+            sourceUniverseId: universe.id,  // Link to source universe
+            referenceImages: []             // No refs for auto-generated locations
+          };
+          
+          const locResult = await createLocation(locationData);
+          if (locResult.success) {
+            savedLocations.push(locResult.location);
+            console.log(`[Universe] ✅ Saved location: ${locResult.location.label}`);
+          } else {
+            console.warn(`[Universe] ❌ Failed to save location "${loc.label}":`, locResult.errors);
+          }
+        } catch (e) {
+          console.warn(`[Universe] ❌ Failed to save location "${loc.label}":`, e.message);
+        }
+      }
+      
+      console.log(`[Universe] Saved ${savedLocations.length}/${universe.recommendedLocations.length} locations to Location module`);
+    } else {
+      console.log('[Universe] No recommended locations to save');
+    }
+
+    // Optionally save universe immediately
     if (save) {
       const result = await createUniverse(universe);
       if (!result.success) {
@@ -81,39 +119,6 @@ router.post('/generate', async (req, res) => {
         });
       }
       
-      // Auto-save locations from universe to Location module
-      const savedLocations = [];
-      if (universe.recommendedLocations && universe.recommendedLocations.length > 0) {
-        console.log(`[Universe] Auto-saving ${universe.recommendedLocations.length} locations`);
-        
-        for (const loc of universe.recommendedLocations) {
-          try {
-            const locationData = {
-              ...createEmptyLocation(loc.label || 'Локация', loc.category || 'location'),
-              label: loc.label || 'Локация из вселенной',
-              description: loc.description || '',
-              category: loc.category || 'location',
-              environmentType: loc.environmentType || 'outdoor',
-              surface: loc.surface || '',
-              lighting: loc.lighting || { type: 'natural', timeOfDay: 'any', description: '' },
-              props: loc.props || [],
-              promptSnippet: loc.promptSnippet || loc.description || '',
-              sourceUniverseId: universe.id,  // Link to source universe
-              referenceImages: []             // No refs for auto-generated locations
-            };
-            
-            const locResult = await createLocation(locationData);
-            if (locResult.success) {
-              savedLocations.push(locResult.location);
-            }
-          } catch (e) {
-            console.warn(`[Universe] Failed to save location "${loc.label}":`, e.message);
-          }
-        }
-        
-        console.log(`[Universe] Saved ${savedLocations.length} locations to Location module`);
-      }
-      
       return res.json({
         ok: true,
         data: result.universe,
@@ -122,11 +127,12 @@ router.post('/generate', async (req, res) => {
       });
     }
 
-    // Return without saving (user can review and save manually)
+    // Return without saving universe (but locations are already saved!)
     res.json({
       ok: true,
       data: universe,
-      saved: false
+      saved: false,
+      savedLocations: savedLocations.length
     });
   } catch (err) {
     console.error('[Universe] Generate error:', err);
