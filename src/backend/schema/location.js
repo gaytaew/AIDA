@@ -125,6 +125,15 @@ export const DEFAULT_LIGHTING = {
   description: ''
 };
 
+// Default frame params for location (used when no frame is explicitly selected)
+export const DEFAULT_LOCATION_FRAME_PARAMS = {
+  shotSize: 'medium_full',
+  cameraAngle: 'eye_level',
+  poseType: 'standing',
+  composition: 'rule_of_thirds',
+  poseDescription: 'Natural relaxed pose, weight on one leg'
+};
+
 export const DEFAULT_LOCATION = {
   id: '',
   label: 'Новая локация',
@@ -138,6 +147,7 @@ export const DEFAULT_LOCATION = {
   sketchAsset: null,
   referenceImages: [],          // Массив референсных изображений (опционально)
   sourceUniverseId: null,       // ID вселенной-источника (если создана автоматически)
+  defaultFrameParams: { ...DEFAULT_LOCATION_FRAME_PARAMS }, // Default pose/frame settings for this location
   promptSnippet: '',
   createdAt: '',
   updatedAt: ''

@@ -94,6 +94,7 @@ For each location, provide:
 - lighting: { type: natural|artificial|mixed, quality: soft|hard|dramatic|flat, temperature: warm|cool|neutral|mixed }
 - atmosphere: { spaceFeeling: intimate|expansive|claustrophobic|open, timeOfDay: day|night|golden_hour|blue_hour|any, mood: string }
 - surfaces: { materials: array of strings, colors: array of dominant colors }
+- defaultFrameParams: { shotSize: full_body|medium_full|medium|close_up, cameraAngle: eye_level|low_angle|high_angle, poseType: standing|sitting|lying|walking|leaning, poseDescription: string describing typical pose for this location }
 - promptSnippet: A ready-to-use prompt snippet for this location
 
 ## OUTPUT FORMAT:
@@ -119,6 +120,7 @@ Return a valid JSON object with this structure:
       "lighting": { "type": "artificial", "quality": "hard", "temperature": "warm" },
       "atmosphere": { "spaceFeeling": "intimate", "timeOfDay": "night", "mood": "moody and atmospheric" },
       "surfaces": { "materials": ["concrete", "neon"], "colors": ["pink", "cyan", "black"] },
+      "defaultFrameParams": { "shotSize": "medium_full", "cameraAngle": "eye_level", "poseType": "leaning", "poseDescription": "Leaning against wall, one leg bent, arms crossed" },
       "promptSnippet": "dimly lit urban alley with neon signs..."
     },
     ... 4-9 more locations ...
@@ -284,6 +286,14 @@ function processLocations(rawLocations, universeId) {
         framingOptions: ['medium shot'],
         backgroundType: 'neutral',
         depthPotential: true
+      },
+      // Default frame/pose params for this location (used when no frame is selected)
+      defaultFrameParams: {
+        shotSize: loc.defaultFrameParams?.shotSize || 'medium_full',
+        cameraAngle: loc.defaultFrameParams?.cameraAngle || 'eye_level',
+        poseType: loc.defaultFrameParams?.poseType || 'standing',
+        composition: 'rule_of_thirds',
+        poseDescription: loc.defaultFrameParams?.poseDescription || 'Natural relaxed pose'
       },
       promptSnippet: loc.promptSnippet || loc.description || '',
       createdAt: now,

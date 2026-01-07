@@ -66,8 +66,30 @@ export function buildShootPromptJson({
   posingStyle = 2,
   poseAdherence = 2
 }) {
-  // Use default scene if no frame provided
-  const effectiveFrame = frame || DEFAULT_SCENE;
+  // Priority: frame > location.defaultFrameParams > DEFAULT_SCENE
+  let effectiveFrame = frame;
+  
+  if (!effectiveFrame && location?.defaultFrameParams) {
+    // Use location's default frame params if no frame selected
+    effectiveFrame = {
+      label: `Default for ${location.label}`,
+      description: location.defaultFrameParams.poseDescription || 'Natural pose for this location',
+      technical: {
+        shotSize: location.defaultFrameParams.shotSize || 'medium_full',
+        cameraAngle: location.defaultFrameParams.cameraAngle || 'eye_level',
+        poseType: location.defaultFrameParams.poseType || 'standing',
+        composition: location.defaultFrameParams.composition || 'rule_of_thirds',
+        focusPoint: 'face',
+        poseDescription: location.defaultFrameParams.poseDescription || 'Natural relaxed pose'
+      }
+    };
+    console.log('[ShootGenerator] Using location default frame params:', location.label);
+  }
+  
+  if (!effectiveFrame) {
+    effectiveFrame = DEFAULT_SCENE;
+    console.log('[ShootGenerator] Using default scene (no frame or location params)');
+  }
 
   const promptJson = {
     format: 'aida_shoot_prompt_v1',
@@ -231,6 +253,7 @@ function buildLocationBlock(location) {
   return {
     label: location.label || null,
     description: location.description || null,
+    promptSnippet: location.promptSnippet || null,  // Ready-to-use prompt text
     environmentType: location.environmentType || null,
     surface: location.surface || null,
     lighting: location.lighting ? {

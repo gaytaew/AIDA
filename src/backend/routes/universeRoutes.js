@@ -91,7 +91,14 @@ router.post('/generate', async (req, res) => {
             props: loc.props || [],
             promptSnippet: loc.promptSnippet || loc.description || '',
             sourceUniverseId: universe.id,  // Link to source universe
-            referenceImages: []             // No refs for auto-generated locations
+            referenceImages: [],            // No refs for auto-generated locations
+            defaultFrameParams: loc.defaultFrameParams || {  // Default pose settings
+              shotSize: 'medium_full',
+              cameraAngle: 'eye_level',
+              poseType: 'standing',
+              composition: 'rule_of_thirds',
+              poseDescription: 'Natural relaxed pose'
+            }
           };
           
           const locResult = await createLocation(locationData);
