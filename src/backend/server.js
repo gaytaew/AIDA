@@ -33,6 +33,29 @@ app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
+// Request timing middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const method = req.method;
+  const url = req.originalUrl || req.url;
+  
+  // Log request start
+  const bodySize = req.headers['content-length'] || 0;
+  if (bodySize > 10000) {
+    console.log(`[HTTP] → ${method} ${url} (body: ${Math.round(bodySize / 1024)}KB)`);
+  }
+  
+  // Log response time
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (duration > 500 || bodySize > 100000) {
+      console.log(`[HTTP] ← ${method} ${url} [${res.statusCode}] ${duration}ms`);
+    }
+  });
+  
+  next();
+});
+
 // Static files (frontend)
 const frontendPath = path.resolve(__dirname, '../frontend');
 app.use(express.static(frontendPath));
