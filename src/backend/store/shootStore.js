@@ -66,6 +66,7 @@ function enqueueWrite(task) {
 
 /**
  * Get all shoots (metadata only for listing)
+ * OPTIMIZED: reads only first 2KB of each file to extract metadata
  */
 export async function getAllShoots() {
   await ensureDir(SHOOTS_DIR);
@@ -78,20 +79,51 @@ export async function getAllShoots() {
   for (const file of jsonFiles) {
     try {
       const filePath = path.join(SHOOTS_DIR, file);
-      const raw = await fs.readFile(filePath, 'utf8');
-      const shoot = JSON.parse(raw);
+      const stat = await fs.stat(filePath);
       
-      // Return metadata only for listing
-      shoots.push({
-        id: shoot.id,
-        label: shoot.label,
-        createdAt: shoot.createdAt,
-        updatedAt: shoot.updatedAt,
-        modelCount: shoot.models?.length || 0,
-        frameCount: shoot.frames?.length || 0,
-        hasUniverse: !!shoot.universe,
-        hasClothing: shoot.clothing?.some(c => c.refs?.length > 0) || false
-      });
+      // For large files (>100KB), read only the beginning
+      // This is safe because id, label, createdAt, updatedAt are at the top of the JSON
+      if (stat.size > 100000) {
+        const fd = await fs.open(filePath, 'r');
+        const buffer = Buffer.alloc(3000); // Read first 3KB
+        await fd.read(buffer, 0, 3000, 0);
+        await fd.close();
+        
+        const partial = buffer.toString('utf8');
+        
+        // Extract fields using regex (faster than full parse)
+        const idMatch = partial.match(/"id"\s*:\s*"([^"]+)"/);
+        const labelMatch = partial.match(/"label"\s*:\s*"([^"]+)"/);
+        const createdMatch = partial.match(/"createdAt"\s*:\s*"([^"]+)"/);
+        const updatedMatch = partial.match(/"updatedAt"\s*:\s*"([^"]+)"/);
+        
+        shoots.push({
+          id: idMatch?.[1] || file.replace('.json', ''),
+          label: labelMatch?.[1] || 'Съёмка',
+          createdAt: createdMatch?.[1] || new Date().toISOString(),
+          updatedAt: updatedMatch?.[1] || new Date().toISOString(),
+          modelCount: 0,
+          frameCount: 0,
+          hasUniverse: false,
+          hasClothing: false,
+          isLarge: true  // Mark as large file
+        });
+      } else {
+        // For small files, full parse is fine
+        const raw = await fs.readFile(filePath, 'utf8');
+        const shoot = JSON.parse(raw);
+        
+        shoots.push({
+          id: shoot.id,
+          label: shoot.label,
+          createdAt: shoot.createdAt,
+          updatedAt: shoot.updatedAt,
+          modelCount: shoot.models?.length || 0,
+          frameCount: shoot.frames?.length || 0,
+          hasUniverse: !!shoot.universe,
+          hasClothing: shoot.clothing?.some(c => c.refs?.length > 0) || false
+        });
+      }
     } catch (error) {
       console.error(`[ShootStore] Error reading ${file}:`, error.message);
     }
