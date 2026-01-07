@@ -478,20 +478,9 @@ async function selectShoot(shootId) {
       
       state.selectedFrames = state.currentShoot.frames || [];
       
-      // Load generated images from shoot (persistent storage)
-      state.generatedFrames = (state.currentShoot.generatedImages || []).map(img => ({
-        id: img.id,
-        imageUrl: img.imageUrl,
-        frameId: img.frameId,
-        frameLabel: img.frameLabel,
-        locationId: img.locationId,
-        locationLabel: img.locationLabel,
-        emotionId: img.emotionId,
-        prompt: img.prompt,
-        promptJson: img.promptJson,
-        refs: img.refs || [],
-        timestamp: img.createdAt
-      }));
+      // DON'T load generatedImages here (they're in separate files now)
+      // They will be loaded lazily when summary step is shown
+      state.generatedFrames = [];
       
       renderShootsList();
       updateStepStatuses();
@@ -1029,6 +1018,41 @@ async function loadLocations() {
   }
 }
 
+/**
+ * Load generated images for current shoot (lazy loading)
+ */
+async function loadGeneratedImages() {
+  if (!state.currentShoot) return;
+  
+  try {
+    console.log('[Composer] Loading generated images for shoot:', state.currentShoot.id);
+    const res = await fetch(`/api/shoots/${state.currentShoot.id}/images`);
+    const data = await res.json();
+    
+    if (data.ok) {
+      state.generatedFrames = (data.data || []).map(img => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        frameId: img.frameId,
+        frameLabel: img.frameLabel,
+        locationId: img.locationId,
+        locationLabel: img.locationLabel,
+        emotionId: img.emotionId,
+        posingStyle: img.posingStyle,
+        poseAdherence: img.poseAdherence,
+        extraPrompt: img.extraPrompt,
+        prompt: img.prompt,
+        refs: img.refs || [],
+        timestamp: img.createdAt
+      }));
+      console.log('[Composer] Loaded', state.generatedFrames.length, 'generated images');
+      renderGeneratedHistory();
+    }
+  } catch (e) {
+    console.error('Error loading generated images:', e);
+  }
+}
+
 function renderSelectedFrames() {
   if (state.selectedFrames.length === 0) {
     elements.selectedFrames.innerHTML = `
@@ -1145,7 +1169,7 @@ async function removeFrame(index) {
 // STEP 6: SUMMARY
 // ═══════════════════════════════════════════════════════════════
 
-function renderSummary() {
+async function renderSummary() {
   if (!state.currentShoot) return;
   
   const modelCount = state.selectedModels.filter(m => m !== null).length;
@@ -1157,6 +1181,11 @@ function renderSummary() {
     state.selectedModels.filter(m => m).map(m => m.name).join(', ') : 'Не выбраны';
   elements.summaryFrames.textContent = frameCount > 0 ? `${frameCount} шаблонов` : 'По умолчанию';
   elements.summaryClothing.textContent = hasClothing ? 'Загружена' : 'Без одежды';
+  
+  // Lazy-load generated images (they are stored in separate files now)
+  if (state.generatedFrames.length === 0) {
+    await loadGeneratedImages();
+  }
   
   // Populate location dropdown
   elements.genLocation.innerHTML = '<option value="">Из вселенной (по умолчанию)</option>';
