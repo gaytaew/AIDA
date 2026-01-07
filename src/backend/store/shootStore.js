@@ -18,6 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SHOOTS_DIR = path.resolve(__dirname, 'shoots');
+const IMAGES_DIR = path.resolve(__dirname, 'shoot-images');
 
 // ═══════════════════════════════════════════════════════════════
 // FILE SYSTEM HELPERS
@@ -33,6 +34,14 @@ async function ensureDir(dir) {
 
 function buildShootPath(shootId) {
   return path.join(SHOOTS_DIR, `${shootId}.json`);
+}
+
+function buildImagePath(shootId, imageId) {
+  return path.join(IMAGES_DIR, shootId, `${imageId}.jpg`);
+}
+
+function buildImageMetaPath(shootId, imageId) {
+  return path.join(IMAGES_DIR, shootId, `${imageId}.meta.json`);
 }
 
 async function fileExists(filePath) {
@@ -358,11 +367,70 @@ export async function setUniverseForShoot(shootId, universe) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GENERATED IMAGES MANAGEMENT
+// GENERATED IMAGES MANAGEMENT (stored in separate files)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Add a generated image to shoot
+ * Save image to separate file
+ */
+async function saveImageToFile(shootId, imageId, imageUrl, metadata) {
+  const shootImagesDir = path.join(IMAGES_DIR, shootId);
+  await ensureDir(shootImagesDir);
+  
+  // Extract base64 from data URL
+  const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (match) {
+    const buffer = Buffer.from(match[2], 'base64');
+    const imagePath = buildImagePath(shootId, imageId);
+    await fs.writeFile(imagePath, buffer);
+  }
+  
+  // Save metadata
+  const metaPath = buildImageMetaPath(shootId, imageId);
+  await fs.writeFile(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+  
+  return true;
+}
+
+/**
+ * Load image from separate file
+ */
+async function loadImageFromFile(shootId, imageId) {
+  const imagePath = buildImagePath(shootId, imageId);
+  const metaPath = buildImageMetaPath(shootId, imageId);
+  
+  try {
+    const [imageBuffer, metaRaw] = await Promise.all([
+      fs.readFile(imagePath),
+      fs.readFile(metaPath, 'utf8')
+    ]);
+    
+    const metadata = JSON.parse(metaRaw);
+    const imageUrl = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+    
+    return { ...metadata, imageUrl };
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * List all image IDs for a shoot
+ */
+async function listShootImageIds(shootId) {
+  const shootImagesDir = path.join(IMAGES_DIR, shootId);
+  try {
+    const files = await fs.readdir(shootImagesDir);
+    return files
+      .filter(f => f.endsWith('.meta.json'))
+      .map(f => f.replace('.meta.json', ''));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Add a generated image to shoot (saves to separate file)
  */
 export async function addGeneratedImageToShoot(shootId, imageData) {
   const shoot = await getShootById(shootId);
@@ -370,30 +438,59 @@ export async function addGeneratedImageToShoot(shootId, imageData) {
     return { success: false, errors: ['Shoot not found'] };
   }
   
-  const generatedImages = [...(shoot.generatedImages || [])];
+  const imageId = generateImageId();
+  const now = new Date().toISOString();
   
-  const newImage = {
-    id: generateImageId(),
-    imageUrl: imageData.imageUrl,
+  const metadata = {
+    id: imageId,
     frameId: imageData.frameId || 'default',
     frameLabel: imageData.frameLabel || 'Default',
     locationId: imageData.locationId || null,
     locationLabel: imageData.locationLabel || null,
     emotionId: imageData.emotionId || null,
-    promptJson: imageData.promptJson || null,
+    posingStyle: imageData.posingStyle || 2,
+    poseAdherence: imageData.poseAdherence || 2,
+    extraPrompt: imageData.extraPrompt || '',
     prompt: imageData.prompt || null,
-    refs: imageData.refs || [],
-    createdAt: new Date().toISOString()
+    // Note: promptJson and refs NOT saved to avoid bloat
+    createdAt: now
   };
   
-  generatedImages.push(newImage);
+  // Save image to separate file
+  await saveImageToFile(shootId, imageId, imageData.imageUrl, metadata);
   
-  const result = await updateShoot(shootId, { generatedImages });
+  // Update shoot with just the image ID reference (not the full data)
+  const imageRefs = [...(shoot.generatedImageRefs || []), imageId];
+  const result = await updateShoot(shootId, { generatedImageRefs: imageRefs });
   
   if (result.success) {
-    return { success: true, image: newImage, shoot: result.shoot };
+    return { 
+      success: true, 
+      image: { ...metadata, imageUrl: imageData.imageUrl },
+      shoot: result.shoot 
+    };
   }
   return result;
+}
+
+/**
+ * Get all generated images for a shoot
+ */
+export async function getGeneratedImagesForShoot(shootId) {
+  const imageIds = await listShootImageIds(shootId);
+  
+  const images = [];
+  for (const imageId of imageIds) {
+    const image = await loadImageFromFile(shootId, imageId);
+    if (image) {
+      images.push(image);
+    }
+  }
+  
+  // Sort by createdAt descending
+  images.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  
+  return images;
 }
 
 /**
@@ -405,16 +502,37 @@ export async function removeGeneratedImageFromShoot(shootId, imageId) {
     return { success: false, errors: ['Shoot not found'] };
   }
   
-  const generatedImages = (shoot.generatedImages || []).filter(img => img.id !== imageId);
+  // Delete files
+  try {
+    await fs.unlink(buildImagePath(shootId, imageId));
+    await fs.unlink(buildImageMetaPath(shootId, imageId));
+  } catch (error) {
+    console.warn(`[ShootStore] Could not delete image files for ${imageId}:`, error.message);
+  }
   
-  return await updateShoot(shootId, { generatedImages });
+  // Update refs
+  const imageRefs = (shoot.generatedImageRefs || []).filter(id => id !== imageId);
+  
+  return await updateShoot(shootId, { generatedImageRefs: imageRefs });
 }
 
 /**
  * Clear all generated images from shoot
  */
 export async function clearGeneratedImagesFromShoot(shootId) {
-  return await updateShoot(shootId, { generatedImages: [] });
+  const imageIds = await listShootImageIds(shootId);
+  
+  // Delete all files
+  for (const imageId of imageIds) {
+    try {
+      await fs.unlink(buildImagePath(shootId, imageId));
+      await fs.unlink(buildImageMetaPath(shootId, imageId));
+    } catch (error) {
+      console.warn(`[ShootStore] Could not delete image ${imageId}:`, error.message);
+    }
+  }
+  
+  return await updateShoot(shootId, { generatedImageRefs: [] });
 }
 
 export default {
@@ -431,6 +549,7 @@ export default {
   removeFrameFromShoot,
   setUniverseForShoot,
   addGeneratedImageToShoot,
+  getGeneratedImagesForShoot,
   removeGeneratedImageFromShoot,
   clearGeneratedImagesFromShoot
 };

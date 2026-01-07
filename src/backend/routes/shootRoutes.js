@@ -19,6 +19,7 @@ import {
   removeFrameFromShoot,
   setUniverseForShoot,
   addGeneratedImageToShoot,
+  getGeneratedImagesForShoot,
   removeGeneratedImageFromShoot,
   clearGeneratedImagesFromShoot
 } from '../store/shootStore.js';
@@ -987,7 +988,7 @@ router.post('/:id/generate-frame', async (req, res) => {
       locationLabel = location.label;
     }
     
-    // Save generated image to shoot (persistent storage)
+    // Save generated image to shoot (persistent storage - in separate files)
     const saveResult = await addGeneratedImageToShoot(req.params.id, {
       imageUrl,
       frameId: frameData?.id || 'default',
@@ -995,9 +996,11 @@ router.post('/:id/generate-frame', async (req, res) => {
       locationId: locationId || null,
       locationLabel,
       emotionId: emotionId || null,
-      promptJson: result.promptJson,
-      prompt: result.prompt,
-      refs
+      posingStyle: Math.max(1, Math.min(4, parseInt(posingStyle) || 2)),
+      poseAdherence: Math.max(1, Math.min(4, parseInt(poseAdherence) || 2)),
+      extraPrompt: reqExtraPrompt || '',
+      prompt: result.prompt
+      // Note: promptJson and refs NOT saved to keep files small
     });
     
     if (!saveResult.success) {
@@ -1090,10 +1093,18 @@ router.get('/:id/images', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
     
+    // Get images from separate files (new storage) or from shoot object (legacy)
+    let images = await getGeneratedImagesForShoot(req.params.id);
+    
+    // Fallback to legacy storage if no new images found
+    if (images.length === 0 && shoot.generatedImages?.length > 0) {
+      images = shoot.generatedImages;
+    }
+    
     res.json({
       ok: true,
-      data: shoot.generatedImages || [],
-      total: (shoot.generatedImages || []).length
+      data: images,
+      total: images.length
     });
   } catch (error) {
     console.error('[ShootRoutes] Error getting images:', error);
