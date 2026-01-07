@@ -72,10 +72,13 @@ router.post('/generate', async (req, res) => {
 
     // ALWAYS save locations from universe to Location module (even if universe is not saved yet)
     const savedLocations = [];
-    if (universe.recommendedLocations && universe.recommendedLocations.length > 0) {
-      console.log(`[Universe] Auto-saving ${universe.recommendedLocations.length} locations`);
+    // Check both 'locations' and 'recommendedLocations' for compatibility
+    const locationsToSave = universe.locations || universe.recommendedLocations || [];
+    
+    if (locationsToSave.length > 0) {
+      console.log(`[Universe] Auto-saving ${locationsToSave.length} locations`);
       
-      for (const loc of universe.recommendedLocations) {
+      for (const loc of locationsToSave) {
         try {
           const locationData = {
             ...createEmptyLocation(loc.label || 'Локация', loc.category || 'location'),
@@ -103,9 +106,9 @@ router.post('/generate', async (req, res) => {
         }
       }
       
-      console.log(`[Universe] Saved ${savedLocations.length}/${universe.recommendedLocations.length} locations to Location module`);
+      console.log(`[Universe] Saved ${savedLocations.length}/${locationsToSave.length} locations to Location module`);
     } else {
-      console.log('[Universe] No recommended locations to save');
+      console.log('[Universe] No locations to save');
     }
 
     // Optionally save universe immediately
