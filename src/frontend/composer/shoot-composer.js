@@ -368,13 +368,61 @@ function renderShootsList() {
           ${shoot.hasUniverse ? '• 🌌 Вселенная' : ''}
         </div>
       </div>
+      <button class="btn-delete-shoot" data-shoot-id="${shoot.id}" title="Удалить съёмку" 
+              style="background: transparent; border: none; color: var(--color-accent); padding: 8px; cursor: pointer; font-size: 16px; opacity: 0.6; transition: opacity 0.2s;"
+              onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">
+        🗑️
+      </button>
     </div>
   `).join('');
   
   // Add click handlers
   elements.shootsList.querySelectorAll('.shoot-card').forEach(card => {
-    card.addEventListener('click', () => selectShoot(card.dataset.shootId));
+    card.addEventListener('click', (e) => {
+      // Don't select if clicking delete button
+      if (e.target.classList.contains('btn-delete-shoot')) return;
+      selectShoot(card.dataset.shootId);
+    });
   });
+  
+  // Add delete handlers
+  elements.shootsList.querySelectorAll('.btn-delete-shoot').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteShoot(btn.dataset.shootId);
+    });
+  });
+}
+
+async function deleteShoot(shootId) {
+  if (!confirm('Удалить эту съёмку? Это действие нельзя отменить.')) return;
+  
+  try {
+    const res = await fetch(`/api/shoots/${shootId}`, { method: 'DELETE' });
+    const data = await res.json();
+    
+    if (data.ok) {
+      // Remove from state
+      state.shoots = state.shoots.filter(s => s.id !== shootId);
+      
+      // Clear current shoot if it was deleted
+      if (state.currentShoot?.id === shootId) {
+        state.currentShoot = null;
+        state.selectedModels = [null, null, null];
+        state.clothingByModel = [[], [], []];
+        state.selectedFrames = [];
+        state.generatedFrames = [];
+      }
+      
+      renderShootsList();
+      updateStepStatuses();
+    } else {
+      alert('Ошибка: ' + (data.errors?.join(', ') || data.error));
+    }
+  } catch (e) {
+    console.error('Error deleting shoot:', e);
+    alert('Ошибка: ' + e.message);
+  }
 }
 
 async function createNewShoot() {
@@ -429,6 +477,21 @@ async function selectShoot(shootId) {
       }
       
       state.selectedFrames = state.currentShoot.frames || [];
+      
+      // Load generated images from shoot (persistent storage)
+      state.generatedFrames = (state.currentShoot.generatedImages || []).map(img => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        frameId: img.frameId,
+        frameLabel: img.frameLabel,
+        locationId: img.locationId,
+        locationLabel: img.locationLabel,
+        emotionId: img.emotionId,
+        prompt: img.prompt,
+        promptJson: img.promptJson,
+        refs: img.refs || [],
+        timestamp: img.createdAt
+      }));
       
       renderShootsList();
       updateStepStatuses();
@@ -1446,7 +1509,21 @@ async function upscaleFromHistory(frameIndex) {
   }
 }
 
-function deleteFromHistory(frameIndex) {
+async function deleteFromHistory(frameIndex) {
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame || !state.currentShoot) return;
+  
+  // If frame has ID, delete from server
+  if (frame.id) {
+    try {
+      await fetch(`/api/shoots/${state.currentShoot.id}/images/${frame.id}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {
+      console.error('Failed to delete from server:', e);
+    }
+  }
+  
   state.generatedFrames.splice(frameIndex, 1);
   renderGeneratedHistory();
 }
@@ -1499,12 +1576,15 @@ async function generateOneFrame() {
       const frame = state.frames.find(f => f.id === (data.data.frameId || frameId));
       
       // Add to history (don't replace)
+      // Include ID from server for persistent storage
       state.generatedFrames.push({
+        id: data.data.id,  // ID from server for persistent storage
         imageUrl: data.data.imageUrl,
         frameId: data.data.frameId || frameId,
         frameLabel: data.data.frameLabel || frame?.label || 'Кадр',
         locationId: locationId,
         locationLabel: location?.label || null,
+        emotionId: emotionId,
         prompt: data.data.prompt,
         promptJson: data.data.promptJson,
         refs: data.data.refs,

@@ -17,7 +17,10 @@ import {
   setOutfitAvatarForModel,
   addFrameToShoot,
   removeFrameFromShoot,
-  setUniverseForShoot
+  setUniverseForShoot,
+  addGeneratedImageToShoot,
+  removeGeneratedImageFromShoot,
+  clearGeneratedImagesFromShoot
 } from '../store/shootStore.js';
 import {
   generateOutfitAvatar,
@@ -974,9 +977,33 @@ router.post('/:id/generate-frame', async (req, res) => {
       });
     }
     
+    // Get location label if locationId was provided
+    let locationLabel = null;
+    if (locationId && location) {
+      locationLabel = location.label;
+    }
+    
+    // Save generated image to shoot (persistent storage)
+    const saveResult = await addGeneratedImageToShoot(req.params.id, {
+      imageUrl,
+      frameId: frameData?.id || 'default',
+      frameLabel: frameData?.label || 'Default Scene',
+      locationId: locationId || null,
+      locationLabel,
+      emotionId: emotionId || null,
+      promptJson: result.promptJson,
+      prompt: result.prompt,
+      refs
+    });
+    
+    if (!saveResult.success) {
+      console.error('[ShootRoutes] Failed to save generated image:', saveResult.errors);
+    }
+    
     res.json({
       ok: true,
       data: {
+        id: saveResult.image?.id,  // Return the saved image ID
         frameId: frameData?.id || 'default',
         frameLabel: frameData?.label || 'Default Scene',
         imageUrl,
@@ -1041,6 +1068,63 @@ router.post('/:id/upscale', async (req, res) => {
     
   } catch (error) {
     console.error('[ShootRoutes] Error upscaling image:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// GENERATED IMAGES MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/shoots/:id/images — Get all generated images for a shoot
+ */
+router.get('/:id/images', async (req, res) => {
+  try {
+    const shoot = await getShootById(req.params.id);
+    if (!shoot) {
+      return res.status(404).json({ ok: false, error: 'Shoot not found' });
+    }
+    
+    res.json({
+      ok: true,
+      data: shoot.generatedImages || [],
+      total: (shoot.generatedImages || []).length
+    });
+  } catch (error) {
+    console.error('[ShootRoutes] Error getting images:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/shoots/:id/images/:imageId — Delete a generated image
+ */
+router.delete('/:id/images/:imageId', async (req, res) => {
+  try {
+    const result = await removeGeneratedImageFromShoot(req.params.id, req.params.imageId);
+    if (!result.success) {
+      return res.status(400).json({ ok: false, errors: result.errors });
+    }
+    res.json({ ok: true, data: result.shoot });
+  } catch (error) {
+    console.error('[ShootRoutes] Error deleting image:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/shoots/:id/images — Clear all generated images
+ */
+router.delete('/:id/images', async (req, res) => {
+  try {
+    const result = await clearGeneratedImagesFromShoot(req.params.id);
+    if (!result.success) {
+      return res.status(400).json({ ok: false, errors: result.errors });
+    }
+    res.json({ ok: true, data: result.shoot });
+  } catch (error) {
+    console.error('[ShootRoutes] Error clearing images:', error);
     res.status(500).json({ ok: false, error: error.message });
   }
 });

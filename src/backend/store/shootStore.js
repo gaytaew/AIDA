@@ -10,7 +10,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import {
   createEmptyShootConfig,
-  validateShootConfig
+  validateShootConfig,
+  generateImageId
 } from '../schema/shootConfig.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -356,6 +357,66 @@ export async function setUniverseForShoot(shootId, universe) {
   return await updateShoot(shootId, { universe });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// GENERATED IMAGES MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Add a generated image to shoot
+ */
+export async function addGeneratedImageToShoot(shootId, imageData) {
+  const shoot = await getShootById(shootId);
+  if (!shoot) {
+    return { success: false, errors: ['Shoot not found'] };
+  }
+  
+  const generatedImages = [...(shoot.generatedImages || [])];
+  
+  const newImage = {
+    id: generateImageId(),
+    imageUrl: imageData.imageUrl,
+    frameId: imageData.frameId || 'default',
+    frameLabel: imageData.frameLabel || 'Default',
+    locationId: imageData.locationId || null,
+    locationLabel: imageData.locationLabel || null,
+    emotionId: imageData.emotionId || null,
+    promptJson: imageData.promptJson || null,
+    prompt: imageData.prompt || null,
+    refs: imageData.refs || [],
+    createdAt: new Date().toISOString()
+  };
+  
+  generatedImages.push(newImage);
+  
+  const result = await updateShoot(shootId, { generatedImages });
+  
+  if (result.success) {
+    return { success: true, image: newImage, shoot: result.shoot };
+  }
+  return result;
+}
+
+/**
+ * Remove a generated image from shoot
+ */
+export async function removeGeneratedImageFromShoot(shootId, imageId) {
+  const shoot = await getShootById(shootId);
+  if (!shoot) {
+    return { success: false, errors: ['Shoot not found'] };
+  }
+  
+  const generatedImages = (shoot.generatedImages || []).filter(img => img.id !== imageId);
+  
+  return await updateShoot(shootId, { generatedImages });
+}
+
+/**
+ * Clear all generated images from shoot
+ */
+export async function clearGeneratedImagesFromShoot(shootId) {
+  return await updateShoot(shootId, { generatedImages: [] });
+}
+
 export default {
   getAllShoots,
   getShootById,
@@ -368,6 +429,9 @@ export default {
   setOutfitAvatarForModel,
   addFrameToShoot,
   removeFrameFromShoot,
-  setUniverseForShoot
+  setUniverseForShoot,
+  addGeneratedImageToShoot,
+  removeGeneratedImageFromShoot,
+  clearGeneratedImagesFromShoot
 };
 

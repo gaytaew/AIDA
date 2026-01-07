@@ -101,6 +101,21 @@
  */
 
 /**
+ * @typedef {Object} GeneratedImage
+ * @property {string} id - Unique generated image identifier
+ * @property {string} imageUrl - Data URL or stored URL of the image
+ * @property {string} frameId - Frame ID used for generation (or 'default')
+ * @property {string} frameLabel - Human-readable frame label
+ * @property {string|null} locationId - Location ID used
+ * @property {string|null} locationLabel - Location label
+ * @property {string|null} emotionId - Emotion preset ID used
+ * @property {Object|null} promptJson - Full JSON prompt used
+ * @property {string|null} prompt - Text version of prompt
+ * @property {Array<Object>} refs - Reference images used (for debug)
+ * @property {string} createdAt - ISO timestamp
+ */
+
+/**
  * @typedef {Object} ShootConfig
  * @property {string} id - Unique shoot identifier
  * @property {string} label - Human-readable name
@@ -112,6 +127,7 @@
  * @property {Array<ShootClothing>} clothing - Clothing refs per model
  * @property {Array<OutfitAvatar>} outfitAvatars - Generated outfit avatars
  * @property {Array<ShootFrame>} frames - Selected frames with overrides
+ * @property {Array<GeneratedImage>} generatedImages - All generated images for this shoot
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -184,8 +200,19 @@ export function createEmptyShootConfig(label = 'Новая съёмка') {
     models: [],
     clothing: [],
     outfitAvatars: [],
-    frames: []
+    frames: [],
+    generatedImages: []  // Persistent storage for all generated images
   };
+}
+
+/**
+ * Generate unique ID for a generated image
+ */
+export function generateImageId() {
+  const now = new Date();
+  const timePart = now.toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+  const randomPart = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `IMG_${timePart}_${randomPart}`;
 }
 
 export function createEmptyShootFrame(frameId, order = 1) {

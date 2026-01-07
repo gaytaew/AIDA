@@ -846,17 +846,63 @@ function renderGallery() {
             <span class="frame-card-tag">${frame.category}</span>
           </div>
         </div>
+        <button class="btn-delete-frame" data-frame-id="${frame.id}" title="Удалить кадр"
+                style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; opacity: 0; transition: opacity 0.2s;"
+                onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+          ✕
+        </button>
       </div>
     `;
   }).join('');
   
   // Add click handlers
   els.framesGallery.querySelectorAll('.frame-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // Don't load if clicking delete button
+      if (e.target.classList.contains('btn-delete-frame')) return;
       const frameId = card.dataset.id;
       loadFrameForEdit(frameId);
     });
+    
+    // Show delete button on hover
+    card.addEventListener('mouseenter', () => {
+      const deleteBtn = card.querySelector('.btn-delete-frame');
+      if (deleteBtn) deleteBtn.style.opacity = '1';
+    });
+    card.addEventListener('mouseleave', () => {
+      const deleteBtn = card.querySelector('.btn-delete-frame');
+      if (deleteBtn) deleteBtn.style.opacity = '0';
+    });
   });
+  
+  // Add delete handlers
+  els.framesGallery.querySelectorAll('.btn-delete-frame').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteFrame(btn.dataset.frameId);
+    });
+  });
+}
+
+async function deleteFrame(frameId) {
+  if (!confirm('Удалить этот кадр? Это действие нельзя отменить.')) return;
+  
+  try {
+    const res = await fetch(`/api/frames/${frameId}`, { method: 'DELETE' });
+    const data = await res.json();
+    
+    if (data.ok) {
+      // Remove from local state
+      savedFrames = savedFrames.filter(f => f.id !== frameId);
+      renderGallery();
+      showStatus('✅ Кадр удалён', 'success');
+    } else {
+      showStatus('❌ ' + (data.errors?.join(', ') || data.error), 'error');
+    }
+  } catch (e) {
+    console.error('Error deleting frame:', e);
+    showStatus('❌ Ошибка: ' + e.message, 'error');
+  }
 }
 
 async function loadFrameForEdit(id) {
