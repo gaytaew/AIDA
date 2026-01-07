@@ -332,6 +332,32 @@ export function createEmptyUniverse(label = 'Новая вселенная') {
     postProcess: { ...DEFAULT_POST_PROCESS },
     era: { ...DEFAULT_ERA },
     
+    // NEW: Detailed text blocks for rich prompts
+    textBlocks: {
+      techBlock: '',      // Детальное описание техники съёмки
+      colorBlock: '',     // Детальное описание цветовой палитры
+      lensBlock: '',      // Детальное описание оптики
+      moodBlock: '',      // Детальное описание настроения
+      eraBlock: ''        // Детальное описание эпохи и контекста
+    },
+    
+    // NEW: Anti-AI markers
+    antiAi: {
+      level: 'medium',
+      settings: {
+        allowExposureErrors: true,
+        allowMixedWhiteBalance: true,
+        requireMicroDefects: true,
+        candidComposition: true,
+        allowImperfectFocus: false,
+        allowFlaresReflections: true,
+        preferMicroMotion: true,
+        filmScanTexture: true
+      },
+      customRules: [],
+      forbiddenPhrases: ['perfect skin', 'flawless', 'HDR', 'glossy', 'plastic']
+    },
+    
     // Default frame params (fallback when no frame selected)
     defaultFrameParams: { ...DEFAULT_FRAME_PARAMS },
     
@@ -404,7 +430,7 @@ export function mergeUniverseUpdates(existing, updates) {
   const merged = { ...existing };
   
   // Deep merge each block
-  const blocks = ['capture', 'light', 'color', 'texture', 'optical', 'composition', 'postProcess', 'era', 'defaultFrameParams'];
+  const blocks = ['capture', 'light', 'color', 'texture', 'optical', 'composition', 'postProcess', 'era', 'defaultFrameParams', 'textBlocks', 'antiAi'];
   for (const block of blocks) {
     if (updates[block] && typeof updates[block] === 'object') {
       merged[block] = { ...(existing[block] || {}), ...updates[block] };

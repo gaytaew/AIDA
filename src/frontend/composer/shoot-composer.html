@@ -945,6 +945,51 @@
                   </div>
                 </div>
                 
+                <!-- Emotion Selection -->
+                <div class="form-group" style="margin-top: 16px;">
+                  <label for="gen-emotion">Эмоция модели</label>
+                  <select id="gen-emotion" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                    <option value="">— Нейтральная (по умолчанию) —</option>
+                    <optgroup label="Радость">
+                      <option value="joy_laugh_exhale">😄 Смех на выдохе</option>
+                      <option value="joy_sun_squint">☀️ Прищур от солнца</option>
+                      <option value="joy_mischief">😏 Озорство</option>
+                    </optgroup>
+                    <optgroup label="Спокойствие">
+                      <option value="calm_serene">🧘 Безмятежность</option>
+                      <option value="calm_thoughtful">🤔 Задумчивость</option>
+                    </optgroup>
+                    <optgroup label="Сила">
+                      <option value="power_commanding">👑 Властность</option>
+                      <option value="power_defiant">😤 Вызов</option>
+                      <option value="power_quiet_strength">💪 Тихая сила</option>
+                    </optgroup>
+                    <optgroup label="Загадочность">
+                      <option value="mystery_enigmatic">🎭 Загадка</option>
+                      <option value="mystery_distant">🌙 Отстранённость</option>
+                    </optgroup>
+                    <optgroup label="Игривость">
+                      <option value="playful_flirty">😘 Флирт</option>
+                      <option value="playful_silly">🤪 Дурашливость</option>
+                    </optgroup>
+                    <optgroup label="Чувственность">
+                      <option value="sensual_languid">💫 Томность</option>
+                      <option value="sensual_intense">🔥 Страсть</option>
+                    </optgroup>
+                    <optgroup label="Меланхолия">
+                      <option value="melancholy_wistful">😢 Тоска</option>
+                      <option value="melancholy_vulnerable">🥺 Уязвимость</option>
+                    </optgroup>
+                    <optgroup label="Интенсивность">
+                      <option value="intense_focused">🎯 Концентрация</option>
+                      <option value="intense_raw">⚡ На грани</option>
+                    </optgroup>
+                  </select>
+                </div>
+                
+                <!-- Emotion description preview -->
+                <div id="emotion-description" style="display: none; margin-top: 8px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; font-size: 13px; color: var(--color-text-muted); line-height: 1.5;"></div>
+                
                 <div class="form-group" style="margin-top: 16px;">
                   <label for="gen-extra-prompt">Дополнительный промпт (опционально)</label>
                   <textarea id="gen-extra-prompt" placeholder="Дополнительные инструкции для генерации..." style="width: 100%; min-height: 60px; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); resize: vertical;"></textarea>

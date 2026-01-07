@@ -14,6 +14,7 @@
 
 import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
+import { getEmotionById } from '../schema/emotion.js';
 
 // ═══════════════════════════════════════════════════════════════
 // JSON PROMPT BUILDER
@@ -170,21 +171,25 @@ export function buildShootPromptJson({
       label: POSING_STYLE_MAP[posingStyle]?.label || 'natural',
       instruction: POSING_STYLE_MAP[posingStyle]?.instruction || POSING_STYLE_MAP[2].instruction
     },
+    
+    // Emotion (from frame or default)
+    emotion: buildEmotionBlock(effectiveFrame?.emotion),
+    
+    // Action / micromoment (from frame)
+    action: buildActionBlock(effectiveFrame?.action),
+    
+    // Important textures for this frame
+    textures: effectiveFrame?.textures?.length > 0 ? effectiveFrame.textures : null,
+    
+    // How clothing works in this frame
+    clothingFocus: effectiveFrame?.clothingFocus?.description ? {
+      description: effectiveFrame.clothingFocus.description,
+      emphasis: effectiveFrame.clothingFocus.emphasis || 'balanced',
+      silhouetteNotes: effectiveFrame.clothingFocus.silhouetteNotes || null
+    } : null,
 
-    // Anti-AI markers
-    antiAi: {
-      preset: 'medium',
-      rules: [
-        'Natural skin texture with pores, small imperfections.',
-        'Real fabric behavior, natural wrinkles and folds.',
-        'Subtle lens imperfections OK (soft edges, slight vignette).',
-        'NOT too perfect, NOT too symmetrical.',
-        'NO plastic/glossy skin.',
-        'NO HDR look.',
-        'NO watermarks or text.',
-        'NO AI artifacts.'
-      ]
-    },
+    // Anti-AI markers (from universe or defaults)
+    antiAi: buildAntiAiBlock(universe),
 
     // Extra instructions
     extra: extraPrompt || null
@@ -194,12 +199,78 @@ export function buildShootPromptJson({
 }
 
 /**
+ * Build emotion block from frame emotion settings
+ */
+function buildEmotionBlock(emotion) {
+  if (!emotion) {
+    return null;
+  }
+  
+  // If there's a custom description, use it
+  if (emotion.customDescription) {
+    return {
+      source: 'custom',
+      promptBlock: emotion.customDescription,
+      energy: emotion.energy || 'medium',
+      authenticity: emotion.authenticity || 'natural',
+      bodyLanguage: null,
+      eyeDirection: null,
+      mouthState: null
+    };
+  }
+  
+  // If there's an emotion preset ID, look it up
+  if (emotion.emotionId) {
+    const preset = getEmotionById(emotion.emotionId);
+    if (preset) {
+      return {
+        source: 'preset',
+        presetId: emotion.emotionId,
+        label: preset.label,
+        promptBlock: preset.promptBlock,
+        bodyLanguage: preset.bodyLanguage,
+        eyeDirection: preset.eyeDirection,
+        mouthState: preset.mouthState,
+        energy: emotion.energy || preset.energy || 'medium',
+        authenticity: emotion.authenticity || preset.authenticity || 'natural'
+      };
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Build action/micromoment block from frame action settings
+ */
+function buildActionBlock(action) {
+  if (!action || (!action.description && !action.micromoment)) {
+    return null;
+  }
+  
+  return {
+    description: action.description || action.micromoment || null,
+    motionBlur: action.motionBlur || 'none',
+    freezeSubject: action.freezeSubject || 'product',
+    rules: [
+      action.motionBlur === 'hands_only' ? 'Allow slight motion blur on hands only.' : null,
+      action.motionBlur === 'background' ? 'Allow motion blur in background.' : null,
+      action.motionBlur === 'all' ? 'Motion blur is allowed throughout.' : null,
+      action.freezeSubject === 'product' ? 'Product/clothing must remain sharp.' : null,
+      action.freezeSubject === 'face' ? 'Face must remain sharp.' : null
+    ].filter(Boolean)
+  };
+}
+
+/**
  * Build universe block from universe data
  */
 function buildUniverseBlock(universe) {
   if (!universe) {
     return {
       shortDescription: null,
+      textBlocks: null,
+      antiAi: null,
       capture: null,
       light: null,
       color: null,
@@ -208,8 +279,23 @@ function buildUniverseBlock(universe) {
     };
   }
 
+  // Build text blocks section (rich narrative descriptions)
+  const textBlocks = universe.textBlocks || {};
+  const hasTextBlocks = textBlocks.techBlock || textBlocks.colorBlock || 
+                        textBlocks.lensBlock || textBlocks.moodBlock || 
+                        textBlocks.eraBlock;
+
   return {
     shortDescription: universe.shortDescription || null,
+    
+    // NEW: Rich text blocks for detailed prompt context
+    textBlocks: hasTextBlocks ? {
+      techBlock: textBlocks.techBlock || null,
+      colorBlock: textBlocks.colorBlock || null,
+      lensBlock: textBlocks.lensBlock || null,
+      moodBlock: textBlocks.moodBlock || null,
+      eraBlock: textBlocks.eraBlock || null
+    } : null,
     
     capture: universe.capture ? {
       mediumType: universe.capture.mediumType || 'photo',
@@ -239,6 +325,52 @@ function buildUniverseBlock(universe) {
       aiArtifactsPrevention: universe.postProcess.aiArtifactsPrevention ?? true,
       skinSmoothing: universe.postProcess.skinSmoothing ?? false
     } : null
+  };
+}
+
+/**
+ * Build anti-AI block from universe or defaults
+ */
+function buildAntiAiBlock(universe) {
+  const antiAi = universe?.antiAi;
+  
+  // Default rules
+  const baseRules = [
+    'Natural skin texture with visible pores, fine lines, small imperfections.',
+    'Real fabric behavior: natural wrinkles, folds, drape.',
+    'NOT too perfect, NOT too symmetrical.',
+    'NO plastic/waxy skin texture.',
+    'NO HDR look.',
+    'NO watermarks or text overlays.'
+  ];
+  
+  // Level-specific rules
+  const levelRules = {
+    minimal: [],
+    low: ['Allow subtle micro-imperfections on skin and fabric.'],
+    medium: [
+      'Allow subtle exposure variations.',
+      'Allow mixed color temperatures.',
+      'Include micro-imperfections: slight dust, stray hairs, fabric pills.',
+      'Slight film grain or organic texture is OK.'
+    ],
+    high: [
+      'Allow natural exposure errors.',
+      'Allow mixed white balance as real environments have.',
+      'Include visible micro-imperfections.',
+      'Slight focus softness on non-subject areas is natural.',
+      'Allow lens flares, light leaks, reflections.',
+      'Slight motion blur on hands/hair/fabric is OK.',
+      'Add subtle film grain or scan texture.'
+    ]
+  };
+  
+  const level = antiAi?.level || 'medium';
+  const customRules = antiAi?.customRules || [];
+  
+  return {
+    level,
+    rules: [...baseRules, ...(levelRules[level] || []), ...customRules]
   };
 }
 

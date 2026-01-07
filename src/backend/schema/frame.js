@@ -152,6 +152,32 @@ export const DEFAULT_TECHNICAL = {
   poseDescription: ''
 };
 
+// NEW: Default emotion settings
+export const DEFAULT_EMOTION = {
+  emotionId: null,           // ID from emotion presets
+  customDescription: '',     // Custom emotion description if no preset
+  energy: 'medium',          // low | medium | high | very_high
+  authenticity: 'natural'    // candid | natural | performative
+};
+
+// NEW: Default action/micromoment settings
+export const DEFAULT_ACTION = {
+  description: '',           // What is happening in the moment
+  motionBlur: 'none',        // none | hands_only | background | all
+  freezeSubject: 'product',  // What should be sharp: product | face | full_figure
+  micromoment: ''            // Specific moment description
+};
+
+// NEW: Default texture focus
+export const DEFAULT_TEXTURE = [];  // Array of texture descriptions to emphasize
+
+// NEW: Default clothing focus
+export const DEFAULT_CLOTHING_FOCUS = {
+  description: '',           // How clothing works in this frame
+  emphasis: 'balanced',      // product | clothing | balanced
+  silhouetteNotes: ''        // Notes about silhouette/shape
+};
+
 export const DEFAULT_FRAME = {
   id: '',
   label: 'Новый кадр',
@@ -160,6 +186,26 @@ export const DEFAULT_FRAME = {
   categories: ['fashion'],
   tags: [],
   technical: { ...DEFAULT_TECHNICAL },
+  
+  // NEW: Detailed camera position
+  cameraPosition: '',        // Detailed camera position description
+  
+  // NEW: Emotion settings
+  emotion: { ...DEFAULT_EMOTION },
+  
+  // NEW: Action/micromoment
+  action: { ...DEFAULT_ACTION },
+  
+  // NEW: Important textures for this frame
+  textures: [...DEFAULT_TEXTURE],
+  
+  // NEW: How clothing works in this frame
+  clothingFocus: { ...DEFAULT_CLOTHING_FOCUS },
+  
+  // NEW: Lighting override for this specific frame
+  lightingOverride: '',
+  
+  // Existing fields
   sketchAsset: null,
   poseRefAsset: null,
   sketchPrompt: '',
@@ -191,6 +237,10 @@ export function createEmptyFrame(label = 'Новый кадр', category = 'fash
     category,
     categories: [category],
     technical: { ...DEFAULT_TECHNICAL },
+    emotion: { ...DEFAULT_EMOTION },
+    action: { ...DEFAULT_ACTION },
+    textures: [...DEFAULT_TEXTURE],
+    clothingFocus: { ...DEFAULT_CLOTHING_FOCUS },
     createdAt: now,
     updatedAt: now
   };

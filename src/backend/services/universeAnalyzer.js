@@ -85,7 +85,28 @@ You must analyze the images and fill in ALL parameters for a "universe" — a co
 - defaultPoseType: static | dynamic | candid
 - defaultPoseNotes: string (brief pose description)
 
-### 10. LOCATIONS (generate 5-10 logical locations for this visual style)
+### 10. TEXT BLOCKS (detailed narrative descriptions for prompts)
+
+Generate rich, detailed text blocks that capture the essence of the visual style:
+
+- techBlock: 2-3 sentences about the technical approach. Camera behavior, exposure philosophy, how motion is handled, what makes this technically distinctive. Example: "Shot with the immediacy of a Canon R5 on Auto, high dynamic range but shadows allowed to clip. Motion frozen except for occasional intentional blur in hands/fabric. Exposure often -0.3/-0.7 to preserve highlights and add punch."
+
+- colorBlock: 2-3 sentences about color palette and grading. Dominant colors, how shadows and highlights are colored, skin rendering philosophy. Example: "Palette maximally saturated: deep cyan sky, acid accents in sportswear, cold blue shadows. Skin rendered warm but not beautified — pores and natural imperfections visible. Color noise subtle, like Kodak Portra 800."
+
+- lensBlock: 2-3 sentences about optical characteristics. Focal lengths, aperture behavior, depth of field philosophy. Example: "12-16mm fisheye for extreme angles, 18-24mm ultrawide for readable geometry. Aperture f/8-11 for deep focus. Edge distortion embraced as energy. Occasional 35mm for tighter portraits."
+
+- moodBlock: 2-3 sentences about the emotional and atmospheric feeling. Time of day, energy level, what makes frames feel alive. Example: "Summer, attitude and play: heat radiating from surfaces, short sharp shadows, laughter and spontaneity. Frames feel like stolen moments between official shots."
+
+- eraBlock: 2-3 sentences about cultural and temporal context. What era or aesthetic tradition it references. Example: "Y2K sport-prep vibe, i-D / Dazed digital energy, Nike early-2000s print ads. Mix of catalog precision and street photography spontaneity."
+
+### 11. ANTI-AI MARKERS
+
+Specify settings to make images look more authentic:
+
+- level: minimal | low | medium | high
+- customRules: array of specific rules for this universe (e.g., "Allow lens dust in corners", "Prefer slightly underexposed shadows")
+
+### 12. LOCATIONS (generate 5-10 logical locations for this visual style)
 
 For each location, provide:
 - label: Short name (e.g. "Neon Alley", "Soviet Kitchen", "Parking Garage")
@@ -112,6 +133,17 @@ Return a valid JSON object with this structure:
   "postProcess": { ... all postProcess parameters ... },
   "era": { ... all era parameters ... },
   "defaultFrameParams": { ... default frame parameters ... },
+  "textBlocks": {
+    "techBlock": "Detailed 2-3 sentence description of technical approach...",
+    "colorBlock": "Detailed 2-3 sentence description of color palette...",
+    "lensBlock": "Detailed 2-3 sentence description of optical characteristics...",
+    "moodBlock": "Detailed 2-3 sentence description of mood and atmosphere...",
+    "eraBlock": "Detailed 2-3 sentence description of era and cultural context..."
+  },
+  "antiAi": {
+    "level": "medium",
+    "customRules": ["specific rule 1", "specific rule 2"]
+  },
   "locations": [
     {
       "label": "Location Name",
@@ -233,10 +265,23 @@ export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '
     postProcess: { ...template.postProcess, ...(parsed.postProcess || {}) },
     era: { ...template.era, ...(parsed.era || {}) },
     defaultFrameParams: { ...DEFAULT_FRAME_PARAMS, ...(parsed.defaultFrameParams || {}) },
+    // NEW: Merge textBlocks
+    textBlocks: {
+      ...template.textBlocks,
+      ...(parsed.textBlocks || {})
+    },
+    // NEW: Merge antiAi
+    antiAi: {
+      ...template.antiAi,
+      level: parsed.antiAi?.level || template.antiAi.level,
+      customRules: parsed.antiAi?.customRules || template.antiAi.customRules || [],
+      settings: { ...template.antiAi.settings }
+    },
     locations: processLocations(parsed.locations || [], template.id)
   };
 
   console.log('[UniverseAnalyzer] Generated universe:', universe.label, 'with', universe.locations.length, 'locations');
+  console.log('[UniverseAnalyzer] TextBlocks:', Object.keys(universe.textBlocks).filter(k => universe.textBlocks[k]).length, 'blocks generated');
 
   return universe;
 }

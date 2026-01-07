@@ -758,7 +758,8 @@ router.post('/:id/generate', async (req, res) => {
  *   locationId?: string, 
  *   extraPrompt?: string,
  *   posingStyle?: number (1-4),
- *   poseAdherence?: number (1-4)
+ *   poseAdherence?: number (1-4),
+ *   emotionId?: string  // <-- Emotion preset ID
  * }
  */
 router.post('/:id/generate-frame', async (req, res) => {
@@ -769,7 +770,8 @@ router.post('/:id/generate-frame', async (req, res) => {
       locationId, 
       extraPrompt: reqExtraPrompt,
       posingStyle = 2,
-      poseAdherence = 2
+      poseAdherence = 2,
+      emotionId = null  // <-- Emotion preset ID
     } = req.body;
     const shoot = await getShootById(req.params.id);
     
@@ -906,13 +908,26 @@ router.post('/:id/generate-frame', async (req, res) => {
     }
     
     // Generate single frame
+    // Build frame with emotion override if emotionId is specified
+    let frameWithEmotion = null;
+    if (frameData) {
+      frameWithEmotion = {
+        ...frameData,
+        extraPrompt: reqExtraPrompt || shootFrame?.extraPrompt || '',
+        // Override emotion if emotionId is specified in request
+        emotion: emotionId ? { emotionId } : frameData.emotion
+      };
+    } else if (emotionId) {
+      // No frame selected, but emotion specified - create minimal frame with emotion
+      frameWithEmotion = {
+        emotion: { emotionId }
+      };
+    }
+
     const result = await generateShootFrame({
       universe: shoot.universe,
       location: location || shoot.location || null,
-      frame: frameData ? {
-        ...frameData,
-        extraPrompt: reqExtraPrompt || shootFrame?.extraPrompt || ''
-      } : null,
+      frame: frameWithEmotion,
       poseSketchImage,
       identityImages: identityCollage ? [identityCollage] : [],
       clothingImages: clothingCollage ? [clothingCollage] : [],

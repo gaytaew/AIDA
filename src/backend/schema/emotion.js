@@ -1,424 +1,382 @@
 /**
  * Emotion Schema
  * 
- * Defines the emotion/mood settings for image generation.
- * Emotions are NOT part of the frame - they are applied during shoot composition/generation.
- * 
- * Three approaches combined:
- * 1. Components - individual parameters (gaze, mouth, posture, energy, tension)
- * 2. Narrative - text scenario describing the emotional context
- * 3. Reference - uploaded image with the desired emotion
+ * Detailed emotion presets for shoot generation.
+ * Each emotion has a detailed description for AI prompts.
  */
 
 // ═══════════════════════════════════════════════════════════════
-// COMPONENT OPTIONS
+// EMOTION CATEGORIES
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Gaze - direction and character of the look
- */
-export const GAZE_OPTIONS = [
-  'direct',           // Прямой взгляд в камеру
-  'averted',          // Отведённый взгляд
-  'distant',          // Задумчивый, в никуда
-  'piercing',         // Пронзительный, интенсивный
-  'soft',             // Мягкий, нежный
-  'dreamy',           // Мечтательный
-  'unfocused',        // Расфокусированный
-  'downcast',         // Опущенный вниз
-  'upward',           // Направленный вверх
-  'sideways',         // В сторону
-  'over_shoulder',    // Через плечо
-  'defiant',          // Вызывающий
-  'vulnerable',       // Уязвимый
-  'knowing',          // Понимающий, со значением
-  'playful'           // Игривый
-];
-
-/**
- * Mouth expression - lips and mouth area
- */
-export const MOUTH_EXPRESSION_OPTIONS = [
-  'neutral',          // Нейтральное
-  'slight_smile',     // Лёгкая улыбка
-  'parted_lips',      // Приоткрытые губы
-  'pursed',           // Поджатые губы
-  'smirk',            // Ухмылка
-  'pout',             // Надутые губы
-  'relaxed_open',     // Расслабленно открыт
-  'tense',            // Напряжённые губы
-  'biting_lip',       // Прикусывает губу
-  'exhaling',         // На выдохе
-  'speaking',         // Как будто говорит
-  'contemplative'     // Задумчивое выражение
-];
-
-/**
- * Posture - body language and stance
- */
-export const POSTURE_OPTIONS = [
-  'relaxed',          // Расслабленная
-  'tense',            // Напряжённая
-  'confident',        // Уверенная
-  'vulnerable',       // Уязвимая
-  'closed',           // Закрытая (скрещенные руки)
-  'open',             // Открытая
-  'slouched',         // Сутулая
-  'upright',          // Прямая
-  'leaning_forward',  // Наклон вперёд
-  'leaning_back',     // Откинувшись назад
-  'asymmetrical',     // Асимметричная
-  'defensive',        // Защитная
-  'inviting',         // Приглашающая
-  'withdrawn',        // Отстранённая
-  'powerful'          // Властная
-];
-
-/**
- * Energy - overall energy level
- */
-export const ENERGY_OPTIONS = [
-  'low',              // Низкая энергия, усталость
-  'calm',             // Спокойная
-  'moderate',         // Умеренная
-  'high',             // Высокая
-  'explosive',        // Взрывная
-  'restrained',       // Сдержанная
-  'nervous',          // Нервная
-  'languid',          // Томная
-  'alert',            // Настороженная
-  'serene'            // Безмятежная
-];
-
-/**
- * Tension - visible tension in face/body
- */
-export const TENSION_OPTIONS = [
-  'none',             // Нет напряжения
-  'subtle',           // Едва заметное
-  'visible',          // Заметное
-  'high',             // Высокое
-  'jaw_clenched',     // Сжатая челюсть
-  'brow_furrowed',    // Нахмуренные брови
-  'shoulders_raised', // Поднятые плечи
-  'controlled'        // Контролируемое
+export const EMOTION_CATEGORIES = [
+  'joy',        // Радость
+  'calm',       // Спокойствие
+  'power',      // Сила/уверенность
+  'mystery',    // Загадочность
+  'playful',    // Игривость
+  'sensual',    // Чувственность
+  'melancholy', // Меланхолия
+  'intense'     // Интенсивность
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// TYPE DEFINITIONS
+// EMOTION PRESETS — Детальные описания
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * @typedef {Object} EmotionComponents
- * @property {string} gaze - Направление/характер взгляда
- * @property {string} mouthExpression - Выражение губ
- * @property {string} posture - Осанка/язык тела
- * @property {string} energy - Уровень энергии
- * @property {string} tension - Уровень напряжения
- */
-
-/**
- * @typedef {Object} EmotionNarrative
- * @property {string} scenario - Текстовый сценарий ("она ждёт важного звонка")
- * @property {string} backstory - Предыстория для контекста
- * @property {string} innerState - Внутреннее состояние
- */
-
-/**
- * @typedef {Object} EmotionReference
- * @property {string|null} assetId - ID загруженного референса
- * @property {string|null} url - URL референса
- * @property {string} notes - Заметки к референсу
- */
-
-/**
- * @typedef {Object} EmotionConfig
- * @property {EmotionComponents} components - Компонентный подход
- * @property {EmotionNarrative} narrative - Нарративный подход
- * @property {EmotionReference|null} reference - Референсный подход
- * @property {string} mode - Какой подход приоритетный: 'components' | 'narrative' | 'reference' | 'combined'
- */
-
-// ═══════════════════════════════════════════════════════════════
-// DEFAULTS
-// ═══════════════════════════════════════════════════════════════
-
-export const DEFAULT_COMPONENTS = {
-  gaze: 'direct',
-  mouthExpression: 'neutral',
-  posture: 'relaxed',
-  energy: 'moderate',
-  tension: 'none'
-};
-
-export const DEFAULT_NARRATIVE = {
-  scenario: '',
-  backstory: '',
-  innerState: ''
-};
-
-export const DEFAULT_EMOTION_CONFIG = {
-  components: { ...DEFAULT_COMPONENTS },
-  narrative: { ...DEFAULT_NARRATIVE },
-  reference: null,
-  mode: 'components'
-};
-
-// ═══════════════════════════════════════════════════════════════
-// EMOTION PRESETS (quick selections)
-// ═══════════════════════════════════════════════════════════════
-
-export const EMOTION_PRESETS = [
-  {
-    id: 'neutral_confident',
-    label: 'Нейтрально-уверенная',
-    components: {
-      gaze: 'direct',
-      mouthExpression: 'neutral',
-      posture: 'confident',
-      energy: 'moderate',
-      tension: 'none'
-    }
+export const EMOTION_PRESETS = {
+  // ─────────────────────────────────────────────────────────────
+  // JOY — Радость
+  // ─────────────────────────────────────────────────────────────
+  'joy_laugh_exhale': {
+    id: 'joy_laugh_exhale',
+    category: 'joy',
+    label: 'Смех на выдохе',
+    shortDescription: 'Искренний смех, пойманный между вдохом и выдохом',
+    promptBlock: `Genuine laugh caught between inhale and exhale. Open mouth with visible teeth, 
+eyes squinted almost closed, crow's feet at corners. Head slightly tilted back or to the side. 
+Shoulders relaxed and slightly raised from the laugh. The moment just before the sound escapes — 
+pure joy without performance. Natural, unforced, as if someone just said something hilarious.`,
+    bodyLanguage: 'Shoulders up, chest open, possibly leaning back slightly',
+    eyeDirection: 'squinted, looking at nothing specific',
+    mouthState: 'open, teeth visible, genuine smile lines',
+    energy: 'high',
+    authenticity: 'candid'
   },
-  {
-    id: 'soft_dreamy',
-    label: 'Мягкая мечтательность',
-    components: {
-      gaze: 'dreamy',
-      mouthExpression: 'parted_lips',
-      posture: 'relaxed',
-      energy: 'low',
-      tension: 'none'
-    }
+  
+  'joy_sun_squint': {
+    id: 'joy_sun_squint',
+    category: 'joy',
+    label: 'Прищур от солнца',
+    shortDescription: 'Тёплый прищур с полуулыбкой, как от яркого солнца',
+    promptBlock: `Warm squint with half-smile, as if looking into bright sun. Eyes narrowed but 
+not closed, fine lines visible at corners. Slight upturn at mouth corners — not a full smile, 
+but contentment. Face relaxed, chin slightly lifted. The expression of someone enjoying warmth 
+on their face, peaceful and present in the moment.`,
+    bodyLanguage: 'Chin slightly up, neck exposed, relaxed shoulders',
+    eyeDirection: 'narrowed, looking slightly upward',
+    mouthState: 'soft half-smile, lips together or slightly parted',
+    energy: 'medium',
+    authenticity: 'natural'
   },
-  {
-    id: 'intense_powerful',
-    label: 'Интенсивная сила',
-    components: {
-      gaze: 'piercing',
-      mouthExpression: 'pursed',
-      posture: 'powerful',
-      energy: 'high',
-      tension: 'visible'
-    }
+  
+  'joy_mischief': {
+    id: 'joy_mischief',
+    category: 'joy',
+    label: 'Озорство',
+    shortDescription: 'Хитрая улыбка, как будто знает секрет',
+    promptBlock: `Mischievous grin — knowing something others don't. One corner of mouth raised 
+higher than the other, asymmetrical smile. Eyes bright and alert, slightly narrowed with a 
+spark of playfulness. Eyebrows may be slightly raised on one side. The look of someone about 
+to pull a prank or share a secret. Confidence mixed with playfulness.`,
+    bodyLanguage: 'Slight lean forward, shoulders relaxed but ready',
+    eyeDirection: 'direct, slightly narrowed, conspiratorial',
+    mouthState: 'asymmetrical smile, one corner higher',
+    energy: 'medium-high',
+    authenticity: 'performative-playful'
   },
-  {
-    id: 'vulnerable_soft',
-    label: 'Уязвимая мягкость',
-    components: {
-      gaze: 'vulnerable',
-      mouthExpression: 'slight_smile',
-      posture: 'vulnerable',
-      energy: 'low',
-      tension: 'subtle'
-    }
+
+  // ─────────────────────────────────────────────────────────────
+  // CALM — Спокойствие
+  // ─────────────────────────────────────────────────────────────
+  'calm_serene': {
+    id: 'calm_serene',
+    category: 'calm',
+    label: 'Безмятежность',
+    shortDescription: 'Полное спокойствие, почти медитативное',
+    promptBlock: `Complete serenity, almost meditative state. Face completely relaxed, no tension 
+in jaw or forehead. Eyes soft, possibly half-closed or with a distant gaze. Lips naturally 
+resting, neither smiling nor frowning. Breathing appears slow and deep. The expression of 
+someone at complete peace, present but detached from worldly concerns.`,
+    bodyLanguage: 'Completely relaxed, weight settled, no fidgeting',
+    eyeDirection: 'soft, unfocused or gently closed',
+    mouthState: 'neutral, lips slightly parted, relaxed jaw',
+    energy: 'low',
+    authenticity: 'natural'
   },
-  {
+  
+  'calm_thoughtful': {
+    id: 'calm_thoughtful',
+    category: 'calm',
+    label: 'Задумчивость',
+    shortDescription: 'Глубокая мысль, взгляд в себя',
+    promptBlock: `Deep in thought, gaze turned inward. Eyes focused on middle distance or looking 
+slightly down. Slight furrow between brows — concentration, not worry. Lips may be slightly 
+pursed or touching. The look of someone processing an idea or memory, present physically but 
+mentally elsewhere. Intelligent, introspective stillness.`,
+    bodyLanguage: 'Still, possibly chin resting on hand, slight lean',
+    eyeDirection: 'unfocused, middle distance or downward',
+    mouthState: 'neutral to slightly pursed',
+    energy: 'low-medium',
+    authenticity: 'natural'
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // POWER — Сила/Уверенность
+  // ─────────────────────────────────────────────────────────────
+  'power_commanding': {
+    id: 'power_commanding',
+    category: 'power',
+    label: 'Властность',
+    shortDescription: 'Абсолютная уверенность и контроль',
+    promptBlock: `Absolute confidence and control. Direct, unwavering gaze — not aggressive but 
+unquestionable. Chin level or slightly raised, neck long. Jaw set but not clenched. Eyes 
+fully open, alert, commanding attention without demanding it. The expression of someone who 
+knows their worth and expects others to recognize it. Natural authority.`,
+    bodyLanguage: 'Straight spine, shoulders back, taking up space',
+    eyeDirection: 'direct, level, unblinking',
+    mouthState: 'closed, lips together, slight tension',
+    energy: 'high',
+    authenticity: 'performative'
+  },
+  
+  'power_defiant': {
+    id: 'power_defiant',
+    category: 'power',
+    label: 'Вызов',
+    shortDescription: 'Дерзкий взгляд, готовность к противостоянию',
+    promptBlock: `Defiant, challenging gaze. Chin slightly raised, looking down the nose. Eyes 
+intense, slightly narrowed — a dare. One eyebrow may be raised. Lips pressed together or 
+curved in a slight smirk. The expression of someone who won't back down, who welcomes 
+confrontation. Youthful rebellion mixed with unshakeable self-belief.`,
+    bodyLanguage: 'Weight on back foot, chin up, arms may be crossed or on hips',
+    eyeDirection: 'challenging, looking down slightly',
+    mouthState: 'smirk or pressed lips',
+    energy: 'high',
+    authenticity: 'performative'
+  },
+  
+  'power_quiet_strength': {
+    id: 'power_quiet_strength',
+    category: 'power',
+    label: 'Тихая сила',
+    shortDescription: 'Уверенность без демонстрации',
+    promptBlock: `Quiet, grounded strength — nothing to prove. Relaxed face with alert eyes. 
+Gaze steady but not aggressive. Mouth relaxed, hint of a knowing smile. The expression of 
+someone who could handle anything but doesn't need to show it. Understated power, the kind 
+that comes from genuine self-knowledge.`,
+    bodyLanguage: 'Grounded stance, relaxed but ready, economical movement',
+    eyeDirection: 'steady, calm, observant',
+    mouthState: 'relaxed, possible hint of smile',
+    energy: 'medium',
+    authenticity: 'natural'
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // MYSTERY — Загадочность
+  // ─────────────────────────────────────────────────────────────
+  'mystery_enigmatic': {
+    id: 'mystery_enigmatic',
+    category: 'mystery',
+    label: 'Загадка',
+    shortDescription: 'Невозможно прочитать, держит секреты',
+    promptBlock: `Impossible to read, keeping secrets. Face deliberately neutral but not blank — 
+there's something behind the eyes. Slight asymmetry in expression suggests hidden thoughts. 
+Gaze that seems to see through you while revealing nothing. Mona Lisa ambiguity — is it a 
+smile or not? The expression of someone with layers of meaning beneath the surface.`,
+    bodyLanguage: 'Still, contained, minimal gestures',
+    eyeDirection: 'direct but unreadable',
+    mouthState: 'ambiguous, slight curve that could be anything',
+    energy: 'low-medium',
+    authenticity: 'performative'
+  },
+  
+  'mystery_distant': {
+    id: 'mystery_distant',
+    category: 'mystery',
+    label: 'Отстранённость',
+    shortDescription: 'Взгляд куда-то далеко, недоступность',
+    promptBlock: `Gazing somewhere far away, unreachable. Eyes focused on infinite distance, 
+seeing something invisible to others. Face relaxed but disconnected from the present moment. 
+Slight melancholy or wonder in the expression. The look of someone in their own world, 
+physically present but emotionally elsewhere. Ethereal, untouchable.`,
+    bodyLanguage: 'Turned slightly away, dreamy posture',
+    eyeDirection: 'far distance, unfocused on anything near',
+    mouthState: 'softly parted or neutral',
+    energy: 'low',
+    authenticity: 'natural'
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // PLAYFUL — Игривость
+  // ─────────────────────────────────────────────────────────────
+  'playful_flirty': {
     id: 'playful_flirty',
-    label: 'Игривая кокетливость',
-    components: {
-      gaze: 'playful',
-      mouthExpression: 'smirk',
-      posture: 'asymmetrical',
-      energy: 'moderate',
-      tension: 'none'
-    }
+    category: 'playful',
+    label: 'Флирт',
+    shortDescription: 'Игривый взгляд через плечо',
+    promptBlock: `Playful, flirtatious glance. Looking over shoulder or from under lashes. 
+One corner of mouth lifted in a teasing smile. Eyes bright, inviting, with a spark of 
+mischief. Head may be tilted, exposing neck. The look that says "catch me if you can" — 
+confident, playful, knowing exactly the effect being created.`,
+    bodyLanguage: 'Turned away but looking back, exposed shoulder or neck',
+    eyeDirection: 'sideways glance, through lashes',
+    mouthState: 'teasing smile, lips may be slightly bitten',
+    energy: 'medium-high',
+    authenticity: 'performative-playful'
   },
-  {
-    id: 'contemplative_distant',
-    label: 'Задумчивая отстранённость',
-    components: {
-      gaze: 'distant',
-      mouthExpression: 'contemplative',
-      posture: 'withdrawn',
-      energy: 'calm',
-      tension: 'subtle'
-    }
+  
+  'playful_silly': {
+    id: 'playful_silly',
+    category: 'playful',
+    label: 'Дурашливость',
+    shortDescription: 'Не боится выглядеть глупо, чистое веселье',
+    promptBlock: `Not afraid to look silly, pure fun. Exaggerated expression — eyes wide, mouth 
+in funny shape, maybe tongue out. Completely unselfconscious joy. The face of someone who 
+doesn't care about looking cool, just wants to have fun. Childlike freedom, infectious 
+energy.`,
+    bodyLanguage: 'Loose, animated, possibly mid-gesture',
+    eyeDirection: 'exaggerated, could be crossed or wide',
+    mouthState: 'exaggerated — tongue out, puffed cheeks, wide grin',
+    energy: 'very high',
+    authenticity: 'candid'
   },
-  {
-    id: 'defiant_bold',
-    label: 'Дерзкая смелость',
-    components: {
-      gaze: 'defiant',
-      mouthExpression: 'smirk',
-      posture: 'confident',
-      energy: 'high',
-      tension: 'controlled'
-    }
+
+  // ─────────────────────────────────────────────────────────────
+  // SENSUAL — Чувственность
+  // ─────────────────────────────────────────────────────────────
+  'sensual_languid': {
+    id: 'sensual_languid',
+    category: 'sensual',
+    label: 'Томность',
+    shortDescription: 'Медленная, тягучая чувственность',
+    promptBlock: `Slow, languid sensuality. Heavy-lidded eyes, almost sleepy but aware. 
+Lips slightly parted, relaxed jaw. Head may be tilted back slightly, exposing throat. 
+The expression of someone savoring a moment, in no hurry. Physical pleasure evident 
+but understated — warmth, comfort, presence in the body.`,
+    bodyLanguage: 'Relaxed, draped, slow movements',
+    eyeDirection: 'heavy-lidded, half-closed',
+    mouthState: 'softly parted, relaxed',
+    energy: 'low',
+    authenticity: 'natural'
   },
-  {
-    id: 'serene_peaceful',
-    label: 'Безмятежный покой',
-    components: {
-      gaze: 'soft',
-      mouthExpression: 'slight_smile',
-      posture: 'open',
-      energy: 'serene',
-      tension: 'none'
-    }
+  
+  'sensual_intense': {
+    id: 'sensual_intense',
+    category: 'sensual',
+    label: 'Страсть',
+    shortDescription: 'Интенсивный, притягивающий взгляд',
+    promptBlock: `Intense, magnetic gaze. Eyes locked on target, pupils dilated. Breathing 
+slightly heavier. Lips parted, possibly bitten. Nostrils may be slightly flared. The 
+expression of strong desire barely contained — heat visible behind the eyes. Powerful 
+attraction, unbroken eye contact.`,
+    bodyLanguage: 'Leaning in, tension in muscles, focused',
+    eyeDirection: 'locked, intense, unbreaking',
+    mouthState: 'parted, possibly bitten lip',
+    energy: 'high',
+    authenticity: 'performative'
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // MELANCHOLY — Меланхолия
+  // ─────────────────────────────────────────────────────────────
+  'melancholy_wistful': {
+    id: 'melancholy_wistful',
+    category: 'melancholy',
+    label: 'Тоска',
+    shortDescription: 'Светлая грусть, ностальгия',
+    promptBlock: `Light sadness, nostalgia for something past. Eyes soft, looking at nothing 
+specific or into distance. Slight downturn at mouth corners but not a frown. The expression 
+of someone remembering something beautiful that's gone. Bittersweet, gentle sadness — not 
+despair but tender melancholy.`,
+    bodyLanguage: 'Slightly closed posture, possibly hugging self',
+    eyeDirection: 'distance or downward, unfocused',
+    mouthState: 'relaxed with slight downturn',
+    energy: 'low',
+    authenticity: 'natural'
+  },
+  
+  'melancholy_vulnerable': {
+    id: 'melancholy_vulnerable',
+    category: 'melancholy',
+    label: 'Уязвимость',
+    shortDescription: 'Открытая хрупкость, без защит',
+    promptBlock: `Open fragility, defenses down. Eyes possibly wet or red-rimmed, looking 
+exposed. Face soft, no attempt to hide emotion. Lips may tremble slightly. The raw 
+expression of someone allowing themselves to be seen in pain. Beautiful vulnerability, 
+courage in openness.`,
+    bodyLanguage: 'Protective but open, possibly arms around self',
+    eyeDirection: 'direct but soft, possibly wet eyes',
+    mouthState: 'soft, possibly trembling',
+    energy: 'low',
+    authenticity: 'candid'
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // INTENSE — Интенсивность
+  // ─────────────────────────────────────────────────────────────
+  'intense_focused': {
+    id: 'intense_focused',
+    category: 'intense',
+    label: 'Концентрация',
+    shortDescription: 'Полная сосредоточенность на задаче',
+    promptBlock: `Complete focus on a task. Eyes sharp, possibly slightly narrowed. Brow 
+slightly furrowed in concentration. Jaw set. Everything else faded out — total presence 
+in the moment. The expression of an athlete before a race or artist in flow state. 
+Intensity without aggression.`,
+    bodyLanguage: 'Coiled, ready, economical',
+    eyeDirection: 'laser-focused on target',
+    mouthState: 'closed, lips together, slight jaw tension',
+    energy: 'high',
+    authenticity: 'natural'
+  },
+  
+  'intense_raw': {
+    id: 'intense_raw',
+    category: 'intense',
+    label: 'На грани',
+    shortDescription: 'Сильная эмоция на грани выплеска',
+    promptBlock: `Strong emotion on the edge of breaking through. Eyes wide, intense, possibly 
+wild. Breathing visible. Face flushed. The moment before the scream or the breakdown or 
+the explosion — maximum tension, raw energy barely contained. Primal, unfiltered emotion.`,
+    bodyLanguage: 'Tense, possibly shaking, coiled energy',
+    eyeDirection: 'wide, intense, possibly wild',
+    mouthState: 'open or clenched, tension visible',
+    energy: 'very high',
+    authenticity: 'candid'
   }
-];
+};
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Create empty emotion config
+ * Get all emotions for a category
  */
-export function createEmptyEmotionConfig() {
-  return {
-    ...DEFAULT_EMOTION_CONFIG,
-    components: { ...DEFAULT_COMPONENTS },
-    narrative: { ...DEFAULT_NARRATIVE }
-  };
+export function getEmotionsByCategory(category) {
+  return Object.values(EMOTION_PRESETS).filter(e => e.category === category);
 }
 
 /**
- * Apply a preset to emotion config
+ * Get emotion by ID
  */
-export function applyPreset(presetId) {
-  const preset = EMOTION_PRESETS.find(p => p.id === presetId);
-  if (!preset) return createEmptyEmotionConfig();
-  
-  return {
-    ...DEFAULT_EMOTION_CONFIG,
-    components: { ...preset.components },
-    mode: 'components'
-  };
+export function getEmotionById(id) {
+  return EMOTION_PRESETS[id] || null;
 }
 
 /**
- * Build prompt snippet from emotion config
+ * Get all emotions as array
  */
-export function buildEmotionPromptSnippet(config) {
-  if (!config) return '';
+export function getAllEmotions() {
+  return Object.values(EMOTION_PRESETS);
+}
+
+/**
+ * Get emotion options for UI dropdowns
+ */
+export function getEmotionOptions() {
+  const grouped = {};
   
-  const parts = [];
-  
-  // Mode determines priority
-  if (config.mode === 'narrative' && config.narrative?.scenario) {
-    parts.push(config.narrative.scenario);
-    if (config.narrative.innerState) {
-      parts.push(`feeling ${config.narrative.innerState}`);
-    }
-  } else if (config.mode === 'components' || !config.narrative?.scenario) {
-    const c = config.components || {};
-    
-    // Gaze
-    if (c.gaze && c.gaze !== 'direct') {
-      const gazeMap = {
-        averted: 'averted gaze',
-        distant: 'distant gaze, looking into nothing',
-        piercing: 'piercing intense gaze',
-        soft: 'soft gentle gaze',
-        dreamy: 'dreamy unfocused gaze',
-        downcast: 'eyes cast downward',
-        defiant: 'defiant challenging gaze',
-        vulnerable: 'vulnerable open gaze',
-        playful: 'playful mischievous gaze'
-      };
-      parts.push(gazeMap[c.gaze] || c.gaze.replace(/_/g, ' '));
-    }
-    
-    // Mouth
-    if (c.mouthExpression && c.mouthExpression !== 'neutral') {
-      const mouthMap = {
-        slight_smile: 'slight smile',
-        parted_lips: 'lips slightly parted',
-        pursed: 'pursed lips',
-        smirk: 'knowing smirk',
-        pout: 'subtle pout',
-        biting_lip: 'biting lower lip'
-      };
-      parts.push(mouthMap[c.mouthExpression] || c.mouthExpression.replace(/_/g, ' '));
-    }
-    
-    // Posture
-    if (c.posture && c.posture !== 'relaxed') {
-      const postureMap = {
-        tense: 'tense body language',
-        confident: 'confident stance',
-        vulnerable: 'vulnerable posture',
-        powerful: 'powerful commanding presence',
-        withdrawn: 'withdrawn body language'
-      };
-      parts.push(postureMap[c.posture] || c.posture.replace(/_/g, ' ') + ' posture');
-    }
-    
-    // Energy
-    if (c.energy && c.energy !== 'moderate') {
-      const energyMap = {
-        low: 'low energy, languid',
-        calm: 'calm serene energy',
-        high: 'high energy, dynamic',
-        explosive: 'explosive energy',
-        languid: 'languid relaxed energy'
-      };
-      parts.push(energyMap[c.energy] || c.energy + ' energy');
-    }
-    
-    // Tension
-    if (c.tension && c.tension !== 'none') {
-      const tensionMap = {
-        subtle: 'subtle tension visible',
-        visible: 'visible tension in expression',
-        high: 'high tension, strained',
-        jaw_clenched: 'jaw clenched',
-        brow_furrowed: 'furrowed brow'
-      };
-      parts.push(tensionMap[c.tension] || c.tension.replace(/_/g, ' '));
-    }
+  for (const category of EMOTION_CATEGORIES) {
+    grouped[category] = getEmotionsByCategory(category).map(e => ({
+      id: e.id,
+      label: e.label,
+      shortDescription: e.shortDescription
+    }));
   }
   
-  return parts.join(', ');
+  return grouped;
 }
 
-/**
- * Validate emotion config
- */
-export function validateEmotionConfig(config) {
-  const errors = [];
-  
-  if (!config || typeof config !== 'object') {
-    errors.push('Emotion config must be an object');
-    return { valid: false, errors };
-  }
-  
-  if (config.components) {
-    const c = config.components;
-    if (c.gaze && !GAZE_OPTIONS.includes(c.gaze)) {
-      errors.push(`Invalid gaze: ${c.gaze}`);
-    }
-    if (c.mouthExpression && !MOUTH_EXPRESSION_OPTIONS.includes(c.mouthExpression)) {
-      errors.push(`Invalid mouthExpression: ${c.mouthExpression}`);
-    }
-    if (c.posture && !POSTURE_OPTIONS.includes(c.posture)) {
-      errors.push(`Invalid posture: ${c.posture}`);
-    }
-    if (c.energy && !ENERGY_OPTIONS.includes(c.energy)) {
-      errors.push(`Invalid energy: ${c.energy}`);
-    }
-    if (c.tension && !TENSION_OPTIONS.includes(c.tension)) {
-      errors.push(`Invalid tension: ${c.tension}`);
-    }
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-}
-
-/**
- * All options for UI
- */
-export const EMOTION_OPTIONS = {
-  gaze: GAZE_OPTIONS,
-  mouthExpression: MOUTH_EXPRESSION_OPTIONS,
-  posture: POSTURE_OPTIONS,
-  energy: ENERGY_OPTIONS,
-  tension: TENSION_OPTIONS,
-  presets: EMOTION_PRESETS
-};
-
+export default EMOTION_PRESETS;

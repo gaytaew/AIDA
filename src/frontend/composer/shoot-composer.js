@@ -107,6 +107,8 @@ function initElements() {
   elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
   elements.genPosingStyle = document.getElementById('gen-posing-style');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
+  elements.genEmotion = document.getElementById('gen-emotion');
+  elements.emotionDescription = document.getElementById('emotion-description');
   elements.framesToGenerate = document.getElementById('frames-to-generate');
   
   // Summary values
@@ -155,6 +157,47 @@ function initEventListeners() {
   elements.btnExportJson.addEventListener('click', exportShootJson);
   elements.btnGenerateOne.addEventListener('click', generateOneFrame);
   elements.btnClearHistory.addEventListener('click', clearGenerationHistory);
+  
+  // Emotion selection - show description on change
+  if (elements.genEmotion) {
+    elements.genEmotion.addEventListener('change', onEmotionChange);
+  }
+}
+
+/**
+ * Handle emotion selection change - show description
+ */
+async function onEmotionChange() {
+  const emotionId = elements.genEmotion?.value;
+  const descriptionEl = elements.emotionDescription;
+  
+  if (!descriptionEl) return;
+  
+  if (!emotionId) {
+    descriptionEl.style.display = 'none';
+    return;
+  }
+  
+  // Fetch emotion details from API
+  try {
+    const res = await fetch(`/api/emotions/${emotionId}`);
+    const data = await res.json();
+    
+    if (data.ok && data.data) {
+      const emotion = data.data;
+      descriptionEl.innerHTML = `
+        <strong>${emotion.label}</strong><br>
+        <em>${emotion.shortDescription}</em><br><br>
+        ${emotion.promptBlock.replace(/\n/g, '<br>')}
+      `;
+      descriptionEl.style.display = 'block';
+    } else {
+      descriptionEl.style.display = 'none';
+    }
+  } catch (e) {
+    console.error('Failed to load emotion:', e);
+    descriptionEl.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1422,6 +1465,7 @@ async function generateOneFrame() {
   const extraPrompt = elements.genExtraPrompt.value.trim();
   const posingStyle = parseInt(elements.genPosingStyle?.value) || 2;
   const poseAdherence = parseInt(elements.genPoseAdherence?.value) || 2;
+  const emotionId = elements.genEmotion?.value || null;
   
   // Find frame index if a frame from shoot is selected (for backward compat)
   let frameIndex = undefined;
@@ -1442,7 +1486,8 @@ async function generateOneFrame() {
         locationId,
         extraPrompt,
         posingStyle,
-        poseAdherence
+        poseAdherence,
+        emotionId
       })
     });
     
