@@ -269,6 +269,7 @@ function buildUniverseBlock(universe) {
   if (!universe) {
     return {
       shortDescription: null,
+      artisticVision: null,
       textBlocks: null,
       antiAi: null,
       capture: null,
@@ -281,20 +282,40 @@ function buildUniverseBlock(universe) {
 
   // Build text blocks section (rich narrative descriptions)
   const textBlocks = universe.textBlocks || {};
-  const hasTextBlocks = textBlocks.techBlock || textBlocks.colorBlock || 
+  const hasTextBlocks = textBlocks.visionBlock || textBlocks.atmosphereBlock ||
+                        textBlocks.techBlock || textBlocks.colorBlock || 
                         textBlocks.lensBlock || textBlocks.moodBlock || 
-                        textBlocks.eraBlock;
+                        textBlocks.eraBlock || textBlocks.environmentBlock;
+
+  // Build artistic vision section (most important for mood/atmosphere)
+  const artisticVision = universe.artisticVision || {};
+  const hasArtisticVision = artisticVision.artDirection || artisticVision.emotionalTone ||
+                            artisticVision.worldBuilding;
 
   return {
     shortDescription: universe.shortDescription || null,
     
-    // NEW: Rich text blocks for detailed prompt context
+    // ARTISTIC VISION - defines the mood and atmosphere (MOST IMPORTANT)
+    artisticVision: hasArtisticVision ? {
+      artDirection: artisticVision.artDirection || 'editorial',
+      narrativeType: artisticVision.narrativeType || 'mood_driven',
+      emotionalTone: artisticVision.emotionalTone || 'intimate',
+      worldBuilding: artisticVision.worldBuilding || 'heightened_reality',
+      distinctiveElements: artisticVision.distinctiveElements || [],
+      atmosphericDensity: artisticVision.atmosphericDensity || 'layered',
+      humanPresence: artisticVision.humanPresence || 'integrated'
+    } : null,
+    
+    // Rich text blocks for detailed prompt context
     textBlocks: hasTextBlocks ? {
+      visionBlock: textBlocks.visionBlock || null,
+      atmosphereBlock: textBlocks.atmosphereBlock || null,
       techBlock: textBlocks.techBlock || null,
       colorBlock: textBlocks.colorBlock || null,
       lensBlock: textBlocks.lensBlock || null,
       moodBlock: textBlocks.moodBlock || null,
-      eraBlock: textBlocks.eraBlock || null
+      eraBlock: textBlocks.eraBlock || null,
+      environmentBlock: textBlocks.environmentBlock || null
     } : null,
     
     capture: universe.capture ? {

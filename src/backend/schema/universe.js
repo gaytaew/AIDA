@@ -322,7 +322,18 @@ export function createEmptyUniverse(label = 'Новая вселенная') {
     label,
     shortDescription: '',
     
-    // All blocks with defaults
+    // NEW: Artistic Vision (MOST IMPORTANT for capturing mood/atmosphere)
+    artisticVision: {
+      artDirection: 'editorial',           // conceptual | theatrical | documentary | commercial | avant_garde | surrealist | minimalist | maximalist
+      narrativeType: 'mood_driven',        // story_driven | mood_driven | product_focused | character_study | abstract
+      emotionalTone: 'intimate',           // intimate | dramatic | playful | melancholic | mysterious | aggressive | dreamy | unsettling
+      worldBuilding: 'heightened_reality', // fantasy | heightened_reality | raw_reality | surreal | theatrical_set | found_location
+      distinctiveElements: [],             // Array of unique characteristics
+      atmosphericDensity: 'layered',       // sparse | layered | dense | overwhelming
+      humanPresence: 'integrated'          // dominant | integrated | secondary | absent
+    },
+    
+    // All technical blocks with defaults
     capture: { ...DEFAULT_CAPTURE },
     light: { ...DEFAULT_LIGHT },
     color: { ...DEFAULT_COLOR },
@@ -332,16 +343,19 @@ export function createEmptyUniverse(label = 'Новая вселенная') {
     postProcess: { ...DEFAULT_POST_PROCESS },
     era: { ...DEFAULT_ERA },
     
-    // NEW: Detailed text blocks for rich prompts
+    // Detailed text blocks for rich prompts (expanded)
     textBlocks: {
-      techBlock: '',      // Детальное описание техники съёмки
-      colorBlock: '',     // Детальное описание цветовой палитры
-      lensBlock: '',      // Детальное описание оптики
-      moodBlock: '',      // Детальное описание настроения
-      eraBlock: ''        // Детальное описание эпохи и контекста
+      visionBlock: '',       // Художественная концепция и мир
+      atmosphereBlock: '',   // Атмосфера и ощущения
+      techBlock: '',         // Техника съёмки
+      colorBlock: '',        // Цветовая палитра
+      lensBlock: '',         // Оптика
+      moodBlock: '',         // Настроение и энергия
+      eraBlock: '',          // Эпоха и контекст
+      environmentBlock: ''   // Фоны и декорации
     },
     
-    // NEW: Anti-AI markers
+    // Anti-AI markers
     antiAi: {
       level: 'medium',
       settings: {
@@ -430,7 +444,7 @@ export function mergeUniverseUpdates(existing, updates) {
   const merged = { ...existing };
   
   // Deep merge each block
-  const blocks = ['capture', 'light', 'color', 'texture', 'optical', 'composition', 'postProcess', 'era', 'defaultFrameParams', 'textBlocks', 'antiAi'];
+  const blocks = ['artisticVision', 'capture', 'light', 'color', 'texture', 'optical', 'composition', 'postProcess', 'era', 'defaultFrameParams', 'textBlocks', 'antiAi'];
   for (const block of blocks) {
     if (updates[block] && typeof updates[block] === 'object') {
       merged[block] = { ...(existing[block] || {}), ...updates[block] };
