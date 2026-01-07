@@ -9,6 +9,7 @@
 
 import config from '../config.js';
 import { requestGeminiImage } from '../providers/geminiClient.js';
+import { convertToJpeg } from '../utils/imageConverter.js';
 import {
   SHOT_SIZE_OPTIONS,
   CAMERA_ANGLE_OPTIONS,
@@ -278,10 +279,13 @@ export async function generatePoseSketch(technical = {}, referenceImage = null) 
 
   console.log('[FrameAnalyzer] Pose sketch generated successfully');
 
+  // Convert to JPEG for consistent storage
+  const jpegImage = await convertToJpeg(result.base64, result.mimeType, 90);
+
   return {
     image: {
-      mimeType: result.mimeType,
-      base64: result.base64
+      mimeType: jpegImage.mimeType,
+      base64: jpegImage.base64
     },
     technical: tech
   };

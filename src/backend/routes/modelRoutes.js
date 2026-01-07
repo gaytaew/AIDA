@@ -16,6 +16,7 @@ import {
 import { analyzeModelPhotos, validateImageData } from '../services/modelAnalyzer.js';
 import { generateAvatarShots, generateSingleShot, AVATAR_SHOTS } from '../services/avatarGenerator.js';
 import { BODY_TYPES } from '../schema/model.js';
+import { convertGeminiImageToJpeg } from '../utils/imageConverter.js';
 
 const router = express.Router();
 
@@ -327,13 +328,20 @@ router.post('/generate-avatar-shot', async (req, res) => {
     
     const result = await generateSingleShot(images, shotId, { extraPrompt: extraPrompt || '' });
     
+    // Convert to JPEG for consistent storage
+    let imageDataUrl = null;
+    if (result.image) {
+      const jpegImage = await convertGeminiImageToJpeg(result.image, 90);
+      imageDataUrl = `data:${jpegImage.mimeType};base64,${jpegImage.base64}`;
+    }
+    
     res.json({
       ok: true,
       data: {
         id: result.id,
         label: result.label,
         status: result.status,
-        imageDataUrl: result.image ? `data:${result.image.mimeType};base64,${result.image.base64}` : null
+        imageDataUrl
       }
     });
   } catch (error) {

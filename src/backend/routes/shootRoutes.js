@@ -36,6 +36,7 @@ import {
   shouldRequireOutfitAvatar
 } from '../schema/shootConfig.js';
 import { buildCollage } from '../utils/imageCollage.js';
+import { convertGeminiImageToJpeg } from '../utils/imageConverter.js';
 
 const router = express.Router();
 
@@ -392,8 +393,9 @@ router.post('/:id/outfit-avatar', async (req, res) => {
       });
     }
     
-    // Save the generated avatar
-    const imageUrl = `data:${result.image.mimeType};base64,${result.image.base64}`;
+    // Convert to JPEG and save the generated avatar
+    const jpegImage = await convertGeminiImageToJpeg(result.image, 90);
+    const imageUrl = `data:${jpegImage.mimeType};base64,${jpegImage.base64}`;
     
     await setOutfitAvatarForModel(req.params.id, modelIndex, {
       status: 'ok',
@@ -951,7 +953,9 @@ router.post('/:id/generate-frame', async (req, res) => {
       });
     }
     
-    const imageUrl = `data:${result.image.mimeType};base64,${result.image.base64}`;
+    // Convert to JPEG for consistent storage
+    const jpegImage = await convertGeminiImageToJpeg(result.image, 90);
+    const imageUrl = `data:${jpegImage.mimeType};base64,${jpegImage.base64}`;
     
     // Build refs for debug
     const refs = [];
