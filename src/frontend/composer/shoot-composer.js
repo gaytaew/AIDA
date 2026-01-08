@@ -880,24 +880,36 @@ async function handleClothingUpload(event, modelIndex) {
 }
 
 async function handleClothingFiles(files, modelIndex) {
-  const images = [];
+  const newImages = [];
   
   for (const file of files) {
     const compressed = await compressImageAndGetBase64(file);
     console.log(`[Composer] Compressed clothing ${file.name}: ${Math.round(file.size / 1024)}KB → ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
-    images.push({
+    newImages.push({
       mimeType: compressed.mimeType,
       base64: compressed.base64
     });
   }
   
-  if (images.length === 0) return;
+  if (newImages.length === 0) return;
+  
+  // IMPORTANT: Combine NEW images with EXISTING ones (don't replace!)
+  const existingClothing = state.clothingByModel[modelIndex] || [];
+  const existingImages = existingClothing.map(c => {
+    const match = c.url.match(/^data:([^;]+);base64,(.+)$/);
+    return match ? { mimeType: match[1], base64: match[2] } : null;
+  }).filter(Boolean);
+  
+  // Combine: existing + new
+  const allImages = [...existingImages, ...newImages];
+  
+  console.log(`[Composer] Clothing: ${existingImages.length} existing + ${newImages.length} new = ${allImages.length} total`);
   
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/clothing`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ modelIndex, images })
+      body: JSON.stringify({ modelIndex, images: allImages })
     });
     const data = await res.json();
     if (data.ok) {
