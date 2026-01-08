@@ -1027,49 +1027,115 @@ router.post('/:id/generate-frame', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// UPSCALE ENDPOINT
+// UPSCALE ENDPOINT (via Gemini / Nano Banana Pro)
 // ═══════════════════════════════════════════════════════════════
 
 import sharp from 'sharp';
+import { requestGeminiImage } from '../providers/geminiClient.js';
+
+// Upscale prompt - instructs Gemini to upscale without changing content
+const UPSCALE_PROMPT = `UPSCALE this image to maximum resolution (4K).
+
+CRITICAL RULES:
+- Do NOT change ANYTHING about the image content
+- Do NOT modify the subject, colors, lighting, composition, or any details
+- Do NOT add or remove anything
+- Do NOT apply any style changes or filters
+- ONLY increase the resolution and enhance fine details
+- Preserve EXACT pixel-perfect likeness of the original
+- This is purely a resolution enhancement, NOT a regeneration
+
+Output a higher resolution version of the EXACT same image.`;
 
 /**
- * POST /api/shoots/:id/upscale — Upscale an image
- * Body: { imageBase64: string, mimeType: string, scale: number }
+ * POST /api/shoots/:id/upscale — Upscale an image via Gemini
+ * Body: { imageBase64: string, mimeType: string, targetSize?: '2K' | '4K' }
  */
 router.post('/:id/upscale', async (req, res) => {
   try {
-    const { imageBase64, mimeType, scale = 2 } = req.body;
+    const { imageBase64, mimeType, targetSize = '4K' } = req.body;
     
     if (!imageBase64) {
       return res.status(400).json({ ok: false, error: 'imageBase64 is required' });
     }
     
+    // Get original dimensions for logging
     const inputBuffer = Buffer.from(imageBase64, 'base64');
-    
-    // Get image dimensions
     const metadata = await sharp(inputBuffer).metadata();
-    const newWidth = Math.round((metadata.width || 1024) * scale);
-    const newHeight = Math.round((metadata.height || 1024) * scale);
+    const originalWidth = metadata.width || 1024;
+    const originalHeight = metadata.height || 1024;
     
-    // Upscale using sharp
-    const outputBuffer = await sharp(inputBuffer)
-      .resize(newWidth, newHeight, {
-        kernel: 'lanczos3'
-      })
-      .jpeg({ quality: 95 })
-      .toBuffer();
+    // Determine aspect ratio from original image
+    let aspectRatio = '1:1';
+    const ratio = originalWidth / originalHeight;
+    if (ratio > 1.2) {
+      aspectRatio = '16:9';  // Landscape
+    } else if (ratio < 0.8) {
+      aspectRatio = '9:16';  // Portrait
+    } else if (ratio > 1.1) {
+      aspectRatio = '4:3';   // Slightly wide
+    } else if (ratio < 0.9) {
+      aspectRatio = '3:4';   // Slightly tall
+    }
     
-    const outputBase64 = outputBuffer.toString('base64');
-    const outputUrl = `data:image/jpeg;base64,${outputBase64}`;
+    console.log(`[ShootRoutes] Upscaling image ${originalWidth}x${originalHeight} to ${targetSize} via Gemini...`);
     
-    console.log(`[ShootRoutes] Upscaled image from ${metadata.width}x${metadata.height} to ${newWidth}x${newHeight}`);
+    // Call Gemini for upscale
+    const result = await requestGeminiImage({
+      prompt: UPSCALE_PROMPT,
+      referenceImages: [{
+        mimeType: mimeType || 'image/jpeg',
+        base64: imageBase64
+      }],
+      imageConfig: {
+        aspectRatio,
+        imageSize: targetSize  // '2K' or '4K'
+      }
+    });
+    
+    if (!result.ok) {
+      console.error('[ShootRoutes] Gemini upscale failed:', result.error);
+      
+      // Fallback to sharp if Gemini fails
+      console.log('[ShootRoutes] Falling back to sharp upscale...');
+      const scale = targetSize === '4K' ? 4 : 2;
+      const newWidth = Math.round(originalWidth * scale);
+      const newHeight = Math.round(originalHeight * scale);
+      
+      const outputBuffer = await sharp(inputBuffer)
+        .resize(newWidth, newHeight, { kernel: 'lanczos3' })
+        .jpeg({ quality: 95 })
+        .toBuffer();
+      
+      const outputBase64 = outputBuffer.toString('base64');
+      const outputUrl = `data:image/jpeg;base64,${outputBase64}`;
+      
+      return res.json({
+        ok: true,
+        data: {
+          imageUrl: outputUrl,
+          width: newWidth,
+          height: newHeight,
+          method: 'sharp_fallback'
+        }
+      });
+    }
+    
+    // Get upscaled dimensions
+    const upscaledBuffer = Buffer.from(result.base64, 'base64');
+    const upscaledMeta = await sharp(upscaledBuffer).metadata();
+    
+    const outputUrl = `data:${result.mimeType || 'image/jpeg'};base64,${result.base64}`;
+    
+    console.log(`[ShootRoutes] ✅ Upscaled via Gemini: ${originalWidth}x${originalHeight} → ${upscaledMeta.width}x${upscaledMeta.height}`);
     
     res.json({
       ok: true,
       data: {
         imageUrl: outputUrl,
-        width: newWidth,
-        height: newHeight
+        width: upscaledMeta.width,
+        height: upscaledMeta.height,
+        method: 'gemini'
       }
     });
     

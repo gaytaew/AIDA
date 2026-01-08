@@ -1512,7 +1512,7 @@ async function upscaleFromHistory(frameIndex) {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/upscale`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: match[2], mimeType: match[1], scale: 2 })
+      body: JSON.stringify({ imageBase64: match[2], mimeType: match[1], targetSize: '4K' })
     });
     
     const data = await res.json();
@@ -1824,7 +1824,7 @@ async function upscaleFrame(frameIndex) {
       body: JSON.stringify({ 
         imageBase64: match[2],
         mimeType: match[1],
-        scale: 2
+        targetSize: '4K'
       })
     });
     
