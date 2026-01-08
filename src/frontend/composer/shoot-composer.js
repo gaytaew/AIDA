@@ -1480,10 +1480,17 @@ function clearGenerationHistory() {
 }
 
 function renderGeneratedHistory() {
-  const count = state.generatedFrames.length;
-  elements.generationCount.textContent = `${count} изображений`;
+  // Count only ready frames (not generating ones)
+  const readyCount = state.generatedFrames.filter(f => f.status !== 'generating').length;
+  const generatingCount = state.generatedFrames.filter(f => f.status === 'generating').length;
   
-  if (count === 0) {
+  if (generatingCount > 0) {
+    elements.generationCount.textContent = `${readyCount} изображений, ${generatingCount} генерируется...`;
+  } else {
+    elements.generationCount.textContent = `${readyCount} изображений`;
+  }
+  
+  if (state.generatedFrames.length === 0) {
     elements.imagesGallery.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
         <div class="empty-state-icon">🎨</div>
@@ -1499,6 +1506,54 @@ function renderGeneratedHistory() {
     const idx = state.generatedFrames.length - 1 - reverseIdx;
     const timestamp = frame.timestamp ? new Date(frame.timestamp).toLocaleTimeString() : '';
     
+    // Check if this is a generating placeholder
+    if (frame.status === 'generating') {
+      return `
+        <div class="selection-card generated-frame-card generating" data-frame-index="${idx}" style="cursor: default; position: relative;">
+          <div class="selection-card-preview" style="aspect-ratio: 3/4; background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg) 100%); display: flex; align-items: center; justify-content: center;">
+            <div style="text-align: center;">
+              <div class="generating-spinner" style="width: 48px; height: 48px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+              <div style="font-size: 14px; color: var(--color-text-muted);">Генерация...</div>
+              <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 4px;">~15-30 сек</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+            <div class="selection-card-title" style="margin: 0;">${escapeHtml(frame.frameLabel || 'Кадр')}</div>
+            <span style="font-size: 11px; color: var(--color-text-muted);">${timestamp}</span>
+          </div>
+          ${frame.locationLabel ? `<div style="font-size: 12px; color: var(--color-text-muted);">📍 ${escapeHtml(frame.locationLabel)}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    // Check if this is an error
+    if (frame.status === 'error') {
+      return `
+        <div class="selection-card generated-frame-card error" data-frame-index="${idx}" style="cursor: default; border-color: var(--color-accent);">
+          <div class="selection-card-preview" style="aspect-ratio: 3/4; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center;">
+            <div style="text-align: center; padding: 20px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">❌</div>
+              <div style="font-size: 14px; color: var(--color-accent);">Ошибка генерации</div>
+              <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px;">${escapeHtml(frame.error || 'Неизвестная ошибка')}</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+            <div class="selection-card-title" style="margin: 0;">${escapeHtml(frame.frameLabel || 'Кадр')}</div>
+            <span style="font-size: 11px; color: var(--color-text-muted);">${timestamp}</span>
+          </div>
+          <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-regenerate-from-history" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;">
+              🔄 Повторить
+            </button>
+            <button class="btn btn-secondary btn-delete-from-history" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">
+              ✕
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Normal ready frame
     // Build refs HTML
     const refs = frame.refs || [];
     const refsHtml = refs.length > 0
@@ -1673,6 +1728,31 @@ async function generateOneFrame() {
   const poseAdherence = parseInt(elements.genPoseAdherence?.value) || 2;
   const emotionId = elements.genEmotion?.value || null;
   
+  // Get labels for the placeholder card
+  const location = state.locations.find(l => l.id === locationId);
+  const frame = state.frames.find(f => f.id === frameId);
+  const frameLabel = frame?.label || 'Кадр';
+  const locationLabel = location?.label || null;
+  
+  // Create placeholder ID
+  const placeholderId = `pending_${Date.now()}`;
+  
+  // Add placeholder card IMMEDIATELY
+  const placeholderFrame = {
+    id: placeholderId,
+    imageUrl: null,  // No image yet
+    frameId: frameId,
+    frameLabel: frameLabel,
+    locationId: locationId,
+    locationLabel: locationLabel,
+    emotionId: emotionId,
+    status: 'generating',  // Special status for placeholder
+    timestamp: new Date().toISOString()
+  };
+  
+  state.generatedFrames.push(placeholderFrame);
+  renderGeneratedHistory();
+  
   // Find frame index if a frame from shoot is selected (for backward compat)
   let frameIndex = undefined;
   if (frameId) {
@@ -1699,37 +1779,53 @@ async function generateOneFrame() {
     
     const data = await res.json();
     
+    // Find and update the placeholder
+    const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+    
     if (data.ok && data.data) {
-      // Find location and frame labels
-      const location = state.locations.find(l => l.id === locationId);
-      const frame = state.frames.find(f => f.id === (data.data.frameId || frameId));
-      
-      // Add to history (don't replace)
-      // Include ID from server for persistent storage
-      state.generatedFrames.push({
-        id: data.data.id,  // ID from server for persistent storage
-        imageUrl: data.data.imageUrl,
-        frameId: data.data.frameId || frameId,
-        frameLabel: data.data.frameLabel || frame?.label || 'Кадр',
-        locationId: locationId,
-        locationLabel: location?.label || null,
-        emotionId: emotionId,
-        prompt: data.data.prompt,
-        promptJson: data.data.promptJson,
-        refs: data.data.refs,
-        extraPrompt: extraPrompt,
-        timestamp: new Date().toISOString()
-      });
+      // Replace placeholder with real data
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex] = {
+          id: data.data.id,  // ID from server for persistent storage
+          imageUrl: data.data.imageUrl,
+          frameId: data.data.frameId || frameId,
+          frameLabel: data.data.frameLabel || frameLabel,
+          locationId: locationId,
+          locationLabel: locationLabel,
+          emotionId: emotionId,
+          prompt: data.data.prompt,
+          promptJson: data.data.promptJson,
+          refs: data.data.refs,
+          extraPrompt: extraPrompt,
+          status: 'ready',
+          timestamp: new Date().toISOString()
+        };
+      }
       
       // Clear extra prompt after successful generation
       elements.genExtraPrompt.value = '';
       
       renderGeneratedHistory();
     } else {
+      // Mark placeholder as failed
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex].status = 'error';
+        state.generatedFrames[placeholderIndex].error = data.error || 'Неизвестная ошибка';
+        renderGeneratedHistory();
+      }
       alert('Ошибка генерации: ' + (data.error || 'Неизвестная ошибка'));
     }
   } catch (e) {
     console.error('Error generating frame:', e);
+    
+    // Mark placeholder as failed
+    const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+    if (placeholderIndex >= 0) {
+      state.generatedFrames[placeholderIndex].status = 'error';
+      state.generatedFrames[placeholderIndex].error = e.message;
+      renderGeneratedHistory();
+    }
+    
     alert('Ошибка сети: ' + e.message);
   } finally {
     btn.disabled = false;

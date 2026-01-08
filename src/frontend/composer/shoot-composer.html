@@ -578,6 +578,20 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.7; transform: scale(1.1); }
     }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Generating card animation */
+    .generated-frame-card.generating {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .generating-spinner {
+      animation: spin 1s linear infinite;
+    }
 
     .btn-generate {
       background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
