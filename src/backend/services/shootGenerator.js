@@ -14,7 +14,7 @@
 
 import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
-import { getEmotionById } from '../schema/emotion.js';
+import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
 
 // ═══════════════════════════════════════════════════════════════
 // JSON PROMPT BUILDER
@@ -199,40 +199,47 @@ export function buildShootPromptJson({
 }
 
 /**
- * Build emotion block from frame emotion settings
+ * Build emotion block from frame emotion settings (v2 - Atmospheric Approach)
+ * 
+ * Новый формат: атмосферные описания вместо физических инструкций.
+ * Ключ к естественности — описываем ситуацию, а не мимику.
  */
 function buildEmotionBlock(emotion) {
   if (!emotion) {
     return null;
   }
   
-  // If there's a custom description, use it
+  // If there's a custom description, use it (legacy support)
   if (emotion.customDescription) {
     return {
       source: 'custom',
       promptBlock: emotion.customDescription,
-      energy: emotion.energy || 'medium',
-      authenticity: emotion.authenticity || 'natural',
-      bodyLanguage: null,
-      eyeDirection: null,
-      mouthState: null
+      globalRules: GLOBAL_EMOTION_RULES,
+      intensity: emotion.intensity || 2
     };
   }
   
-  // If there's an emotion preset ID, look it up
+  // If there's an emotion preset ID, use new atmospheric builder
   if (emotion.emotionId) {
     const preset = getEmotionById(emotion.emotionId);
     if (preset) {
+      // Build full prompt using new atmospheric approach
+      const intensity = emotion.intensity || preset.defaultIntensity || 2;
+      const promptBlock = buildEmotionPrompt(emotion.emotionId, intensity);
+      
       return {
         source: 'preset',
         presetId: emotion.emotionId,
         label: preset.label,
-        promptBlock: preset.promptBlock,
-        bodyLanguage: preset.bodyLanguage,
-        eyeDirection: preset.eyeDirection,
-        mouthState: preset.mouthState,
-        energy: emotion.energy || preset.energy || 'medium',
-        authenticity: emotion.authenticity || preset.authenticity || 'natural'
+        intensity,
+        // New atmospheric format
+        atmosphere: preset.atmosphere,
+        avoid: preset.avoid,
+        authenticityKey: preset.authenticityKey,
+        physicalHints: preset.physicalHints,
+        // Full prompt block for AI
+        promptBlock,
+        globalRules: GLOBAL_EMOTION_RULES
       };
     }
   }

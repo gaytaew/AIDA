@@ -1,8 +1,14 @@
 /**
- * Emotion Schema
+ * Emotion Schema v2 — Atmospheric Approach
  * 
- * Detailed emotion presets for shoot generation.
- * Each emotion has a detailed description for AI prompts.
+ * Эмоции описаны через атмосферу и внутреннее состояние,
+ * а не через физические инструкции.
+ * 
+ * Ключевые принципы:
+ * - Описываем ситуацию/момент, а не физику лица
+ * - Добавляем avoid для предотвращения наигранности
+ * - Интенсивность по умолчанию снижена (2-3 из 5)
+ * - authenticityKey — ключ к естественности
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -11,7 +17,7 @@
 
 export const EMOTION_CATEGORIES = [
   'joy',        // Радость
-  'calm',       // Спокойствие
+  'calm',       // Спокойствие  
   'power',      // Сила/уверенность
   'mystery',    // Загадочность
   'playful',    // Игривость
@@ -21,321 +27,564 @@ export const EMOTION_CATEGORIES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// EMOTION PRESETS — Детальные описания
+// INTENSITY LEVELS
+// ═══════════════════════════════════════════════════════════════
+
+export const INTENSITY_LEVELS = {
+  1: { label: 'Микро', description: 'Едва заметный намёк на эмоцию. Считывается только при внимательном взгляде.' },
+  2: { label: 'Лёгкий', description: 'Лёгкое проявление эмоции. Естественно и ненавязчиво.' },
+  3: { label: 'Читаемый', description: 'Эмоция читается, но не преувеличена. Баланс между выразительностью и естественностью.' },
+  4: { label: 'Явный', description: 'Явная, выраженная эмоция. Подходит для драматичных кадров.' },
+  5: { label: 'Максимальный', description: 'Полная интенсивность. Только для специальных творческих задач.' }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL ANTI-PERFORMATIVE RULES
+// ═══════════════════════════════════════════════════════════════
+
+export const GLOBAL_EMOTION_RULES = [
+  'This is NOT a posed expression for camera',
+  'Capture as if the model does NOT know they are being photographed',
+  'Reduce apparent intensity — aim for subtle, not theatrical',
+  'Embrace asymmetry and natural micro-imperfections',
+  'No "actor face", no exaggerated theatrical expressions',
+  'Expression should feel like a caught moment, not a held pose',
+  'Allow eyes to look slightly away or unfocused — not always camera-locked'
+];
+
+// ═══════════════════════════════════════════════════════════════
+// EMOTION PRESETS — Атмосферный подход
 // ═══════════════════════════════════════════════════════════════
 
 export const EMOTION_PRESETS = {
+  
   // ─────────────────────────────────────────────────────────────
   // JOY — Радость
   // ─────────────────────────────────────────────────────────────
-  'joy_laugh_exhale': {
-    id: 'joy_laugh_exhale',
+  
+  'joy_private_amusement': {
+    id: 'joy_private_amusement',
     category: 'joy',
-    label: 'Смех на выдохе',
-    shortDescription: 'Искренний смех, пойманный между вдохом и выдохом',
-    promptBlock: `Genuine laugh caught between inhale and exhale. Open mouth with visible teeth, 
-eyes squinted almost closed, crow's feet at corners. Head slightly tilted back or to the side. 
-Shoulders relaxed and slightly raised from the laugh. The moment just before the sound escapes — 
-pure joy without performance. Natural, unforced, as if someone just said something hilarious.`,
-    bodyLanguage: 'Shoulders up, chest open, possibly leaning back slightly',
-    eyeDirection: 'squinted, looking at nothing specific',
-    mouthState: 'open, teeth visible, genuine smile lines',
-    energy: 'high',
-    authenticity: 'candid'
+    label: 'Тихое веселье',
+    shortDescription: 'Приватная улыбка, как от внутренней шутки',
+    
+    // Атмосферное описание (главное!)
+    atmosphere: `A private joke just crossed their mind. Not performing for anyone — simply amused 
+by their own thoughts. The kind of expression you'd catch if you glanced at them unexpectedly 
+while they're remembering something funny. Warm, contained, genuine.`,
+    
+    // Что строго запрещено
+    avoid: [
+      'Wide open-mouth laugh',
+      'Teeth-showing grin',
+      'Exaggerated squinting',
+      'Head thrown back',
+      'Performative joy for camera'
+    ],
+    
+    // Уровень интенсивности по умолчанию
+    defaultIntensity: 2,
+    
+    // Минимальные физические подсказки
+    physicalHints: 'Slight upturn at one corner of mouth. Soft eyes. Relaxed jaw.',
+    
+    // Ключ к естественности
+    authenticityKey: 'Caught between expressions — the moment before a smile fully forms',
+    
+    energy: 'low-medium'
   },
   
-  'joy_sun_squint': {
-    id: 'joy_sun_squint',
+  'joy_warmth': {
+    id: 'joy_warmth',
     category: 'joy',
-    label: 'Прищур от солнца',
-    shortDescription: 'Тёплый прищур с полуулыбкой, как от яркого солнца',
-    promptBlock: `Warm squint with half-smile, as if looking into bright sun. Eyes narrowed but 
-not closed, fine lines visible at corners. Slight upturn at mouth corners — not a full smile, 
-but contentment. Face relaxed, chin slightly lifted. The expression of someone enjoying warmth 
-on their face, peaceful and present in the moment.`,
-    bodyLanguage: 'Chin slightly up, neck exposed, relaxed shoulders',
-    eyeDirection: 'narrowed, looking slightly upward',
-    mouthState: 'soft half-smile, lips together or slightly parted',
-    energy: 'medium',
-    authenticity: 'natural'
+    label: 'Тепло',
+    shortDescription: 'Мягкое тепло, как в приятном воспоминании',
+    
+    atmosphere: `The feeling of stepping into warm sunlight after being in shade. Eyes soft, 
+relaxed, maybe slightly narrowed from comfort rather than from smiling. The contentment of 
+someone simply enjoying the present moment without needing to express it outwardly.`,
+    
+    avoid: [
+      'Forced smile',
+      'Squinting eyes hard',
+      'Looking directly at camera with intention',
+      'Over-relaxed "spa ad" expression'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Face relaxed. Breathing slow. Shoulders dropped.',
+    authenticityKey: 'Not performing warmth — simply feeling it',
+    energy: 'low'
   },
   
-  'joy_mischief': {
-    id: 'joy_mischief',
+  'joy_surprised_delight': {
+    id: 'joy_surprised_delight',
     category: 'joy',
-    label: 'Озорство',
-    shortDescription: 'Хитрая улыбка, как будто знает секрет',
-    promptBlock: `Mischievous grin — knowing something others don't. One corner of mouth raised 
-higher than the other, asymmetrical smile. Eyes bright and alert, slightly narrowed with a 
-spark of playfulness. Eyebrows may be slightly raised on one side. The look of someone about 
-to pull a prank or share a secret. Confidence mixed with playfulness.`,
-    bodyLanguage: 'Slight lean forward, shoulders relaxed but ready',
-    eyeDirection: 'direct, slightly narrowed, conspiratorial',
-    mouthState: 'asymmetrical smile, one corner higher',
-    energy: 'medium-high',
-    authenticity: 'performative-playful'
+    label: 'Приятное удивление',
+    shortDescription: 'Момент неожиданной радости',
+    
+    atmosphere: `Just noticed something unexpectedly wonderful — a friend appearing, a beautiful 
+sight, a pleasant surprise. The expression of the split-second before reaction fully forms. 
+Genuine, unguarded, caught off guard in the best way.`,
+    
+    avoid: [
+      'Theatrical open mouth',
+      'Exaggerated wide eyes',
+      'Hands on cheeks gesture',
+      'Frozen "surprise" pose'
+    ],
+    
+    defaultIntensity: 3,
+    physicalHints: 'Eyes brightening. Beginning of a smile. Slight lean forward.',
+    authenticityKey: 'The instant of recognition before social response kicks in',
+    energy: 'medium'
   },
 
   // ─────────────────────────────────────────────────────────────
   // CALM — Спокойствие
   // ─────────────────────────────────────────────────────────────
-  'calm_serene': {
-    id: 'calm_serene',
+  
+  'calm_present': {
+    id: 'calm_present',
     category: 'calm',
-    label: 'Безмятежность',
-    shortDescription: 'Полное спокойствие, почти медитативное',
-    promptBlock: `Complete serenity, almost meditative state. Face completely relaxed, no tension 
-in jaw or forehead. Eyes soft, possibly half-closed or with a distant gaze. Lips naturally 
-resting, neither smiling nor frowning. Breathing appears slow and deep. The expression of 
-someone at complete peace, present but detached from worldly concerns.`,
-    bodyLanguage: 'Completely relaxed, weight settled, no fidgeting',
-    eyeDirection: 'soft, unfocused or gently closed',
-    mouthState: 'neutral, lips slightly parted, relaxed jaw',
-    energy: 'low',
-    authenticity: 'natural'
+    label: 'Присутствие',
+    shortDescription: 'Просто здесь и сейчас',
+    
+    atmosphere: `Simply existing in the moment. Not thinking about past or future, not 
+performing for anyone. The quiet between thoughts. How someone looks when they've forgotten 
+they're being observed — resting, but aware. Neither happy nor sad, just... being.`,
+    
+    avoid: [
+      'Forced neutrality',
+      'Blank stare',
+      'Over-relaxed "meditation" look',
+      'Dead eyes'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Natural resting face. Eyes alive but unfocused. Breathing visible.',
+    authenticityKey: 'The face between expressions, not the absence of expression',
+    energy: 'low'
   },
   
-  'calm_thoughtful': {
-    id: 'calm_thoughtful',
+  'calm_daydream': {
+    id: 'calm_daydream',
     category: 'calm',
-    label: 'Задумчивость',
-    shortDescription: 'Глубокая мысль, взгляд в себя',
-    promptBlock: `Deep in thought, gaze turned inward. Eyes focused on middle distance or looking 
-slightly down. Slight furrow between brows — concentration, not worry. Lips may be slightly 
-pursed or touching. The look of someone processing an idea or memory, present physically but 
-mentally elsewhere. Intelligent, introspective stillness.`,
-    bodyLanguage: 'Still, possibly chin resting on hand, slight lean',
-    eyeDirection: 'unfocused, middle distance or downward',
-    mouthState: 'neutral to slightly pursed',
-    energy: 'low-medium',
-    authenticity: 'natural'
+    label: 'Грёзы',
+    shortDescription: 'Лёгкая задумчивость, мысли где-то далеко',
+    
+    atmosphere: `Mind wandering somewhere pleasant. Looking at something but seeing something 
+else entirely. The comfortable drift of unstructured thought. How someone looks when they're 
+on autopilot — body here, mind elsewhere, and that's perfectly fine.`,
+    
+    avoid: [
+      'Exaggerated "dreamy" expression',
+      'Eyes rolled up dramatically',
+      'Sleepy/drowsy look',
+      'Forced unfocused gaze'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Gaze slightly off. Lips relaxed. Slight head tilt possible.',
+    authenticityKey: 'Genuine mental absence, not performed dreaminess',
+    energy: 'low'
+  },
+  
+  'calm_listening': {
+    id: 'calm_listening',
+    category: 'calm',
+    label: 'Внимание',
+    shortDescription: 'Внимательно слушает кого-то',
+    
+    atmosphere: `Genuinely listening to someone speak. Focused but not intense. Present and 
+engaged without needing to perform engagement. The face of someone who cares about what 
+they're hearing. Receptive, open, attentive without strain.`,
+    
+    avoid: [
+      'Over-exaggerated "active listening" face',
+      'Nodding',
+      'Fake interest expression',
+      'Eyebrows raised in forced attention'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Eyes focused on speaker (off-camera). Face relaxed but attentive.',
+    authenticityKey: 'Actually processing information, not showing that you are',
+    energy: 'low-medium'
   },
 
   // ─────────────────────────────────────────────────────────────
   // POWER — Сила/Уверенность
   // ─────────────────────────────────────────────────────────────
-  'power_commanding': {
-    id: 'power_commanding',
+  
+  'power_quiet_confidence': {
+    id: 'power_quiet_confidence',
     category: 'power',
-    label: 'Властность',
-    shortDescription: 'Абсолютная уверенность и контроль',
-    promptBlock: `Absolute confidence and control. Direct, unwavering gaze — not aggressive but 
-unquestionable. Chin level or slightly raised, neck long. Jaw set but not clenched. Eyes 
-fully open, alert, commanding attention without demanding it. The expression of someone who 
-knows their worth and expects others to recognize it. Natural authority.`,
-    bodyLanguage: 'Straight spine, shoulders back, taking up space',
-    eyeDirection: 'direct, level, unblinking',
-    mouthState: 'closed, lips together, slight tension',
-    energy: 'high',
-    authenticity: 'performative'
+    label: 'Тихая уверенность',
+    shortDescription: 'Ничего не нужно доказывать',
+    
+    atmosphere: `Complete security in themselves without needing to display it. The calm of 
+someone who has nothing to prove. Not aggressive, not demanding attention — simply grounded. 
+The kind of person who makes others feel calm just by being present.`,
+    
+    avoid: [
+      'Power pose',
+      'Jaw clenched',
+      'Intense stare-down',
+      'Chin dramatically raised',
+      'Model "fierce" face'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Shoulders relaxed but back. Steady gaze. Slight knowing in eyes.',
+    authenticityKey: 'Confidence that comes from inside, not displayed for others',
+    energy: 'medium'
   },
   
-  'power_defiant': {
-    id: 'power_defiant',
+  'power_unbothered': {
+    id: 'power_unbothered',
     category: 'power',
-    label: 'Вызов',
-    shortDescription: 'Дерзкий взгляд, готовность к противостоянию',
-    promptBlock: `Defiant, challenging gaze. Chin slightly raised, looking down the nose. Eyes 
-intense, slightly narrowed — a dare. One eyebrow may be raised. Lips pressed together or 
-curved in a slight smirk. The expression of someone who won't back down, who welcomes 
-confrontation. Youthful rebellion mixed with unshakeable self-belief.`,
-    bodyLanguage: 'Weight on back foot, chin up, arms may be crossed or on hips',
-    eyeDirection: 'challenging, looking down slightly',
-    mouthState: 'smirk or pressed lips',
-    energy: 'high',
-    authenticity: 'performative'
+    label: 'Невозмутимость',
+    shortDescription: 'Ничего не может вывести из равновесия',
+    
+    atmosphere: `Absolutely unbothered by anything. Not performing coolness — genuinely 
+undisturbed. The expression of someone who's seen it all and is no longer impressed or 
+threatened by anything. Calm that comes from genuine detachment, not suppression.`,
+    
+    avoid: [
+      'Bored look',
+      'Eye roll',
+      'Smirk',
+      'Exaggerated nonchalance',
+      'Dead inside expression'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Even breathing. Relaxed face. Eyes calm but present.',
+    authenticityKey: 'Not trying to look unbothered — actually being unbothered',
+    energy: 'low'
   },
   
-  'power_quiet_strength': {
-    id: 'power_quiet_strength',
+  'power_aware': {
+    id: 'power_aware',
     category: 'power',
-    label: 'Тихая сила',
-    shortDescription: 'Уверенность без демонстрации',
-    promptBlock: `Quiet, grounded strength — nothing to prove. Relaxed face with alert eyes. 
-Gaze steady but not aggressive. Mouth relaxed, hint of a knowing smile. The expression of 
-someone who could handle anything but doesn't need to show it. Understated power, the kind 
-that comes from genuine self-knowledge.`,
-    bodyLanguage: 'Grounded stance, relaxed but ready, economical movement',
-    eyeDirection: 'steady, calm, observant',
-    mouthState: 'relaxed, possible hint of smile',
-    energy: 'medium',
-    authenticity: 'natural'
+    label: 'Осознанность',
+    shortDescription: 'Знает о присутствии камеры, но не играет',
+    
+    atmosphere: `Aware of being observed but not performing for it. Acknowledging the camera's 
+existence without changing behavior for it. The quiet power of someone who doesn't adjust 
+themselves for others' benefit. Present, aware, unhurried.`,
+    
+    avoid: [
+      'Direct confrontational stare',
+      'Seductive camera look',
+      'Ignoring camera artificially',
+      'Model "on" face'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Comfortable stillness. Natural eye contact or near it.',
+    authenticityKey: 'Acknowledging observation without being changed by it',
+    energy: 'medium'
   },
 
   // ─────────────────────────────────────────────────────────────
   // MYSTERY — Загадочность
   // ─────────────────────────────────────────────────────────────
-  'mystery_enigmatic': {
-    id: 'mystery_enigmatic',
+  
+  'mystery_private_thought': {
+    id: 'mystery_private_thought',
     category: 'mystery',
-    label: 'Загадка',
-    shortDescription: 'Невозможно прочитать, держит секреты',
-    promptBlock: `Impossible to read, keeping secrets. Face deliberately neutral but not blank — 
-there's something behind the eyes. Slight asymmetry in expression suggests hidden thoughts. 
-Gaze that seems to see through you while revealing nothing. Mona Lisa ambiguity — is it a 
-smile or not? The expression of someone with layers of meaning beneath the surface.`,
-    bodyLanguage: 'Still, contained, minimal gestures',
-    eyeDirection: 'direct but unreadable',
-    mouthState: 'ambiguous, slight curve that could be anything',
-    energy: 'low-medium',
-    authenticity: 'performative'
+    label: 'Своя мысль',
+    shortDescription: 'Думает о чём-то, что никогда не расскажет',
+    
+    atmosphere: `Thinking about something they'll never share. Not performing mystery — 
+simply having private thoughts that show faintly on their face. The expression of someone 
+with a rich inner world that's visible but inaccessible.`,
+    
+    avoid: [
+      'Mona Lisa imitation',
+      'Mysterious smirk',
+      'Dramatically distant gaze',
+      'Femme fatale expression'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Slight asymmetry in expression. Eyes alive but guarded.',
+    authenticityKey: 'Privacy, not performance of secrecy',
+    energy: 'low-medium'
   },
   
-  'mystery_distant': {
-    id: 'mystery_distant',
+  'mystery_elsewhere': {
+    id: 'mystery_elsewhere',
     category: 'mystery',
-    label: 'Отстранённость',
-    shortDescription: 'Взгляд куда-то далеко, недоступность',
-    promptBlock: `Gazing somewhere far away, unreachable. Eyes focused on infinite distance, 
-seeing something invisible to others. Face relaxed but disconnected from the present moment. 
-Slight melancholy or wonder in the expression. The look of someone in their own world, 
-physically present but emotionally elsewhere. Ethereal, untouchable.`,
-    bodyLanguage: 'Turned slightly away, dreamy posture',
-    eyeDirection: 'far distance, unfocused on anything near',
-    mouthState: 'softly parted or neutral',
-    energy: 'low',
-    authenticity: 'natural'
+    label: 'Где-то ещё',
+    shortDescription: 'Мысленно в другом месте',
+    
+    atmosphere: `Physically here but mentally somewhere else entirely. Not pretending to be 
+distant — genuinely absorbed in something internal. Could be a memory, a problem, a fantasy. 
+The viewer can see the absence but can't access what's filling that space.`,
+    
+    avoid: [
+      'Theatrical far-away look',
+      'Unfocused "artsy" gaze',
+      'Sleepy expression',
+      'Performative melancholy'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Gaze through or past things. Slight disconnect from surroundings.',
+    authenticityKey: 'Genuine absorption, not performed distance',
+    energy: 'low'
   },
 
   // ─────────────────────────────────────────────────────────────
   // PLAYFUL — Игривость
   // ─────────────────────────────────────────────────────────────
-  'playful_flirty': {
-    id: 'playful_flirty',
+  
+  'playful_about_to': {
+    id: 'playful_about_to',
     category: 'playful',
-    label: 'Флирт',
-    shortDescription: 'Игривый взгляд через плечо',
-    promptBlock: `Playful, flirtatious glance. Looking over shoulder or from under lashes. 
-One corner of mouth lifted in a teasing smile. Eyes bright, inviting, with a spark of 
-mischief. Head may be tilted, exposing neck. The look that says "catch me if you can" — 
-confident, playful, knowing exactly the effect being created.`,
-    bodyLanguage: 'Turned away but looking back, exposed shoulder or neck',
-    eyeDirection: 'sideways glance, through lashes',
-    mouthState: 'teasing smile, lips may be slightly bitten',
-    energy: 'medium-high',
-    authenticity: 'performative-playful'
+    label: 'Вот-вот',
+    shortDescription: 'За секунду до смеха или шалости',
+    
+    atmosphere: `The moment right before laughter escapes or a joke lands. Something amusing 
+is building but hasn't broken through yet. The tension of contained playfulness — knowing 
+something's funny, trying not to show it, not quite succeeding.`,
+    
+    avoid: [
+      'Full laugh',
+      'Mischievous grin',
+      'Winking',
+      'Tongue out',
+      'Over-performed playfulness'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Slight tension at mouth corners. Eyes brightening. Fighting a smile.',
+    authenticityKey: 'The struggle to contain amusement, not the display of it',
+    energy: 'medium'
   },
   
-  'playful_silly': {
-    id: 'playful_silly',
+  'playful_complicit': {
+    id: 'playful_complicit',
     category: 'playful',
-    label: 'Дурашливость',
-    shortDescription: 'Не боится выглядеть глупо, чистое веселье',
-    promptBlock: `Not afraid to look silly, pure fun. Exaggerated expression — eyes wide, mouth 
-in funny shape, maybe tongue out. Completely unselfconscious joy. The face of someone who 
-doesn't care about looking cool, just wants to have fun. Childlike freedom, infectious 
-energy.`,
-    bodyLanguage: 'Loose, animated, possibly mid-gesture',
-    eyeDirection: 'exaggerated, could be crossed or wide',
-    mouthState: 'exaggerated — tongue out, puffed cheeks, wide grin',
-    energy: 'very high',
-    authenticity: 'candid'
+    label: 'Сообщник',
+    shortDescription: 'Как будто делит шутку с кем-то',
+    
+    atmosphere: `Sharing a private joke with someone — maybe the viewer, maybe someone 
+off-camera. The connection of shared humor. Not performing for an audience, but having a 
+genuine moment of connection through shared amusement.`,
+    
+    avoid: [
+      'Exaggerated wink',
+      'Obvious "I know something" face',
+      'Breaking the fourth wall theatrically',
+      'Performative conspiracy'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Subtle eye contact. Hint of shared understanding in expression.',
+    authenticityKey: 'Real connection, not performed intimacy',
+    energy: 'medium'
   },
 
   // ─────────────────────────────────────────────────────────────
   // SENSUAL — Чувственность
   // ─────────────────────────────────────────────────────────────
-  'sensual_languid': {
-    id: 'sensual_languid',
+  
+  'sensual_comfort': {
+    id: 'sensual_comfort',
     category: 'sensual',
-    label: 'Томность',
-    shortDescription: 'Медленная, тягучая чувственность',
-    promptBlock: `Slow, languid sensuality. Heavy-lidded eyes, almost sleepy but aware. 
-Lips slightly parted, relaxed jaw. Head may be tilted back slightly, exposing throat. 
-The expression of someone savoring a moment, in no hurry. Physical pleasure evident 
-but understated — warmth, comfort, presence in the body.`,
-    bodyLanguage: 'Relaxed, draped, slow movements',
-    eyeDirection: 'heavy-lidded, half-closed',
-    mouthState: 'softly parted, relaxed',
-    energy: 'low',
-    authenticity: 'natural'
+    label: 'Комфорт',
+    shortDescription: 'Физическое удовольствие от момента',
+    
+    atmosphere: `Simply comfortable in their body. The pleasure of warmth, softness, 
+rest. Not performing sensuality — experiencing genuine physical comfort. How someone 
+looks when they're enjoying being in their skin without thinking about how it looks.`,
+    
+    avoid: [
+      'Lip biting',
+      'Heavy-lidded "seductive" eyes',
+      'Parted lips pose',
+      'Bedroom eyes',
+      'Over-relaxed "pleasure" face'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Relaxed muscles. Easy breathing. Weight settled.',
+    authenticityKey: 'Actual physical comfort, not its performance',
+    energy: 'low'
   },
   
-  'sensual_intense': {
-    id: 'sensual_intense',
+  'sensual_awareness': {
+    id: 'sensual_awareness',
     category: 'sensual',
-    label: 'Страсть',
-    shortDescription: 'Интенсивный, притягивающий взгляд',
-    promptBlock: `Intense, magnetic gaze. Eyes locked on target, pupils dilated. Breathing 
-slightly heavier. Lips parted, possibly bitten. Nostrils may be slightly flared. The 
-expression of strong desire barely contained — heat visible behind the eyes. Powerful 
-attraction, unbroken eye contact.`,
-    bodyLanguage: 'Leaning in, tension in muscles, focused',
-    eyeDirection: 'locked, intense, unbreaking',
-    mouthState: 'parted, possibly bitten lip',
-    energy: 'high',
-    authenticity: 'performative'
+    label: 'Осознание тела',
+    shortDescription: 'Присутствие в своём теле',
+    
+    atmosphere: `Conscious of their own body in a positive way. Not thinking about how 
+they look, but how they feel. The quiet pleasure of embodiment. Present in physical 
+sensation without need to display it.`,
+    
+    avoid: [
+      'Touching self performatively',
+      'Arched back pose',
+      'Lip licking',
+      'Sultry expression',
+      'Fashion "sexy" face'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Grounded in body. Breathing natural. Face relaxed.',
+    authenticityKey: 'Inner experience of body, not outer display',
+    energy: 'low-medium'
   },
 
   // ─────────────────────────────────────────────────────────────
   // MELANCHOLY — Меланхолия
   // ─────────────────────────────────────────────────────────────
-  'melancholy_wistful': {
-    id: 'melancholy_wistful',
+  
+  'melancholy_quiet': {
+    id: 'melancholy_quiet',
     category: 'melancholy',
-    label: 'Тоска',
-    shortDescription: 'Светлая грусть, ностальгия',
-    promptBlock: `Light sadness, nostalgia for something past. Eyes soft, looking at nothing 
-specific or into distance. Slight downturn at mouth corners but not a frown. The expression 
-of someone remembering something beautiful that's gone. Bittersweet, gentle sadness — not 
-despair but tender melancholy.`,
-    bodyLanguage: 'Slightly closed posture, possibly hugging self',
-    eyeDirection: 'distance or downward, unfocused',
-    mouthState: 'relaxed with slight downturn',
-    energy: 'low',
-    authenticity: 'natural'
+    label: 'Тихая грусть',
+    shortDescription: 'Лёгкая печаль без драмы',
+    
+    atmosphere: `A gentle sadness without drama or performance. The natural quiet that 
+comes after loss, disappointment, or just a grey day. Not wallowing, not suppressing — 
+simply allowing a difficult feeling to exist. Honest, human, unperformed.`,
+    
+    avoid: [
+      'Tears',
+      'Pouting',
+      'Looking dramatically sad',
+      'Tragedy mask expression',
+      'Puppy dog eyes'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Subtle weight in expression. Slower energy. Inward focus.',
+    authenticityKey: 'Real sadness passing through, not performed melancholy',
+    energy: 'low'
   },
   
-  'melancholy_vulnerable': {
-    id: 'melancholy_vulnerable',
+  'melancholy_memory': {
+    id: 'melancholy_memory',
     category: 'melancholy',
-    label: 'Уязвимость',
-    shortDescription: 'Открытая хрупкость, без защит',
-    promptBlock: `Open fragility, defenses down. Eyes possibly wet or red-rimmed, looking 
-exposed. Face soft, no attempt to hide emotion. Lips may tremble slightly. The raw 
-expression of someone allowing themselves to be seen in pain. Beautiful vulnerability, 
-courage in openness.`,
-    bodyLanguage: 'Protective but open, possibly arms around self',
-    eyeDirection: 'direct but soft, possibly wet eyes',
-    mouthState: 'soft, possibly trembling',
-    energy: 'low',
-    authenticity: 'candid'
+    label: 'Воспоминание',
+    shortDescription: 'Думает о чём-то или ком-то ушедшем',
+    
+    atmosphere: `Remembering something or someone no longer present. Not actively grieving — 
+just holding a memory. The bittersweet feeling of time passing. Looking at nothing 
+external, but seeing something internal very clearly.`,
+    
+    avoid: [
+      'Crying',
+      'Looking at photo (of absent person)',
+      'Clutching heart',
+      'Theatrical longing',
+      'Forced nostalgia face'
+    ],
+    
+    defaultIntensity: 2,
+    physicalHints: 'Eyes focused internally. Slight softness in face.',
+    authenticityKey: 'Holding memory gently, not performing loss',
+    energy: 'low'
   },
 
   // ─────────────────────────────────────────────────────────────
   // INTENSE — Интенсивность
   // ─────────────────────────────────────────────────────────────
-  'intense_focused': {
-    id: 'intense_focused',
+  
+  'intense_focus': {
+    id: 'intense_focus',
     category: 'intense',
-    label: 'Концентрация',
-    shortDescription: 'Полная сосредоточенность на задаче',
-    promptBlock: `Complete focus on a task. Eyes sharp, possibly slightly narrowed. Brow 
-slightly furrowed in concentration. Jaw set. Everything else faded out — total presence 
-in the moment. The expression of an athlete before a race or artist in flow state. 
-Intensity without aggression.`,
-    bodyLanguage: 'Coiled, ready, economical',
-    eyeDirection: 'laser-focused on target',
-    mouthState: 'closed, lips together, slight jaw tension',
-    energy: 'high',
-    authenticity: 'natural'
+    label: 'Фокус',
+    shortDescription: 'Полная концентрация на чём-то',
+    
+    atmosphere: `Completely absorbed in something requiring attention. Not showing 
+concentration — experiencing it. The face of someone who has forgotten everything 
+except the task at hand. World narrowed to a single point.`,
+    
+    avoid: [
+      'Furrowed brow overacting',
+      'Squinting hard',
+      'Jaw clenched dramatically',
+      'Intense stare at camera',
+      'Trying to look focused'
+    ],
+    
+    defaultIntensity: 3,
+    physicalHints: 'Eyes alert. Face still. Unnecessary movement stopped.',
+    authenticityKey: 'Actually focused, not performing concentration',
+    energy: 'medium-high'
   },
   
-  'intense_raw': {
-    id: 'intense_raw',
+  'intense_edge': {
+    id: 'intense_edge',
     category: 'intense',
     label: 'На грани',
-    shortDescription: 'Сильная эмоция на грани выплеска',
-    promptBlock: `Strong emotion on the edge of breaking through. Eyes wide, intense, possibly 
-wild. Breathing visible. Face flushed. The moment before the scream or the breakdown or 
-the explosion — maximum tension, raw energy barely contained. Primal, unfiltered emotion.`,
-    bodyLanguage: 'Tense, possibly shaking, coiled energy',
-    eyeDirection: 'wide, intense, possibly wild',
-    mouthState: 'open or clenched, tension visible',
-    energy: 'very high',
-    authenticity: 'candid'
+    shortDescription: 'Сильное чувство под контролем',
+    
+    atmosphere: `Strong feeling present but contained. Not suppressing — holding. 
+The moment before something might break through but hasn't yet. Tension that comes 
+from real internal pressure, not its performance.`,
+    
+    avoid: [
+      'About to cry acting',
+      'Screaming face',
+      'Shaking with emotion',
+      'Theatrical intensity',
+      'Over-dramatic holding back'
+    ],
+    
+    defaultIntensity: 3,
+    physicalHints: 'Slight tension visible. Stillness with energy beneath.',
+    authenticityKey: 'Real internal pressure, shown through stillness not explosion',
+    energy: 'high'
   }
 };
+
+// ═══════════════════════════════════════════════════════════════
+// PROMPT BUILDER
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build emotion prompt block from preset
+ * @param {string} emotionId 
+ * @param {number} intensityOverride - 1-5, optional
+ * @returns {string} - prompt block for AI
+ */
+export function buildEmotionPrompt(emotionId, intensityOverride = null) {
+  const emotion = EMOTION_PRESETS[emotionId];
+  if (!emotion) return '';
+  
+  const intensity = intensityOverride || emotion.defaultIntensity;
+  const intensityInfo = INTENSITY_LEVELS[intensity] || INTENSITY_LEVELS[2];
+  
+  // Build avoid block
+  const avoidBlock = emotion.avoid && emotion.avoid.length > 0
+    ? `AVOID (these make expression look fake): ${emotion.avoid.join('; ')}.`
+    : '';
+  
+  return `
+EMOTION: ${emotion.label}
+INTENSITY: ${intensity}/5 (${intensityInfo.label} — ${intensityInfo.description})
+
+ATMOSPHERE (this is what matters):
+${emotion.atmosphere.trim()}
+
+KEY TO AUTHENTICITY: ${emotion.authenticityKey}
+
+${avoidBlock}
+
+PHYSICAL HINTS (minimal, for reference only): ${emotion.physicalHints}
+
+GLOBAL RULES FOR NATURAL EXPRESSION:
+${GLOBAL_EMOTION_RULES.map(r => '- ' + r).join('\n')}
+`.trim();
+}
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
@@ -372,7 +621,8 @@ export function getEmotionOptions() {
     grouped[category] = getEmotionsByCategory(category).map(e => ({
       id: e.id,
       label: e.label,
-      shortDescription: e.shortDescription
+      shortDescription: e.shortDescription,
+      defaultIntensity: e.defaultIntensity
     }));
   }
   

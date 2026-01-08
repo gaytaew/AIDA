@@ -165,7 +165,7 @@ function initEventListeners() {
 }
 
 /**
- * Handle emotion selection change - show description
+ * Handle emotion selection change - show description (v2 - Atmospheric format)
  */
 async function onEmotionChange() {
   const emotionId = elements.genEmotion?.value;
@@ -185,10 +185,38 @@ async function onEmotionChange() {
     
     if (data.ok && data.data) {
       const emotion = data.data;
+      
+      // Build avoid list if available
+      const avoidHtml = emotion.avoid && emotion.avoid.length > 0
+        ? `<div style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; font-size: 11px;">
+             <strong style="color: #EF4444;">❌ Избегать:</strong> ${emotion.avoid.join(', ')}
+           </div>`
+        : '';
+      
+      // Build authenticity key if available
+      const keyHtml = emotion.authenticityKey
+        ? `<div style="margin-top: 8px; padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; font-size: 11px;">
+             <strong style="color: #22C55E;">🔑 Ключ:</strong> ${emotion.authenticityKey}
+           </div>`
+        : '';
+      
+      // Build intensity badge
+      const intensityBadge = emotion.defaultIntensity
+        ? `<span style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: var(--color-surface); border-radius: 10px; font-size: 10px;">
+             ${emotion.defaultIntensity}/5
+           </span>`
+        : '';
+      
       descriptionEl.innerHTML = `
-        <strong>${emotion.label}</strong><br>
-        <em>${emotion.shortDescription}</em><br><br>
-        ${emotion.promptBlock.replace(/\n/g, '<br>')}
+        <div style="margin-bottom: 8px;">
+          <strong>${emotion.label}</strong>${intensityBadge}<br>
+          <em style="color: var(--color-text-muted);">${emotion.shortDescription}</em>
+        </div>
+        <div style="font-size: 12px; line-height: 1.5;">
+          ${(emotion.atmosphere || '').replace(/\n/g, '<br>')}
+        </div>
+        ${avoidHtml}
+        ${keyHtml}
       `;
       descriptionEl.style.display = 'block';
     } else {
