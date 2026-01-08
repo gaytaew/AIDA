@@ -205,7 +205,10 @@ export function buildShootPromptJson({
  * Ключ к естественности — описываем ситуацию, а не мимику.
  */
 function buildEmotionBlock(emotion) {
+  console.log('[ShootGenerator] buildEmotionBlock input:', emotion);
+  
   if (!emotion) {
+    console.log('[ShootGenerator] No emotion provided, returning null');
     return null;
   }
   
@@ -221,7 +224,9 @@ function buildEmotionBlock(emotion) {
   
   // If there's an emotion preset ID, use new atmospheric builder
   if (emotion.emotionId) {
+    console.log('[ShootGenerator] Looking up emotion preset:', emotion.emotionId);
     const preset = getEmotionById(emotion.emotionId);
+    console.log('[ShootGenerator] Found preset:', preset ? preset.label : 'NOT FOUND');
     if (preset) {
       // Build full prompt using new atmospheric approach
       const intensity = emotion.intensity || preset.defaultIntensity || 2;

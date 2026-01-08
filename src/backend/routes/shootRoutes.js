@@ -915,6 +915,8 @@ router.post('/:id/generate-frame', async (req, res) => {
     
     // Generate single frame
     // Build frame with emotion override if emotionId is specified
+    console.log('[ShootRoutes] Building frame with emotion:', { emotionId, hasFrameData: !!frameData });
+    
     let frameWithEmotion = null;
     if (frameData) {
       frameWithEmotion = {
@@ -929,6 +931,8 @@ router.post('/:id/generate-frame', async (req, res) => {
         emotion: { emotionId }
       };
     }
+    
+    console.log('[ShootRoutes] frameWithEmotion:', frameWithEmotion ? { label: frameWithEmotion.label, emotion: frameWithEmotion.emotion } : null);
 
     const result = await generateShootFrame({
       universe: shoot.universe,

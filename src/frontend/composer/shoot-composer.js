@@ -26,6 +26,8 @@ const state = {
   models: [],
   frames: [],
   locations: [],
+  emotions: [],         // <-- Added: emotion presets
+  emotionCategories: [], // <-- Added: emotion category names
   
   // Selected for current shoot
   selectedModels: [null, null, null],
@@ -1058,6 +1060,28 @@ async function loadLocations() {
   }
 }
 
+async function loadEmotions() {
+  try {
+    const res = await fetch('/api/emotions/options');
+    const data = await res.json();
+    if (data.ok && data.data) {
+      state.emotionCategories = data.data.categories || [];
+      // Flatten emotions from grouped format
+      const grouped = data.data.emotions || {};
+      state.emotions = [];
+      for (const category of state.emotionCategories) {
+        const categoryEmotions = grouped[category] || [];
+        categoryEmotions.forEach(e => {
+          state.emotions.push({ ...e, category });
+        });
+      }
+      console.log(`[Composer] Loaded ${state.emotions.length} emotions in ${state.emotionCategories.length} categories`);
+    }
+  } catch (e) {
+    console.error('Error loading emotions:', e);
+  }
+}
+
 /**
  * Load generated images for current shoot (lazy loading)
  */
@@ -1238,6 +1262,42 @@ async function renderSummary() {
   state.frames.forEach(frame => {
     elements.genFrame.innerHTML += `<option value="${frame.id}">${escapeHtml(frame.label)}</option>`;
   });
+  
+  // Populate emotion dropdown (grouped by category)
+  if (elements.genEmotion) {
+    elements.genEmotion.innerHTML = '<option value="">Нейтральное выражение</option>';
+    
+    // Category labels in Russian
+    const categoryLabels = {
+      'joy': '😊 Радость',
+      'calm': '😌 Спокойствие',
+      'power': '💪 Сила',
+      'mystery': '🔮 Загадочность',
+      'playful': '😜 Игривость',
+      'sensual': '💋 Чувственность',
+      'melancholy': '😔 Меланхолия',
+      'intense': '🔥 Интенсивность'
+    };
+    
+    for (const category of state.emotionCategories) {
+      const categoryEmotions = state.emotions.filter(e => e.category === category);
+      if (categoryEmotions.length > 0) {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = categoryLabels[category] || category;
+        
+        categoryEmotions.forEach(e => {
+          const option = document.createElement('option');
+          option.value = e.id;
+          option.textContent = `${e.label} (${e.defaultIntensity || 2}/5)`;
+          optgroup.appendChild(option);
+        });
+        
+        elements.genEmotion.appendChild(optgroup);
+      }
+    }
+    
+    console.log(`[Composer] Populated emotion dropdown with ${state.emotions.length} emotions`);
+  }
   
   // Render selected frames as clickable cards for generation
   renderFramesToGenerate();
@@ -1997,7 +2057,8 @@ async function init() {
     loadUniverses(),
     loadModels(),
     loadFrames(),
-    loadLocations()
+    loadLocations(),
+    loadEmotions()
   ]);
   
   updateStepStatuses();
