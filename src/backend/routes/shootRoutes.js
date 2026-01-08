@@ -1066,19 +1066,23 @@ router.post('/:id/upscale', async (req, res) => {
     const originalHeight = metadata.height || 1024;
     
     // Determine aspect ratio from original image
-    let aspectRatio = '1:1';
+    // Gemini supports: 1:1, 3:4, 4:3, 9:16, 16:9
     const ratio = originalWidth / originalHeight;
-    if (ratio > 1.2) {
-      aspectRatio = '16:9';  // Landscape
-    } else if (ratio < 0.8) {
-      aspectRatio = '9:16';  // Portrait
-    } else if (ratio > 1.1) {
-      aspectRatio = '4:3';   // Slightly wide
-    } else if (ratio < 0.9) {
-      aspectRatio = '3:4';   // Slightly tall
+    let aspectRatio;
+    
+    if (ratio >= 1.7) {
+      aspectRatio = '16:9';      // Very wide landscape (ratio >= 1.77)
+    } else if (ratio >= 1.2) {
+      aspectRatio = '4:3';       // Landscape (ratio ~1.33)
+    } else if (ratio >= 0.9) {
+      aspectRatio = '1:1';       // Square-ish
+    } else if (ratio >= 0.65) {
+      aspectRatio = '3:4';       // Portrait (ratio ~0.75)
+    } else {
+      aspectRatio = '9:16';      // Very tall portrait (ratio ~0.56)
     }
     
-    console.log(`[ShootRoutes] Upscaling image ${originalWidth}x${originalHeight} to ${targetSize} via Gemini...`);
+    console.log(`[ShootRoutes] Upscaling image ${originalWidth}x${originalHeight} (ratio: ${ratio.toFixed(2)}) → aspect: ${aspectRatio}, target: ${targetSize}`);
     
     // Call Gemini for upscale
     const result = await requestGeminiImage({
