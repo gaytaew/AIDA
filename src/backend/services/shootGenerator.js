@@ -42,12 +42,41 @@ const POSING_STYLE_MAP = {
   4: { label: 'studio', instruction: 'High fashion studio pose. Maximally posed and deliberate. Classic fashion photography positioning.' }
 };
 
-// Pose adherence descriptions
+// Pose adherence descriptions — STRICT GRADIENT
 const POSE_ADHERENCE_MAP = {
-  1: { label: 'loose', instruction: 'Follow the general pose type only (sitting/standing/lying). Exact positioning is flexible.' },
-  2: { label: 'similar', instruction: 'Pose should be similar to the reference. Main body lines should match but details can vary.' },
-  3: { label: 'close', instruction: 'Follow the pose reference closely. Body position, limb angles should match well.' },
-  4: { label: 'exact', instruction: 'STRICTLY match the pose reference sketch. Body contours, limb positions, head tilt must match exactly.' }
+  1: { 
+    label: 'free', 
+    instruction: `POSE TYPE ONLY — DO NOT copy the exact pose from sketch.
+Only match the general category: standing/sitting/lying/crouching.
+DELIBERATELY create a DIFFERENT pose within that category.
+Arms, legs, head position should be INVENTED FRESH — do NOT reference the sketch for limb positions.
+The sketch is only a hint about whether the model is upright or not.`,
+    forbid: 'Do NOT match limb angles. Do NOT match head tilt. Do NOT mirror the sketch composition.'
+  },
+  2: { 
+    label: 'loose', 
+    instruction: `GENERAL DIRECTION ONLY — create a similar vibe, not a copy.
+Match roughly 30-40% of the pose: if sitting, sit similarly; if leaning, lean in same direction.
+But arm positions, hand placement, head angle should be DIFFERENT from sketch.
+Add natural variation — the model is doing their own version of this pose.`,
+    forbid: 'Do NOT precisely copy arm angles. Do NOT match exact head tilt. Allow significant variation.'
+  },
+  3: { 
+    label: 'close', 
+    instruction: `FOLLOW CLOSELY — match about 70-80% of the pose.
+Main body line and weight distribution should match the sketch.
+Limb angles should be similar but small variations are OK.
+Head position and gaze direction should approximate the reference.`,
+    forbid: null
+  },
+  4: { 
+    label: 'exact', 
+    instruction: `STRICT MATCH — replicate the pose with maximum precision (90-100%).
+Body contours must align with sketch. Limb angles must match exactly.
+Head tilt, shoulder line, hip angle — all must match the reference.
+This is technical pose matching, like a drawing reference.`,
+    forbid: 'Do NOT deviate from the sketch. Every limb angle matters.'
+  }
 };
 
 /**
@@ -154,16 +183,29 @@ export function buildShootPromptJson({
       'Apply the pose/camera from FRAME to whatever location is defined.'
     ],
     
-    // Pose sketch reference (if available)
-    poseReference: hasPoseSketch ? {
-      hasSketch: true,
-      rules: [
+    // Pose sketch reference (if available) — with strict adherence gradient
+    poseReference: hasPoseSketch ? (() => {
+      const adherenceLevel = POSE_ADHERENCE_MAP[poseAdherence] || POSE_ADHERENCE_MAP[2];
+      const rules = [
         'A POSE SKETCH image is provided as reference.',
-        'Use it to match body position, limb angles, and head tilt.',
-        'The sketch shows only pose - ignore any clothing/face/hair in it.',
-        POSE_ADHERENCE_MAP[poseAdherence]?.instruction || POSE_ADHERENCE_MAP[2].instruction
-      ]
-    } : null,
+        'The sketch shows ONLY pose — ignore any clothing, face details, or hair in it.',
+        '',
+        `=== ADHERENCE LEVEL: ${poseAdherence}/4 (${adherenceLevel.label.toUpperCase()}) ===`,
+        adherenceLevel.instruction
+      ];
+      
+      // Add explicit forbid rules for low adherence
+      if (adherenceLevel.forbid) {
+        rules.push('', '⚠️ FORBIDDEN:', adherenceLevel.forbid);
+      }
+      
+      return {
+        hasSketch: true,
+        adherenceLevel: poseAdherence,
+        adherenceLabel: adherenceLevel.label,
+        rules: rules.filter(r => r !== '')
+      };
+    })() : null,
     
     // Posing style
     posingStyle: {
