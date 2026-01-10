@@ -107,7 +107,9 @@ function initElements() {
   elements.genLocation = document.getElementById('gen-location');
   elements.genFrame = document.getElementById('gen-frame');
   elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
-  elements.genPosingStyle = document.getElementById('gen-posing-style');
+  elements.genCaptureStyle = document.getElementById('gen-capture-style');
+  elements.genCameraSignature = document.getElementById('gen-camera-signature');
+  elements.genSkinTexture = document.getElementById('gen-skin-texture');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
   elements.emotionDescription = document.getElementById('emotion-description');
@@ -1724,7 +1726,11 @@ async function generateOneFrame() {
   const locationId = elements.genLocation.value || null;
   const frameId = elements.genFrame.value || null;
   const extraPrompt = elements.genExtraPrompt.value.trim();
-  const posingStyle = parseInt(elements.genPosingStyle?.value) || 2;
+  
+  // New artistic controls
+  const captureStyle = elements.genCaptureStyle?.value || 'none';
+  const cameraSignature = elements.genCameraSignature?.value || 'none';
+  const skinTexture = elements.genSkinTexture?.value || 'none';
   const poseAdherence = parseInt(elements.genPoseAdherence?.value) || 2;
   const emotionId = elements.genEmotion?.value || null;
   
@@ -1771,7 +1777,9 @@ async function generateOneFrame() {
         frameId,  // <-- Pass frameId directly!
         locationId,
         extraPrompt,
-        posingStyle,
+        captureStyle,        // NEW: how moment was captured
+        cameraSignature,     // NEW: specific camera look
+        skinTexture,         // NEW: skin rendering
         poseAdherence,
         emotionId
       })

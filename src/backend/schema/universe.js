@@ -262,7 +262,214 @@ export const DEFAULT_ERA = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 9. DEFAULT FRAME PARAMS (fallback when no frame is selected)
+// 9. CAMERA SIGNATURE (specific camera/film look)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Camera Signature — specific camera/lens/film combination with its characteristic look
+ * @typedef {Object} CameraSignature
+ * @property {string} preset - Preset name or 'custom'
+ * @property {string} customPrompt - Custom prompt if preset is 'custom'
+ */
+
+export const CAMERA_SIGNATURE_PRESETS = {
+  none: {
+    label: 'Без конкретной камеры',
+    prompt: null
+  },
+  polaroid_sx70: {
+    label: 'Polaroid SX-70',
+    prompt: 'Polaroid SX-70 instant film look, soft focus, subtle vignetting, creamy desaturated colors, chemical bleeding at edges, white frame energy'
+  },
+  disposable_flash: {
+    label: 'Одноразовая камера со вспышкой',
+    prompt: 'Disposable camera harsh on-camera flash, red-eye tendency, hot center falloff to dark edges, oversaturated cheap film colors, slight blur from plastic lens, party snapshot aesthetic'
+  },
+  contax_t2: {
+    label: 'Contax T2',
+    prompt: 'Contax T2 compact film camera, Carl Zeiss 38mm f/2.8 signature sharpness with smooth bokeh, Kodak Portra 400 color science, natural warm skin tones, 90s fashion elite aesthetic'
+  },
+  hasselblad_500cm: {
+    label: 'Hasselblad 500C/M',
+    prompt: 'Hasselblad 500C/M medium format, square 6x6 crop implied, Zeiss Planar 80mm f/2.8 rendering, creamy film grain, fashion editorial studio quality, extreme shallow DOF'
+  },
+  canon_ae1: {
+    label: 'Canon AE-1',
+    prompt: 'Canon AE-1 35mm film SLR, FD 50mm f/1.4 wide open, dreamy halation on highlights, consumer film colors like Fujifilm Superia 400, nostalgic amateur aesthetic'
+  },
+  leica_m6: {
+    label: 'Leica M6',
+    prompt: 'Leica M6 rangefinder with Summicron 35mm f/2, documentary sharpness, Kodak Tri-X pushed grain, classic street photography look, decisive moment energy'
+  },
+  iphone_flash: {
+    label: 'iPhone со вспышкой',
+    prompt: 'iPhone flash selfie aesthetic, harsh direct LED flash, slightly overexposed skin, dark background falloff, computational HDR artifacts visible, social media native look'
+  },
+  powershot_vlog: {
+    label: 'Canon PowerShot G7X',
+    prompt: 'Canon PowerShot G7X vlog camera, 1-inch sensor creamy bokeh f/1.8, built-in flash pop for flattering glow, underexposed background -1.3 EV, Instagram aesthetic 2025, dreamy haze'
+  },
+  mamiya_rz67: {
+    label: 'Mamiya RZ67',
+    prompt: 'Mamiya RZ67 medium format, 110mm f/2.8 portrait lens, extreme shallow DOF with creamy bokeh, Kodak Portra 160 natural skin tones, high fashion editorial quality'
+  },
+  yashica_t4: {
+    label: 'Yashica T4',
+    prompt: 'Yashica T4 point-and-shoot, Zeiss T* 35mm lens, slight barrel distortion, 90s snapshot aesthetic, flash falloff to deep shadows, party and nightlife energy'
+  },
+  ricoh_gr: {
+    label: 'Ricoh GR',
+    prompt: 'Ricoh GR compact digital, 28mm equivalent wide angle, high contrast B&W mode energy, street photography snap aesthetic, deep blacks, grain simulation'
+  },
+  holga_120: {
+    label: 'Holga 120',
+    prompt: 'Holga 120 toy camera, extreme vignetting, light leaks, soft plastic lens blur, lo-fi dreamy aesthetic, unpredictable exposure, art school vibes'
+  }
+};
+
+export const DEFAULT_CAMERA_SIGNATURE = {
+  preset: 'none',
+  customPrompt: ''
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 10. CAPTURE STYLE (how the moment was captured — replaces posingStyle)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Capture Style — defines HOW the moment was "caught" by the camera
+ * Combines: posing level, camera awareness, technical effects
+ * @typedef {Object} CaptureStyle
+ * @property {string} preset - Preset name or 'custom'
+ * @property {string} customPrompt - Custom prompt if preset is 'custom'
+ */
+
+export const CAPTURE_STYLE_PRESETS = {
+  editorial_posed: {
+    label: 'Editorial постановка',
+    prompt: 'Editorial fashion pose, deliberate and composed positioning, model fully aware of camera, direct or intentional gaze, controlled body angles, studio precision, high fashion magazine cover energy',
+    posingLevel: 4
+  },
+  editorial_relaxed: {
+    label: 'Editorial расслабленный',
+    prompt: 'Relaxed editorial pose, model aware of camera but not performing, natural stance with subtle adjustments, gaze may drift, effortless cool, not trying too hard',
+    posingLevel: 3
+  },
+  candid_aware: {
+    label: 'Естественный, в курсе камеры',
+    prompt: 'Natural candid moment, model knows camera is there but not actively posing, caught in genuine micro-moment, unposed body language with subtle camera awareness',
+    posingLevel: 2
+  },
+  candid_unaware: {
+    label: 'Candid — не видит камеру',
+    prompt: 'Candid snapshot, model appears unaware of camera, caught mid-action or mid-thought, no eye contact, body oriented away or past camera, voyeuristic observer feeling',
+    posingLevel: 1
+  },
+  paparazzi_telephoto: {
+    label: 'Папарацци / телефото',
+    prompt: 'Paparazzi telephoto shot from distance, caught unaware, compression from long lens, grain from high ISO, possible motion blur from subject movement, through crowd or obstacles partially blocking view',
+    posingLevel: 1
+  },
+  harsh_flash_snapshot: {
+    label: 'Жёсткая вспышка в лоб',
+    prompt: 'Harsh direct on-axis flash, strong dramatic shadows under chin and eyes, high contrast with black background falloff, glossy specular highlights on skin, deer in headlights energy, no soft fill light',
+    posingLevel: 2
+  },
+  motion_blur_action: {
+    label: 'Размытие движения',
+    prompt: 'Motion blur from slow shutter 1/10s-1/30s, subject core relatively sharp but edges and limbs streaking, ambient lights leaving trails, dynamic frozen movement energy, not static pose',
+    posingLevel: 1
+  },
+  through_window: {
+    label: 'Через стекло',
+    prompt: 'Shot through dirty window or glass surface, reflections overlaying subject, condensation or fingerprints partially obscuring view, layered depth creating separation, voyeuristic intimate feeling',
+    posingLevel: 2
+  },
+  mirror_reflection: {
+    label: 'Отражение в зеркале',
+    prompt: 'Subject seen in mirror with real figure also partially visible, bathroom or dressing room intimacy, doubled perspective, private moment made visible, self-examination energy',
+    posingLevel: 2
+  },
+  caught_mid_blink: {
+    label: 'Пойман на полузакрытых глазах',
+    prompt: 'Eyes at 30-50% closure, vulnerable micro-moment between blinks, not the "hero shot" but somehow more interesting, humanizing imperfection, anti-perfection aesthetic',
+    posingLevel: 1
+  },
+  dutch_angle_tension: {
+    label: 'Голландский угол',
+    prompt: 'Camera tilted 15-25 degrees off horizontal, deliberately unlevel horizon creating unease and visual tension, dynamic diagonal energy, something feels wrong in a good way',
+    posingLevel: 3
+  },
+  worms_eye_power: {
+    label: 'Ракурс снизу',
+    prompt: 'Extreme low angle from near ground level looking up, perspective distortion making subject tower above, dramatic sky or ceiling visible, wide angle 14mm-24mm stretch, power and dominance',
+    posingLevel: 3
+  },
+  overhead_graphic: {
+    label: 'Вид сверху',
+    prompt: 'Shot directly from overhead looking down, flattened perspective, subject looking up or sprawled, unusual body foreshortening, graphic composition, editorial art direction',
+    posingLevel: 3
+  }
+};
+
+export const DEFAULT_CAPTURE_STYLE = {
+  preset: 'candid_aware',
+  customPrompt: ''
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 11. SKIN & TEXTURE (how skin and materials render)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Skin & Texture — defines how skin, hair, and materials are rendered
+ * @typedef {Object} SkinTexture
+ * @property {string} preset - Preset name or 'custom'
+ * @property {string} customPrompt - Custom prompt if preset is 'custom'
+ */
+
+export const SKIN_TEXTURE_PRESETS = {
+  hyper_real: {
+    label: 'Гипер-реалистичная',
+    prompt: 'Hyper-realistic skin texture with every pore visible, translucent quality showing subsurface scattering, subtle oil sheen in T-zone, natural micro-imperfections like tiny bumps and hair follicles, no airbrushing, no beauty filter'
+  },
+  natural_film: {
+    label: 'Естественная плёночная',
+    prompt: 'Natural skin texture slightly softened by film emulsion properties, gentle luminous glow without looking plastic, fine grain texture over skin, not digitally sharpened, organic warmth'
+  },
+  flash_specular: {
+    label: 'Вспышка (блики)',
+    prompt: 'Flash-lit skin with specular highlights on forehead cheekbones and nose, slight overexposure on surfaces nearest flash, shadows under eyes from direct flash angle, oily highlight texture'
+  },
+  matte_editorial: {
+    label: 'Матовая editorial',
+    prompt: 'Matte skin finish as if professionally powdered, minimal shine except intentional highlights, editorial makeup texture visible, pores still present but diffused, fashion magazine look'
+  },
+  raw_unretouched: {
+    label: 'Сырая, без ретуши',
+    prompt: 'Completely unretouched raw skin, all natural texture visible including blemishes freckles and uneven tone, authentic human skin with its imperfections, anti-beauty-standard honesty'
+  },
+  sweaty_athletic: {
+    label: 'Спортивная / с испариной',
+    prompt: 'Light sweat sheen covering skin, droplets visible on forehead and upper lip, athletic exertion or humid environment texture, glistening highlights, wet hair strands sticking'
+  },
+  golden_hour_glow: {
+    label: 'Золотой час',
+    prompt: 'Warm golden hour sunlight creating soft glowing skin, backlit rim light on hair and shoulders, lens flare touching skin, diffused warmth, magic hour romantic quality'
+  },
+  pale_porcelain: {
+    label: 'Фарфоровая бледность',
+    prompt: 'Pale porcelain-like skin with visible translucency, blue veins faintly showing, ethereal quality, minimal color in cheeks, cool undertones, fragile beauty aesthetic'
+  }
+};
+
+export const DEFAULT_SKIN_TEXTURE = {
+  preset: 'natural_film',
+  customPrompt: ''
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 12. DEFAULT FRAME PARAMS (fallback when no frame is selected)
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -342,6 +549,11 @@ export function createEmptyUniverse(label = 'Новая вселенная') {
     composition: { ...DEFAULT_COMPOSITION },
     postProcess: { ...DEFAULT_POST_PROCESS },
     era: { ...DEFAULT_ERA },
+    
+    // NEW: Artistic style blocks
+    cameraSignature: { ...DEFAULT_CAMERA_SIGNATURE },
+    captureStyle: { ...DEFAULT_CAPTURE_STYLE },
+    skinTexture: { ...DEFAULT_SKIN_TEXTURE },
     
     // Detailed text blocks for rich prompts (expanded)
     textBlocks: {
@@ -444,7 +656,7 @@ export function mergeUniverseUpdates(existing, updates) {
   const merged = { ...existing };
   
   // Deep merge each block
-  const blocks = ['artisticVision', 'capture', 'light', 'color', 'texture', 'optical', 'composition', 'postProcess', 'era', 'defaultFrameParams', 'textBlocks', 'antiAi'];
+  const blocks = ['artisticVision', 'capture', 'light', 'color', 'texture', 'optical', 'composition', 'postProcess', 'era', 'cameraSignature', 'captureStyle', 'skinTexture', 'defaultFrameParams', 'textBlocks', 'antiAi'];
   for (const block of blocks) {
     if (updates[block] && typeof updates[block] === 'object') {
       merged[block] = { ...(existing[block] || {}), ...updates[block] };
@@ -571,5 +783,8 @@ export const UNIVERSE_OPTIONS = {
   composition: COMPOSITION_OPTIONS,
   postProcess: POST_PROCESS_OPTIONS,
   era: ERA_OPTIONS,
+  cameraSignature: CAMERA_SIGNATURE_PRESETS,
+  captureStyle: CAPTURE_STYLE_PRESETS,
+  skinTexture: SKIN_TEXTURE_PRESETS,
   defaultFrameParams: DEFAULT_FRAME_PARAMS_OPTIONS
 };

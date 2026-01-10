@@ -763,7 +763,9 @@ router.post('/:id/generate', async (req, res) => {
  *   frameId?: string,  // <-- Direct frame ID
  *   locationId?: string, 
  *   extraPrompt?: string,
- *   posingStyle?: number (1-4),
+ *   captureStyle?: string,      // NEW: preset ID for how moment was captured
+ *   cameraSignature?: string,   // NEW: preset ID for camera look
+ *   skinTexture?: string,       // NEW: preset ID for skin rendering
  *   poseAdherence?: number (1-4),
  *   emotionId?: string  // <-- Emotion preset ID
  * }
@@ -775,7 +777,9 @@ router.post('/:id/generate-frame', async (req, res) => {
       frameId,  // <-- Accept frameId directly
       locationId, 
       extraPrompt: reqExtraPrompt,
-      posingStyle = 2,
+      captureStyle = 'none',       // NEW
+      cameraSignature = 'none',    // NEW
+      skinTexture = 'none',        // NEW
       poseAdherence = 2,
       emotionId = null  // <-- Emotion preset ID
     } = req.body;
@@ -934,8 +938,24 @@ router.post('/:id/generate-frame', async (req, res) => {
     
     console.log('[ShootRoutes] frameWithEmotion:', frameWithEmotion ? { label: frameWithEmotion.label, emotion: frameWithEmotion.emotion } : null);
 
+    // Apply UI overrides to universe (if not "none", use UI value instead of universe default)
+    let effectiveUniverse = { ...shoot.universe };
+    
+    if (captureStyle && captureStyle !== 'none') {
+      effectiveUniverse.captureStyle = { preset: captureStyle, customPrompt: '' };
+      console.log('[ShootRoutes] Override captureStyle from UI:', captureStyle);
+    }
+    if (cameraSignature && cameraSignature !== 'none') {
+      effectiveUniverse.cameraSignature = { preset: cameraSignature, customPrompt: '' };
+      console.log('[ShootRoutes] Override cameraSignature from UI:', cameraSignature);
+    }
+    if (skinTexture && skinTexture !== 'none') {
+      effectiveUniverse.skinTexture = { preset: skinTexture, customPrompt: '' };
+      console.log('[ShootRoutes] Override skinTexture from UI:', skinTexture);
+    }
+
     const result = await generateShootFrame({
-      universe: shoot.universe,
+      universe: effectiveUniverse,
       location: location || shoot.location || null,
       frame: frameWithEmotion,
       poseSketchImage,
@@ -944,7 +964,7 @@ router.post('/:id/generate-frame', async (req, res) => {
       modelDescription,
       clothingNotes: '',
       extraPrompt: reqExtraPrompt || shootFrame?.extraPrompt || '',
-      posingStyle: Math.max(1, Math.min(4, parseInt(posingStyle) || 2)),
+      posingStyle: 2,  // legacy fallback, captureStyle takes priority
       poseAdherence: Math.max(1, Math.min(4, parseInt(poseAdherence) || 2)),
       imageConfig: shoot.globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '1K' }
     });
@@ -1000,7 +1020,9 @@ router.post('/:id/generate-frame', async (req, res) => {
       locationId: locationId || null,
       locationLabel,
       emotionId: emotionId || null,
-      posingStyle: Math.max(1, Math.min(4, parseInt(posingStyle) || 2)),
+      captureStyle: captureStyle !== 'none' ? captureStyle : null,
+      cameraSignature: cameraSignature !== 'none' ? cameraSignature : null,
+      skinTexture: skinTexture !== 'none' ? skinTexture : null,
       poseAdherence: Math.max(1, Math.min(4, parseInt(poseAdherence) || 2)),
       extraPrompt: reqExtraPrompt || '',
       prompt: result.prompt

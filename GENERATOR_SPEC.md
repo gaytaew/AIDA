@@ -636,10 +636,78 @@ ARTISTIC INTENTION:
 - The frame could be 2 seconds BEFORE or AFTER a better shot
 ```
 
+---
+
+## 11. Camera Signature (NEW v0.6)
+
+Конкретные камеры/плёнки с характерным "look":
+
+| ID | Камера | Характеристики |
+|----|--------|----------------|
+| `polaroid_sx70` | Polaroid SX-70 | Мягкий фокус, кремовые десатурированные тона, химический bleeding |
+| `disposable_flash` | Одноразовая | Жёсткая вспышка, red-eye, пластиковый blur, party aesthetic |
+| `contax_t2` | Contax T2 | Zeiss 38mm резкость, Portra 400 цвета, 90s fashion elite |
+| `hasselblad_500cm` | Hasselblad 500C/M | Средний формат 6x6, Zeiss rendering, экстремальная глубина |
+| `canon_ae1` | Canon AE-1 | FD 50mm, halation на highlights, любительская ностальгия |
+| `leica_m6` | Leica M6 | Summicron 35mm, Tri-X зерно, decisive moment |
+| `iphone_flash` | iPhone flash | LED flash, HDR артефакты, social media native |
+| `powershot_vlog` | Canon G7X | Vlog bokeh, dreamy haze, Instagram aesthetic |
+| `mamiya_rz67` | Mamiya RZ67 | 110mm f/2.8, Portra 160, high fashion |
+| `yashica_t4` | Yashica T4 | Zeiss T* 35mm, 90s snapshot, party/nightlife |
+| `ricoh_gr` | Ricoh GR | 28mm wide, street photo, deep blacks |
+| `holga_120` | Holga 120 | Toy camera, виньетка, light leaks, lo-fi |
+
+---
+
+## 12. Capture Style (NEW v0.6)
+
+Заменяет старый `posingStyle`. Определяет **КАК** был пойман момент:
+
+| ID | Стиль | Описание |
+|----|-------|----------|
+| `editorial_posed` | Editorial постановка | Контролируемая поза, прямой взгляд, magazine cover |
+| `editorial_relaxed` | Editorial расслабленный | Осознаёт камеру, не перформит, effortless cool |
+| `candid_aware` | Естественный, в курсе | Знает о камере, но не позирует, микро-момент |
+| `candid_unaware` | Candid | Не видит камеру, caught mid-action, voyeur feeling |
+| `paparazzi_telephoto` | Папарацци | Издалека, grain, motion blur, через толпу |
+| `harsh_flash_snapshot` | Вспышка в лоб | Strong shadows, glossy highlights, deer in headlights |
+| `motion_blur_action` | Размытие движения | 1/10s-1/30s, streaking edges, dynamic |
+| `through_window` | Через стекло | Reflections, fingerprints, layered depth |
+| `mirror_reflection` | Отражение в зеркале | Doubled perspective, private moment |
+| `caught_mid_blink` | Полузакрытые глаза | 30-50% closure, vulnerable, anti-hero shot |
+| `dutch_angle_tension` | Голландский угол | 15-25° tilt, visual tension, dynamic diagonal |
+| `worms_eye_power` | Ракурс снизу | От земли вверх, power и dominance |
+| `overhead_graphic` | Вид сверху | Прямо сверху, flattened, graphic composition |
+
+---
+
+## 13. Skin & Texture (NEW v0.6)
+
+Контролирует рендеринг кожи и материалов:
+
+| ID | Название | Описание |
+|----|----------|----------|
+| `hyper_real` | Гипер-реалистичная | Все поры видны, translucent, micro-imperfections, NO filter |
+| `natural_film` | Естественная плёночная | Чуть смягчённая плёнкой, luminous glow, organic |
+| `flash_specular` | Вспышка (блики) | Specular highlights на лбу/скулах, oily texture |
+| `matte_editorial` | Матовая editorial | Профессионально припудренная, минимум shine |
+| `raw_unretouched` | Сырая без ретуши | ВСЁ видно — blemishes, freckles, uneven tone |
+| `sweaty_athletic` | Спортивная/испарина | Light sweat sheen, droplets, glistening |
+| `golden_hour_glow` | Золотой час | Warm backlit glow, lens flare touching skin |
+| `pale_porcelain` | Фарфоровая | Pale, translucent, blue veins faintly visible |
+
+---
+
 ### История изменений (продолжение)
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| v0.6 | 2026-01-11 | **Camera Signature, Capture Style, Skin Texture:** |
+|      |            | — 12 пресетов Camera Signature (Polaroid, Contax, Hasselblad...) |
+|      |            | — 13 пресетов Capture Style (заменяет posingStyle 1-4) |
+|      |            | — 8 пресетов Skin & Texture (hyper_real, flash_specular...) |
+|      |            | — UI контролы в shoot-composer для выбора на лету |
+|      |            | — Интеграция в promptJson и текстовый промпт |
 | v0.5 | 2026-01-10 | **Художественные принципы (Anti-AI Aesthetic):** |
 |      |            | — Добавлены нарративные mood/era опции с микро-историями |
 |      |            | — Новые художественные techBase ("ошибки" как инструмент) |

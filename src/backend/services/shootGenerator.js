@@ -15,6 +15,11 @@
 import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
+import { 
+  CAMERA_SIGNATURE_PRESETS, 
+  CAPTURE_STYLE_PRESETS, 
+  SKIN_TEXTURE_PRESETS 
+} from '../schema/universe.js';
 
 // ═══════════════════════════════════════════════════════════════
 // JSON PROMPT BUILDER
@@ -207,7 +212,16 @@ export function buildShootPromptJson({
       };
     })() : null,
     
-    // Posing style
+    // Capture style (replaces old posingStyle — now from universe)
+    captureStyle: buildCaptureStyleBlock(universe, posingStyle),
+    
+    // Camera signature — specific camera/film look (from universe)
+    cameraSignature: buildCameraSignatureBlock(universe),
+    
+    // Skin & texture rendering (from universe)
+    skinTexture: buildSkinTextureBlock(universe),
+    
+    // Legacy posingStyle for backwards compatibility
     posingStyle: {
       level: posingStyle,
       label: POSING_STYLE_MAP[posingStyle]?.label || 'natural',
@@ -458,6 +472,109 @@ function buildArtisticIntentionBlock() {
 }
 
 /**
+ * Build camera signature block from universe settings
+ * This adds the characteristic "look" of a specific camera/film combination
+ */
+function buildCameraSignatureBlock(universe) {
+  const sig = universe?.cameraSignature;
+  if (!sig || sig.preset === 'none') return null;
+  
+  // If custom prompt is provided
+  if (sig.preset === 'custom' && sig.customPrompt) {
+    return {
+      source: 'custom',
+      prompt: sig.customPrompt
+    };
+  }
+  
+  // Look up preset
+  const preset = CAMERA_SIGNATURE_PRESETS[sig.preset];
+  if (!preset || !preset.prompt) return null;
+  
+  return {
+    source: 'preset',
+    presetId: sig.preset,
+    label: preset.label,
+    prompt: preset.prompt
+  };
+}
+
+/**
+ * Build capture style block from universe settings
+ * This defines HOW the moment was captured (replaces posingStyle)
+ */
+function buildCaptureStyleBlock(universe, fallbackPosingStyle = 2) {
+  const style = universe?.captureStyle;
+  
+  // If no captureStyle in universe, fall back to old posingStyle logic
+  if (!style || style.preset === 'none') {
+    const oldStyle = POSING_STYLE_MAP[fallbackPosingStyle] || POSING_STYLE_MAP[2];
+    return {
+      source: 'legacy_posing_style',
+      level: fallbackPosingStyle,
+      label: oldStyle.label,
+      prompt: oldStyle.instruction
+    };
+  }
+  
+  // If custom prompt
+  if (style.preset === 'custom' && style.customPrompt) {
+    return {
+      source: 'custom',
+      prompt: style.customPrompt
+    };
+  }
+  
+  // Look up preset
+  const preset = CAPTURE_STYLE_PRESETS[style.preset];
+  if (!preset) {
+    const oldStyle = POSING_STYLE_MAP[2];
+    return {
+      source: 'legacy_posing_style',
+      level: 2,
+      label: oldStyle.label,
+      prompt: oldStyle.instruction
+    };
+  }
+  
+  return {
+    source: 'preset',
+    presetId: style.preset,
+    label: preset.label,
+    prompt: preset.prompt,
+    posingLevel: preset.posingLevel || 2
+  };
+}
+
+/**
+ * Build skin texture block from universe settings
+ * This defines how skin and materials are rendered
+ */
+function buildSkinTextureBlock(universe) {
+  const tex = universe?.skinTexture;
+  if (!tex || tex.preset === 'none') return null;
+  
+  // If custom prompt
+  if (tex.preset === 'custom' && tex.customPrompt) {
+    return {
+      source: 'custom',
+      prompt: tex.customPrompt
+    };
+  }
+  
+  // Look up preset
+  const preset = SKIN_TEXTURE_PRESETS[tex.preset];
+  if (!preset || !preset.prompt) return null;
+  
+  return {
+    source: 'preset',
+    presetId: tex.preset,
+    label: preset.label,
+    prompt: preset.prompt
+  };
+}
+
+/**
  * Build anti-AI block from universe or defaults
  */
 function buildAntiAiBlock(universe) {
@@ -664,6 +781,37 @@ export function jsonPromptToText(promptJson) {
       if (t.focusPoint) sections.push(`Focus: ${t.focusPoint}`);
       if (t.poseDescription) sections.push(`Pose: ${t.poseDescription}`);
     }
+    sections.push('');
+  }
+
+  // Camera Signature (specific camera/film look)
+  if (promptJson.cameraSignature && promptJson.cameraSignature.prompt) {
+    sections.push('CAMERA SIGNATURE (specific camera/film aesthetic):');
+    if (promptJson.cameraSignature.label) {
+      sections.push(`Camera: ${promptJson.cameraSignature.label}`);
+    }
+    sections.push(promptJson.cameraSignature.prompt);
+    sections.push('Apply this camera signature to the entire image: color science, grain, bokeh, flash behavior, lens character.');
+    sections.push('');
+  }
+  
+  // Capture Style (how the moment was captured)
+  if (promptJson.captureStyle && promptJson.captureStyle.prompt) {
+    sections.push('CAPTURE STYLE (how this moment was caught):');
+    if (promptJson.captureStyle.label) {
+      sections.push(`Style: ${promptJson.captureStyle.label}`);
+    }
+    sections.push(promptJson.captureStyle.prompt);
+    sections.push('');
+  }
+  
+  // Skin & Texture
+  if (promptJson.skinTexture && promptJson.skinTexture.prompt) {
+    sections.push('SKIN & TEXTURE RENDERING:');
+    if (promptJson.skinTexture.label) {
+      sections.push(`Look: ${promptJson.skinTexture.label}`);
+    }
+    sections.push(promptJson.skinTexture.prompt);
     sections.push('');
   }
 

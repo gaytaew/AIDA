@@ -937,26 +937,86 @@
                   <option value="">По умолчанию</option>
                 </select>
                 
-                <!-- Posing Style & Pose Adherence -->
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
-                  <div class="form-group">
-                    <label for="gen-posing-style">Позирование</label>
-                    <select id="gen-posing-style" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
-                      <option value="1">1 — Случайный (candid)</option>
-                      <option value="2" selected>2 — Естественный</option>
-                      <option value="3">3 — Постановочный</option>
-                      <option value="4">4 — Студийный (fashion)</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="gen-pose-adherence">Следование эскизу позы</label>
-                    <select id="gen-pose-adherence" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
-                      <option value="1">1 — Свободно (только тип: сидит/стоит)</option>
-                      <option value="2" selected>2 — Похоже (≈30-40% совпадения)</option>
-                      <option value="3">3 — Близко (≈70-80% совпадения)</option>
-                      <option value="4">4 — Точно (90-100% копия)</option>
-                    </select>
-                  </div>
+                <!-- CAPTURE STYLE (replaces old Posing) -->
+                <div class="form-group" style="margin-top: 16px;">
+                  <label for="gen-capture-style">📷 Стиль захвата момента</label>
+                  <select id="gen-capture-style" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                    <option value="none">— Использовать из вселенной —</option>
+                    <optgroup label="Постановочные">
+                      <option value="editorial_posed">Editorial постановка — прямой взгляд, контроль</option>
+                      <option value="editorial_relaxed">Editorial расслабленный — осознаёт камеру, не позирует</option>
+                    </optgroup>
+                    <optgroup label="Естественные">
+                      <option value="candid_aware">Естественный, в курсе камеры</option>
+                      <option value="candid_unaware">Candid — не видит камеру</option>
+                      <option value="caught_mid_blink">Пойман на полузакрытых глазах</option>
+                    </optgroup>
+                    <optgroup label="Технические эффекты">
+                      <option value="paparazzi_telephoto">Папарацци / телефото</option>
+                      <option value="harsh_flash_snapshot">Жёсткая вспышка в лоб</option>
+                      <option value="motion_blur_action">Размытие движения</option>
+                      <option value="through_window">Через стекло</option>
+                      <option value="mirror_reflection">Отражение в зеркале</option>
+                    </optgroup>
+                    <optgroup label="Углы камеры">
+                      <option value="dutch_angle_tension">Голландский угол (наклон)</option>
+                      <option value="worms_eye_power">Ракурс снизу</option>
+                      <option value="overhead_graphic">Вид сверху</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <!-- CAMERA SIGNATURE -->
+                <div class="form-group" style="margin-top: 16px;">
+                  <label for="gen-camera-signature">📸 Сигнатура камеры</label>
+                  <select id="gen-camera-signature" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                    <option value="none">— Использовать из вселенной —</option>
+                    <optgroup label="Плёночные">
+                      <option value="polaroid_sx70">Polaroid SX-70 — мягкий фокус, кремовые тона</option>
+                      <option value="contax_t2">Contax T2 — Zeiss резкость, Portra тона</option>
+                      <option value="hasselblad_500cm">Hasselblad 500C/M — средний формат 6x6</option>
+                      <option value="canon_ae1">Canon AE-1 — любительская плёнка, halation</option>
+                      <option value="leica_m6">Leica M6 — стрит-фото, Tri-X зерно</option>
+                      <option value="mamiya_rz67">Mamiya RZ67 — портретный средний формат</option>
+                      <option value="yashica_t4">Yashica T4 — 90s party aesthetic</option>
+                    </optgroup>
+                    <optgroup label="Lo-Fi / Креатив">
+                      <option value="disposable_flash">Одноразовая камера — жёсткая вспышка, пластик</option>
+                      <option value="holga_120">Holga 120 — toy camera, виньетка, light leaks</option>
+                    </optgroup>
+                    <optgroup label="Цифровые">
+                      <option value="iphone_flash">iPhone со вспышкой — LED flash aesthetic</option>
+                      <option value="powershot_vlog">Canon PowerShot G7X — vlog dreamy haze</option>
+                      <option value="ricoh_gr">Ricoh GR — стрит, контрастный ч/б</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <!-- SKIN TEXTURE -->
+                <div class="form-group" style="margin-top: 16px;">
+                  <label for="gen-skin-texture">✨ Текстура кожи</label>
+                  <select id="gen-skin-texture" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                    <option value="none">— Использовать из вселенной —</option>
+                    <option value="hyper_real">Гипер-реалистичная — все поры, без ретуши</option>
+                    <option value="natural_film">Естественная плёночная — мягкая, органичная</option>
+                    <option value="flash_specular">Вспышка (блики) — спекулярные хайлайты</option>
+                    <option value="matte_editorial">Матовая editorial — профессионально припудренная</option>
+                    <option value="raw_unretouched">Сырая, без ретуши — все недостатки</option>
+                    <option value="sweaty_athletic">Спортивная / с испариной</option>
+                    <option value="golden_hour_glow">Золотой час — тёплое сияние</option>
+                    <option value="pale_porcelain">Фарфоровая бледность</option>
+                  </select>
+                </div>
+
+                <!-- POSE ADHERENCE (kept for pose sketch) -->
+                <div class="form-group" style="margin-top: 16px;">
+                  <label for="gen-pose-adherence">Следование эскизу позы</label>
+                  <select id="gen-pose-adherence" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                    <option value="1">1 — Свободно (только тип: сидит/стоит)</option>
+                    <option value="2" selected>2 — Похоже (≈30-40% совпадения)</option>
+                    <option value="3">3 — Близко (≈70-80% совпадения)</option>
+                    <option value="4">4 — Точно (90-100% копия)</option>
+                  </select>
                 </div>
                 
                 <!-- Emotion Selection -->
