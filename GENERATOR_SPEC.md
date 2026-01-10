@@ -549,4 +549,103 @@ Body contours must align with sketch. Limb angles must match exactly.
 - Embrace asymmetry and micro-imperfections
 - No "actor face", no theatrical expressions
 
+---
+
+## 10. Художественные принципы (v3 — Anti-AI Aesthetic)
+
+### Проблема "ИИшности"
+
+AI-сгенерированные изображения часто имеют характерные признаки:
+- Чрезмерная симметрия
+- "Вау" драматичное освещение
+- Идеально позирующие руки
+- Центральная композиция
+- Стерильные, чистые окружения
+- Гладкая, отретушированная кожа
+- Общее "модельное выражение" лица
+- Слишком насыщенные, "улучшенные" цвета
+
+### Решение: Authored Photography
+
+Каждый кадр должен выглядеть так, будто его снял **конкретный фотограф** в **конкретный день** для **конкретного издания** с **ограниченным временем и доступом**.
+
+### Принципы художественности
+
+#### 1. Временная ось (Temporal Reality)
+Каждый кадр — это МОМЕНТ, а не ПОЗА:
+- **3 секунды ДО**: Откуда идёт движение? Какой жест был до этого?
+- **3 секунды ПОСЛЕ**: Куда направлено тело? Что произойдёт дальше?
+- Тело помнит предыдущее движение
+- Лицо предвидит следующую мысль
+
+**Пример:**
+> "3 seconds after she stopped laughing — residual smile fading, eyes still squinted but relaxing"
+
+#### 2. Нарративные микро-биты
+Вместо технических описаний эмоций используем **микро-истории**:
+
+| ❌ Старый подход | ✅ Новый подход |
+|-----------------|-----------------|
+| "tired expression" | "first cigarette after an 8-hour flight — relief and exhaustion mixed" |
+| "bored look" | "bored at a party they didn't want to come to, performing politeness with 60%" |
+| "tension" | "the 5 seconds after a fight when nobody knows what to say — frozen air" |
+
+#### 3. Референс на авторскую фотографию
+Добавляем референсы на конкретные издания/фотографов:
+
+- **Purple Magazine early 2000s** — casual nihilism meets high fashion
+- **Nan Goldin intimacy** — you're not supposed to be seeing this
+- **Juergen Teller anti-glamour** — deliberate ugliness of lighting, beauty through imperfection
+- **The Face casting story** — raw and unpolished energy
+- **032c Berlin coldness** — intellectual detachment, minimal expression
+
+#### 4. Художественные "ошибки" как инструмент
+
+| Тип "ошибки" | Описание |
+|--------------|----------|
+| **Фокус** | subject 30% out of optimal focus zone — keep it |
+| **Экспозиция** | half the frame crushed to black — do not fix |
+| **Баланс белого** | tungsten preset used in daylight, blue-orange split |
+| **Грязная оптика** | subtle haze over highlights, dust specs |
+| **Композиция** | frame cuts subject at awkward point — mid-calf |
+
+#### 5. Художественные сцены с нарративом
+
+Новые типы сцен с микро-историями:
+
+| ID | Название | Суть |
+|----|----------|------|
+| ARGUMENT_AFTERMATH | После ссоры | Тишина, незаконченный жест, взгляд в сторону |
+| CAUGHT_STARING | Застали за взглядом | Момент смущения ещё не обработан |
+| FAKE_PHONE_CALL | Фейковый звонок | Избегание кого-то через перформанс |
+| FIRST_CRY_SINCE_WEEKS | Прорвавшаяся эмоция | Момент до/после, не сам плач |
+| TEXT_THAT_CHANGES | Сообщение меняет всё | Информация обрабатывается, реакция ещё не началась |
+
+### Блок Artistic Intention в промпте
+
+Добавляется в каждый промпт генерации:
+
+```
+ARTISTIC INTENTION:
+- This is NOT a stock photo. This is NOT generic AI art.
+- Imagine a SPECIFIC photographer took this for a SPECIFIC magazine.
+- Something slightly WRONG: tilt, crop, focus miss, color contamination
+- Evidence the photographer had LIMITED TIME or LIMITED ACCESS
+- The subject has a HISTORY visible in posture and expression
+- TENSION between what camera sees and what subject feels
+- The frame could be 2 seconds BEFORE or AFTER a better shot
+```
+
+### История изменений (продолжение)
+
+| Версия | Дата | Изменения |
+|--------|------|-----------|
+| v0.5 | 2026-01-10 | **Художественные принципы (Anti-AI Aesthetic):** |
+|      |            | — Добавлены нарративные mood/era опции с микро-историями |
+|      |            | — Новые художественные techBase ("ошибки" как инструмент) |
+|      |            | — 10 новых scenePresets с драматургией |
+|      |            | — Блок Artistic Intention в промптах |
+|      |            | — Принцип временной оси (до/после кадра) |
+|      |            | — Референсы на конкретные издания/фотографов |
+
 
