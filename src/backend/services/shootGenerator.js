@@ -232,6 +232,18 @@ export function buildShootPromptJson({
 
     // Anti-AI markers (from universe or defaults)
     antiAi: buildAntiAiBlock(universe),
+    
+    // Artistic intention — anti-AI aesthetic principles
+    artisticIntention: buildArtisticIntentionBlock(),
+    
+    // Narrative micro-beat — what happened before/after this frame
+    narrativeBeat: {
+      rule: 'This is NOT a posed fashion shot. This is a MOMENT extracted from a life.',
+      before: 'Something just happened 3 seconds before this frame.',
+      after: 'The model is about to do something 3 seconds after this frame.',
+      capture: 'The body remembers the previous gesture. The face anticipates the next thought.',
+      clothing: 'Clothes are being WORN, not DISPLAYED. They move with the body, not for the camera.'
+    },
 
     // Extra instructions
     extra: extraPrompt || null
@@ -400,6 +412,48 @@ function buildUniverseBlock(universe) {
       aiArtifactsPrevention: universe.postProcess.aiArtifactsPrevention ?? true,
       skinSmoothing: universe.postProcess.skinSmoothing ?? false
     } : null
+  };
+}
+
+/**
+ * Build artistic intention block — anti-AI aesthetic principles
+ * This makes images feel like authored photography, not generic AI art
+ */
+function buildArtisticIntentionBlock() {
+  return {
+    principles: [
+      'This is NOT a stock photo. This is NOT generic AI art.',
+      'Imagine a SPECIFIC photographer took this on a SPECIFIC day for a SPECIFIC magazine.',
+      'The image should feel like it has a REASON to exist — a story behind it.',
+      'Something just happened (3 seconds ago) or is about to happen (in 3 seconds).'
+    ],
+    avoid: [
+      'Perfect bilateral symmetry anywhere in the frame',
+      '"Wow" dramatic lighting that screams "look how cinematic I am"',
+      'Obviously posed hands resting on surfaces like mannequin display',
+      'Dead center placement of subject in frame',
+      'Pristine, dust-free, freshly-cleaned environments',
+      'Skin that looks retouched, filtered, or poreless',
+      'Generic "fashion model expression" — blank pretty stare',
+      'Everything in focus with perfect sharpness edge to edge',
+      'Colors that are too saturated, too clean, too "enhanced"',
+      'Backgrounds that feel generated to match rather than found'
+    ],
+    require: [
+      'A specific MOMENT in time, not a generic "look" or "pose"',
+      'Something slightly WRONG: tilt, awkward crop, focus miss, color contamination',
+      'Evidence the photographer had LIMITED TIME or LIMITED ACCESS',
+      'The subject has a HISTORY visible in posture, expression, clothing wear',
+      'TENSION between what camera sees and what subject feels',
+      'Environmental details that were NOT placed there for the shoot',
+      'Light that happened to be there, not light designed to be beautiful',
+      'The frame could be 2 seconds BEFORE or AFTER a better shot — and that makes it better'
+    ],
+    temporalReality: {
+      before: 'What gesture or expression was the model coming FROM?',
+      after: 'Where is the model going, what will they do NEXT?',
+      rule: 'The camera caught a TRANSITION, not a POSE held for camera'
+    }
   };
 }
 
@@ -617,6 +671,38 @@ export function jsonPromptToText(promptJson) {
   sections.push('ANTI-AI MARKERS:');
   promptJson.antiAi.rules.forEach(rule => sections.push(`- ${rule}`));
   sections.push('');
+  
+  // Artistic Intention
+  if (promptJson.artisticIntention) {
+    const ai = promptJson.artisticIntention;
+    sections.push('ARTISTIC INTENTION (what makes this shot feel REAL and AUTHORED):');
+    sections.push('');
+    ai.principles.forEach(p => sections.push(p));
+    sections.push('');
+    sections.push('AVOID these AI tells at all costs:');
+    ai.avoid.forEach(a => sections.push(`- ${a}`));
+    sections.push('');
+    sections.push('REQUIRE these qualities of AUTHORED editorial photography:');
+    ai.require.forEach(r => sections.push(`- ${r}`));
+    sections.push('');
+    sections.push('TEMPORAL REALITY — what happened BEFORE and AFTER:');
+    sections.push(`- 3 seconds BEFORE: ${ai.temporalReality.before}`);
+    sections.push(`- 3 seconds AFTER: ${ai.temporalReality.after}`);
+    sections.push(`- ${ai.temporalReality.rule}`);
+    sections.push('');
+  }
+  
+  // Narrative Beat
+  if (promptJson.narrativeBeat) {
+    const nb = promptJson.narrativeBeat;
+    sections.push('NARRATIVE MICRO-BEAT (the STORY of this exact second):');
+    sections.push(nb.rule);
+    sections.push(`Before: ${nb.before}`);
+    sections.push(`After: ${nb.after}`);
+    sections.push(nb.capture);
+    sections.push(nb.clothing);
+    sections.push('');
+  }
 
   // Extra
   if (promptJson.extra) {
