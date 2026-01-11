@@ -322,7 +322,7 @@
 
 > *Будет дополнено*
 
----
+---Cltkf
 
 ### 2.6. Модуль "Съёмка" (Shoot Composer)
 
@@ -698,10 +698,348 @@ ARTISTIC INTENTION:
 
 ---
 
+---
+
+## 14. Custom Shoot Module (Съёмка без готовой вселенной)
+
+### 14.1. Концепция
+
+**Custom Shoot** — модуль для съёмок без готовой вселенной. Все визуальные параметры настраиваются вручную, а консистентность между кадрами обеспечивается системой **Reference Locks**.
+
+#### Ключевые отличия от Universe-based съёмки
+
+| Universe-based съёмка | Custom Shoot |
+|-----------------------|--------------|
+| Готовая вселенная из каталога | Вселенная собирается на лету из параметров |
+| Фиксированный стиль | Гибкие параметры + привязка к референсам |
+| Один стиль на всю съёмку | Можно менять параметры между кадрами |
+
+---
+
+### 14.2. Reference Locks — система привязки к референсам
+
+#### Два типа Lock
+
+| Lock | Что делает | Когда использовать |
+|------|-----------|-------------------|
+| **🎨 Style Lock** | Фиксирует визуальный стиль (цвет, свет, текстура, грейдинг) | Для консистентности "одной съёмки" |
+| **🏠 Location Lock** | Фиксирует место/фон/окружение | Когда нужно много кадров в одной локации |
+
+#### Независимость привязок
+
+Style Lock и Location Lock работают **независимо**:
+
+```
+🎨 Style Lock:    [img_5]  ← визуальный стиль из кадра 5
+🏠 Location Lock: [img_3]  ← фон/место из кадра 3
+
+Результат: новый кадр будет иметь:
+- визуальный стиль от кадра 5
+- локацию от кадра 3
+- НОВУЮ позу, эмоцию и т.д.
+```
+
+#### Режимы привязки
+
+| Режим | Описание | Промпт-модификатор |
+|-------|----------|-------------------|
+| **Off** | Без привязки — AI генерирует свободно | — |
+| **On (strict)** | Строгая привязка — точное совпадение | "Match EXACTLY" |
+| **Soft** | Мягкая привязка — похоже, но не копия | "Similar style, allow variation" |
+
+#### Выбор референса
+
+**Важно:** Референсный кадр можно выбрать в **любой момент** съёмки:
+- Не обязательно первый кадр
+- Можно менять референс в процессе
+- Для Style и Location можно выбрать **разные** кадры
+
+---
+
+### 14.3. Параметры Custom Universe
+
+#### Два режима настройки
+
+| Режим | Описание |
+|-------|----------|
+| **Quick** | 6 основных пресетов-блоков (быстрый старт) |
+| **Fine** | Все параметры по категориям (полный контроль) |
+
+#### Quick Mode — 6 основных блоков
+
+| # | Блок | Иконка | Что контролирует |
+|---|------|--------|------------------|
+| 1 | **Camera** | 📷 | Камера, плёнка, зерно, оптика |
+| 2 | **Capture** | 📸 | Как пойман момент (candid/posed/etc) |
+| 3 | **Light** | 💡 | Тип и характер освещения |
+| 4 | **Color** | 🎨 | Цветовая палитра и грейдинг |
+| 5 | **Texture** | 🖼️ | Рендеринг кожи и материалов |
+| 6 | **Era** | 📅 | Эпоха и редакционный контекст |
+
+#### Fine Mode — Полный контроль
+
+**Группы параметров:**
+
+1. **CAPTURE / MEDIUM** — mediumType, cameraSystem, lensBehavior, shutterBehavior, dynamicRange, grainStructure, scanArtifacts
+2. **LIGHT PHYSICS** — primaryLightType, flashCharacter, ambientLightType, exposureBias, shadowBehavior, highlightBehavior, lightImperfections
+3. **COLOR SCIENCE** — baseColorCast, dominantPalette, accentColors, skinToneRendering, whiteBalanceBehavior, colorNoise
+4. **TEXTURE** — surfaceResponse, materialTruthVisible, skinTextureVisible, imperfectionsAllowed, microDetailLevel
+5. **OPTICAL** — focusAccuracy, chromaticAberration, vignetting, halation, naturalLensDistortionAllowed
+6. **COMPOSITION** — horizonBehavior, editorialBias, negativeSpaceDefault
+7. **POST-PROCESS** — retouchingLevel, skinSmoothing, sharpening, hdrForbidden, aiArtifactsPrevention
+8. **ERA** — eraReference, editorialReference, printBehavior, formatBias
+9. **ARTISTIC VISION** — artDirection, emotionalTone, worldBuilding, atmosphericDensity
+
+---
+
+### 14.4. Пресеты для Quick Mode
+
+#### Light Presets
+
+| ID | Название | Описание |
+|----|----------|----------|
+| `natural_soft` | Мягкий естественный | Рассеянный дневной свет, мягкие тени |
+| `natural_harsh` | Жёсткий естественный | Прямое солнце, резкие тени, высокий контраст |
+| `golden_hour` | Золотой час | Тёплый контровой свет, блики, длинные тени |
+| `studio_strobe` | Студийный свет | Контролируемый импульсный свет, нейтральный |
+| `on_camera_harsh` | Жёсткая вспышка | Накамерная вспышка, жёсткие тени, пересветы |
+| `mixed_ambient` | Смешанный | Разные источники, цветовое загрязнение |
+| `ring_flash` | Кольцевая вспышка | Плоское освещение без теней |
+| `window_light` | Свет из окна | Мягкий направленный естественный свет |
+
+#### Color Presets
+
+| ID | Название | Описание |
+|----|----------|----------|
+| `film_warm` | Тёплая плёнка | Тёплый cast, Portra-like, натуральная кожа |
+| `film_cool` | Холодная плёнка | Холодный cast, приглушённая палитра |
+| `high_contrast` | Высокий контраст | Нейтральный, глубокие чёрные |
+| `desaturated` | Приглушённый | Muted colors, editorial feel |
+| `cross_process` | Кросс-процесс | Сине-зелёные тени, янтарные света |
+| `black_white` | Чёрно-белый | Монохром, зерно, контраст |
+| `vintage_fade` | Винтажный fade | Поднятые чёрные, выцветшие цвета |
+| `neutral_clean` | Нейтральный | Корректный баланс белого, чистые цвета |
+
+#### Era Presets
+
+| ID | Название | Описание |
+|----|----------|----------|
+| `90s_grunge` | 90s гранж | European editorial, сканы, зерно |
+| `y2k_flash` | Y2K вспышка | Вечеринки, вспышка, party aesthetic |
+| `2000s_digital` | 2000s цифра | Ранняя цифра, лёгкий HDR |
+| `2010s_instagram` | 2010s Instagram | VSCO-like, american commercial |
+| `contemporary` | Современный | Digital clean, минимальное зерно |
+| `film_revival` | Плёночный ренессанс | Современная плёнка, Portra look |
+
+---
+
+### 14.5. Структура данных Custom Shoot
+
+```javascript
+{
+  id: "CSHOOT_20260111_ABC123",
+  label: "My Custom Shoot",
+  mode: "custom",  // vs "universe" для обычных съёмок
+  createdAt: "2026-01-11T...",
+  updatedAt: "2026-01-11T...",
+  
+  // Кастомная вселенная (собирается на лету)
+  customUniverse: {
+    // Пресеты Quick Mode
+    presets: {
+      camera: "contax_t2",
+      capture: "editorial_relaxed", 
+      light: "natural_soft",
+      color: "film_warm",
+      texture: "natural_film",
+      era: "90s_grunge"
+    },
+    
+    // Детальные параметры Fine Mode (опционально)
+    capture: { mediumType, cameraSystem, ... },
+    light: { primaryLightType, flashCharacter, ... },
+    color: { baseColorCast, dominantPalette, ... },
+    texture: { surfaceResponse, skinTextureVisible, ... },
+    optical: { focusAccuracy, vignetting, ... },
+    composition: { horizonBehavior, editorialBias, ... },
+    postProcess: { retouchingLevel, skinSmoothing, ... },
+    era: { eraReference, editorialReference, ... },
+    artisticVision: { artDirection, emotionalTone, ... },
+    
+    // Anti-AI настройки
+    antiAi: { level, settings: {...} }
+  },
+  
+  // Reference Locks
+  locks: {
+    style: {
+      enabled: false,
+      mode: "strict" | "soft" | null,
+      sourceImageId: null,
+      sourceImageUrl: null
+    },
+    location: {
+      enabled: false,
+      mode: "strict" | "soft" | null,
+      sourceImageId: null,
+      sourceImageUrl: null
+    }
+  },
+  
+  // Модели и одежда
+  models: [{ modelId, refs: [...] }],
+  clothing: [{ forModelIndex, refs: [...] }],
+  
+  // Текущая локация (из каталога, опционально)
+  location: { locationId, label, description } | null,
+  
+  // Текущий кадр (поза)
+  currentFrame: { frameId, label } | null,
+  
+  // Глобальные настройки
+  globalSettings: {
+    imageConfig: { aspectRatio: "3:4", imageSize: "2K" },
+    consistency: { sameModelIdentity: true, ... }
+  },
+  
+  // История генераций
+  generatedImages: [
+    {
+      id: "gen_001",
+      imageUrl: "data:image/...",
+      createdAt: "...",
+      
+      // Параметры на момент генерации
+      paramsSnapshot: { presets, locks, frame, emotion, ... },
+      promptJson: { ... },
+      
+      // Флаги использования как референс
+      isStyleReference: false,
+      isLocationReference: false
+    },
+    ...
+  ]
+}
+```
+
+---
+
+### 14.6. Промпт-блоки для Reference Locks
+
+#### Style Lock (strict)
+
+```
+STYLE REFERENCE LOCK (CRITICAL — HIGHEST PRIORITY):
+Match the EXACT visual style of the provided style reference image:
+- Same color grading, color temperature, and color cast
+- Same lighting character, shadow behavior, and highlight treatment
+- Same texture rendering for skin and materials
+- Same film/digital aesthetic and grain structure
+- Same contrast and dynamic range
+- Same post-process philosophy
+
+This is NOT a suggestion — the visual style must be IDENTICAL.
+All frames must look like part of the SAME photo session.
+```
+
+#### Style Lock (soft)
+
+```
+STYLE REFERENCE (SOFT MATCH):
+Use the provided style reference as inspiration:
+- Similar color temperature and overall mood
+- Similar lighting direction and quality
+- Similar texture treatment
+Allow natural variation — same "family" of images, not exact clones.
+```
+
+#### Location Lock (strict)
+
+```
+LOCATION REFERENCE LOCK (CRITICAL):
+Match the EXACT location/background from the provided location reference:
+- Same physical space, walls, surfaces, textures
+- Same environmental elements and props
+- Same depth and spatial arrangement
+- Same lighting environment
+
+Only MODEL POSE and FRAMING may change. The PLACE stays IDENTICAL.
+```
+
+#### Location Lock (soft)
+
+```
+LOCATION REFERENCE (SOFT MATCH):
+Use the provided location as inspiration:
+- Similar type of environment
+- Similar materials and color palette
+- Similar mood and atmosphere
+Allow variation in specific details.
+```
+
+---
+
+### 14.7. UI/UX Flow
+
+#### Основной workflow
+
+```
+1. Загрузка модели и одежды
+2. Выбор параметров (Quick или Fine mode)
+3. Генерация тестового кадра
+4. Если результат нравится:
+   - Lock Style (для консистентности цвета/света)
+   - Lock Location (если нужно много кадров в одном месте)
+5. Генерация остальных кадров с разными позами/эмоциями
+6. Все кадры визуально консистентны благодаря Lock'ам
+```
+
+#### Выбор референса из истории
+
+При клике на любой кадр в истории:
+- 🎨 Use as Style Reference
+- 🏠 Use as Location Reference
+- 🎨🏠 Use as Both
+- 📋 Copy parameters
+- 🗑️ Delete
+
+#### Переключение Lock в процессе
+
+Lock можно включать/выключать в любой момент:
+- Снять Lock → следующие кадры будут свободнее
+- Поменять референс → привязка к новому кадру
+- Soft вместо Strict → больше вариативности
+
+---
+
+### 14.8. API Endpoints
+
+| Method | Endpoint | Описание |
+|--------|----------|----------|
+| GET | `/api/custom-shoots` | Список кастомных съёмок |
+| GET | `/api/custom-shoots/:id` | Получить съёмку |
+| POST | `/api/custom-shoots` | Создать съёмку |
+| PUT | `/api/custom-shoots/:id` | Обновить съёмку |
+| DELETE | `/api/custom-shoots/:id` | Удалить съёмку |
+| POST | `/api/custom-shoots/:id/generate` | Генерировать кадр |
+| POST | `/api/custom-shoots/:id/lock-style` | Установить Style Lock |
+| POST | `/api/custom-shoots/:id/lock-location` | Установить Location Lock |
+| DELETE | `/api/custom-shoots/:id/lock-style` | Снять Style Lock |
+| DELETE | `/api/custom-shoots/:id/lock-location` | Снять Location Lock |
+
+---
+
 ### История изменений (продолжение)
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| v0.7 | 2026-01-11 | **Custom Shoot Module:** |
+|      |            | — Съёмка без готовой вселенной |
+|      |            | — Ручная настройка всех параметров (Quick/Fine mode) |
+|      |            | — Reference Locks (Style Lock + Location Lock) |
+|      |            | — Независимый выбор референсов для стиля и локации |
+|      |            | — Режимы привязки: Off / On (strict) / Soft |
+|      |            | — Новые пресеты: Light (8), Color (8), Era (6) |
 | v0.6 | 2026-01-11 | **Camera Signature, Capture Style, Skin Texture:** |
 |      |            | — 12 пресетов Camera Signature (Polaroid, Contax, Hasselblad...) |
 |      |            | — 13 пресетов Capture Style (заменяет posingStyle 1-4) |

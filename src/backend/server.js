@@ -22,6 +22,7 @@ import frameRoutes from './routes/frameRoutes.js';
 import modelRoutes from './routes/modelRoutes.js';
 import shootRoutes from './routes/shootRoutes.js';
 import emotionRoutes from './routes/emotionRoutes.js';
+import customShootRoutes from './routes/customShootRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +74,7 @@ app.use('/api/frames', frameRoutes);
 app.use('/api/models', modelRoutes);
 app.use('/api/shoots', shootRoutes);
 app.use('/api/emotions', emotionRoutes);
+app.use('/api/custom-shoots', customShootRoutes);
 
 // Fallback: serve index.html for SPA-like navigation
 app.get('*', (req, res) => {
