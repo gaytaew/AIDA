@@ -29,6 +29,9 @@ import {
   generateCustomShootFrame,
   prepareImageFromUrl
 } from '../services/customShootGenerator.js';
+import { getModelById, getModelsDir } from '../store/modelStore.js';
+import fs from 'fs/promises';
+import path from 'path';
 
 const router = express.Router();
 
@@ -257,12 +260,26 @@ router.post('/:id/generate', async (req, res) => {
     if (reqIdentityImages && Array.isArray(reqIdentityImages)) {
       identityImages = reqIdentityImages;
     } else if (shoot.models?.length > 0) {
-      // Get images from models
-      for (const model of shoot.models) {
-        if (model.refs) {
-          for (const ref of model.refs) {
-            const img = await prepareImageFromUrl(ref.url);
-            if (img) identityImages.push(img);
+      // Get images from models by loading from modelStore and reading files
+      for (const shootModel of shoot.models) {
+        const modelId = shootModel.modelId || shootModel.id;
+        if (!modelId) continue;
+        
+        const model = await getModelById(modelId);
+        if (model && model.imageFiles && model.imageFiles.length > 0) {
+          const modelsDir = getModelsDir();
+          
+          for (const filename of model.imageFiles) {
+            const filePath = path.join(modelsDir, model.id, filename);
+            try {
+              const buffer = await fs.readFile(filePath);
+              identityImages.push({
+                mimeType: 'image/jpeg',
+                base64: buffer.toString('base64')
+              });
+            } catch (e) {
+              console.warn(`[CustomShootRoutes] Could not read identity image: ${filePath}`);
+            }
           }
         }
       }
@@ -299,7 +316,10 @@ router.post('/:id/generate', async (req, res) => {
       identity: identityImages.length,
       clothing: clothingImages.length,
       styleRef: !!styleRefImage,
-      locationRef: !!locationRefImage
+      locationRef: !!locationRefImage,
+      models: shoot.models?.map(m => m.modelId || m.id) || [],
+      location: shoot.location?.label || null,
+      frame: shoot.currentFrame?.label || null
     });
     
     // Generate
