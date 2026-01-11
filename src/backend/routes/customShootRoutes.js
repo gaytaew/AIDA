@@ -259,7 +259,15 @@ router.post('/:id/generate', async (req, res) => {
     } = req.body;
     
     console.log('[CustomShootRoutes] Generate request for shoot:', shoot.id);
-    console.log('[CustomShootRoutes] Request params:', { locationId, aspectRatio, imageSize, presets });
+    console.log('[CustomShootRoutes] Request params:', { 
+      emotionId, 
+      locationId, 
+      aspectRatio, 
+      imageSize, 
+      presets,
+      frame: frame?.label || frame?.id || null,
+      extraPrompt: extraPrompt?.slice(0, 50) 
+    });
     
     // Prepare identity images
     let identityImages = [];

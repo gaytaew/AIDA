@@ -1180,7 +1180,10 @@ async function generateFrame(frameId) {
           isStyleReference: false,
           isLocationReference: false,
           status: 'ready',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          // Save prompt and params for debugging
+          prompt: data.prompt || null,
+          paramsSnapshot: data.image.paramsSnapshot || null
         };
       }
       
@@ -1267,6 +1270,12 @@ function renderGeneratedHistory() {
     else if (isStyleRef) borderColor = '#F59E0B';
     else if (isLocationRef) borderColor = '#10B981';
     
+    // Format params for display
+    const paramsInfo = frame.paramsSnapshot ? Object.entries(frame.paramsSnapshot)
+      .filter(([k, v]) => v !== null && v !== undefined)
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+      .join(', ') : 'Нет данных';
+    
     return `
       <div class="selection-card generated-frame-card" style="cursor: default; position: relative; border-color: ${borderColor};">
         <!-- Lock badges -->
@@ -1290,6 +1299,23 @@ function renderGeneratedHistory() {
           <button class="btn btn-secondary btn-set-location-ref" data-image-id="${frame.id}" style="padding: 6px 10px; font-size: 11px; flex: 1;" title="Location Lock">🏠</button>
           <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 6px 10px; font-size: 11px; color: var(--color-accent);">✕</button>
         </div>
+        
+        <!-- Prompt debug block (collapsible) -->
+        ${frame.prompt ? `
+        <details style="margin-top: 8px; font-size: 11px;">
+          <summary style="cursor: pointer; color: var(--color-text-muted); padding: 4px 0; user-select: none;">📋 Промпт</summary>
+          <div style="background: var(--color-bg); padding: 8px; border-radius: 6px; margin-top: 4px; max-height: 200px; overflow-y: auto;">
+            <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border);">
+              <strong>Параметры:</strong><br>
+              <span style="color: var(--color-text-muted); word-break: break-word;">${escapeHtml(paramsInfo)}</span>
+            </div>
+            <div>
+              <strong>Промпт:</strong><br>
+              <pre style="white-space: pre-wrap; word-break: break-word; margin: 4px 0 0 0; font-family: monospace; font-size: 10px; color: var(--color-text-muted);">${escapeHtml(frame.prompt)}</pre>
+            </div>
+          </div>
+        </details>
+        ` : ''}
       </div>
     `;
   }).join('');
