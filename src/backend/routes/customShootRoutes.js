@@ -365,12 +365,21 @@ router.post('/:id/generate', async (req, res) => {
       return res.status(500).json({ ok: false, error: result.error });
     }
     
+    // Build refs summary for UI
+    const refsSummary = {
+      identity: identityImages.length,
+      clothing: clothingImages.length,
+      styleRef: !!styleRefImage,
+      locationRef: !!locationRefImage
+    };
+    
     // Save generated image to shoot history
     const imageData = {
       id: generateImageId(),
       imageUrl: result.image.dataUrl || `data:${result.image.mimeType};base64,${result.image.base64}`,
       paramsSnapshot: result.paramsSnapshot,
-      promptJson: result.promptJson
+      promptJson: result.promptJson,
+      refsSummary
     };
     
     const savedImage = await addImageToShoot(shoot.id, imageData);
@@ -378,7 +387,8 @@ router.post('/:id/generate', async (req, res) => {
     res.json({
       ok: true,
       image: savedImage,
-      prompt: result.prompt
+      prompt: result.prompt,
+      refsSummary
     });
     
   } catch (err) {

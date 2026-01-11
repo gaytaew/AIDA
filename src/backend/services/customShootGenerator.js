@@ -310,15 +310,27 @@ export function buildCustomShootPrompt({
     };
   }
   
-  // Add Emotion
+  // Add Emotion (using same format as shootGenerator)
   if (emotionId) {
     console.log('[buildCustomShootPrompt] Looking up emotionId:', emotionId);
     const emotion = getEmotionById(emotionId);
     console.log('[buildCustomShootPrompt] Found emotion:', emotion?.label || 'NOT FOUND');
     if (emotion) {
-      promptJson.emotion = buildEmotionPrompt(emotion);
-      promptJson.globalEmotionRules = GLOBAL_EMOTION_RULES;
-      console.log('[buildCustomShootPrompt] Emotion prompt added');
+      // Build full emotion block (same as shootGenerator)
+      const emotionPrompt = buildEmotionPrompt(emotionId, 2); // default intensity 2
+      promptJson.emotion = {
+        source: 'preset',
+        presetId: emotionId,
+        label: emotion.label,
+        intensity: 2,
+        atmosphere: emotion.atmosphere,
+        avoid: emotion.avoid,
+        authenticityKey: emotion.authenticityKey,
+        physicalHints: emotion.physicalHints,
+        promptBlock: emotionPrompt,
+        globalRules: GLOBAL_EMOTION_RULES
+      };
+      console.log('[buildCustomShootPrompt] Emotion block added:', emotion.label);
     }
   } else {
     console.log('[buildCustomShootPrompt] No emotionId provided');
@@ -515,8 +527,9 @@ export async function generateCustomShootFrame({
       hasLocationRef: !!locationRefImage
     });
     
-    const promptText = promptJsonToText(promptJson);
-    console.log('[CustomShootGenerator] Prompt built, length:', promptText.length);
+    // Send as JSON (same as shootGenerator)
+    const promptText = JSON.stringify(promptJson, null, 2);
+    console.log('[CustomShootGenerator] JSON Prompt built, length:', promptText.length);
     
     // Prepare reference images
     const referenceImages = [];
