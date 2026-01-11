@@ -1002,11 +1002,65 @@ async function setAsStyleRef(imageId) {
         f.isStyleReference = f.id === imageId;
       });
       
+      // Apply style settings from reference frame to UI
+      applySettingsFromFrame(image, 'style');
+      
       updateLockUI();
       renderGeneratedHistory();
     }
   } catch (e) {
     console.error('Error setting style ref:', e);
+  }
+}
+
+/**
+ * Apply settings from a reference frame to UI controls
+ * @param {Object} frame - The reference frame
+ * @param {string} type - 'style' or 'location'
+ */
+function applySettingsFromFrame(frame, type) {
+  if (!frame) return;
+  
+  console.log(`[CustomShoot] Applying ${type} settings from frame:`, frame.frameLabel);
+  
+  if (type === 'style') {
+    // Apply visual style settings (these define the "look")
+    if (frame.captureStyle && elements.genCaptureStyle) {
+      elements.genCaptureStyle.value = frame.captureStyle;
+    }
+    if (frame.cameraSignature && elements.genCameraSignature) {
+      elements.genCameraSignature.value = frame.cameraSignature;
+    }
+    if (frame.skinTexture && elements.genSkinTexture) {
+      elements.genSkinTexture.value = frame.skinTexture;
+    }
+    
+    // Apply presets (light, color, era)
+    if (frame.presets) {
+      if (frame.presets.light && elements.genLight) {
+        elements.genLight.value = frame.presets.light;
+      }
+      if (frame.presets.color && elements.genColor) {
+        elements.genColor.value = frame.presets.color;
+      }
+      if (frame.presets.era && elements.genEra) {
+        elements.genEra.value = frame.presets.era;
+      }
+    }
+    
+    // Note: aspectRatio, imageSize, emotion, location are NOT copied
+    // They can be different for each frame within the same style
+    
+    console.log('[CustomShoot] Style settings applied from reference');
+  }
+  
+  if (type === 'location') {
+    // For location lock, apply location-related settings
+    if (frame.locationId && elements.genLocation) {
+      elements.genLocation.value = frame.locationId;
+    }
+    
+    console.log('[CustomShoot] Location settings applied from reference');
   }
 }
 
@@ -1035,6 +1089,9 @@ async function setAsLocationRef(imageId) {
       state.generatedFrames.forEach(f => {
         f.isLocationReference = f.id === imageId;
       });
+      
+      // Apply location settings from reference frame to UI
+      applySettingsFromFrame(image, 'location');
       
       updateLockUI();
       renderGeneratedHistory();
