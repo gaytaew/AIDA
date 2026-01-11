@@ -23,31 +23,43 @@ import { generateImageId } from '../schema/customShoot.js';
 
 /**
  * Build Style Lock prompt block
+ * 
+ * IMPORTANT: Style Lock copies VISUAL PROCESSING only, not composition or pose.
+ * The model should be in a DIFFERENT position/pose in each frame.
  */
 function buildStyleLockPrompt(lock) {
   if (!lock || !lock.enabled) return null;
   
   if (lock.mode === 'strict') {
-    return `STYLE REFERENCE LOCK (CRITICAL — HIGHEST PRIORITY):
-Match the EXACT visual style of the provided style reference image:
-- Same color grading, color temperature, and color cast
-- Same lighting character, shadow behavior, and highlight treatment
-- Same texture rendering for skin and materials
-- Same film/digital aesthetic and grain structure
-- Same contrast and dynamic range
-- Same post-process philosophy
+    return `STYLE REFERENCE — VISUAL PROCESSING ONLY (CRITICAL):
+Copy the VISUAL PROCESSING from the style reference image:
+✓ COPY: Color grading, color temperature, color cast
+✓ COPY: Lighting quality (harsh/soft), shadow character, highlight behavior
+✓ COPY: Skin texture rendering, material rendering
+✓ COPY: Film/digital aesthetic, grain structure, contrast
+✓ COPY: Post-processing philosophy (matte, contrasty, faded, etc.)
 
-This is NOT a suggestion — the visual style must be IDENTICAL.
-All frames must look like part of the SAME photo session with the SAME camera and SAME settings.`;
+⚠️ DO NOT COPY — MUST BE DIFFERENT:
+✗ Model pose — MUST follow the NEW pose sketch/description
+✗ Model position in frame — create NEW composition
+✗ Camera angle — can be different
+✗ Framing/cropping — can be different
+✗ Background composition — can show different parts of location
+
+The reference is for COLOR GRADING and LIGHTING FEEL only.
+Generate a COMPLETELY NEW SHOT with the SAME VISUAL TREATMENT.
+Do NOT recreate the reference image — create a NEW image that looks like it was shot in the SAME SESSION.`;
   }
   
   if (lock.mode === 'soft') {
     return `STYLE REFERENCE (SOFT MATCH):
-Use the provided style reference as inspiration:
+Use the style reference for visual inspiration:
 - Similar color temperature and overall mood
-- Similar lighting direction and quality
-- Similar texture treatment
-Allow natural variation — same "family" of images, not exact clones.`;
+- Similar lighting direction and quality  
+- Similar texture treatment and contrast
+
+Allow natural variation — same "family" of images.
+The pose, composition, and framing should be COMPLETELY NEW.`;
   }
   
   return null;
@@ -55,28 +67,42 @@ Allow natural variation — same "family" of images, not exact clones.`;
 
 /**
  * Build Location Lock prompt block
+ * 
+ * IMPORTANT: Location Lock copies the ENVIRONMENT, not the model's position.
+ * The model can be ANYWHERE in that location — sitting, standing, different spots.
  */
 function buildLocationLockPrompt(lock) {
   if (!lock || !lock.enabled) return null;
   
   if (lock.mode === 'strict') {
-    return `LOCATION REFERENCE LOCK (CRITICAL):
-Match the EXACT location/background from the provided location reference:
-- Same physical space, walls, surfaces, textures
-- Same environmental elements and props
-- Same depth and spatial arrangement
-- Same lighting environment
+    return `LOCATION REFERENCE — ENVIRONMENT ONLY (CRITICAL):
+Use the SAME PHYSICAL SPACE from the location reference:
+✓ COPY: The room/space architecture, layout, walls
+✓ COPY: Furniture, props, decorative elements visible in the space
+✓ COPY: Materials, textures, colors of the environment
+✓ COPY: General lighting environment (natural/artificial, warm/cool)
+✓ COPY: The "vibe" and atmosphere of the place
 
-Only MODEL POSE and FRAMING may change. The PLACE stays IDENTICAL.`;
+⚠️ DO NOT COPY — MODEL POSITION IS FREE:
+✗ The model does NOT need to be in the same spot
+✗ The model does NOT need to interact with the same furniture
+✗ If reference shows model on sofa — new shot can show model STANDING in the same room
+✗ Camera can show DIFFERENT ANGLE of the same space
+✗ Model can be in FOREGROUND, BACKGROUND, or different area of the room
+
+The reference defines the SPACE, not where the model stands.
+Generate a shot in the SAME LOCATION but with the model in a DIFFERENT POSITION.
+Follow the NEW pose sketch for model positioning.`;
   }
   
   if (lock.mode === 'soft') {
     return `LOCATION REFERENCE (SOFT MATCH):
-Use the provided location as inspiration:
-- Similar type of environment (indoor/outdoor)
+Use a similar type of environment:
+- Same general vibe (cozy interior, urban exterior, etc.)
 - Similar materials and color palette
 - Similar mood and atmosphere
-Allow variation in specific details.`;
+
+The specific space can be different. The model's position is completely free.`;
   }
   
   return null;
@@ -287,13 +313,18 @@ export function buildCustomShootPrompt({
   // Add Style Lock
   if (locks?.style?.enabled && hasStyleRef) {
     promptJson.styleLock = buildStyleLockPrompt(locks.style);
-    promptJson.hardRules.push('STYLE LOCK IS ACTIVE — match the style reference image exactly.');
+    promptJson.hardRules.push('STYLE LOCK: Copy visual processing (colors, lighting, texture) from style reference — but create a NEW composition with NEW pose.');
   }
   
   // Add Location Lock
   if (locks?.location?.enabled && hasLocationRef) {
     promptJson.locationLock = buildLocationLockPrompt(locks.location);
-    promptJson.hardRules.push('LOCATION LOCK IS ACTIVE — match the location reference exactly.');
+    promptJson.hardRules.push('LOCATION LOCK: Use the same physical space/room — but the model can be ANYWHERE in that space, in any position.');
+  }
+  
+  // Add anti-duplication rule when locks are active
+  if ((locks?.style?.enabled && hasStyleRef) || (locks?.location?.enabled && hasLocationRef)) {
+    promptJson.hardRules.push('CRITICAL: Do NOT recreate the reference image. Generate a COMPLETELY NEW and UNIQUE shot. The pose, composition, and model position MUST be different from the reference.');
   }
   
   // Add Frame/Pose
