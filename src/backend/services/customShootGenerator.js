@@ -201,7 +201,13 @@ export function buildCustomShootPrompt({
   hasIdentityRefs = false,
   hasClothingRefs = false,
   hasStyleRef = false,
-  hasLocationRef = false
+  hasLocationRef = false,
+  hasPoseSketch = false,
+  // Artistic controls (same as shootGenerator)
+  captureStyle = null,
+  cameraSignature = null,
+  skinTexture = null,
+  poseAdherence = 2
 }) {
   const promptJson = {
     format: 'aida_custom_shoot_v1',
@@ -341,6 +347,71 @@ export function buildCustomShootPrompt({
     promptJson.antiAi = buildAntiAiPrompt(customUniverse.antiAi);
   }
   
+  // Add Capture Style (same as shootGenerator)
+  if (captureStyle && captureStyle !== 'none') {
+    const preset = CAPTURE_STYLE_PRESETS[captureStyle];
+    if (preset) {
+      promptJson.captureStyle = {
+        preset: captureStyle,
+        label: preset.label,
+        prompt: preset.prompt
+      };
+    }
+  }
+  
+  // Add Camera Signature (same as shootGenerator)
+  if (cameraSignature && cameraSignature !== 'none') {
+    const preset = CAMERA_SIGNATURE_PRESETS[cameraSignature];
+    if (preset) {
+      promptJson.cameraSignature = {
+        preset: cameraSignature,
+        label: preset.label,
+        prompt: preset.prompt
+      };
+    }
+  }
+  
+  // Add Skin Texture (same as shootGenerator)
+  if (skinTexture && skinTexture !== 'none') {
+    const preset = SKIN_TEXTURE_PRESETS[skinTexture];
+    if (preset) {
+      promptJson.skinTexture = {
+        preset: skinTexture,
+        label: preset.label,
+        prompt: preset.prompt
+      };
+    }
+  }
+  
+  // Add Pose Reference if sketch is provided (same as shootGenerator)
+  if (hasPoseSketch) {
+    const adherenceLevel = poseAdherence || 2;
+    const adherenceLabels = {
+      1: 'free',
+      2: 'loose',
+      3: 'close',
+      4: 'exact'
+    };
+    const adherenceInstructions = {
+      1: 'POSE TYPE ONLY — DO NOT copy the exact pose from sketch. Only match the general category.',
+      2: 'GENERAL DIRECTION ONLY — create a similar vibe, not a copy. Match roughly 30-40% of the pose.',
+      3: 'FOLLOW CLOSELY — match about 70-80% of the pose. Main body line should match the sketch.',
+      4: 'STRICT MATCH — replicate the pose with maximum precision (90-100%). Every limb angle matters.'
+    };
+    
+    promptJson.poseReference = {
+      hasSketch: true,
+      adherenceLevel,
+      adherenceLabel: adherenceLabels[adherenceLevel],
+      rules: [
+        'A POSE SKETCH image is provided as reference.',
+        'The sketch shows ONLY pose — ignore any clothing, face details, or hair in it.',
+        `ADHERENCE LEVEL: ${adherenceLevel}/4 (${adherenceLabels[adherenceLevel].toUpperCase()})`,
+        adherenceInstructions[adherenceLevel]
+      ]
+    };
+  }
+  
   return promptJson;
 }
 
@@ -475,13 +546,19 @@ export async function generateCustomShootFrame({
   clothingImages = [],
   styleRefImage = null,
   locationRefImage = null,
+  poseSketchImage = null,
   frame = null,
   emotionId = null,
   extraPrompt = '',
   location = null,
   presets = null,
   aspectRatio = null,
-  imageSize = null
+  imageSize = null,
+  // Artistic controls (same as shootGenerator)
+  captureStyle = null,
+  cameraSignature = null,
+  skinTexture = null,
+  poseAdherence = 2
 }) {
   try {
     console.log('[CustomShootGenerator] Starting frame generation...');
@@ -524,7 +601,13 @@ export async function generateCustomShootFrame({
       hasIdentityRefs: identityImages.length > 0,
       hasClothingRefs: clothingImages.length > 0,
       hasStyleRef: !!styleRefImage,
-      hasLocationRef: !!locationRefImage
+      hasLocationRef: !!locationRefImage,
+      hasPoseSketch: !!poseSketchImage,
+      // Artistic controls
+      captureStyle,
+      cameraSignature,
+      skinTexture,
+      poseAdherence
     });
     
     // Send as JSON (same as shootGenerator)
@@ -568,6 +651,12 @@ export async function generateCustomShootFrame({
         referenceImages.push(clothingBoard);
         console.log('[CustomShootGenerator] Clothing board added');
       }
+    }
+    
+    // 5. Pose sketch (same as shootGenerator)
+    if (poseSketchImage) {
+      referenceImages.push(poseSketchImage);
+      console.log('[CustomShootGenerator] Pose sketch added');
     }
     
     console.log(`[CustomShootGenerator] Total reference images: ${referenceImages.length}`);

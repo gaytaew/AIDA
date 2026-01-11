@@ -254,6 +254,11 @@ router.post('/:id/generate', async (req, res) => {
       aspectRatio,
       imageSize,
       presets,
+      // Additional artistic controls (same as shoot-composer)
+      captureStyle,
+      cameraSignature,
+      skinTexture,
+      poseAdherence,
       identityImages: reqIdentityImages,
       clothingImages: reqClothingImages
     } = req.body;
@@ -265,6 +270,10 @@ router.post('/:id/generate', async (req, res) => {
       aspectRatio, 
       imageSize, 
       presets,
+      captureStyle,
+      cameraSignature,
+      skinTexture,
+      poseAdherence,
       frame: frame?.label || frame?.id || null,
       extraPrompt: extraPrompt?.slice(0, 50) 
     });
@@ -345,6 +354,20 @@ router.post('/:id/generate', async (req, res) => {
       }
     }
     
+    // Load pose sketch from frame (same as shootRoutes)
+    let poseSketchImage = null;
+    const effectiveFrame = frame || shoot.currentFrame;
+    if (effectiveFrame) {
+      const sketchUrl = effectiveFrame.sketchUrl || effectiveFrame.sketchAsset?.url;
+      if (sketchUrl && sketchUrl.startsWith('data:')) {
+        const match = sketchUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          poseSketchImage = { mimeType: match[1], base64: match[2] };
+          console.log('[CustomShootRoutes] Pose sketch loaded');
+        }
+      }
+    }
+    
     // Build collages for refs preview (same as shootRoutes)
     const { buildCollage } = await import('../utils/imageCollage.js');
     
@@ -368,13 +391,19 @@ router.post('/:id/generate', async (req, res) => {
       clothingImages,
       styleRefImage,
       locationRefImage,
-      frame: frame || shoot.currentFrame,
+      poseSketchImage,
+      frame: effectiveFrame,
       emotionId: emotionId || shoot.currentEmotion,
       extraPrompt: extraPrompt || shoot.extraPrompt || '',
       location,
       presets,
       aspectRatio,
-      imageSize
+      imageSize,
+      // Artistic controls
+      captureStyle,
+      cameraSignature,
+      skinTexture,
+      poseAdherence: parseInt(poseAdherence) || 2
     });
     
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);
@@ -399,6 +428,14 @@ router.post('/:id/generate', async (req, res) => {
         previewUrl: `data:${clothingCollage.mimeType};base64,${clothingCollage.base64}`
       });
     }
+    // Pose sketch (same as shootRoutes)
+    if (poseSketchImage) {
+      refs.push({
+        kind: 'pose_sketch',
+        label: 'Эскиз позы',
+        previewUrl: `data:${poseSketchImage.mimeType};base64,${poseSketchImage.base64}`
+      });
+    }
     if (styleRefImage) {
       refs.push({
         kind: 'style_lock',
@@ -415,20 +452,25 @@ router.post('/:id/generate', async (req, res) => {
     }
     
     // Get frame and location labels
-    const frameLabel = frame?.label || shoot.currentFrame?.label || 'По умолчанию';
+    const frameLabel = effectiveFrame?.label || 'По умолчанию';
     const locationLabel = location?.label || null;
     
-    // Save generated image to shoot history with full params
+    // Save generated image to shoot history with full params (same as shootRoutes)
     const imageData = {
       id: generateImageId(),
       imageUrl: result.image.dataUrl || `data:${result.image.mimeType};base64,${result.image.base64}`,
-      frameId: frame?.id || null,
+      frameId: effectiveFrame?.id || null,
       frameLabel,
       locationId: locationId || null,
       locationLabel,
       emotionId: emotionId || null,
       aspectRatio: aspectRatio || '3:4',
       imageSize: imageSize || '2K',
+      // Artistic controls (same as shootRoutes)
+      captureStyle: captureStyle || 'none',
+      cameraSignature: cameraSignature || 'none',
+      skinTexture: skinTexture || 'none',
+      poseAdherence: parseInt(poseAdherence) || 2,
       extraPrompt: extraPrompt || '',
       presets: presets || null,
       prompt: result.prompt,

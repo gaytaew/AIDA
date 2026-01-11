@@ -1117,13 +1117,13 @@ async function generateFrame(frameId) {
   btn.disabled = true;
   btn.textContent = '⏳ Генерация...';
   
-  // Get settings
+  // Get settings (same structure as shoot-composer)
   const params = {
     frameId,
     locationId: elements.genLocation.value || null,
     emotionId: elements.genEmotion.value || null,
     extraPrompt: elements.genExtraPrompt.value.trim(),
-    // Universe settings
+    // Universe settings (quick presets)
     presets: {
       camera: elements.genCameraSignature.value,
       capture: elements.genCaptureStyle.value,
@@ -1132,8 +1132,14 @@ async function generateFrame(frameId) {
       texture: elements.genSkinTexture.value,
       era: elements.genEra.value
     },
+    // Image format
     aspectRatio: elements.genAspectRatio.value,
-    imageSize: elements.genImageSize.value
+    imageSize: elements.genImageSize.value,
+    // Artistic controls (same as shoot-composer)
+    captureStyle: elements.genCaptureStyle.value,
+    cameraSignature: elements.genCameraSignature.value,
+    skinTexture: elements.genSkinTexture.value,
+    poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2
   };
   
   // Update shoot with current presets first
@@ -1163,7 +1169,12 @@ async function generateFrame(frameId) {
         locationId: params.locationId,
         aspectRatio: params.aspectRatio,
         imageSize: params.imageSize,
-        presets: params.presets
+        presets: params.presets,
+        // Artistic controls (same as shoot-composer)
+        captureStyle: params.captureStyle,
+        cameraSignature: params.cameraSignature,
+        skinTexture: params.skinTexture,
+        poseAdherence: params.poseAdherence
       })
     });
     
@@ -1187,6 +1198,11 @@ async function generateFrame(frameId) {
           emotionId: data.image.emotionId || null,
           aspectRatio: data.image.aspectRatio || '3:4',
           imageSize: data.image.imageSize || '2K',
+          // Artistic controls (same as shoot-composer)
+          captureStyle: data.image.captureStyle || 'none',
+          cameraSignature: data.image.cameraSignature || 'none',
+          skinTexture: data.image.skinTexture || 'none',
+          poseAdherence: data.image.poseAdherence || 2,
           extraPrompt: data.image.extraPrompt || '',
           presets: data.image.presets || null,
           prompt: data.prompt || null,
@@ -1470,19 +1486,71 @@ function fileToDataUrl(file) {
   });
 }
 
-// Labels for settings display
+// Labels for settings display (same as shoot-composer)
 const ASPECT_RATIO_LABELS = {
-  '1:1': '1:1 Квадрат',
-  '3:4': '3:4 Портрет',
-  '4:3': '4:3 Альбом',
-  '9:16': '9:16 Сторис',
-  '16:9': '16:9 Широкий'
+  '3:4': '📱 3:4 (Портрет)',
+  '4:3': '🖼️ 4:3 (Пейзаж)',
+  '1:1': '⬜ 1:1 (Квадрат)',
+  '9:16': '📲 9:16 (Сторис)',
+  '16:9': '🎬 16:9 (Кино)'
 };
 
 const IMAGE_SIZE_LABELS = {
   '1K': '1K (быстро)',
   '2K': '2K (стандарт)',
   '4K': '4K (качество)'
+};
+
+const CAPTURE_STYLE_LABELS = {
+  'none': 'Из вселенной',
+  'editorial_posed': 'Editorial постановка',
+  'editorial_relaxed': 'Editorial расслабленный',
+  'candid_aware': 'Естественный, в курсе камеры',
+  'candid_unaware': 'Candid — не видит камеру',
+  'caught_mid_blink': 'На полузакрытых глазах',
+  'paparazzi_telephoto': 'Папарацци / телефото',
+  'harsh_flash_snapshot': 'Жёсткая вспышка',
+  'motion_blur_action': 'Размытие движения',
+  'through_window': 'Через стекло',
+  'mirror_reflection': 'Отражение в зеркале',
+  'dutch_angle_tension': 'Голландский угол',
+  'worms_eye_power': 'Ракурс снизу',
+  'overhead_graphic': 'Вид сверху'
+};
+
+const CAMERA_SIGNATURE_LABELS = {
+  'none': 'Из вселенной',
+  'polaroid_sx70': 'Polaroid SX-70',
+  'contax_t2': 'Contax T2',
+  'hasselblad_500cm': 'Hasselblad 500C/M',
+  'canon_ae1': 'Canon AE-1',
+  'leica_m6': 'Leica M6',
+  'mamiya_rz67': 'Mamiya RZ67',
+  'yashica_t4': 'Yashica T4',
+  'disposable_flash': 'Одноразовая камера',
+  'holga_120': 'Holga 120',
+  'iphone_flash': 'iPhone со вспышкой',
+  'powershot_vlog': 'Canon PowerShot',
+  'ricoh_gr': 'Ricoh GR'
+};
+
+const SKIN_TEXTURE_LABELS = {
+  'none': 'Из вселенной',
+  'hyper_real': 'Гипер-реалистичная',
+  'natural_film': 'Естественная плёночная',
+  'flash_specular': 'Вспышка (блики)',
+  'matte_editorial': 'Матовая editorial',
+  'raw_unretouched': 'Сырая, без ретуши',
+  'sweaty_athletic': 'Спортивная / с испариной',
+  'golden_hour_glow': 'Золотой час',
+  'pale_porcelain': 'Фарфоровая бледность'
+};
+
+const POSE_ADHERENCE_LABELS = {
+  1: 'Свободно (только тип)',
+  2: 'Похоже (30-40%)',
+  3: 'Близко (70-80%)',
+  4: 'Точно (90-100%)'
 };
 
 function buildFrameSettingsHtml(frame) {
@@ -1498,17 +1566,34 @@ function buildFrameSettingsHtml(frame) {
     items.push(`<div><strong>⏱️ Время:</strong> ${frame.generationTime}s</div>`);
   }
   
-  // Presets (universe settings)
+  // Capture style (same as shoot-composer)
+  if (frame.captureStyle && frame.captureStyle !== 'none') {
+    items.push(`<div><strong>📷 Захват:</strong> ${CAPTURE_STYLE_LABELS[frame.captureStyle] || frame.captureStyle}</div>`);
+  }
+  
+  // Camera signature (same as shoot-composer)
+  if (frame.cameraSignature && frame.cameraSignature !== 'none') {
+    items.push(`<div><strong>📸 Камера:</strong> ${CAMERA_SIGNATURE_LABELS[frame.cameraSignature] || frame.cameraSignature}</div>`);
+  }
+  
+  // Skin texture (same as shoot-composer)
+  if (frame.skinTexture && frame.skinTexture !== 'none') {
+    items.push(`<div><strong>✨ Кожа:</strong> ${SKIN_TEXTURE_LABELS[frame.skinTexture] || frame.skinTexture}</div>`);
+  }
+  
+  // Pose adherence (same as shoot-composer)
+  if (frame.poseAdherence) {
+    items.push(`<div><strong>🎯 Поза:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}</div>`);
+  }
+  
+  // Presets (universe settings - unique to custom shoot)
   if (frame.presets) {
     const presetItems = [];
-    if (frame.presets.camera) presetItems.push(`Камера: ${frame.presets.camera}`);
-    if (frame.presets.capture) presetItems.push(`Захват: ${frame.presets.capture}`);
     if (frame.presets.light) presetItems.push(`Свет: ${frame.presets.light}`);
     if (frame.presets.color) presetItems.push(`Цвет: ${frame.presets.color}`);
-    if (frame.presets.texture) presetItems.push(`Текстура: ${frame.presets.texture}`);
     if (frame.presets.era) presetItems.push(`Эра: ${frame.presets.era}`);
     if (presetItems.length > 0) {
-      items.push(`<div><strong>🎨 Стиль:</strong><br><span style="font-size:10px;">${presetItems.join(', ')}</span></div>`);
+      items.push(`<div><strong>🎨 Стиль:</strong> <span style="font-size:10px;">${presetItems.join(', ')}</span></div>`);
     }
   }
   
