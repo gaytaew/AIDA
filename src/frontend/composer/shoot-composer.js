@@ -1576,8 +1576,8 @@ function renderGeneratedHistory() {
     
     return `
       <div class="selection-card generated-frame-card" data-frame-index="${idx}" style="cursor: default;">
-        <div class="selection-card-preview" style="aspect-ratio: 3/4;">
-          <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000;">
+        <div class="selection-card-preview btn-open-lightbox" data-frame-index="${idx}" style="aspect-ratio: 3/4; cursor: pointer;" title="Клик для просмотра">
+          <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000; pointer-events: none;">
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
           <div class="selection-card-title" style="margin: 0;">${escapeHtml(frame.frameLabel || 'Кадр')}</div>
@@ -1633,6 +1633,11 @@ function renderGeneratedHistory() {
 }
 
 function attachHistoryActionHandlers() {
+  // Open lightbox on image click
+  elements.imagesGallery.querySelectorAll('.btn-open-lightbox').forEach(btn => {
+    btn.addEventListener('click', () => openLightbox(parseInt(btn.dataset.frameIndex)));
+  });
+  
   // Regenerate buttons
   elements.imagesGallery.querySelectorAll('.btn-regenerate-from-history').forEach(btn => {
     btn.addEventListener('click', () => regenerateFromHistory(parseInt(btn.dataset.frameIndex)));
@@ -2258,9 +2263,153 @@ async function checkServerStatus() {
 // INIT
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+// LIGHTBOX FOR GENERATED IMAGES
+// ═══════════════════════════════════════════════════════════════
+
+const lightbox = {
+  overlay: null,
+  image: null,
+  info: null,
+  zoomHint: null,
+  prevBtn: null,
+  nextBtn: null,
+  currentIndex: 0,
+  zoomLevel: 1,  // 1, 2, or 3
+  images: []     // Array of image URLs
+};
+
+function initLightbox() {
+  lightbox.overlay = document.getElementById('lightbox');
+  lightbox.image = document.getElementById('lightbox-image');
+  lightbox.info = document.getElementById('lightbox-info');
+  lightbox.zoomHint = document.getElementById('lightbox-zoom-hint');
+  lightbox.prevBtn = document.getElementById('lightbox-prev');
+  lightbox.nextBtn = document.getElementById('lightbox-next');
+  
+  if (!lightbox.overlay) return;
+  
+  // Close button
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  
+  // Navigation buttons
+  lightbox.prevBtn.addEventListener('click', () => navigateLightbox(-1));
+  lightbox.nextBtn.addEventListener('click', () => navigateLightbox(1));
+  
+  // Click on image to zoom
+  lightbox.image.addEventListener('click', toggleZoom);
+  
+  // Click on overlay to close (not on image)
+  lightbox.overlay.addEventListener('click', (e) => {
+    if (e.target === lightbox.overlay) {
+      closeLightbox();
+    }
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (!lightbox.overlay.classList.contains('active')) return;
+    
+    switch (e.key) {
+      case 'Escape':
+        closeLightbox();
+        break;
+      case 'ArrowLeft':
+        navigateLightbox(-1);
+        break;
+      case 'ArrowRight':
+        navigateLightbox(1);
+        break;
+      case ' ':
+      case 'Enter':
+        toggleZoom();
+        e.preventDefault();
+        break;
+    }
+  });
+}
+
+function openLightbox(imageIndex) {
+  // Get only ready images (with imageUrl)
+  lightbox.images = state.generatedFrames
+    .filter(f => f.imageUrl && f.status !== 'generating' && f.status !== 'error')
+    .map(f => ({
+      url: f.imageUrl,
+      label: f.frameLabel || 'Кадр'
+    }));
+  
+  if (lightbox.images.length === 0) return;
+  
+  // Find the actual index in filtered array
+  const readyFrames = state.generatedFrames.filter(f => f.imageUrl && f.status !== 'generating' && f.status !== 'error');
+  const actualIndex = readyFrames.findIndex((_, idx) => {
+    const originalIdx = state.generatedFrames.indexOf(readyFrames[idx]);
+    return originalIdx === imageIndex;
+  });
+  
+  lightbox.currentIndex = actualIndex >= 0 ? actualIndex : 0;
+  lightbox.zoomLevel = 1;
+  
+  updateLightboxImage();
+  lightbox.overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  lightbox.overlay.classList.remove('active');
+  document.body.style.overflow = '';
+  lightbox.zoomLevel = 1;
+}
+
+function navigateLightbox(direction) {
+  lightbox.currentIndex += direction;
+  
+  // Clamp to valid range
+  if (lightbox.currentIndex < 0) lightbox.currentIndex = 0;
+  if (lightbox.currentIndex >= lightbox.images.length) lightbox.currentIndex = lightbox.images.length - 1;
+  
+  // Reset zoom when navigating
+  lightbox.zoomLevel = 1;
+  
+  updateLightboxImage();
+}
+
+function toggleZoom() {
+  lightbox.zoomLevel++;
+  if (lightbox.zoomLevel > 3) lightbox.zoomLevel = 1;
+  
+  updateLightboxZoom();
+}
+
+function updateLightboxImage() {
+  const img = lightbox.images[lightbox.currentIndex];
+  if (!img) return;
+  
+  lightbox.image.src = img.url;
+  lightbox.info.textContent = `${img.label} — ${lightbox.currentIndex + 1} / ${lightbox.images.length}`;
+  
+  // Update navigation buttons
+  lightbox.prevBtn.disabled = lightbox.currentIndex === 0;
+  lightbox.nextBtn.disabled = lightbox.currentIndex === lightbox.images.length - 1;
+  
+  updateLightboxZoom();
+}
+
+function updateLightboxZoom() {
+  // Update image class
+  lightbox.image.className = `lightbox-image zoomed-${lightbox.zoomLevel}x`;
+  
+  // Update hint
+  const zoomText = lightbox.zoomLevel === 3 
+    ? 'Клик для сброса (3x)' 
+    : `Клик для увеличения (${lightbox.zoomLevel}x → ${lightbox.zoomLevel + 1}x)`;
+  lightbox.zoomHint.textContent = zoomText;
+}
+
 async function init() {
   initElements();
   initEventListeners();
+  initLightbox();  // Initialize lightbox
   
   await checkServerStatus();
   

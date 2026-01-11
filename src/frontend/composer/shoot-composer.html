@@ -602,6 +602,125 @@
       transform: translateY(-2px);
       box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
     }
+    
+    /* Lightbox for generated images */
+    .lightbox-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+    
+    .lightbox-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .lightbox-container {
+      position: relative;
+      max-width: 95vw;
+      max-height: 95vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .lightbox-image {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      cursor: zoom-in;
+      transition: transform 0.2s;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    
+    .lightbox-image.zoomed-1x { transform: scale(1); cursor: zoom-in; }
+    .lightbox-image.zoomed-2x { transform: scale(2); cursor: zoom-in; }
+    .lightbox-image.zoomed-3x { transform: scale(3); cursor: zoom-out; }
+    
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+      z-index: 10001;
+    }
+    
+    .lightbox-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .lightbox-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 56px;
+      height: 56px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+      transition: background 0.2s;
+      z-index: 10001;
+    }
+    
+    .lightbox-nav:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .lightbox-nav.prev { left: 20px; }
+    .lightbox-nav.next { right: 20px; }
+    
+    .lightbox-nav:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    .lightbox-info {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      z-index: 10001;
+    }
+    
+    .lightbox-zoom-hint {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 16px;
+      font-size: 12px;
+      z-index: 10001;
+    }
   </style>
 </head>
 <body>
@@ -1107,6 +1226,18 @@
         </div>
       </div>
     </main>
+  </div>
+  
+  <!-- Lightbox for generated images -->
+  <div class="lightbox-overlay" id="lightbox">
+    <button class="lightbox-close" id="lightbox-close">✕</button>
+    <button class="lightbox-nav prev" id="lightbox-prev">‹</button>
+    <button class="lightbox-nav next" id="lightbox-next">›</button>
+    <div class="lightbox-container">
+      <img class="lightbox-image zoomed-1x" id="lightbox-image" src="" alt="Preview">
+    </div>
+    <div class="lightbox-zoom-hint" id="lightbox-zoom-hint">Клик для увеличения (1x)</div>
+    <div class="lightbox-info" id="lightbox-info">1 / 1</div>
   </div>
 
   <script src="shoot-composer.js"></script>
