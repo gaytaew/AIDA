@@ -1096,6 +1096,7 @@ async function loadGeneratedImages() {
     const data = await res.json();
     
     if (data.ok) {
+      // Data comes sorted from server (newest first), keep that order
       state.generatedFrames = (data.data || []).map(img => ({
         id: img.id,
         imageUrl: img.imageUrl,
@@ -1104,7 +1105,10 @@ async function loadGeneratedImages() {
         locationId: img.locationId,
         locationLabel: img.locationLabel,
         emotionId: img.emotionId,
-        posingStyle: img.posingStyle,
+        // Artistic controls
+        captureStyle: img.captureStyle || 'none',
+        cameraSignature: img.cameraSignature || 'none',
+        skinTexture: img.skinTexture || 'none',
         poseAdherence: img.poseAdherence,
         extraPrompt: img.extraPrompt,
         prompt: img.prompt,
@@ -1499,9 +1503,8 @@ function renderGeneratedHistory() {
     return;
   }
   
-  // Render in reverse order (newest first)
-  elements.imagesGallery.innerHTML = [...state.generatedFrames].reverse().map((frame, reverseIdx) => {
-    const idx = state.generatedFrames.length - 1 - reverseIdx;
+  // Render frames (newest first - already sorted from server, new ones added to beginning)
+  elements.imagesGallery.innerHTML = state.generatedFrames.map((frame, idx) => {
     const timestamp = frame.timestamp ? new Date(frame.timestamp).toLocaleTimeString() : '';
     
     // Check if this is a generating placeholder
@@ -1689,11 +1692,12 @@ async function upscaleFromHistory(frameIndex) {
     const data = await res.json();
     
     if (data.ok && data.data) {
-      // Add upscaled as NEW frame in history
-      state.generatedFrames.push({
+      // Add upscaled as NEW frame in history (at beginning)
+      state.generatedFrames.unshift({
         ...frame,
+        id: `upscaled_${Date.now()}`,  // New ID for upscaled version
         imageUrl: data.data.imageUrl,
-        frameLabel: (frame.frameLabel || 'Кадр') + ' (2x)',
+        frameLabel: (frame.frameLabel || 'Кадр') + ' (4K)',
         timestamp: new Date().toISOString()
       });
       renderGeneratedHistory();
@@ -1770,7 +1774,8 @@ async function generateOneFrame() {
     timestamp: new Date().toISOString()
   };
   
-  state.generatedFrames.push(placeholderFrame);
+  // Add to beginning (newest first)
+  state.generatedFrames.unshift(placeholderFrame);
   renderGeneratedHistory();
   
   // Find frame index if a frame from shoot is selected (for backward compat)
@@ -2269,6 +2274,7 @@ async function checkServerStatus() {
 
 const lightbox = {
   overlay: null,
+  container: null,
   image: null,
   info: null,
   zoomHint: null,
@@ -2276,11 +2282,18 @@ const lightbox = {
   nextBtn: null,
   currentIndex: 0,
   zoomLevel: 1,  // 1, 2, or 3
-  images: []     // Array of image URLs
+  images: [],    // Array of image URLs
+  // Drag state
+  isDragging: false,
+  dragStartX: 0,
+  dragStartY: 0,
+  scrollStartX: 0,
+  scrollStartY: 0
 };
 
 function initLightbox() {
   lightbox.overlay = document.getElementById('lightbox');
+  lightbox.container = document.querySelector('.lightbox-container');
   lightbox.image = document.getElementById('lightbox-image');
   lightbox.info = document.getElementById('lightbox-info');
   lightbox.zoomHint = document.getElementById('lightbox-zoom-hint');
@@ -2297,9 +2310,36 @@ function initLightbox() {
   lightbox.nextBtn.addEventListener('click', () => navigateLightbox(1));
   
   // Click on image to zoom
-  lightbox.image.addEventListener('click', toggleZoom);
+  lightbox.image.addEventListener('click', (e) => {
+    // Don't zoom if we just finished dragging
+    if (lightbox.wasDragging) {
+      lightbox.wasDragging = false;
+      return;
+    }
+    toggleZoom();
+  });
   
-  // Click on overlay to close (not on image)
+  // Drag to pan when zoomed
+  lightbox.container.addEventListener('mousedown', startDrag);
+  lightbox.container.addEventListener('mousemove', onDrag);
+  lightbox.container.addEventListener('mouseup', endDrag);
+  lightbox.container.addEventListener('mouseleave', endDrag);
+  
+  // Touch support for mobile
+  lightbox.container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      startDrag({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+    }
+  });
+  lightbox.container.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1 && lightbox.isDragging) {
+      onDrag({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+      e.preventDefault();
+    }
+  });
+  lightbox.container.addEventListener('touchend', endDrag);
+  
+  // Click on overlay to close (not on image or container)
   lightbox.overlay.addEventListener('click', (e) => {
     if (e.target === lightbox.overlay) {
       closeLightbox();
@@ -2327,6 +2367,41 @@ function initLightbox() {
         break;
     }
   });
+}
+
+function startDrag(e) {
+  // Only drag when zoomed
+  if (lightbox.zoomLevel === 1) return;
+  
+  lightbox.isDragging = true;
+  lightbox.dragStartX = e.clientX;
+  lightbox.dragStartY = e.clientY;
+  lightbox.scrollStartX = lightbox.container.scrollLeft;
+  lightbox.scrollStartY = lightbox.container.scrollTop;
+  lightbox.container.classList.add('dragging');
+}
+
+function onDrag(e) {
+  if (!lightbox.isDragging) return;
+  
+  const dx = e.clientX - lightbox.dragStartX;
+  const dy = e.clientY - lightbox.dragStartY;
+  
+  lightbox.container.scrollLeft = lightbox.scrollStartX - dx;
+  lightbox.container.scrollTop = lightbox.scrollStartY - dy;
+}
+
+function endDrag() {
+  if (lightbox.isDragging) {
+    // Mark that we were dragging to prevent zoom toggle
+    const movedX = Math.abs(lightbox.container.scrollLeft - lightbox.scrollStartX);
+    const movedY = Math.abs(lightbox.container.scrollTop - lightbox.scrollStartY);
+    if (movedX > 5 || movedY > 5) {
+      lightbox.wasDragging = true;
+    }
+  }
+  lightbox.isDragging = false;
+  lightbox.container.classList.remove('dragging');
 }
 
 function openLightbox(imageIndex) {
@@ -2399,10 +2474,29 @@ function updateLightboxZoom() {
   // Update image class
   lightbox.image.className = `lightbox-image zoomed-${lightbox.zoomLevel}x`;
   
+  // Update container class for drag cursor
+  if (lightbox.zoomLevel > 1) {
+    lightbox.container.classList.add('zoomed');
+    // Center the scroll position when first zooming in
+    setTimeout(() => {
+      lightbox.container.scrollLeft = (lightbox.container.scrollWidth - lightbox.container.clientWidth) / 2;
+      lightbox.container.scrollTop = (lightbox.container.scrollHeight - lightbox.container.clientHeight) / 2;
+    }, 10);
+  } else {
+    lightbox.container.classList.remove('zoomed');
+    lightbox.container.scrollLeft = 0;
+    lightbox.container.scrollTop = 0;
+  }
+  
   // Update hint
-  const zoomText = lightbox.zoomLevel === 3 
-    ? 'Клик для сброса (3x)' 
-    : `Клик для увеличения (${lightbox.zoomLevel}x → ${lightbox.zoomLevel + 1}x)`;
+  let zoomText;
+  if (lightbox.zoomLevel === 1) {
+    zoomText = 'Клик для увеличения (1x → 2x)';
+  } else if (lightbox.zoomLevel === 2) {
+    zoomText = 'Клик для увеличения (2x → 3x) • Перетащи для перемещения';
+  } else {
+    zoomText = 'Клик для сброса (3x) • Перетащи для перемещения';
+  }
   lightbox.zoomHint.textContent = zoomText;
 }
 

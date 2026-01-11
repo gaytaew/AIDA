@@ -480,7 +480,10 @@ export async function addGeneratedImageToShoot(shootId, imageData) {
     locationId: imageData.locationId || null,
     locationLabel: imageData.locationLabel || null,
     emotionId: imageData.emotionId || null,
-    posingStyle: imageData.posingStyle || 2,
+    // Artistic controls (new)
+    captureStyle: imageData.captureStyle || 'none',
+    cameraSignature: imageData.cameraSignature || 'none',
+    skinTexture: imageData.skinTexture || 'none',
     poseAdherence: imageData.poseAdherence || 2,
     extraPrompt: imageData.extraPrompt || '',
     prompt: imageData.prompt || null,
