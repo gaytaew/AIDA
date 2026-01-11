@@ -345,6 +345,22 @@ router.post('/:id/generate', async (req, res) => {
       }
     }
     
+    // Build collages for refs preview (same as shootRoutes)
+    const { buildCollage } = await import('../utils/imageCollage.js');
+    
+    let identityCollage = null;
+    let clothingCollage = null;
+    
+    if (identityImages.length > 0) {
+      identityCollage = await buildCollage(identityImages, { maxSize: 512, maxCols: 3, jpegQuality: 85 });
+    }
+    if (clothingImages.length > 0) {
+      clothingCollage = await buildCollage(clothingImages, { maxSize: 512, maxCols: 3, jpegQuality: 85 });
+    }
+    
+    // Track generation time
+    const genStartTime = Date.now();
+    
     // Generate
     const result = await generateCustomShootFrame({
       shoot,
@@ -361,25 +377,64 @@ router.post('/:id/generate', async (req, res) => {
       imageSize
     });
     
+    const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);
+    
     if (!result.ok) {
       return res.status(500).json({ ok: false, error: result.error });
     }
     
-    // Build refs summary for UI
-    const refsSummary = {
-      identity: identityImages.length,
-      clothing: clothingImages.length,
-      styleRef: !!styleRefImage,
-      locationRef: !!locationRefImage
-    };
+    // Build refs with preview URLs (same format as shootRoutes)
+    const refs = [];
+    if (identityCollage) {
+      refs.push({
+        kind: 'identity',
+        label: `Модель (${identityImages.length} фото)`,
+        previewUrl: `data:${identityCollage.mimeType};base64,${identityCollage.base64}`
+      });
+    }
+    if (clothingCollage) {
+      refs.push({
+        kind: 'clothing',
+        label: `Одежда (${clothingImages.length} фото)`,
+        previewUrl: `data:${clothingCollage.mimeType};base64,${clothingCollage.base64}`
+      });
+    }
+    if (styleRefImage) {
+      refs.push({
+        kind: 'style_lock',
+        label: 'Style Lock',
+        previewUrl: `data:${styleRefImage.mimeType};base64,${styleRefImage.base64}`
+      });
+    }
+    if (locationRefImage) {
+      refs.push({
+        kind: 'location_lock',
+        label: 'Location Lock',
+        previewUrl: `data:${locationRefImage.mimeType};base64,${locationRefImage.base64}`
+      });
+    }
     
-    // Save generated image to shoot history
+    // Get frame and location labels
+    const frameLabel = frame?.label || shoot.currentFrame?.label || 'По умолчанию';
+    const locationLabel = location?.label || null;
+    
+    // Save generated image to shoot history with full params
     const imageData = {
       id: generateImageId(),
       imageUrl: result.image.dataUrl || `data:${result.image.mimeType};base64,${result.image.base64}`,
-      paramsSnapshot: result.paramsSnapshot,
+      frameId: frame?.id || null,
+      frameLabel,
+      locationId: locationId || null,
+      locationLabel,
+      emotionId: emotionId || null,
+      aspectRatio: aspectRatio || '3:4',
+      imageSize: imageSize || '2K',
+      extraPrompt: extraPrompt || '',
+      presets: presets || null,
+      prompt: result.prompt,
       promptJson: result.promptJson,
-      refsSummary
+      refs,
+      generationTime: genDuration
     };
     
     const savedImage = await addImageToShoot(shoot.id, imageData);
@@ -388,7 +443,7 @@ router.post('/:id/generate', async (req, res) => {
       ok: true,
       image: savedImage,
       prompt: result.prompt,
-      refsSummary
+      refs
     });
     
   } catch (err) {

@@ -1181,10 +1181,17 @@ async function generateFrame(frameId) {
           isLocationReference: false,
           status: 'ready',
           timestamp: new Date().toISOString(),
-          // Save prompt and params for debugging
+          // Full frame data (same as shoot-composer)
+          frameLabel: data.image.frameLabel || 'По умолчанию',
+          locationLabel: data.image.locationLabel || null,
+          emotionId: data.image.emotionId || null,
+          aspectRatio: data.image.aspectRatio || '3:4',
+          imageSize: data.image.imageSize || '2K',
+          extraPrompt: data.image.extraPrompt || '',
+          presets: data.image.presets || null,
           prompt: data.prompt || null,
-          paramsSnapshot: data.image.paramsSnapshot || null,
-          refsSummary: data.refsSummary || null
+          refs: data.refs || [],
+          generationTime: data.image.generationTime || null
         };
       }
       
@@ -1271,16 +1278,27 @@ function renderGeneratedHistory() {
     else if (isStyleRef) borderColor = '#F59E0B';
     else if (isLocationRef) borderColor = '#10B981';
     
-    // Format params for display
-    const paramsInfo = frame.paramsSnapshot ? Object.entries(frame.paramsSnapshot)
-      .filter(([k, v]) => v !== null && v !== undefined)
-      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
-      .join(', ') : 'Нет данных';
+    // Build refs HTML with images (same as shoot-composer)
+    const refs = frame.refs || [];
+    const refsHtml = refs.length > 0
+      ? `<div style="display:grid; grid-template-columns: repeat(${Math.min(refs.length, 3)}, 1fr); gap:8px; margin-top:8px;">
+          ${refs.map(r => {
+            const url = r.previewUrl || '';
+            const label = r.label || r.kind || 'ref';
+            if (!url) return '';
+            return `
+              <div style="text-align: center;">
+                <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${escapeHtml(label)}</div>
+                <img src="${url}" alt="${escapeHtml(label)}" 
+                     style="width:100%; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--color-border);">
+              </div>
+            `;
+          }).join('')}
+        </div>`
+      : '<div style="font-size:11px; color:var(--color-text-muted);">Нет референсов</div>';
     
-    // Format refs for display
-    const refsInfo = frame.refsSummary 
-      ? `Identity: ${frame.refsSummary.identity}, Clothing: ${frame.refsSummary.clothing}, Style Lock: ${frame.refsSummary.styleRef ? 'YES' : 'NO'}, Location Lock: ${frame.refsSummary.locationRef ? 'YES' : 'NO'}`
-      : 'Нет данных';
+    // Build settings HTML (same as shoot-composer)
+    const settingsHtml = buildFrameSettingsHtml(frame);
     
     return `
       <div class="selection-card generated-frame-card" style="cursor: default; position: relative; border-color: ${borderColor};">
@@ -1290,42 +1308,47 @@ function renderGeneratedHistory() {
           ${isLocationRef ? '<span class="history-lock-badge location">🏠</span>' : ''}
         </div>
         
-        <div class="selection-card-preview btn-open-lightbox" data-frame-index="${idx}" style="aspect-ratio: 3/4; cursor: pointer;">
-          <img src="${frame.imageUrl}" alt="Generated" style="object-fit: contain; background: #000;">
+        <div class="selection-card-preview btn-open-lightbox" data-frame-index="${idx}" style="aspect-ratio: 3/4; cursor: pointer;" title="Клик для просмотра">
+          <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000; pointer-events: none;">
         </div>
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <div class="selection-card-title" style="margin: 0;">${escapeHtml(frame.frameLabel || 'Кадр')}</div>
           <span style="font-size: 11px; color: var(--color-text-muted);">${timestamp}</span>
         </div>
+        ${frame.locationLabel ? `<div style="font-size: 12px; color: var(--color-text-muted);">📍 ${escapeHtml(frame.locationLabel)}</div>` : ''}
+        ${frame.generationTime ? `<div style="font-size: 11px; color: var(--color-text-muted);">⏱️ ${frame.generationTime}s</div>` : ''}
         
         <!-- Actions -->
-        <div style="display: flex; gap: 4px; margin-top: 8px;">
-          <a href="${frame.imageUrl}" download="custom-shoot-${idx}.png" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; flex: 1;">💾</a>
-          <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 6px 10px; font-size: 11px; flex: 1;" title="Style Lock">🎨</button>
-          <button class="btn btn-secondary btn-set-location-ref" data-image-id="${frame.id}" style="padding: 6px 10px; font-size: 11px; flex: 1;" title="Location Lock">🏠</button>
-          <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 6px 10px; font-size: 11px; color: var(--color-accent);">✕</button>
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 8px;">
+            <a href="${frame.imageUrl}" download="custom-shoot-${idx}.png" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾</a>
+            <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock">🎨</button>
+            <button class="btn btn-secondary btn-set-location-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Location Lock">🏠</button>
+            <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>
+          </div>
         </div>
         
-        <!-- Prompt debug block (collapsible) -->
-        ${frame.prompt ? `
-        <details style="margin-top: 8px; font-size: 11px;">
-          <summary style="cursor: pointer; color: var(--color-text-muted); padding: 4px 0; user-select: none;">📋 Промпт и референсы</summary>
-          <div style="background: var(--color-bg); padding: 8px; border-radius: 6px; margin-top: 4px; max-height: 300px; overflow-y: auto;">
-            <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border);">
-              <strong>📎 Референсы:</strong><br>
-              <span style="color: var(--color-text-muted); word-break: break-word;">${escapeHtml(refsInfo)}</span>
-            </div>
-            <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border);">
-              <strong>⚙️ Параметры:</strong><br>
-              <span style="color: var(--color-text-muted); word-break: break-word;">${escapeHtml(paramsInfo)}</span>
-            </div>
-            <div>
-              <strong>📝 JSON Промпт:</strong><br>
-              <pre style="white-space: pre-wrap; word-break: break-word; margin: 4px 0 0 0; font-family: monospace; font-size: 10px; color: var(--color-text-muted);">${escapeHtml(frame.prompt)}</pre>
-            </div>
+        <!-- Settings used for this frame -->
+        <details style="margin-top: 12px; width: 100%;">
+          <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
+            ⚙️ Настройки кадра
+          </summary>
+          <div style="margin-top: 10px; text-align: left; font-size: 11px; background: var(--color-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--color-border);">
+            ${settingsHtml}
           </div>
         </details>
-        ` : ''}
+        
+        <!-- Debug: Prompt + Refs -->
+        <details style="margin-top: 8px; width: 100%;">
+          <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
+            📋 Промпт и референсы
+          </summary>
+          <div style="margin-top: 10px; text-align: left;">
+            ${refsHtml}
+            <pre style="white-space: pre-wrap; word-break: break-word; background: var(--color-surface-elevated); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 150px; overflow: auto; font-size: 10px; font-family: monospace; border: 1px solid var(--color-border); margin-top: 10px;">${escapeHtml(frame.prompt || 'N/A')}</pre>
+          </div>
+        </details>
       </div>
     `;
   }).join('');
@@ -1445,6 +1468,67 @@ function fileToDataUrl(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+// Labels for settings display
+const ASPECT_RATIO_LABELS = {
+  '1:1': '1:1 Квадрат',
+  '3:4': '3:4 Портрет',
+  '4:3': '4:3 Альбом',
+  '9:16': '9:16 Сторис',
+  '16:9': '16:9 Широкий'
+};
+
+const IMAGE_SIZE_LABELS = {
+  '1K': '1K (быстро)',
+  '2K': '2K (стандарт)',
+  '4K': '4K (качество)'
+};
+
+function buildFrameSettingsHtml(frame) {
+  const items = [];
+  
+  // Image format (aspect ratio + size)
+  const aspectLabel = ASPECT_RATIO_LABELS[frame.aspectRatio] || frame.aspectRatio || '3:4';
+  const sizeLabel = IMAGE_SIZE_LABELS[frame.imageSize] || frame.imageSize || '2K';
+  items.push(`<div><strong>📐 Формат:</strong> ${aspectLabel}, ${sizeLabel}</div>`);
+  
+  // Generation time
+  if (frame.generationTime) {
+    items.push(`<div><strong>⏱️ Время:</strong> ${frame.generationTime}s</div>`);
+  }
+  
+  // Presets (universe settings)
+  if (frame.presets) {
+    const presetItems = [];
+    if (frame.presets.camera) presetItems.push(`Камера: ${frame.presets.camera}`);
+    if (frame.presets.capture) presetItems.push(`Захват: ${frame.presets.capture}`);
+    if (frame.presets.light) presetItems.push(`Свет: ${frame.presets.light}`);
+    if (frame.presets.color) presetItems.push(`Цвет: ${frame.presets.color}`);
+    if (frame.presets.texture) presetItems.push(`Текстура: ${frame.presets.texture}`);
+    if (frame.presets.era) presetItems.push(`Эра: ${frame.presets.era}`);
+    if (presetItems.length > 0) {
+      items.push(`<div><strong>🎨 Стиль:</strong><br><span style="font-size:10px;">${presetItems.join(', ')}</span></div>`);
+    }
+  }
+  
+  // Emotion
+  if (frame.emotionId) {
+    const emotion = state.emotions.find(e => e.id === frame.emotionId);
+    items.push(`<div><strong>😊 Эмоция:</strong> ${emotion?.label || frame.emotionId}</div>`);
+  }
+  
+  // Location
+  if (frame.locationLabel) {
+    items.push(`<div><strong>📍 Локация:</strong> ${escapeHtml(frame.locationLabel)}</div>`);
+  }
+  
+  // Extra prompt
+  if (frame.extraPrompt) {
+    items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em>${escapeHtml(frame.extraPrompt)}</em></div>`);
+  }
+  
+  return items.join('');
 }
 
 function escapeHtml(str) {
