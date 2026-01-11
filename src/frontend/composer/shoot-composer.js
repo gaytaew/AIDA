@@ -1269,16 +1269,12 @@ async function renderSummary() {
   if (elements.genEmotion) {
     elements.genEmotion.innerHTML = '<option value="">Нейтральное выражение</option>';
     
-    // Category labels in Russian
+    // Category labels in Russian (v3 - simplified)
     const categoryLabels = {
-      'joy': '😊 Радость',
-      'calm': '😌 Спокойствие',
-      'power': '💪 Сила',
-      'mystery': '🔮 Загадочность',
-      'playful': '😜 Игривость',
-      'sensual': '💋 Чувственность',
-      'melancholy': '😔 Меланхолия',
-      'intense': '🔥 Интенсивность'
+      'neutral': '😌 Спокойные',
+      'positive': '😊 Позитивные',
+      'intense': '🔥 Интенсивные',
+      'subtle': '🎭 Тонкие'
     };
     
     for (const category of state.emotionCategories) {
@@ -1575,6 +1571,9 @@ function renderGeneratedHistory() {
         </div>`
       : '';
     
+    // Build settings summary for this frame
+    const settingsHtml = buildFrameSettingsHtml(frame);
+    
     return `
       <div class="selection-card generated-frame-card" data-frame-index="${idx}" style="cursor: default;">
         <div class="selection-card-preview" style="aspect-ratio: 3/4;">
@@ -1605,8 +1604,18 @@ function renderGeneratedHistory() {
           </div>
         </div>
         
-        <!-- Debug: Prompt + Refs -->
+        <!-- Settings used for this frame -->
         <details style="margin-top: 12px; width: 100%;">
+          <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
+            ⚙️ Настройки кадра
+          </summary>
+          <div style="margin-top: 10px; text-align: left; font-size: 11px; background: var(--color-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--color-border);">
+            ${settingsHtml}
+          </div>
+        </details>
+        
+        <!-- Debug: Prompt + Refs -->
+        <details style="margin-top: 8px; width: 100%;">
           <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
             📋 Промпт и референсы
           </summary>
@@ -1800,11 +1809,17 @@ async function generateOneFrame() {
           frameLabel: data.data.frameLabel || frameLabel,
           locationId: locationId,
           locationLabel: locationLabel,
+          // Settings used for this frame
+          captureStyle: captureStyle,
+          cameraSignature: cameraSignature,
+          skinTexture: skinTexture,
+          poseAdherence: poseAdherence,
           emotionId: emotionId,
+          extraPrompt: extraPrompt,
+          // Debug info
           prompt: data.data.prompt,
           promptJson: data.data.promptJson,
           refs: data.data.refs,
-          extraPrompt: extraPrompt,
           status: 'ready',
           timestamp: new Date().toISOString()
         };
@@ -2124,6 +2139,100 @@ function readFileAsBase64(file) {
     console.log(`[Composer] Compressed ${file.name}: ${Math.round(file.size / 1024)}KB → ${Math.round(result.base64.length * 0.75 / 1024)}KB`);
     return result.base64;
   });
+}
+
+// Labels for settings display
+const CAPTURE_STYLE_LABELS = {
+  'none': 'Из вселенной',
+  'editorial_posed': 'Editorial постановка',
+  'editorial_relaxed': 'Editorial расслабленный',
+  'candid_aware': 'Естественный, в курсе камеры',
+  'candid_unaware': 'Candid — не видит камеру',
+  'caught_mid_blink': 'На полузакрытых глазах',
+  'paparazzi_telephoto': 'Папарацци / телефото',
+  'harsh_flash_snapshot': 'Жёсткая вспышка',
+  'motion_blur_action': 'Размытие движения',
+  'through_window': 'Через стекло',
+  'mirror_reflection': 'Отражение в зеркале',
+  'dutch_angle_tension': 'Голландский угол',
+  'worms_eye_power': 'Ракурс снизу',
+  'overhead_graphic': 'Вид сверху'
+};
+
+const CAMERA_SIGNATURE_LABELS = {
+  'none': 'Из вселенной',
+  'polaroid_sx70': 'Polaroid SX-70',
+  'contax_t2': 'Contax T2',
+  'hasselblad_500cm': 'Hasselblad 500C/M',
+  'canon_ae1': 'Canon AE-1',
+  'leica_m6': 'Leica M6',
+  'mamiya_rz67': 'Mamiya RZ67',
+  'yashica_t4': 'Yashica T4',
+  'disposable_flash': 'Одноразовая камера',
+  'holga_120': 'Holga 120',
+  'iphone_flash': 'iPhone со вспышкой',
+  'powershot_vlog': 'Canon PowerShot',
+  'ricoh_gr': 'Ricoh GR'
+};
+
+const SKIN_TEXTURE_LABELS = {
+  'none': 'Из вселенной',
+  'hyper_real': 'Гипер-реалистичная',
+  'natural_film': 'Естественная плёночная',
+  'flash_specular': 'Вспышка (блики)',
+  'matte_editorial': 'Матовая editorial',
+  'raw_unretouched': 'Сырая, без ретуши',
+  'sweaty_athletic': 'Спортивная / с испариной',
+  'golden_hour_glow': 'Золотой час',
+  'pale_porcelain': 'Фарфоровая бледность'
+};
+
+const POSE_ADHERENCE_LABELS = {
+  1: 'Свободно (только тип)',
+  2: 'Похоже (30-40%)',
+  3: 'Близко (70-80%)',
+  4: 'Точно (90-100%)'
+};
+
+function buildFrameSettingsHtml(frame) {
+  const items = [];
+  
+  // Capture style
+  if (frame.captureStyle && frame.captureStyle !== 'none') {
+    items.push(`<div><strong>📷 Захват:</strong> ${CAPTURE_STYLE_LABELS[frame.captureStyle] || frame.captureStyle}</div>`);
+  }
+  
+  // Camera signature
+  if (frame.cameraSignature && frame.cameraSignature !== 'none') {
+    items.push(`<div><strong>📸 Камера:</strong> ${CAMERA_SIGNATURE_LABELS[frame.cameraSignature] || frame.cameraSignature}</div>`);
+  }
+  
+  // Skin texture
+  if (frame.skinTexture && frame.skinTexture !== 'none') {
+    items.push(`<div><strong>✨ Кожа:</strong> ${SKIN_TEXTURE_LABELS[frame.skinTexture] || frame.skinTexture}</div>`);
+  }
+  
+  // Pose adherence
+  if (frame.poseAdherence) {
+    items.push(`<div><strong>🎯 Поза:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}</div>`);
+  }
+  
+  // Emotion
+  if (frame.emotionId) {
+    const emotion = state.emotions.find(e => e.id === frame.emotionId);
+    items.push(`<div><strong>😊 Эмоция:</strong> ${emotion?.label || frame.emotionId}</div>`);
+  }
+  
+  // Extra prompt
+  if (frame.extraPrompt) {
+    items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em>${escapeHtml(frame.extraPrompt)}</em></div>`);
+  }
+  
+  if (items.length === 0) {
+    return '<div style="color: var(--color-text-muted);">Настройки по умолчанию</div>';
+  }
+  
+  return items.join('');
 }
 
 function escapeHtml(str) {
