@@ -5,404 +5,211 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Custom Shoot — AIDA</title>
   <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="shoot-composer-styles.css">
   <style>
     /* Custom Shoot specific styles */
-    .custom-shoot-container {
-      display: grid;
-      grid-template-columns: 320px 1fr 300px;
-      gap: 20px;
-      height: calc(100vh - 80px);
-      padding: 20px;
-    }
     
-    /* Left Panel - Settings */
-    .settings-panel {
-      background: var(--surface);
-      border-radius: 12px;
-      padding: 20px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-    }
-    
-    .settings-section {
-      margin-bottom: 24px;
-    }
-    
-    .settings-section h3 {
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    .preset-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    
-    .preset-row label {
-      width: 80px;
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-    
-    .preset-row select {
-      flex: 1;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 13px;
-    }
-    
-    .preset-row select:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-    
-    /* Mode Toggle */
-    .mode-toggle {
-      display: flex;
-      background: var(--bg);
-      border-radius: 8px;
-      padding: 4px;
-      margin-bottom: 16px;
-    }
-    
-    .mode-toggle button {
-      flex: 1;
-      padding: 8px 16px;
-      border: none;
-      background: transparent;
-      color: var(--text-secondary);
-      font-size: 13px;
-      cursor: pointer;
-      border-radius: 6px;
-      transition: all 0.2s;
-    }
-    
-    .mode-toggle button.active {
-      background: var(--accent);
-      color: white;
-    }
-    
-    /* Locks Section */
-    .locks-section {
-      background: var(--bg);
-      border-radius: 8px;
+    /* Reference Locks Panel */
+    .locks-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
       padding: 16px;
+      margin-bottom: 20px;
     }
     
-    .lock-item {
-      margin-bottom: 16px;
-    }
-    
-    .lock-item:last-child {
-      margin-bottom: 0;
-    }
-    
-    .lock-header {
+    .locks-panel h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+    
+    .lock-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--color-bg);
+      border-radius: 8px;
       margin-bottom: 8px;
     }
     
+    .lock-row:last-child {
+      margin-bottom: 0;
+    }
+    
     .lock-icon {
-      font-size: 18px;
+      font-size: 20px;
+      width: 32px;
+      text-align: center;
+    }
+    
+    .lock-info {
+      flex: 1;
     }
     
     .lock-title {
-      font-weight: 500;
-      font-size: 14px;
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 2px;
     }
     
-    .lock-status {
-      margin-left: auto;
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 4px;
+    .lock-desc {
+      font-size: 11px;
+      color: var(--color-text-muted);
     }
     
-    .lock-status.off {
-      background: var(--border);
-      color: var(--text-secondary);
-    }
-    
-    .lock-status.on {
-      background: var(--success);
-      color: white;
-    }
-    
-    .lock-controls {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    
-    .lock-controls button {
-      flex: 1;
-      padding: 6px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .lock-controls button:hover {
-      border-color: var(--accent);
-    }
-    
-    .lock-controls button.active {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-    
-    .lock-preview {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    
-    .lock-preview img {
+    .lock-preview-thumb {
       width: 48px;
       height: 48px;
-      object-fit: cover;
       border-radius: 6px;
-      border: 2px solid var(--accent);
-    }
-    
-    .lock-preview-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    
-    .lock-preview-actions button {
-      padding: 4px 8px;
-      font-size: 11px;
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-secondary);
-      cursor: pointer;
-    }
-    
-    .lock-preview-actions button:hover {
-      color: var(--text);
-      border-color: var(--text-secondary);
-    }
-    
-    /* Center Panel - Preview & Generate */
-    .preview-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    
-    .preview-area {
-      flex: 1;
-      background: var(--surface);
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
-      position: relative;
+      border: 2px solid var(--color-accent);
+      display: none;
     }
     
-    .preview-area img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
+    .lock-preview-thumb.active {
+      display: block;
     }
     
-    .preview-placeholder {
-      text-align: center;
-      color: var(--text-secondary);
-    }
-    
-    .preview-placeholder .icon {
-      font-size: 48px;
-      margin-bottom: 12px;
-      opacity: 0.5;
-    }
-    
-    .generate-section {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-    
-    .generate-section input {
-      flex: 1;
-      padding: 12px 16px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 14px;
-    }
-    
-    .generate-section input::placeholder {
-      color: var(--text-secondary);
-    }
-    
-    .btn-generate {
-      padding: 12px 32px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .btn-generate:hover {
-      filter: brightness(1.1);
-    }
-    
-    .btn-generate:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .btn-generate.loading {
-      position: relative;
-      color: transparent;
-    }
-    
-    .btn-generate.loading::after {
-      content: '';
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border: 2px solid white;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
-    
-    @keyframes spin {
-      to { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-    
-    /* Right Panel - History */
-    .history-panel {
-      background: var(--surface);
-      border-radius: 12px;
-      padding: 16px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-    }
-    
-    .history-panel h3 {
-      font-size: 14px;
-      margin-bottom: 12px;
-      color: var(--text-secondary);
-    }
-    
-    .history-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-    
-    .history-item {
-      position: relative;
-      aspect-ratio: 3/4;
-      border-radius: 8px;
-      overflow: hidden;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: all 0.2s;
-    }
-    
-    .history-item:hover {
-      border-color: var(--accent);
-    }
-    
-    .history-item.style-ref {
-      border-color: #f59e0b;
-    }
-    
-    .history-item.location-ref {
-      border-color: #10b981;
-    }
-    
-    .history-item.both-ref {
-      border-color: #8b5cf6;
-    }
-    
-    .history-item img {
+    .lock-preview-thumb img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
     
-    .history-item-badges {
-      position: absolute;
-      top: 4px;
-      right: 4px;
+    .lock-controls {
       display: flex;
-      gap: 2px;
+      gap: 4px;
     }
     
-    .history-badge {
-      width: 20px;
-      height: 20px;
+    .lock-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 4px;
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .lock-btn:hover {
+      border-color: var(--color-text-muted);
+    }
+    
+    .lock-btn.active {
+      background: var(--color-accent);
+      color: white;
+      border-color: var(--color-accent);
+    }
+    
+    .lock-btn.active-soft {
+      background: #8B5CF6;
+      color: white;
+      border-color: #8B5CF6;
+    }
+    
+    /* Universe Settings Section */
+    .universe-settings {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .universe-settings h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 16px;
+    }
+    
+    .universe-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    
+    @media (max-width: 800px) {
+      .universe-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .universe-grid .form-group {
+      margin: 0;
+    }
+    
+    .universe-grid label {
+      font-size: 12px;
+      margin-bottom: 4px;
+      display: block;
+    }
+    
+    .universe-grid select {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 12px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      color: var(--color-text);
+    }
+    
+    /* History item with lock badges */
+    .history-lock-badges {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 4px;
+    }
+    
+    .history-lock-badge {
+      width: 24px;
+      height: 24px;
       border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 14px;
     }
     
-    .history-badge.style {
-      background: #f59e0b;
+    .history-lock-badge.style {
+      background: #F59E0B;
     }
     
-    .history-badge.location {
-      background: #10b981;
+    .history-lock-badge.location {
+      background: #10B981;
     }
     
-    .history-item-menu {
+    /* Lock selection hint on hover */
+    .generated-frame-card .lock-actions {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(transparent, rgba(0,0,0,0.8));
-      padding: 24px 8px 8px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      padding: 40px 10px 10px;
       display: none;
     }
     
-    .history-item:hover .history-item-menu {
+    .generated-frame-card:hover .lock-actions {
       display: block;
     }
     
-    .history-menu-btn {
+    .lock-action-btn {
       display: block;
       width: 100%;
-      padding: 4px 8px;
+      padding: 6px 10px;
       margin-bottom: 4px;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.15);
       border: none;
       border-radius: 4px;
       color: white;
@@ -411,398 +218,517 @@
       text-align: left;
     }
     
-    .history-menu-btn:hover {
-      background: rgba(255,255,255,0.2);
+    .lock-action-btn:hover {
+      background: rgba(255,255,255,0.25);
     }
     
-    /* Refs Upload Section */
-    .refs-section {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    
-    .ref-box {
-      background: var(--bg);
-      border-radius: 8px;
-      padding: 12px;
-      text-align: center;
-    }
-    
-    .ref-box-title {
-      font-size: 11px;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-    }
-    
-    .ref-box-content {
-      width: 60px;
-      height: 60px;
-      margin: 0 auto;
-      border-radius: 6px;
-      border: 2px dashed var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      overflow: hidden;
-      transition: all 0.2s;
-    }
-    
-    .ref-box-content:hover {
-      border-color: var(--accent);
-    }
-    
-    .ref-box-content.has-image {
-      border-style: solid;
-    }
-    
-    .ref-box-content img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .ref-box-content .placeholder {
-      font-size: 24px;
-      opacity: 0.5;
-    }
-    
-    /* Header */
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    .page-header h1 {
-      font-size: 20px;
-      font-weight: 600;
-    }
-    
-    .page-header .shoot-name {
-      flex: 1;
-      padding: 8px 12px;
-      border: 1px solid transparent;
-      border-radius: 6px;
-      background: transparent;
-      color: var(--text);
-      font-size: 18px;
-      font-weight: 500;
-    }
-    
-    .page-header .shoot-name:hover {
-      border-color: var(--border);
-    }
-    
-    .page-header .shoot-name:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-    
-    .btn-back {
-      padding: 8px 16px;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    
-    .btn-back:hover {
-      background: var(--bg);
-    }
-    
-    /* Empty state */
-    .empty-history {
-      text-align: center;
-      padding: 24px;
-      color: var(--text-secondary);
-      font-size: 13px;
-    }
-    
-    /* Anti-AI slider */
-    .anti-ai-control {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 8px;
-    }
-    
-    .anti-ai-control label {
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-    
-    .anti-ai-control input[type="range"] {
-      flex: 1;
-    }
-    
-    .anti-ai-control .value {
-      min-width: 60px;
-      text-align: right;
-      font-size: 13px;
-      color: var(--accent);
-    }
-    
-    /* Frame & Emotion selects */
-    .frame-emotion-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    
-    .frame-emotion-row select {
-      width: 100%;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 13px;
+    .lock-action-btn:last-child {
+      margin-bottom: 0;
     }
   </style>
 </head>
 <body>
-  <header class="page-header">
-    <button class="btn-back" onclick="goBack()">← Назад</button>
-    <input type="text" class="shoot-name" id="shootName" value="Custom Shoot" onchange="updateShootName()">
-    <div style="flex: 1;"></div>
-    <span id="saveStatus" style="font-size: 12px; color: var(--text-secondary);">Сохранено</span>
-  </header>
-  
-  <main class="custom-shoot-container">
-    <!-- Left Panel: Settings -->
-    <aside class="settings-panel">
-      <!-- Refs Section -->
-      <section class="settings-section">
-        <h3>Референсы</h3>
-        <div class="refs-section">
-          <div class="ref-box">
-            <div class="ref-box-title">Модель</div>
-            <div class="ref-box-content" id="modelRef" onclick="uploadRef('model')">
-              <span class="placeholder">+</span>
-            </div>
-          </div>
-          <div class="ref-box">
-            <div class="ref-box-title">Одежда</div>
-            <div class="ref-box-content" id="clothingRef" onclick="uploadRef('clothing')">
-              <span class="placeholder">+</span>
-            </div>
-          </div>
-          <div class="ref-box">
-            <div class="ref-box-title">Локация</div>
-            <div class="ref-box-content" id="locationRef" onclick="selectLocation()">
-              <span class="placeholder">📍</span>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      <!-- Visual Style Section -->
-      <section class="settings-section">
-        <h3>Визуальный стиль</h3>
-        <div class="mode-toggle">
-          <button class="active" id="modeQuick" onclick="setMode('quick')">Quick</button>
-          <button id="modeFine" onclick="setMode('fine')">Fine</button>
-        </div>
-        
-        <div id="quickModeSettings">
-          <div class="preset-row">
-            <label>📷 Camera</label>
-            <select id="presetCamera" onchange="updatePreset('camera')">
-              <option value="contax_t2">Contax T2</option>
-              <option value="hasselblad_500cm">Hasselblad 500C/M</option>
-              <option value="polaroid_sx70">Polaroid SX-70</option>
-              <option value="disposable_flash">Одноразовая</option>
-              <option value="canon_ae1">Canon AE-1</option>
-              <option value="leica_m6">Leica M6</option>
-              <option value="iphone_flash">iPhone flash</option>
-              <option value="mamiya_rz67">Mamiya RZ67</option>
-              <option value="yashica_t4">Yashica T4</option>
-              <option value="ricoh_gr">Ricoh GR</option>
-              <option value="holga_120">Holga 120</option>
-              <option value="none">Без конкретной</option>
-            </select>
-          </div>
-          
-          <div class="preset-row">
-            <label>📸 Capture</label>
-            <select id="presetCapture" onchange="updatePreset('capture')">
-              <option value="candid_aware">Естественный</option>
-              <option value="editorial_posed">Editorial постановка</option>
-              <option value="editorial_relaxed">Editorial расслаб.</option>
-              <option value="candid_unaware">Candid</option>
-              <option value="paparazzi_telephoto">Папарацци</option>
-              <option value="harsh_flash_snapshot">Жёсткая вспышка</option>
-              <option value="motion_blur_action">Размытие движ.</option>
-              <option value="through_window">Через стекло</option>
-              <option value="mirror_reflection">Отражение</option>
-            </select>
-          </div>
-          
-          <div class="preset-row">
-            <label>💡 Light</label>
-            <select id="presetLight" onchange="updatePreset('light')">
-              <option value="natural_soft">Мягкий естеств.</option>
-              <option value="natural_harsh">Жёсткий естеств.</option>
-              <option value="golden_hour">Золотой час</option>
-              <option value="studio_strobe">Студийный</option>
-              <option value="on_camera_harsh">Жёсткая вспышка</option>
-              <option value="mixed_ambient">Смешанный</option>
-              <option value="ring_flash">Кольцевая</option>
-              <option value="window_light">Свет из окна</option>
-            </select>
-          </div>
-          
-          <div class="preset-row">
-            <label>🎨 Color</label>
-            <select id="presetColor" onchange="updatePreset('color')">
-              <option value="film_warm">Тёплая плёнка</option>
-              <option value="film_cool">Холодная плёнка</option>
-              <option value="high_contrast">Выс. контраст</option>
-              <option value="desaturated">Приглушённый</option>
-              <option value="cross_process">Кросс-процесс</option>
-              <option value="black_white">Ч/Б</option>
-              <option value="vintage_fade">Винтажный fade</option>
-              <option value="neutral_clean">Нейтральный</option>
-            </select>
-          </div>
-          
-          <div class="preset-row">
-            <label>🖼️ Texture</label>
-            <select id="presetTexture" onchange="updatePreset('texture')">
-              <option value="natural_film">Естественная</option>
-              <option value="hyper_real">Гипер-реалист.</option>
-              <option value="flash_specular">Вспышка блики</option>
-              <option value="matte_editorial">Матовая</option>
-              <option value="raw_unretouched">Без ретуши</option>
-              <option value="sweaty_athletic">Спортивная</option>
-              <option value="golden_hour_glow">Золотой час</option>
-              <option value="pale_porcelain">Фарфоровая</option>
-            </select>
-          </div>
-          
-          <div class="preset-row">
-            <label>📅 Era</label>
-            <select id="presetEra" onchange="updatePreset('era')">
-              <option value="contemporary">Современный</option>
-              <option value="90s_grunge">90s гранж</option>
-              <option value="y2k_flash">Y2K вспышка</option>
-              <option value="2000s_digital">2000s цифра</option>
-              <option value="2010s_instagram">2010s Instagram</option>
-              <option value="film_revival">Плёночный ренесс.</option>
-            </select>
-          </div>
-        </div>
-        
-        <div id="fineModeSettings" style="display: none;">
-          <p style="color: var(--text-secondary); font-size: 12px; text-align: center;">
-            Тонкая настройка — скоро
-          </p>
-        </div>
-        
-        <!-- Anti-AI -->
-        <div class="anti-ai-control">
-          <label>Anti-AI:</label>
-          <input type="range" id="antiAiLevel" min="1" max="4" value="3" onchange="updateAntiAi()">
-          <span class="value" id="antiAiValue">medium</span>
-        </div>
-      </section>
-      
-      <!-- Frame & Emotion -->
-      <section class="settings-section">
-        <h3>Кадр и эмоция</h3>
-        <div class="frame-emotion-row">
-          <select id="frameSelect" onchange="updateFrame()">
-            <option value="">Без кадра</option>
-          </select>
-          <select id="emotionSelect" onchange="updateEmotion()">
-            <option value="">Нейтральная</option>
-          </select>
-        </div>
-      </section>
-      
-      <!-- Reference Locks -->
-      <section class="settings-section">
-        <h3>Привязки</h3>
-        <div class="locks-section">
-          <!-- Style Lock -->
-          <div class="lock-item">
-            <div class="lock-header">
-              <span class="lock-icon">🎨</span>
-              <span class="lock-title">Style Lock</span>
-              <span class="lock-status off" id="styleLockStatus">OFF</span>
-            </div>
-            <div class="lock-controls">
-              <button id="styleLockOff" class="active" onclick="setStyleLock('off')">Off</button>
-              <button id="styleLockStrict" onclick="setStyleLock('strict')">Strict</button>
-              <button id="styleLockSoft" onclick="setStyleLock('soft')">Soft</button>
-            </div>
-            <div class="lock-preview" id="styleLockPreview" style="display: none;">
-              <img src="" alt="Style ref" id="styleLockImg">
-              <div class="lock-preview-actions">
-                <button onclick="clearStyleLock()">Снять</button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Location Lock -->
-          <div class="lock-item">
-            <div class="lock-header">
-              <span class="lock-icon">🏠</span>
-              <span class="lock-title">Location Lock</span>
-              <span class="lock-status off" id="locationLockStatus">OFF</span>
-            </div>
-            <div class="lock-controls">
-              <button id="locationLockOff" class="active" onclick="setLocationLock('off')">Off</button>
-              <button id="locationLockStrict" onclick="setLocationLock('strict')">Strict</button>
-              <button id="locationLockSoft" onclick="setLocationLock('soft')">Soft</button>
-            </div>
-            <div class="lock-preview" id="locationLockPreview" style="display: none;">
-              <img src="" alt="Location ref" id="locationLockImg">
-              <div class="lock-preview-actions">
-                <button onclick="clearLocationLock()">Снять</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </aside>
-    
-    <!-- Center Panel: Preview & Generate -->
-    <section class="preview-panel">
-      <div class="preview-area" id="previewArea">
-        <div class="preview-placeholder">
-          <div class="icon">📷</div>
-          <p>Сгенерируйте первый кадр</p>
-          <p style="font-size: 12px; opacity: 0.7;">Выберите параметры и нажмите Generate</p>
-        </div>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <div class="logo-icon">A</div>
+          <div class="logo-text">AIDA</div>
+        </a>
       </div>
-      
-      <div class="generate-section">
-        <input type="text" id="extraPrompt" placeholder="Дополнительные инструкции (опционально)...">
-        <button class="btn-generate" id="generateBtn" onclick="generate()">Generate</button>
-      </div>
-    </section>
-    
-    <!-- Right Panel: History -->
-    <aside class="history-panel">
-      <h3>История <span id="historyCount">(0)</span></h3>
-      <div class="history-grid" id="historyGrid">
-        <div class="empty-history">
-          Пока нет сгенерированных кадров
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Главное</div>
+          <a href="/" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="/composer/shoot-composer.html" class="nav-item">
+            <span class="nav-item-icon">🎬</span>
+            <span>Конструктор съёмок</span>
+          </a>
+          <a href="/composer/custom-shoot.html" class="nav-item active">
+            <span class="nav-item-icon">✨</span>
+            <span>Custom Shoot</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Редакторы</div>
+          <a href="/editors/universe-editor.html" class="nav-item">
+            <span class="nav-item-icon">🌌</span>
+            <span>Вселенные</span>
+          </a>
+          <a href="/editors/location-editor.html" class="nav-item">
+            <span class="nav-item-icon">📍</span>
+            <span>Локации</span>
+          </a>
+          <a href="/editors/frame-editor.html" class="nav-item">
+            <span class="nav-item-icon">🖼️</span>
+            <span>Каталог кадров</span>
+          </a>
+          <a href="/editors/model-editor.html" class="nav-item">
+            <span class="nav-item-icon">👤</span>
+            <span>Модели</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="server-status">Загрузка...</span>
         </div>
       </div>
     </aside>
-  </main>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="page-header">
+        <h1 class="page-title">✨ Custom Shoot</h1>
+        <p class="page-subtitle">
+          Съёмка без готовой вселенной. Настрой все параметры вручную, используй Style Lock и Location Lock для консистентности.
+        </p>
+      </header>
+
+      <div class="page-content">
+        <div class="composer-layout">
+          <!-- Steps Sidebar -->
+          <div class="steps-sidebar">
+            <ul class="steps-list">
+              <li class="step-item active" data-step="shoot">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                  <div class="step-title">Съёмка</div>
+                  <div class="step-desc">Создать или выбрать</div>
+                  <div class="step-status pending" id="step-shoot-status">Не выбрано</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="models">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                  <div class="step-title">Модели</div>
+                  <div class="step-desc">До 3 моделей</div>
+                  <div class="step-status pending" id="step-models-status">0 / 3</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="clothing">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                  <div class="step-title">Одежда</div>
+                  <div class="step-desc">Референсы луков</div>
+                  <div class="step-status pending" id="step-clothing-status">Опционально</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="frames">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                  <div class="step-title">Кадры</div>
+                  <div class="step-desc">Позы и композиции</div>
+                  <div class="step-status pending" id="step-frames-status">0 кадров</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="generate">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                  <div class="step-title">Генерация</div>
+                  <div class="step-desc">Настройки + запуск</div>
+                  <div class="step-status pending" id="step-generate-status">—</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Composer Main Area -->
+          <div class="composer-main">
+
+            <!-- Step 1: Select/Create Shoot -->
+            <div class="step-panel active" data-panel="shoot">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Выбери или создай Custom Shoot</h2>
+                <p class="step-panel-desc">
+                  В Custom Shoot все визуальные параметры настраиваются вручную на этапе генерации.
+                </p>
+              </div>
+
+              <div class="form-actions" style="margin-bottom: 24px;">
+                <button class="btn btn-primary" id="btn-new-shoot">
+                  ✨ Новый Custom Shoot
+                </button>
+              </div>
+
+              <h3 class="section-title" style="margin-bottom: 16px;">Существующие Custom Shoots</h3>
+              <div id="shoots-list" class="shoots-list">
+                <div class="empty-state">
+                  <div class="empty-state-icon">✨</div>
+                  <div class="empty-state-title">Нет съёмок</div>
+                  <div class="empty-state-text">Создайте первый Custom Shoot</div>
+                </div>
+              </div>
+
+              <div class="composer-nav">
+                <div></div>
+                <button class="btn btn-primary" id="btn-next-to-models" disabled>
+                  Далее: Модели →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2: Select Models -->
+            <div class="step-panel" data-panel="models">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Добавь моделей</h2>
+                <p class="step-panel-desc">
+                  Выбери от 1 до 3 моделей для съёмки. Каждая модель сохраняет свою идентичность во всех кадрах.
+                </p>
+              </div>
+
+              <div id="model-slots" class="model-slots">
+                <div class="model-slot" data-slot="0" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 1</div>
+                </div>
+                <div class="model-slot" data-slot="1" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 2 (опц.)</div>
+                </div>
+                <div class="model-slot" data-slot="2" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 3 (опц.)</div>
+                </div>
+              </div>
+
+              <div id="available-models" style="display: none;">
+                <h3 class="section-title" style="margin: 24px 0 16px;">Доступные модели</h3>
+                <div id="models-grid" class="selection-grid"></div>
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-shoot">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-clothing" disabled>
+                  Далее: Одежда →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 3: Clothing -->
+            <div class="step-panel" data-panel="clothing">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Загрузи одежду</h2>
+                <p class="step-panel-desc">
+                  Загрузи референсы одежды для каждой модели.
+                </p>
+              </div>
+
+              <div id="clothing-sections" class="clothing-sections">
+                <!-- Will be populated dynamically -->
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-models">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-frames">
+                  Далее: Кадры →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 4: Frames -->
+            <div class="step-panel" data-panel="frames">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Добавь кадры</h2>
+                <p class="step-panel-desc">
+                  Выбери кадры из каталога для генерации с эскизами поз.
+                </p>
+              </div>
+
+              <div id="selected-frames" class="frames-list" style="margin-bottom: 24px;">
+                <div class="empty-state" style="padding: 40px;">
+                  <div class="empty-state-icon">🖼️</div>
+                  <div class="empty-state-title">Нет кадров</div>
+                  <div class="empty-state-text">Добавьте кадры из каталога ниже</div>
+                </div>
+              </div>
+
+              <h3 class="section-title" style="margin-bottom: 16px;">Каталог кадров</h3>
+              <div id="frames-grid" class="selection-grid">
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                  <div class="empty-state-icon">🖼️</div>
+                  <div class="empty-state-title">Нет кадров в каталоге</div>
+                  <div class="empty-state-text">
+                    <a href="/editors/frame-editor.html">Создайте кадры</a> в редакторе
+                  </div>
+                </div>
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-clothing">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-generate">
+                  Далее: Генерация →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 5: Generation with Universe Settings -->
+            <div class="step-panel" data-panel="generate">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Генерация с ручными настройками</h2>
+                <p class="step-panel-desc">
+                  Настрой визуальный стиль вручную. Используй Style Lock и Location Lock для консистентности между кадрами.
+                </p>
+              </div>
+
+              <!-- Reference Locks -->
+              <div class="locks-panel">
+                <h4>🔒 Reference Locks (консистентность)</h4>
+                
+                <div class="lock-row" id="style-lock-row">
+                  <div class="lock-icon">🎨</div>
+                  <div class="lock-info">
+                    <div class="lock-title">Style Lock</div>
+                    <div class="lock-desc">Фиксирует цвет, свет, текстуру</div>
+                  </div>
+                  <div class="lock-preview-thumb" id="style-lock-preview">
+                    <img src="" alt="Style ref" id="style-lock-img">
+                  </div>
+                  <div class="lock-controls">
+                    <button class="lock-btn active" id="style-lock-off" data-mode="off">Off</button>
+                    <button class="lock-btn" id="style-lock-strict" data-mode="strict">Strict</button>
+                    <button class="lock-btn" id="style-lock-soft" data-mode="soft">Soft</button>
+                  </div>
+                </div>
+                
+                <div class="lock-row" id="location-lock-row">
+                  <div class="lock-icon">🏠</div>
+                  <div class="lock-info">
+                    <div class="lock-title">Location Lock</div>
+                    <div class="lock-desc">Фиксирует фон / место съёмки</div>
+                  </div>
+                  <div class="lock-preview-thumb" id="location-lock-preview">
+                    <img src="" alt="Location ref" id="location-lock-img">
+                  </div>
+                  <div class="lock-controls">
+                    <button class="lock-btn active" id="location-lock-off" data-mode="off">Off</button>
+                    <button class="lock-btn" id="location-lock-strict" data-mode="strict">Strict</button>
+                    <button class="lock-btn" id="location-lock-soft" data-mode="soft">Soft</button>
+                  </div>
+                </div>
+                
+                <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px; padding: 8px; background: var(--color-bg); border-radius: 6px;">
+                  💡 Сгенерируй первый кадр, затем кликни на него в истории, чтобы установить как референс для Style Lock или Location Lock.
+                </div>
+              </div>
+
+              <!-- Universe Settings (instead of selecting from catalog) -->
+              <div class="universe-settings">
+                <h4>🌌 Настройки вселенной</h4>
+                
+                <div class="universe-grid">
+                  <!-- Camera -->
+                  <div class="form-group">
+                    <label for="gen-camera-signature">📸 Камера</label>
+                    <select id="gen-camera-signature">
+                      <option value="none">— Без конкретной —</option>
+                      <optgroup label="Плёночные">
+                        <option value="polaroid_sx70">Polaroid SX-70</option>
+                        <option value="contax_t2" selected>Contax T2</option>
+                        <option value="hasselblad_500cm">Hasselblad 500C/M</option>
+                        <option value="canon_ae1">Canon AE-1</option>
+                        <option value="leica_m6">Leica M6</option>
+                        <option value="mamiya_rz67">Mamiya RZ67</option>
+                        <option value="yashica_t4">Yashica T4</option>
+                      </optgroup>
+                      <optgroup label="Lo-Fi">
+                        <option value="disposable_flash">Одноразовая</option>
+                        <option value="holga_120">Holga 120</option>
+                      </optgroup>
+                      <optgroup label="Цифровые">
+                        <option value="iphone_flash">iPhone flash</option>
+                        <option value="ricoh_gr">Ricoh GR</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  
+                  <!-- Capture Style -->
+                  <div class="form-group">
+                    <label for="gen-capture-style">📷 Стиль захвата</label>
+                    <select id="gen-capture-style">
+                      <option value="candid_aware" selected>Естественный</option>
+                      <option value="editorial_posed">Editorial постановка</option>
+                      <option value="editorial_relaxed">Editorial расслаб.</option>
+                      <option value="candid_unaware">Candid</option>
+                      <option value="paparazzi_telephoto">Папарацци</option>
+                      <option value="harsh_flash_snapshot">Жёсткая вспышка</option>
+                      <option value="motion_blur_action">Размытие движ.</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Light -->
+                  <div class="form-group">
+                    <label for="gen-light">💡 Освещение</label>
+                    <select id="gen-light">
+                      <option value="natural_soft" selected>Мягкий естественный</option>
+                      <option value="natural_harsh">Жёсткий естественный</option>
+                      <option value="golden_hour">Золотой час</option>
+                      <option value="studio_strobe">Студийный</option>
+                      <option value="on_camera_harsh">Жёсткая вспышка</option>
+                      <option value="mixed_ambient">Смешанный</option>
+                      <option value="ring_flash">Кольцевая</option>
+                      <option value="window_light">Свет из окна</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Color -->
+                  <div class="form-group">
+                    <label for="gen-color">🎨 Цвет</label>
+                    <select id="gen-color">
+                      <option value="film_warm" selected>Тёплая плёнка</option>
+                      <option value="film_cool">Холодная плёнка</option>
+                      <option value="high_contrast">Высокий контраст</option>
+                      <option value="desaturated">Приглушённый</option>
+                      <option value="cross_process">Кросс-процесс</option>
+                      <option value="black_white">Ч/Б</option>
+                      <option value="vintage_fade">Винтажный fade</option>
+                      <option value="neutral_clean">Нейтральный</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Skin Texture -->
+                  <div class="form-group">
+                    <label for="gen-skin-texture">✨ Текстура кожи</label>
+                    <select id="gen-skin-texture">
+                      <option value="natural_film" selected>Естественная</option>
+                      <option value="hyper_real">Гипер-реалистичная</option>
+                      <option value="flash_specular">Вспышка (блики)</option>
+                      <option value="matte_editorial">Матовая editorial</option>
+                      <option value="raw_unretouched">Без ретуши</option>
+                      <option value="sweaty_athletic">Спортивная</option>
+                      <option value="golden_hour_glow">Золотой час</option>
+                      <option value="pale_porcelain">Фарфоровая</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Era -->
+                  <div class="form-group">
+                    <label for="gen-era">📅 Эпоха</label>
+                    <select id="gen-era">
+                      <option value="contemporary" selected>Современный</option>
+                      <option value="90s_grunge">90s гранж</option>
+                      <option value="y2k_flash">Y2K вспышка</option>
+                      <option value="2000s_digital">2000s цифра</option>
+                      <option value="2010s_instagram">2010s Instagram</option>
+                      <option value="film_revival">Плёночный ренессанс</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Standard generation controls -->
+              <div class="generation-controls" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Параметры кадра</h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                  <!-- Location -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-location">📍 Локация</label>
+                    <select id="gen-location" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="">Без конкретной</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Emotion -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-emotion">😊 Эмоция</label>
+                    <select id="gen-emotion" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="">Нейтральная</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Aspect Ratio -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-aspect-ratio">📐 Ориентация</label>
+                    <select id="gen-aspect-ratio" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="3:4" selected>3:4 (Портрет)</option>
+                      <option value="4:3">4:3 (Пейзаж)</option>
+                      <option value="1:1">1:1 (Квадрат)</option>
+                      <option value="9:16">9:16 (Сторис)</option>
+                      <option value="16:9">16:9 (Кино)</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Image Size -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-image-size">📏 Качество</label>
+                    <select id="gen-image-size" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="1K" selected>1K (Быстро)</option>
+                      <option value="2K">2K (Высокое)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <!-- Extra prompt -->
+                <div class="form-group" style="margin-top: 12px;">
+                  <label for="gen-extra-prompt">💬 Дополнительный промпт</label>
+                  <textarea id="gen-extra-prompt" placeholder="Дополнительные инструкции..." style="width: 100%; min-height: 50px; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"></textarea>
+                </div>
+              </div>
+              
+              <!-- Frames to generate -->
+              <div id="frames-to-generate" style="margin-bottom: 20px;">
+                <!-- Will be populated by JS -->
+              </div>
+
+              <!-- Generated Images History -->
+              <div id="generated-images">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                  <h3 class="section-title" style="margin: 0;">История генераций</h3>
+                  <span id="generation-count" style="font-size: 13px; color: var(--color-text-muted);">0 изображений</span>
+                </div>
+                <div id="images-gallery" class="selection-grid" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+                  <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+                    <div class="empty-state-icon">🎨</div>
+                    <div class="empty-state-title">Нет сгенерированных кадров</div>
+                    <div class="empty-state-text">Нажми "Генерировать" на карточке кадра выше</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-frames">
+                  ← Назад
+                </button>
+                <button class="btn btn-secondary" id="btn-clear-history" style="color: var(--color-accent);">
+                  🗑️ Очистить историю
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
   
+  <!-- Lightbox for generated images -->
+  <div class="lightbox-overlay" id="lightbox">
+    <button class="lightbox-close" id="lightbox-close">✕</button>
+    <button class="lightbox-nav prev" id="lightbox-prev">‹</button>
+    <button class="lightbox-nav next" id="lightbox-next">›</button>
+    <div class="lightbox-container">
+      <img class="lightbox-image zoomed-1x" id="lightbox-image" src="" alt="Preview">
+    </div>
+    <div class="lightbox-zoom-hint" id="lightbox-zoom-hint">Клик для увеличения (1x)</div>
+    <div class="lightbox-info" id="lightbox-info">1 / 1</div>
+  </div>
+
   <script src="custom-shoot.js"></script>
+  <script type="module" src="../shared/dev-console.js"></script>
 </body>
 </html>
-
