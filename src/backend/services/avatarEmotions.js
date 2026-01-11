@@ -122,3 +122,4 @@ export function buildAvatarExpressionBlock(emotionId, { hasEmotionRef = false } 
   ].join('\n');
 }
 
+

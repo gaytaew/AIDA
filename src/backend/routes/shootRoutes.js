@@ -780,6 +780,8 @@ router.post('/:id/generate-frame', async (req, res) => {
       captureStyle = 'none',       // NEW
       cameraSignature = 'none',    // NEW
       skinTexture = 'none',        // NEW
+      aspectRatio = '3:4',         // NEW: image orientation
+      imageSize = '1K',            // NEW: image quality/size
       poseAdherence = 2,
       emotionId = null  // <-- Emotion preset ID
     } = req.body;
@@ -954,6 +956,13 @@ router.post('/:id/generate-frame', async (req, res) => {
       console.log('[ShootRoutes] Override skinTexture from UI:', skinTexture);
     }
 
+    // Use aspectRatio and imageSize from request, fallback to shoot settings
+    const imageConfig = {
+      aspectRatio: aspectRatio || shoot.globalSettings?.imageConfig?.aspectRatio || '3:4',
+      imageSize: imageSize || shoot.globalSettings?.imageConfig?.imageSize || '1K'
+    };
+    console.log('[ShootRoutes] Image config:', imageConfig);
+
     const result = await generateShootFrame({
       universe: effectiveUniverse,
       location: location || shoot.location || null,
@@ -966,7 +975,7 @@ router.post('/:id/generate-frame', async (req, res) => {
       extraPrompt: reqExtraPrompt || shootFrame?.extraPrompt || '',
       posingStyle: 2,  // legacy fallback, captureStyle takes priority
       poseAdherence: Math.max(1, Math.min(4, parseInt(poseAdherence) || 2)),
-      imageConfig: shoot.globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '1K' }
+      imageConfig
     });
     
     if (!result.ok) {
@@ -1023,6 +1032,8 @@ router.post('/:id/generate-frame', async (req, res) => {
       captureStyle: captureStyle !== 'none' ? captureStyle : null,
       cameraSignature: cameraSignature !== 'none' ? cameraSignature : null,
       skinTexture: skinTexture !== 'none' ? skinTexture : null,
+      aspectRatio: imageConfig.aspectRatio,
+      imageSize: imageConfig.imageSize,
       poseAdherence: Math.max(1, Math.min(4, parseInt(poseAdherence) || 2)),
       extraPrompt: reqExtraPrompt || '',
       prompt: result.prompt

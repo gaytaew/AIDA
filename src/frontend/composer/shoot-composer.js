@@ -110,6 +110,8 @@ function initElements() {
   elements.genCaptureStyle = document.getElementById('gen-capture-style');
   elements.genCameraSignature = document.getElementById('gen-camera-signature');
   elements.genSkinTexture = document.getElementById('gen-skin-texture');
+  elements.genAspectRatio = document.getElementById('gen-aspect-ratio');
+  elements.genImageSize = document.getElementById('gen-image-size');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
   elements.emotionDescription = document.getElementById('emotion-description');
@@ -1109,6 +1111,8 @@ async function loadGeneratedImages() {
         captureStyle: img.captureStyle || 'none',
         cameraSignature: img.cameraSignature || 'none',
         skinTexture: img.skinTexture || 'none',
+        aspectRatio: img.aspectRatio || '3:4',
+        imageSize: img.imageSize || '1K',
         poseAdherence: img.poseAdherence,
         extraPrompt: img.extraPrompt,
         prompt: img.prompt,
@@ -1749,6 +1753,8 @@ async function generateOneFrame() {
   const captureStyle = elements.genCaptureStyle?.value || 'none';
   const cameraSignature = elements.genCameraSignature?.value || 'none';
   const skinTexture = elements.genSkinTexture?.value || 'none';
+  const aspectRatio = elements.genAspectRatio?.value || '3:4';
+  const imageSize = elements.genImageSize?.value || '1K';
   const poseAdherence = parseInt(elements.genPoseAdherence?.value) || 2;
   const emotionId = elements.genEmotion?.value || null;
   
@@ -1799,6 +1805,8 @@ async function generateOneFrame() {
         captureStyle,        // NEW: how moment was captured
         cameraSignature,     // NEW: specific camera look
         skinTexture,         // NEW: skin rendering
+        aspectRatio,         // NEW: image orientation
+        imageSize,           // NEW: image quality/size
         poseAdherence,
         emotionId
       })
@@ -1823,6 +1831,8 @@ async function generateOneFrame() {
           captureStyle: captureStyle,
           cameraSignature: cameraSignature,
           skinTexture: skinTexture,
+          aspectRatio: aspectRatio,
+          imageSize: imageSize,
           poseAdherence: poseAdherence,
           emotionId: emotionId,
           extraPrompt: extraPrompt,
@@ -2204,8 +2214,28 @@ const POSE_ADHERENCE_LABELS = {
   4: 'Точно (90-100%)'
 };
 
+// Labels for aspect ratio
+const ASPECT_RATIO_LABELS = {
+  '3:4': '📱 3:4 (Портрет)',
+  '4:3': '🖼️ 4:3 (Пейзаж)',
+  '1:1': '⬜ 1:1 (Квадрат)',
+  '9:16': '📲 9:16 (Сторис)',
+  '16:9': '🎬 16:9 (Кино)'
+};
+
+// Labels for image size
+const IMAGE_SIZE_LABELS = {
+  '1K': '1K (Стандарт)',
+  '2K': '2K (Высокое)'
+};
+
 function buildFrameSettingsHtml(frame) {
   const items = [];
+  
+  // Image format (aspect ratio + size)
+  const aspectLabel = ASPECT_RATIO_LABELS[frame.aspectRatio] || frame.aspectRatio || '3:4';
+  const sizeLabel = IMAGE_SIZE_LABELS[frame.imageSize] || frame.imageSize || '1K';
+  items.push(`<div><strong>📐 Формат:</strong> ${aspectLabel}, ${sizeLabel}</div>`);
   
   // Capture style
   if (frame.captureStyle && frame.captureStyle !== 'none') {
@@ -2236,10 +2266,6 @@ function buildFrameSettingsHtml(frame) {
   // Extra prompt
   if (frame.extraPrompt) {
     items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em>${escapeHtml(frame.extraPrompt)}</em></div>`);
-  }
-  
-  if (items.length === 0) {
-    return '<div style="color: var(--color-text-muted);">Настройки по умолчанию</div>';
   }
   
   return items.join('');

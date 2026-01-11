@@ -1151,6 +1151,37 @@
                     <option value="pale_porcelain">Фарфоровая бледность</option>
                   </select>
                 </div>
+                
+                <!-- IMAGE FORMAT (Orientation + Size) -->
+                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+                  <h5 style="font-size: 12px; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 12px;">📐 Формат изображения</h5>
+                  
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <!-- Orientation -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-aspect-ratio">Ориентация</label>
+                      <select id="gen-aspect-ratio" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                        <option value="3:4" selected>📱 3:4 — Вертикальная (портрет)</option>
+                        <option value="4:3">🖼️ 4:3 — Горизонтальная (пейзаж)</option>
+                        <option value="1:1">⬜ 1:1 — Квадрат</option>
+                        <option value="9:16">📲 9:16 — Сторис/Reels</option>
+                        <option value="16:9">🎬 16:9 — Широкий (кино)</option>
+                      </select>
+                    </div>
+                    
+                    <!-- Size / Quality -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-image-size">Качество / Размер</label>
+                      <select id="gen-image-size" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);">
+                        <option value="1K" selected>1K — Стандарт (быстро, дёшево) ⭐</option>
+                        <option value="2K">2K — Высокое (медленнее)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px;">
+                    💡 1K оптимально для превью. Используй ⬆️ Upscale для 4K после генерации.
+                  </div>
+                </div>
 
                 <!-- POSE ADHERENCE (kept for pose sketch) -->
                 <div class="form-group" style="margin-top: 16px;">

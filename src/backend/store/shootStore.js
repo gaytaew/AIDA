@@ -484,6 +484,8 @@ export async function addGeneratedImageToShoot(shootId, imageData) {
     captureStyle: imageData.captureStyle || 'none',
     cameraSignature: imageData.cameraSignature || 'none',
     skinTexture: imageData.skinTexture || 'none',
+    aspectRatio: imageData.aspectRatio || '3:4',
+    imageSize: imageData.imageSize || '1K',
     poseAdherence: imageData.poseAdherence || 2,
     extraPrompt: imageData.extraPrompt || '',
     prompt: imageData.prompt || null,
