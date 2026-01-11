@@ -212,40 +212,52 @@ export function buildShootPromptJson({
       };
     })() : null,
     
-    // Capture style (replaces old posingStyle — now from universe)
-    captureStyle: buildCaptureStyleBlock(universe, posingStyle),
+    // === OPTIONAL BLOCKS (only included if explicitly set) ===
+    // This keeps the prompt shorter and less confusing for the model
     
-    // Camera signature — specific camera/film look (from universe)
-    cameraSignature: buildCameraSignatureBlock(universe),
+    // Capture style (only if universe has explicit captureStyle)
+    ...(universe?.captureStyle?.preset && universe.captureStyle.preset !== 'none' ? {
+      captureStyle: buildCaptureStyleBlock(universe, posingStyle)
+    } : {}),
     
-    // Skin & texture rendering (from universe)
-    skinTexture: buildSkinTextureBlock(universe),
+    // Camera signature (only if universe has explicit cameraSignature)
+    ...(universe?.cameraSignature?.preset && universe.cameraSignature.preset !== 'none' ? {
+      cameraSignature: buildCameraSignatureBlock(universe)
+    } : {}),
     
-    // Legacy posingStyle for backwards compatibility
-    posingStyle: {
-      level: posingStyle,
-      label: POSING_STYLE_MAP[posingStyle]?.label || 'natural',
-      instruction: POSING_STYLE_MAP[posingStyle]?.instruction || POSING_STYLE_MAP[2].instruction
-    },
+    // Skin & texture rendering (only if universe has explicit skinTexture)
+    ...(universe?.skinTexture?.preset && universe.skinTexture.preset !== 'none' ? {
+      skinTexture: buildSkinTextureBlock(universe)
+    } : {}),
     
-    // Emotion (from frame or default)
-    emotion: buildEmotionBlock(effectiveFrame?.emotion),
+    // Emotion (only if explicitly set)
+    ...(effectiveFrame?.emotion?.emotionId ? {
+      emotion: buildEmotionBlock(effectiveFrame.emotion)
+    } : {}),
     
-    // Action / micromoment (from frame)
-    action: buildActionBlock(effectiveFrame?.action),
+    // Action / micromoment (only if explicitly set)
+    ...(effectiveFrame?.action ? {
+      action: buildActionBlock(effectiveFrame.action)
+    } : {}),
     
-    // Important textures for this frame
-    textures: effectiveFrame?.textures?.length > 0 ? effectiveFrame.textures : null,
+    // Important textures for this frame (only if set)
+    ...(effectiveFrame?.textures?.length > 0 ? {
+      textures: effectiveFrame.textures
+    } : {}),
     
-    // How clothing works in this frame
-    clothingFocus: effectiveFrame?.clothingFocus?.description ? {
-      description: effectiveFrame.clothingFocus.description,
-      emphasis: effectiveFrame.clothingFocus.emphasis || 'balanced',
-      silhouetteNotes: effectiveFrame.clothingFocus.silhouetteNotes || null
-    } : null,
+    // How clothing works in this frame (only if set)
+    ...(effectiveFrame?.clothingFocus?.description ? {
+      clothingFocus: {
+        description: effectiveFrame.clothingFocus.description,
+        emphasis: effectiveFrame.clothingFocus.emphasis || 'balanced',
+        silhouetteNotes: effectiveFrame.clothingFocus.silhouetteNotes || null
+      }
+    } : {}),
 
-    // Anti-AI markers (from universe or defaults)
-    antiAi: buildAntiAiBlock(universe),
+    // Anti-AI markers (only if universe has explicit antiAi settings)
+    ...(universe?.antiAi?.level && universe.antiAi.level !== 'none' ? {
+      antiAi: buildAntiAiBlock(universe)
+    } : {}),
     
     // Artistic intention — anti-AI aesthetic principles
     artisticIntention: buildArtisticIntentionBlock(),
