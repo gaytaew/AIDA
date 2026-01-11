@@ -266,11 +266,14 @@ export function buildCustomShootPrompt({
   
   // Build visual style from presets (Quick Mode)
   if (customUniverse?.presets) {
+    console.log('[buildCustomShootPrompt] Using Quick Mode presets:', customUniverse.presets);
     promptJson.visualStyle = buildQuickModePrompt(customUniverse.presets);
+    console.log('[buildCustomShootPrompt] Visual style generated, length:', promptJson.visualStyle?.length || 0);
   }
   
   // Add fine-tuned universe parameters if available
   if (customUniverse && !customUniverse.presets) {
+    console.log('[buildCustomShootPrompt] Using Fine Mode');
     // Use universeToPromptBlock for fine mode
     promptJson.visualStyle = universeToPromptBlock(customUniverse);
   }
@@ -309,11 +312,16 @@ export function buildCustomShootPrompt({
   
   // Add Emotion
   if (emotionId) {
+    console.log('[buildCustomShootPrompt] Looking up emotionId:', emotionId);
     const emotion = getEmotionById(emotionId);
+    console.log('[buildCustomShootPrompt] Found emotion:', emotion?.label || 'NOT FOUND');
     if (emotion) {
       promptJson.emotion = buildEmotionPrompt(emotion);
       promptJson.globalEmotionRules = GLOBAL_EMOTION_RULES;
+      console.log('[buildCustomShootPrompt] Emotion prompt added');
     }
+  } else {
+    console.log('[buildCustomShootPrompt] No emotionId provided');
   }
   
   // Add Anti-AI
@@ -475,6 +483,21 @@ export async function generateCustomShootFrame({
     
     // Override location if passed
     const effectiveLocation = location || shoot.location;
+    
+    // Log all effective parameters
+    console.log('[CustomShootGenerator] Effective params:', {
+      hasUniverse: !!effectiveUniverse,
+      presets: effectiveUniverse?.presets,
+      emotionId,
+      hasFrame: !!frame,
+      frameLabel: frame?.label,
+      hasLocation: !!effectiveLocation,
+      locationLabel: effectiveLocation?.label,
+      hasStyleRef: !!styleRefImage,
+      hasLocationRef: !!locationRefImage,
+      identityCount: identityImages.length,
+      clothingCount: clothingImages.length
+    });
     
     // Build the prompt
     const promptJson = buildCustomShootPrompt({
