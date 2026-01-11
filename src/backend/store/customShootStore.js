@@ -161,13 +161,11 @@ export async function addImageToShoot(shootId, imageData) {
     shoot.generatedImages = [];
   }
   
-  // Add image
+  // Add image (preserve ALL fields from imageData)
   const image = {
+    ...imageData,
     id: imageData.id || `img_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    imageUrl: imageData.imageUrl,
     createdAt: new Date().toISOString(),
-    paramsSnapshot: imageData.paramsSnapshot || {},
-    promptJson: imageData.promptJson || null,
     isStyleReference: false,
     isLocationReference: false
   };

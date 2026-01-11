@@ -97,6 +97,7 @@ function initElements() {
   elements.genEra = document.getElementById('gen-era');
   elements.genAspectRatio = document.getElementById('gen-aspect-ratio');
   elements.genImageSize = document.getElementById('gen-image-size');
+  elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
   
   // Lock controls
