@@ -30,6 +30,7 @@ import {
   prepareImageFromUrl
 } from '../services/customShootGenerator.js';
 import { getModelById, getModelsDir } from '../store/modelStore.js';
+import { getLocationById } from '../store/locationStore.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -249,11 +250,16 @@ router.post('/:id/generate', async (req, res) => {
       frame,
       emotionId,
       extraPrompt,
+      locationId,
+      aspectRatio,
+      imageSize,
+      presets,
       identityImages: reqIdentityImages,
       clothingImages: reqClothingImages
     } = req.body;
     
     console.log('[CustomShootRoutes] Generate request for shoot:', shoot.id);
+    console.log('[CustomShootRoutes] Request params:', { locationId, aspectRatio, imageSize, presets });
     
     // Prepare identity images
     let identityImages = [];
@@ -322,6 +328,15 @@ router.post('/:id/generate', async (req, res) => {
       frame: shoot.currentFrame?.label || null
     });
     
+    // Get location if locationId provided
+    let location = shoot.location;
+    if (locationId) {
+      const fetchedLocation = await getLocationById(locationId);
+      if (fetchedLocation) {
+        location = fetchedLocation;
+      }
+    }
+    
     // Generate
     const result = await generateCustomShootFrame({
       shoot,
@@ -331,7 +346,11 @@ router.post('/:id/generate', async (req, res) => {
       locationRefImage,
       frame: frame || shoot.currentFrame,
       emotionId: emotionId || shoot.currentEmotion,
-      extraPrompt: extraPrompt || shoot.extraPrompt || ''
+      extraPrompt: extraPrompt || shoot.extraPrompt || '',
+      location,
+      presets,
+      aspectRatio,
+      imageSize
     });
     
     if (!result.ok) {

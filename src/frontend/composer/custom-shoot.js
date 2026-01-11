@@ -1159,7 +1159,11 @@ async function generateFrame(frameId) {
       body: JSON.stringify({
         frame: frameId ? state.frames.find(f => f.id === frameId) : null,
         emotionId: params.emotionId,
-        extraPrompt: params.extraPrompt
+        extraPrompt: params.extraPrompt,
+        locationId: params.locationId,
+        aspectRatio: params.aspectRatio,
+        imageSize: params.imageSize,
+        presets: params.presets
       })
     });
     

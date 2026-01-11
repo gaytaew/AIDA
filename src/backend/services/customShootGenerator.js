@@ -457,19 +457,31 @@ export async function generateCustomShootFrame({
   locationRefImage = null,
   frame = null,
   emotionId = null,
-  extraPrompt = ''
+  extraPrompt = '',
+  location = null,
+  presets = null,
+  aspectRatio = null,
+  imageSize = null
 }) {
   try {
     console.log('[CustomShootGenerator] Starting frame generation...');
     
     const { customUniverse, locks, globalSettings } = shoot;
     
+    // Override presets if passed
+    const effectiveUniverse = presets 
+      ? { ...customUniverse, presets: { ...customUniverse?.presets, ...presets } }
+      : customUniverse;
+    
+    // Override location if passed
+    const effectiveLocation = location || shoot.location;
+    
     // Build the prompt
     const promptJson = buildCustomShootPrompt({
-      customUniverse,
+      customUniverse: effectiveUniverse,
       locks,
       frame,
-      location: shoot.location,
+      location: effectiveLocation,
       emotionId,
       extraPrompt,
       modelDescription: '',
@@ -524,15 +536,28 @@ export async function generateCustomShootFrame({
     
     console.log(`[CustomShootGenerator] Total reference images: ${referenceImages.length}`);
     
-    // Get image config
-    const imageConfig = globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '2K' };
+    // Get image config - override with passed params
+    const defaultConfig = globalSettings?.imageConfig || { aspectRatio: '3:4', imageSize: '2K' };
+    const imageConfig = {
+      aspectRatio: aspectRatio || defaultConfig.aspectRatio,
+      imageSize: imageSize || defaultConfig.imageSize
+    };
     
-    // Call Gemini
+    // Log final prompt and config for debugging
+    console.log('[CustomShootGenerator] === FINAL PROMPT ===');
+    console.log(promptText);
+    console.log('[CustomShootGenerator] === IMAGE CONFIG ===');
+    console.log(JSON.stringify(imageConfig, null, 2));
+    console.log('[CustomShootGenerator] === REFS ===');
+    console.log(`Identity refs: ${identityImages.length}, Clothing refs: ${clothingImages.length}`);
+    console.log(`Style ref: ${styleRefImage ? 'YES' : 'NO'}, Location ref: ${locationRefImage ? 'YES' : 'NO'}`);
+    console.log('[CustomShootGenerator] ===================');
+    
+    // Call Gemini - pass imageConfig as object
     const result = await requestGeminiImage({
       prompt: promptText,
       referenceImages,
-      aspectRatio: imageConfig.aspectRatio,
-      imageSize: imageConfig.imageSize
+      imageConfig
     });
     
     if (!result.ok) {
