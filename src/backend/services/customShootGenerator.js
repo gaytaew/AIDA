@@ -545,10 +545,17 @@ export async function generateCustomShootFrame({
     
     console.log('[CustomShootGenerator] Generation successful');
     
+    // Build image object from result
+    const imageData = {
+      mimeType: result.mimeType,
+      base64: result.base64,
+      dataUrl: `data:${result.mimeType};base64,${result.base64}`
+    };
+    
     // Build result
     return {
       ok: true,
-      image: result.image,
+      image: imageData,
       promptJson,
       prompt: promptText,
       paramsSnapshot: {
