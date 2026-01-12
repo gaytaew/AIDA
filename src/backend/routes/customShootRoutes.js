@@ -30,7 +30,9 @@ import {
   getAllStylePresets, 
   checkConflicts, 
   getAllConflicts,
-  getShootTypeDefaults 
+  getShootTypeDefaults,
+  validateAndCorrectParams,
+  getParameterRecommendations
 } from '../schema/stylePresets.js';
 import {
   generateCustomShootFrame,
@@ -134,6 +136,50 @@ router.get('/shoot-type-defaults/:shootType', async (req, res) => {
     res.json({ ok: true, defaults });
   } catch (err) {
     console.error('[CustomShootRoutes] Error getting shoot type defaults:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/custom-shoots/validate-params
+ * Validate all parameters and get auto-corrections
+ * Body: { params: {...} }
+ * Returns: { valid, conflicts, warnings, autoCorrections, correctedParams }
+ */
+router.post('/validate-params', async (req, res) => {
+  try {
+    const { params } = req.body;
+    
+    if (!params) {
+      return res.status(400).json({ ok: false, error: 'Missing params' });
+    }
+    
+    const validation = validateAndCorrectParams(params);
+    res.json({ ok: true, ...validation });
+  } catch (err) {
+    console.error('[CustomShootRoutes] Error validating params:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/custom-shoots/recommendations
+ * Get parameter recommendations based on context
+ * Body: { context: {...}, param: 'string' }
+ * Returns: { recommended: [], avoid: [], info: string }
+ */
+router.post('/recommendations', async (req, res) => {
+  try {
+    const { context, param } = req.body;
+    
+    if (!context || !param) {
+      return res.status(400).json({ ok: false, error: 'Missing context or param' });
+    }
+    
+    const recommendations = getParameterRecommendations(context, param);
+    res.json({ ok: true, ...recommendations });
+  } catch (err) {
+    console.error('[CustomShootRoutes] Error getting recommendations:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

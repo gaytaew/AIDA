@@ -147,77 +147,105 @@ export const CAMERA_AESTHETIC_PRESETS = {
   none: {
     id: 'none',
     label: 'Без конкретной камеры',
-    prompt: null
+    prompt: null,
+    focusConflicts: [] // No conflicts
   },
   
   contax_t2: {
     id: 'contax_t2',
     label: 'Contax T2 (Portra)',
     description: 'Carl Zeiss резкость, Portra цвета, 90s fashion elite',
-    prompt: 'Contax T2 compact film camera aesthetic, Carl Zeiss 38mm f/2.8 signature sharpness with smooth bokeh, Kodak Portra 400 color science, natural warm skin tones, fine organic film grain, 90s fashion elite aesthetic'
+    prompt: 'Contax T2 compact film camera aesthetic, Carl Zeiss 38mm f/2.8 signature sharpness with smooth bokeh, Kodak Portra 400 color science, natural warm skin tones, fine organic film grain, 90s fashion elite aesthetic',
+    focusCapability: 'moderate', // f/2.8 - moderate shallow DOF
+    focusConflicts: []
   },
   
   hasselblad_mf: {
     id: 'hasselblad_mf',
     label: 'Hasselblad (Medium Format)',
     description: 'Средний формат, creamy bokeh, editorial quality',
-    prompt: 'Hasselblad medium format film aesthetic, 6x6 or 6x7 implied crop, Zeiss Planar rendering, extreme shallow depth of field, creamy smooth bokeh, high fashion editorial quality, analog richness'
+    prompt: 'Hasselblad medium format film aesthetic, 6x6 or 6x7 implied crop, Zeiss Planar rendering, extreme shallow depth of field, creamy smooth bokeh, high fashion editorial quality, analog richness',
+    focusCapability: 'full', // Medium format = excellent shallow DOF
+    focusConflicts: [],
+    implies: { focusMode: 'shallow_dof' } // Hasselblad implies shallow DOF
   },
   
   leica_m: {
     id: 'leica_m',
     label: 'Leica M (Street)',
     description: 'Documentary резкость, Tri-X pushed, decisive moment',
-    prompt: 'Leica M rangefinder aesthetic, documentary sharpness, Summicron 35mm rendering, Kodak Tri-X pushed grain, classic street photography look, decisive moment energy, compact camera intimacy'
+    prompt: 'Leica M rangefinder aesthetic, documentary sharpness, Summicron 35mm rendering, Kodak Tri-X pushed grain, classic street photography look, decisive moment energy, compact camera intimacy',
+    focusCapability: 'full', // Fast lenses available
+    focusConflicts: []
   },
   
   canon_ae1: {
     id: 'canon_ae1',
     label: 'Canon AE-1 (Consumer)',
     description: 'Dreamy halation, consumer film, nostalgic amateur',
-    prompt: 'Canon AE-1 35mm SLR aesthetic, FD 50mm f/1.4 wide open, dreamy halation on highlights, consumer film colors like Fujifilm Superia 400, nostalgic amateur photography aesthetic'
+    prompt: 'Canon AE-1 35mm SLR aesthetic, FD 50mm f/1.4 wide open, dreamy halation on highlights, consumer film colors like Fujifilm Superia 400, nostalgic amateur photography aesthetic',
+    focusCapability: 'full', // f/1.4 available
+    focusConflicts: []
   },
   
   mamiya_rz67: {
     id: 'mamiya_rz67',
     label: 'Mamiya RZ67 (Studio)',
     description: 'Портретный medium format, creamy skin, studio quality',
-    prompt: 'Mamiya RZ67 medium format aesthetic, 110mm f/2.8 portrait lens rendering, extreme shallow DOF with creamy bokeh, Kodak Portra 160 natural skin tones, high fashion studio quality'
+    prompt: 'Mamiya RZ67 medium format aesthetic, 110mm f/2.8 portrait lens rendering, extreme shallow DOF with creamy bokeh, Kodak Portra 160 natural skin tones, high fashion studio quality',
+    focusCapability: 'full', // Medium format
+    focusConflicts: [],
+    implies: { focusMode: 'shallow_dof' }
   },
   
   polaroid: {
     id: 'polaroid',
     label: 'Polaroid',
     description: 'Instant film, soft focus, chemical bleeding',
-    prompt: 'Polaroid instant film aesthetic, soft focus, subtle vignetting, creamy desaturated colors, chemical bleeding at edges, white frame energy, nostalgic and intimate'
+    prompt: 'Polaroid instant film aesthetic, soft focus, subtle vignetting, creamy desaturated colors, chemical bleeding at edges, white frame energy, nostalgic and intimate',
+    focusCapability: 'limited', // Fixed focus lenses
+    focusConflicts: ['very_shallow_dof'], // Polaroid can't do very shallow
+    warns: { focusMode: 'shallow_dof', message: 'Polaroid имеет ограниченные возможности размытия фона' }
   },
   
   disposable: {
     id: 'disposable',
     label: 'Одноразовая камера',
     description: 'Plastic lens, oversaturated, party aesthetic',
-    prompt: 'Disposable camera aesthetic, plastic lens softness and distortion, oversaturated cheap film colors, hot center falloff to dark edges, party snapshot energy, lo-fi charm'
+    prompt: 'Disposable camera aesthetic, plastic lens softness and distortion, oversaturated cheap film colors, hot center falloff to dark edges, party snapshot energy, lo-fi charm',
+    focusCapability: 'fixed', // Fixed focus
+    focusConflicts: ['shallow_dof', 'very_shallow_dof'], // Disposable = deep focus only
+    implies: { focusMode: 'deep_focus' }
   },
   
   holga: {
     id: 'holga',
     label: 'Holga / Toy Camera',
     description: 'Extreme vignetting, light leaks, art school vibes',
-    prompt: 'Holga 120 toy camera aesthetic, extreme vignetting, light leaks, soft plastic lens blur, lo-fi dreamy quality, unpredictable exposure, art school vibes, experimental'
+    prompt: 'Holga 120 toy camera aesthetic, extreme vignetting, light leaks, soft plastic lens blur, lo-fi dreamy quality, unpredictable exposure, art school vibes, experimental',
+    focusCapability: 'fixed',
+    focusConflicts: ['shallow_dof', 'very_shallow_dof'],
+    implies: { focusMode: 'deep_focus' }
   },
   
   iphone: {
     id: 'iphone',
     label: 'iPhone / Smartphone',
     description: 'Computational HDR, social media native',
-    prompt: 'iPhone smartphone photography aesthetic, computational HDR artifacts visible, social media native look, slightly over-sharpened, deep DOF, casual snapshot quality'
+    prompt: 'iPhone smartphone photography aesthetic, computational HDR artifacts visible, social media native look, slightly over-sharpened, deep DOF, casual snapshot quality',
+    focusCapability: 'computational', // Fake DOF via computation
+    focusConflicts: ['very_shallow_dof'], // iPhone can't do very shallow optically
+    warns: { focusMode: 'shallow_dof', message: 'iPhone использует вычислительное размытие (portrait mode) — не оптическое' }
   },
   
   ricoh_gr: {
     id: 'ricoh_gr',
     label: 'Ricoh GR (28mm)',
     description: 'Street compact, 28mm wide, snap aesthetic',
-    prompt: 'Ricoh GR compact digital aesthetic, 28mm equivalent wide angle, high contrast snap mode energy, street photography immediacy, deep blacks, grain simulation'
+    prompt: 'Ricoh GR compact digital aesthetic, 28mm equivalent wide angle, high contrast snap mode energy, street photography immediacy, deep blacks, grain simulation',
+    focusCapability: 'limited', // 28mm wide angle = hard to get shallow DOF
+    focusConflicts: ['very_shallow_dof'],
+    warns: { focusMode: 'shallow_dof', message: 'Широкоугольный 28mm затрудняет сильное размытие фона' }
   }
 };
 
@@ -232,15 +260,22 @@ export const LIGHTING_SOURCE_PRESETS = {
     description: 'Солнце или небо, без искусственных источников',
     prompt: 'Natural daylight illumination, sun or sky as primary light source, outdoor or large window, no artificial lighting visible',
     conflicts: {
-      timeOfDay: ['night'] // Can't have daylight at night
-    }
+      timeOfDay: ['night'], // Can't have daylight at night
+      spaceType: ['interior_studio'] // Daylight implies outdoor or near window
+    },
+    validSpaceTypes: ['exterior', 'rooftop', 'interior_with_windows', 'mixed']
   },
   
   window_light: {
     id: 'window_light',
     label: 'Свет из окна',
     description: 'Направленный естественный свет через окно',
-    prompt: 'Window light as primary source, directional natural light from one side, Rembrandt lighting possible, interior daytime quality, soft gradient falloff'
+    prompt: 'Window light as primary source, directional natural light from one side, Rembrandt lighting possible, interior daytime quality, soft gradient falloff',
+    conflicts: {
+      timeOfDay: ['night'], // No window light at night (or minimal)
+      spaceType: ['exterior'] // Can't have window light outside
+    },
+    validSpaceTypes: ['interior_with_windows', 'interior_studio', 'mixed']
   },
   
   on_camera_flash: {
@@ -250,42 +285,60 @@ export const LIGHTING_SOURCE_PRESETS = {
     prompt: 'On-camera flash as primary light, direct frontal illumination, background falloff to darkness, snapshot aesthetic, foreground blown tendency',
     implies: {
       lightingQuality: 'harsh_direct' // On-camera flash is always harsh
-    }
+    },
+    validSpaceTypes: ['interior', 'exterior', 'mixed', 'interior_studio'] // Works anywhere
   },
   
   studio_strobe: {
     id: 'studio_strobe',
     label: 'Студийный импульс',
     description: 'Контролируемый студийный свет с модификаторами',
-    prompt: 'Professional studio strobe lighting, controlled illumination through modifiers (softbox, umbrella, beauty dish), clean neutral color temperature, fashion studio quality'
+    prompt: 'Professional studio strobe lighting, controlled illumination through modifiers (softbox, umbrella, beauty dish), clean neutral color temperature, fashion studio quality',
+    conflicts: {
+      spaceType: ['exterior', 'rooftop'] // Studio strobe can't be outdoors
+    },
+    validSpaceTypes: ['interior_studio', 'interior', 'mixed']
   },
   
   ring_flash: {
     id: 'ring_flash',
     label: 'Кольцевая вспышка',
     description: 'Плоское освещение, характерные блики в глазах',
-    prompt: 'Ring flash on-axis lighting, virtually no shadows, flat even illumination, characteristic circular catchlight in eyes, fashion beauty aesthetic'
+    prompt: 'Ring flash on-axis lighting, virtually no shadows, flat even illumination, characteristic circular catchlight in eyes, fashion beauty aesthetic',
+    conflicts: {
+      spaceType: ['exterior', 'rooftop'] // Ring flash is studio/indoor
+    },
+    validSpaceTypes: ['interior_studio', 'interior']
   },
   
   mixed_ambient: {
     id: 'mixed_ambient',
     label: 'Смешанный ambient',
     description: 'Разные источники: sodium, tungsten, neon',
-    prompt: 'Mixed ambient light sources, sodium street lights mixing with tungsten interiors, color temperature contamination, urban nightlife quality, imperfect white balance'
+    prompt: 'Mixed ambient light sources, sodium street lights mixing with tungsten interiors, color temperature contamination, urban nightlife quality, imperfect white balance',
+    conflicts: {
+      timeOfDay: ['midday', 'golden_hour'] // Mixed ambient is typically night/evening
+    },
+    validSpaceTypes: ['exterior', 'interior', 'mixed']
   },
   
   practicals: {
     id: 'practicals',
     label: 'Практические источники',
     description: 'Лампы в кадре, неоновые вывески',
-    prompt: 'Practical light sources visible in frame (lamps, neon signs, screens), motivated lighting, cinematic quality, light sources as part of composition'
+    prompt: 'Practical light sources visible in frame (lamps, neon signs, screens), motivated lighting, cinematic quality, light sources as part of composition',
+    validSpaceTypes: ['interior', 'exterior', 'mixed']
   },
   
   continuous_led: {
     id: 'continuous_led',
     label: 'Постоянный LED',
     description: 'Видеосвет, равномерная заливка',
-    prompt: 'Continuous LED panel lighting, even flat illumination, video production quality, modern commercial look, no flash freeze'
+    prompt: 'Continuous LED panel lighting, even flat illumination, video production quality, modern commercial look, no flash freeze',
+    conflicts: {
+      spaceType: ['exterior'] // LED panels are typically indoor
+    },
+    validSpaceTypes: ['interior_studio', 'interior', 'mixed']
   }
 };
 
@@ -300,7 +353,13 @@ export const LIGHTING_QUALITY_PRESETS = {
     description: 'Резкие тени, высокий контраст, пересветы',
     prompt: 'Harsh direct lighting with hard-edged shadows, high contrast between lit and shadow areas, specular highlights, no diffusion, punchy and dramatic',
     conflicts: {
-      lightingSource: ['studio_strobe'] // Studio usually has modifiers
+      lightingSource: ['studio_strobe'], // Studio usually has modifiers
+      weather: ['overcast', 'foggy', 'cloudy'], // Overcast sky = natural soft light
+      timeOfDay: ['blue_hour'] // Blue hour is soft
+    },
+    autoBlockedWhen: {
+      weather: ['overcast', 'foggy', 'cloudy'], // Auto-switch to soft_diffused
+      fallback: 'soft_diffused'
     }
   },
   
@@ -311,6 +370,10 @@ export const LIGHTING_QUALITY_PRESETS = {
     prompt: 'Soft diffused lighting through large source or modifier, gentle shadow falloff, wrap-around illumination, flattering and even, beauty quality',
     conflicts: {
       lightingSource: ['on_camera_flash'] // On-camera can't be soft
+    },
+    compatibleWith: {
+      weather: ['overcast', 'foggy', 'cloudy', 'clear', 'any'], // Works with everything
+      timeOfDay: ['any', 'golden_hour', 'blue_hour', 'sunrise', 'sunset']
     }
   },
   
@@ -318,28 +381,43 @@ export const LIGHTING_QUALITY_PRESETS = {
     id: 'contrasty',
     label: 'Контрастный',
     description: 'Сильный контраст свет/тень, драматичный',
-    prompt: 'High contrast lighting with dramatic light-to-shadow ratio, deep shadows not filled, sculptural quality, fashion editorial drama, Rembrandt or chiaroscuro influence'
+    prompt: 'High contrast lighting with dramatic light-to-shadow ratio, deep shadows not filled, sculptural quality, fashion editorial drama, Rembrandt or chiaroscuro influence',
+    conflicts: {
+      weather: ['foggy'] // Fog kills contrast
+    }
   },
   
   flat: {
     id: 'flat',
     label: 'Плоский',
     description: 'Минимальные тени, заполняющий свет',
-    prompt: 'Flat even lighting with minimal shadows, high fill ratio, beauty photography quality, shadowless commercial look, ring flash or butterfly lighting effect'
+    prompt: 'Flat even lighting with minimal shadows, high fill ratio, beauty photography quality, shadowless commercial look, ring flash or butterfly lighting effect',
+    compatibleWith: {
+      weather: ['overcast', 'cloudy'], // Overcast is naturally flat
+      lightingSource: ['ring_flash', 'studio_strobe', 'continuous_led']
+    }
   },
   
   backlit: {
     id: 'backlit',
     label: 'Контровой',
     description: 'Свет сзади, rim light, силуэтный потенциал',
-    prompt: 'Backlit setup with light source behind subject, rim light on hair and shoulders, lens flare potential, silhouette possibilities, atmospheric haze highlighted'
+    prompt: 'Backlit setup with light source behind subject, rim light on hair and shoulders, lens flare potential, silhouette possibilities, atmospheric haze highlighted',
+    bestWith: {
+      timeOfDay: ['golden_hour', 'sunset', 'sunrise'], // Backlight works best at these times
+      lightingSource: ['natural_daylight']
+    }
   },
   
   moody_lowkey: {
     id: 'moody_lowkey',
     label: 'Low-key / Moody',
     description: 'Много теней, атмосферный, cinematic',
-    prompt: 'Low-key moody lighting, predominantly dark with selective highlights, noir influence, atmospheric and cinematic, mystery and drama, deep shadows dominating'
+    prompt: 'Low-key moody lighting, predominantly dark with selective highlights, noir influence, atmospheric and cinematic, mystery and drama, deep shadows dominating',
+    bestWith: {
+      timeOfDay: ['night', 'blue_hour'],
+      lightingSource: ['practicals', 'mixed_ambient']
+    }
   }
 };
 
@@ -689,11 +767,28 @@ export const ERA_PRESETS = {
  * @param {Object} currentSelections - Current parameter values
  * @param {string} paramToCheck - Parameter being checked
  * @param {string} valueToCheck - Value being checked
- * @returns {Object} { conflicts: boolean, reasons: string[], blockedBy: string[] }
+ * @returns {Object} { conflicts: boolean, reasons: string[], blockedBy: string[], warnings: string[], autoCorrections: Object }
  */
 export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
   const conflicts = [];
+  const warnings = [];
   const blockedBy = [];
+  const autoCorrections = {};
+  
+  const TIME_LABELS = {
+    night: 'Ночь', sunrise: 'Рассвет', midday: 'Полдень', sunset: 'Закат',
+    golden_hour: 'Золотой час', blue_hour: 'Синий час', afternoon: 'День', any: 'Любое'
+  };
+  
+  const WEATHER_LABELS = {
+    clear: 'Ясно', overcast: 'Пасмурно', foggy: 'Туман', cloudy: 'Облачно',
+    rainy: 'Дождь', any: 'Любая'
+  };
+  
+  const SPACE_LABELS = {
+    exterior: 'Улица', rooftop: 'Крыша', interior: 'Интерьер',
+    interior_studio: 'Студия', interior_with_windows: 'Интерьер с окнами', mixed: 'Смешанное'
+  };
   
   // 1. Check Shoot Type conflicts
   if (currentSelections.shootType && SHOOT_TYPE_PRESETS[currentSelections.shootType]) {
@@ -710,10 +805,11 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
     if (source?.implies?.lightingQuality && source.implies.lightingQuality !== valueToCheck) {
       conflicts.push(`"${source.label}" требует "${LIGHTING_QUALITY_PRESETS[source.implies.lightingQuality]?.label}"`);
       blockedBy.push('lightingSource');
+      autoCorrections.lightingQuality = source.implies.lightingQuality;
     }
   }
   
-  // 3. Check Lighting Source conflicts
+  // 3. Check Lighting Source conflicts with Lighting Quality
   if (paramToCheck === 'lightingSource' && currentSelections.lightingQuality) {
     const quality = LIGHTING_QUALITY_PRESETS[currentSelections.lightingQuality];
     if (quality?.conflicts?.lightingSource?.includes(valueToCheck)) {
@@ -722,7 +818,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
     }
   }
   
-  // 4. Check Lighting Quality conflicts
+  // 4. Check Lighting Quality conflicts with Lighting Source
   if (paramToCheck === 'lightingQuality' && currentSelections.lightingSource) {
     const source = LIGHTING_SOURCE_PRESETS[currentSelections.lightingSource];
     const quality = LIGHTING_QUALITY_PRESETS[valueToCheck];
@@ -736,15 +832,84 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
   if (paramToCheck === 'lightingSource' && currentSelections.timeOfDay) {
     const source = LIGHTING_SOURCE_PRESETS[valueToCheck];
     if (source?.conflicts?.timeOfDay?.includes(currentSelections.timeOfDay)) {
-      const timeLabels = {
-        night: 'Ночь', sunrise: 'Рассвет', midday: 'Полдень', sunset: 'Закат'
-      };
-      conflicts.push(`"${source?.label}" невозможен при "${timeLabels[currentSelections.timeOfDay]}"`);
+      conflicts.push(`"${source?.label}" невозможен в "${TIME_LABELS[currentSelections.timeOfDay]}"`);
       blockedBy.push('timeOfDay');
     }
   }
   
-  // 6. Check Capture Style conflicts with Shoot Type
+  // 6. Check Time of Day conflicts with Lighting Quality
+  if (paramToCheck === 'lightingQuality' && currentSelections.timeOfDay) {
+    const quality = LIGHTING_QUALITY_PRESETS[valueToCheck];
+    if (quality?.conflicts?.timeOfDay?.includes(currentSelections.timeOfDay)) {
+      conflicts.push(`"${quality?.label}" невозможен в "${TIME_LABELS[currentSelections.timeOfDay]}"`);
+      blockedBy.push('timeOfDay');
+    }
+  }
+  
+  // 7. Check Weather conflicts with Lighting Quality
+  if (paramToCheck === 'lightingQuality' && currentSelections.weather) {
+    const quality = LIGHTING_QUALITY_PRESETS[valueToCheck];
+    if (quality?.conflicts?.weather?.includes(currentSelections.weather)) {
+      conflicts.push(`"${quality?.label}" невозможен при погоде "${WEATHER_LABELS[currentSelections.weather]}"`);
+      blockedBy.push('weather');
+      // Auto-correction: switch to fallback
+      if (quality?.autoBlockedWhen?.weather?.includes(currentSelections.weather)) {
+        autoCorrections.lightingQuality = quality.autoBlockedWhen.fallback || 'soft_diffused';
+      }
+    }
+  }
+  
+  // 8. Check Space Type conflicts with Lighting Source
+  if (paramToCheck === 'lightingSource' && currentSelections.spaceType) {
+    const source = LIGHTING_SOURCE_PRESETS[valueToCheck];
+    if (source?.conflicts?.spaceType?.includes(currentSelections.spaceType)) {
+      conflicts.push(`"${source?.label}" невозможен в локации "${SPACE_LABELS[currentSelections.spaceType]}"`);
+      blockedBy.push('spaceType');
+    }
+  }
+  
+  // 9. Check Camera Aesthetic conflicts with Focus Mode
+  if (paramToCheck === 'focusMode' && currentSelections.cameraAesthetic) {
+    const camera = CAMERA_AESTHETIC_PRESETS[currentSelections.cameraAesthetic];
+    if (camera?.focusConflicts?.includes(valueToCheck)) {
+      conflicts.push(`Камера "${camera.label}" не поддерживает этот режим фокуса`);
+      blockedBy.push('cameraAesthetic');
+    }
+    // Warnings (not blocking, just informational)
+    if (camera?.warns?.focusMode === valueToCheck) {
+      warnings.push(camera.warns.message);
+    }
+  }
+  
+  // 10. Check Camera Aesthetic implies (e.g., disposable implies deep_focus)
+  if (paramToCheck === 'focusMode' && currentSelections.cameraAesthetic) {
+    const camera = CAMERA_AESTHETIC_PRESETS[currentSelections.cameraAesthetic];
+    if (camera?.implies?.focusMode && camera.implies.focusMode !== valueToCheck) {
+      conflicts.push(`Камера "${camera.label}" требует режим "${camera.implies.focusMode}"`);
+      blockedBy.push('cameraAesthetic');
+      autoCorrections.focusMode = camera.implies.focusMode;
+    }
+  }
+  
+  // 11. Check Shot Size recommendations for Focus
+  if (paramToCheck === 'focusMode' && currentSelections.shotSize) {
+    const shotSizeFocusRecommendations = {
+      'extreme_closeup': ['shallow_dof', 'very_shallow_dof'], // Close-ups benefit from shallow DOF
+      'closeup': ['shallow_dof', 'moderate_dof'],
+      'medium_closeup': ['shallow_dof', 'moderate_dof'],
+      'medium': ['moderate_dof', 'shallow_dof'],
+      'medium_wide': ['moderate_dof', 'deep_focus'],
+      'wide': ['deep_focus', 'moderate_dof'], // Wide shots need more in focus
+      'extreme_wide': ['deep_focus'] // Environment shots = deep focus
+    };
+    
+    const recommended = shotSizeFocusRecommendations[currentSelections.shotSize];
+    if (recommended && !recommended.includes(valueToCheck)) {
+      warnings.push(`Для "${currentSelections.shotSize}" рекомендуется: ${recommended.join(' или ')}`);
+    }
+  }
+  
+  // 12. Check Capture Style conflicts with Shoot Type
   if (paramToCheck === 'captureStyle' && currentSelections.shootType) {
     const shootType = SHOOT_TYPE_PRESETS[currentSelections.shootType];
     if (shootType?.conflicts?.captureStyle?.includes(valueToCheck)) {
@@ -756,7 +921,9 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
   return {
     conflicts: conflicts.length > 0,
     reasons: conflicts,
-    blockedBy
+    warnings,
+    blockedBy,
+    autoCorrections
   };
 }
 
@@ -800,6 +967,154 @@ export function getShootTypeDefaults(shootType) {
   const preset = SHOOT_TYPE_PRESETS[shootType];
   if (!preset) return {};
   return preset.defaults || {};
+}
+
+/**
+ * Validate all parameters and return conflicts, warnings, and auto-corrections
+ * This is the main function to call before generating a prompt
+ * @param {Object} params - All generation parameters
+ * @returns {Object} { valid: boolean, conflicts: [], warnings: [], autoCorrections: {}, correctedParams: {} }
+ */
+export function validateAndCorrectParams(params) {
+  const {
+    shootType,
+    cameraAesthetic,
+    lightingSource,
+    lightingQuality,
+    focusMode,
+    shotSize,
+    timeOfDay,
+    weather,
+    spaceType,
+    captureStyle
+  } = params;
+  
+  const allConflicts = [];
+  const allWarnings = [];
+  const autoCorrections = {};
+  
+  // Create selection context
+  const selections = { shootType, cameraAesthetic, lightingSource, lightingQuality, focusMode, shotSize, timeOfDay, weather, spaceType, captureStyle };
+  
+  // Check each current value against all rules
+  const checks = [
+    { param: 'lightingQuality', value: lightingQuality },
+    { param: 'lightingSource', value: lightingSource },
+    { param: 'focusMode', value: focusMode },
+    { param: 'captureStyle', value: captureStyle }
+  ];
+  
+  for (const { param, value } of checks) {
+    if (value) {
+      const result = checkConflicts(selections, param, value);
+      if (result.conflicts) {
+        allConflicts.push(...result.reasons);
+      }
+      if (result.warnings?.length > 0) {
+        allWarnings.push(...result.warnings);
+      }
+      if (result.autoCorrections && Object.keys(result.autoCorrections).length > 0) {
+        Object.assign(autoCorrections, result.autoCorrections);
+      }
+    }
+  }
+  
+  // Apply auto-corrections to create corrected params
+  const correctedParams = { ...params, ...autoCorrections };
+  
+  return {
+    valid: allConflicts.length === 0,
+    conflicts: allConflicts,
+    warnings: allWarnings,
+    autoCorrections,
+    correctedParams
+  };
+}
+
+/**
+ * Get recommendations for a specific parameter based on current context
+ * @param {Object} context - Current parameter context
+ * @param {string} param - Parameter to get recommendations for
+ * @returns {Object} { recommended: [], avoid: [], info: string }
+ */
+export function getParameterRecommendations(context, param) {
+  const recommendations = { recommended: [], avoid: [], info: '' };
+  
+  // Shot Size → Focus Mode recommendations
+  if (param === 'focusMode' && context.shotSize) {
+    const shotFocusMap = {
+      'extreme_closeup': { recommended: ['very_shallow_dof', 'shallow_dof'], info: 'Крупный план красиво смотрится с размытием' },
+      'closeup': { recommended: ['shallow_dof'], info: 'Портретный план с размытым фоном' },
+      'medium_closeup': { recommended: ['shallow_dof', 'moderate_dof'], info: 'Классический портрет' },
+      'medium': { recommended: ['moderate_dof'], info: 'Средний план - умеренная глубина' },
+      'medium_wide': { recommended: ['moderate_dof', 'deep_focus'], info: 'Показываем окружение' },
+      'wide': { recommended: ['deep_focus'], avoid: ['shallow_dof'], info: 'Общий план - всё в фокусе' },
+      'extreme_wide': { recommended: ['deep_focus'], avoid: ['shallow_dof', 'very_shallow_dof'], info: 'Пейзажный план' }
+    };
+    
+    const rec = shotFocusMap[context.shotSize];
+    if (rec) {
+      recommendations.recommended = rec.recommended || [];
+      recommendations.avoid = rec.avoid || [];
+      recommendations.info = rec.info || '';
+    }
+  }
+  
+  // Time of Day → Lighting Quality recommendations
+  if (param === 'lightingQuality' && context.timeOfDay) {
+    const timeQualityMap = {
+      'golden_hour': { recommended: ['backlit', 'soft_diffused', 'contrasty'], info: 'Золотой час - мягкий тёплый свет' },
+      'midday': { recommended: ['harsh_direct', 'contrasty'], avoid: ['moody_lowkey'], info: 'Полдень - жёсткий свет сверху' },
+      'blue_hour': { recommended: ['moody_lowkey', 'soft_diffused'], avoid: ['harsh_direct'], info: 'Синий час - мягкое свечение' },
+      'night': { recommended: ['moody_lowkey', 'contrasty'], avoid: ['soft_diffused'], info: 'Ночь - контрастный свет от источников' },
+      'overcast': { recommended: ['soft_diffused', 'flat'], avoid: ['harsh_direct'], info: 'Пасмурно - естественный софтбокс' }
+    };
+    
+    const rec = timeQualityMap[context.timeOfDay];
+    if (rec) {
+      recommendations.recommended = rec.recommended || [];
+      recommendations.avoid = rec.avoid || [];
+      recommendations.info = rec.info || '';
+    }
+  }
+  
+  // Space Type → Lighting Source recommendations
+  if (param === 'lightingSource' && context.spaceType) {
+    const spaceSourceMap = {
+      'exterior': { recommended: ['natural_daylight', 'on_camera_flash'], avoid: ['studio_strobe', 'ring_flash', 'continuous_led'], info: 'На улице - естественный свет или вспышка' },
+      'rooftop': { recommended: ['natural_daylight'], avoid: ['studio_strobe', 'ring_flash'], info: 'Крыша - открытое небо' },
+      'interior_studio': { recommended: ['studio_strobe', 'ring_flash', 'continuous_led'], avoid: ['natural_daylight'], info: 'Студия - контролируемый свет' },
+      'interior_with_windows': { recommended: ['window_light', 'natural_daylight', 'practicals'], info: 'Интерьер с окнами - смешанный свет' },
+      'interior': { recommended: ['practicals', 'continuous_led', 'mixed_ambient'], info: 'Интерьер - ambient свет' }
+    };
+    
+    const rec = spaceSourceMap[context.spaceType];
+    if (rec) {
+      recommendations.recommended = rec.recommended || [];
+      recommendations.avoid = rec.avoid || [];
+      recommendations.info = rec.info || '';
+    }
+  }
+  
+  // Shoot Type → Camera Aesthetic recommendations
+  if (param === 'cameraAesthetic' && context.shootType) {
+    const shootCameraMap = {
+      'editorial': { recommended: ['hasselblad_mf', 'mamiya_rz67', 'leica_m', 'contax_t2'], info: 'Editorial - высокое качество' },
+      'street': { recommended: ['leica_m', 'ricoh_gr', 'contax_t2', 'disposable'], info: 'Street - компактные камеры' },
+      'catalog': { recommended: ['hasselblad_mf', 'none'], avoid: ['holga', 'disposable'], info: 'Каталог - чистое качество' },
+      'beauty': { recommended: ['hasselblad_mf', 'mamiya_rz67'], avoid: ['iphone', 'disposable'], info: 'Beauty - максимальная детализация' },
+      'sport': { recommended: ['none', 'ricoh_gr'], info: 'Спорт - технические характеристики' }
+    };
+    
+    const rec = shootCameraMap[context.shootType];
+    if (rec) {
+      recommendations.recommended = rec.recommended || [];
+      recommendations.avoid = rec.avoid || [];
+      recommendations.info = rec.info || '';
+    }
+  }
+  
+  return recommendations;
 }
 
 // ═══════════════════════════════════════════════════════════════

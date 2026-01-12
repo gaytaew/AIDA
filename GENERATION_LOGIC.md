@@ -714,10 +714,140 @@ const promptJson = {
 
 ---
 
+## 11. API валидации параметров
+
+### 11.1 Backend Functions (stylePresets.js)
+
+#### `checkConflicts(currentSelections, paramToCheck, valueToCheck)`
+
+Проверяет конкретный параметр на конфликты:
+
+```javascript
+const result = checkConflicts(
+  { shootType: 'catalog', lightingSource: 'on_camera_flash' },
+  'lightingQuality',
+  'soft_diffused'
+);
+
+// Возвращает:
+{
+  conflicts: true,
+  reasons: ['"Накамерная вспышка" требует "Жёсткий прямой"'],
+  warnings: [],
+  blockedBy: ['lightingSource'],
+  autoCorrections: { lightingQuality: 'harsh_direct' }
+}
+```
+
+#### `validateAndCorrectParams(params)`
+
+Полная валидация всех параметров с авто-коррекциями:
+
+```javascript
+const validation = validateAndCorrectParams({
+  shootType: 'editorial',
+  cameraAesthetic: 'iphone',
+  lightingSource: 'natural_daylight',
+  lightingQuality: 'harsh_direct',
+  focusMode: 'shallow',
+  weather: 'overcast',
+  // ...
+});
+
+// Возвращает:
+{
+  valid: false,
+  conflicts: ['iPhone не поддерживает сильное размытие фона'],
+  warnings: ['Для широкоугольного кадра рекомендуется deep_focus'],
+  autoCorrections: { lightingQuality: 'soft_diffused' }, // overcast → soft
+  correctedParams: { ...params, lightingQuality: 'soft_diffused' }
+}
+```
+
+#### `getParameterRecommendations(context, param)`
+
+Получить рекомендации для параметра:
+
+```javascript
+const recs = getParameterRecommendations(
+  { shotSize: 'closeup', shootType: 'beauty' },
+  'focusMode'
+);
+
+// Возвращает:
+{
+  recommended: ['shallow_dof', 'focus_face'],
+  avoid: ['deep_focus'],
+  info: 'Крупный план красиво смотрится с размытием'
+}
+```
+
+### 11.2 API Endpoints
+
+| Endpoint | Метод | Описание |
+|----------|-------|----------|
+| `/api/custom-shoots/validate-params` | POST | Полная валидация с авто-коррекциями |
+| `/api/custom-shoots/check-conflicts` | POST | Проверка одного параметра |
+| `/api/custom-shoots/all-conflicts` | POST | Все конфликты для текущих настроек |
+| `/api/custom-shoots/recommendations` | POST | Рекомендации для параметра |
+| `/api/custom-shoots/shoot-type-defaults/:type` | GET | Дефолты для типа съёмки |
+
+### 11.3 Авто-коррекции на уровне генератора
+
+При сборке промпта (buildCustomShootPrompt) происходит:
+
+1. **Валидация параметров**
+   ```javascript
+   const validation = validateAndCorrectParams(rawParams);
+   ```
+
+2. **Логирование конфликтов**
+   ```javascript
+   if (validation.conflicts.length > 0) {
+     console.log('[buildCustomShootPrompt] Conflicts:', validation.conflicts);
+   }
+   ```
+
+3. **Применение авто-коррекций**
+   ```javascript
+   const correctedParams = validation.correctedParams;
+   let effectiveLightingQuality = correctedParams.lightingQuality;
+   ```
+
+4. **Предупреждения сохраняются в промпте**
+   ```javascript
+   if (validation.warnings.length > 0) {
+     promptJson.parameterWarnings = validation.warnings;
+   }
+   ```
+
+### 11.4 Frontend интеграция
+
+Фронтенд вызывает `/api/custom-shoots/validate-params` при каждом изменении параметров:
+
+```javascript
+async function checkAndDisplayConflicts() {
+  const params = collectAllParams();
+  const res = await fetch('/api/custom-shoots/validate-params', {
+    method: 'POST',
+    body: JSON.stringify({ params })
+  });
+  const { conflicts, warnings, autoCorrections } = await res.json();
+  
+  // Отображение:
+  // 🚫 Конфликты (красные) — критические ошибки
+  // 🔄 Авто-коррекции (синие) — будут применены автоматически
+  // 💡 Рекомендации (жёлтые) — не блокируют, но советуют
+}
+```
+
+---
+
 ## Changelog
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| 1.1 | 2026-01-12 | Добавлена секция 11: API валидации, авто-коррекции |
 | 1.0 | 2026-01-12 | Первая версия документа |
 
 ---

@@ -22,7 +22,9 @@ import {
   CAMERA_AESTHETIC_PRESETS,
   LIGHTING_SOURCE_PRESETS,
   LIGHTING_QUALITY_PRESETS,
-  buildPresetsPrompt 
+  buildPresetsPrompt,
+  validateAndCorrectParams,
+  getParameterRecommendations
 } from '../schema/stylePresets.js';
 import { generateImageId } from '../schema/customShoot.js';
 import { buildLocationPromptSnippet, buildAmbientPrompt } from '../schema/location.js';
@@ -279,8 +281,52 @@ export function buildCustomShootPrompt({
   // Anti-AI override
   antiAi = null,
   // Ambient (situational conditions: weather, season, atmosphere)
-  ambient = null
+  ambient = null,
+  // New 6-layer params
+  shootType = null,
+  cameraAesthetic = null,
+  lightingSource = null,
+  lightingQuality = null
 }) {
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 1: Validate and Auto-Correct Parameters
+  // ═══════════════════════════════════════════════════════════════
+  
+  const rawParams = {
+    shootType: shootType || customUniverse?.shootType || 'editorial',
+    cameraAesthetic: cameraAesthetic || customUniverse?.cameraAesthetic?.preset || 'none',
+    lightingSource: lightingSource || customUniverse?.lightingSource?.preset || 'natural_daylight',
+    lightingQuality: lightingQuality || customUniverse?.lightingQuality?.preset || 'soft_diffused',
+    focusMode: composition?.focusMode || 'default',
+    shotSize: composition?.shotSize || 'medium_shot',
+    timeOfDay: ambient?.timeOfDay || 'any',
+    weather: ambient?.weather || 'clear',
+    spaceType: location?.spaceType || 'mixed',
+    captureStyle: captureStyle || 'none'
+  };
+  
+  // Validate and get auto-corrections
+  const validation = validateAndCorrectParams(rawParams);
+  
+  // Log validation results
+  if (validation.conflicts.length > 0) {
+    console.log('[buildCustomShootPrompt] Parameter conflicts detected:', validation.conflicts);
+  }
+  if (validation.warnings.length > 0) {
+    console.log('[buildCustomShootPrompt] Parameter warnings:', validation.warnings);
+  }
+  if (Object.keys(validation.autoCorrections).length > 0) {
+    console.log('[buildCustomShootPrompt] Auto-corrections applied:', validation.autoCorrections);
+  }
+  
+  // Use corrected parameters
+  const correctedParams = validation.correctedParams;
+  
+  // Apply auto-corrections to mutable variables
+  let effectiveLightingQuality = correctedParams.lightingQuality;
+  let effectiveFocusMode = correctedParams.focusMode;
+  let effectiveLightingSource = correctedParams.lightingSource;
+  
   const promptJson = {
     format: 'aida_custom_shoot_v1',
     formatVersion: 1,
@@ -354,6 +400,67 @@ export function buildCustomShootPrompt({
     console.log('[buildCustomShootPrompt] Using Fine Mode');
     // Use universeToPromptBlock for fine mode
     promptJson.visualStyle = universeToPromptBlock(customUniverse);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 6-LAYER PARAMETER ARCHITECTURE
+  // ═══════════════════════════════════════════════════════════════
+  
+  // Layer 1: Shoot Type (highest priority context)
+  const effectiveShootType = correctedParams.shootType;
+  if (effectiveShootType && effectiveShootType !== 'none') {
+    const shootTypePreset = SHOOT_TYPE_PRESETS[effectiveShootType];
+    if (shootTypePreset) {
+      promptJson.shootType = {
+        preset: effectiveShootType,
+        label: shootTypePreset.label,
+        prompt: shootTypePreset.prompt
+      };
+      // Add shoot type as a hard rule for context
+      promptJson.hardRules.push(`SHOOT TYPE: ${shootTypePreset.label} — ${shootTypePreset.description}`);
+    }
+  }
+  
+  // Layer 2: Camera Aesthetic (film/lens look)
+  const effectiveCameraAesthetic = correctedParams.cameraAesthetic;
+  if (effectiveCameraAesthetic && effectiveCameraAesthetic !== 'none') {
+    const cameraPreset = CAMERA_AESTHETIC_PRESETS[effectiveCameraAesthetic];
+    if (cameraPreset && cameraPreset.prompt) {
+      promptJson.cameraAesthetic = {
+        preset: effectiveCameraAesthetic,
+        label: cameraPreset.label,
+        prompt: cameraPreset.prompt
+      };
+    }
+  }
+  
+  // Layer 3: Lighting Source (where light comes from)
+  if (effectiveLightingSource && effectiveLightingSource !== 'none') {
+    const lightSourcePreset = LIGHTING_SOURCE_PRESETS[effectiveLightingSource];
+    if (lightSourcePreset) {
+      promptJson.lightingSource = {
+        preset: effectiveLightingSource,
+        label: lightSourcePreset.label,
+        prompt: lightSourcePreset.prompt
+      };
+    }
+  }
+  
+  // Layer 4: Lighting Quality (how light behaves)
+  if (effectiveLightingQuality && effectiveLightingQuality !== 'none') {
+    const lightQualityPreset = LIGHTING_QUALITY_PRESETS[effectiveLightingQuality];
+    if (lightQualityPreset) {
+      promptJson.lightingQuality = {
+        preset: effectiveLightingQuality,
+        label: lightQualityPreset.label,
+        prompt: lightQualityPreset.prompt
+      };
+    }
+  }
+  
+  // Add validation warnings to prompt (as soft hints)
+  if (validation.warnings.length > 0) {
+    promptJson.parameterWarnings = validation.warnings;
   }
   
   // Add Style Lock
@@ -620,6 +727,30 @@ export function promptJsonToText(promptJson) {
   if (promptJson.visualStyle) {
     sections.push('\n=== VISUAL STYLE ===');
     sections.push(promptJson.visualStyle);
+  }
+  
+  // Shoot Type (Layer 1)
+  if (promptJson.shootType?.prompt) {
+    sections.push('\n=== SHOOT TYPE ===');
+    sections.push(`${promptJson.shootType.label}: ${promptJson.shootType.prompt}`);
+  }
+  
+  // Camera Aesthetic (Layer 2)
+  if (promptJson.cameraAesthetic?.prompt) {
+    sections.push('\n=== CAMERA AESTHETIC ===');
+    sections.push(`${promptJson.cameraAesthetic.label}: ${promptJson.cameraAesthetic.prompt}`);
+  }
+  
+  // Lighting Source (Layer 3)
+  if (promptJson.lightingSource?.prompt) {
+    sections.push('\n=== LIGHTING SOURCE ===');
+    sections.push(`${promptJson.lightingSource.label}: ${promptJson.lightingSource.prompt}`);
+  }
+  
+  // Lighting Quality (Layer 4)
+  if (promptJson.lightingQuality?.prompt) {
+    sections.push('\n=== LIGHTING QUALITY ===');
+    sections.push(`${promptJson.lightingQuality.label}: ${promptJson.lightingQuality.prompt}`);
   }
   
   // Frame

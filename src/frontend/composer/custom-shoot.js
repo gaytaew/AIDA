@@ -1083,51 +1083,87 @@ function handleLightingSourceChange() {
 }
 
 /**
- * Check for conflicts and display warnings
+ * Check for conflicts and display warnings using new 6-layer validation
  */
 async function checkAndDisplayConflicts() {
   if (!elements.conflictWarnings) return;
   
-  const selections = {
-    shootType: elements.genShootType?.value,
-    cameraAesthetic: elements.genCameraAesthetic?.value,
-    lightingSource: elements.genLightingSource?.value,
-    lightingQuality: elements.genLightingQuality?.value,
-    captureStyle: elements.genCaptureStyle?.value,
-    timeOfDay: elements.genTimeOfDay?.value
+  // Gather all current parameters for validation
+  const params = {
+    shootType: elements.genShootType?.value || 'editorial',
+    cameraAesthetic: elements.genCameraAesthetic?.value || 'none',
+    lightingSource: elements.genLightingSource?.value || 'natural_daylight',
+    lightingQuality: elements.genLightingQuality?.value || 'soft_diffused',
+    focusMode: elements.genFocusMode?.value || 'default',
+    shotSize: elements.genShotSize?.value || 'medium_shot',
+    timeOfDay: elements.genTimeOfDay?.value || 'any',
+    weather: elements.genWeather?.value || 'clear',
+    spaceType: state.currentShoot?.location?.spaceType || 'mixed',
+    captureStyle: elements.genCaptureStyle?.value || 'none'
   };
   
   try {
-    const res = await fetch('/api/custom-shoots/all-conflicts', {
+    const res = await fetch('/api/custom-shoots/validate-params', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ selections })
+      body: JSON.stringify({ params })
     });
     const data = await res.json();
     
-    if (data.ok && data.conflicts) {
-      const warnings = [];
+    if (data.ok) {
+      const { conflicts, warnings, autoCorrections } = data;
       
-      // Check for conflicts in current selections
-      for (const [param, conflictingValues] of Object.entries(data.conflicts)) {
-        for (const [value, info] of Object.entries(conflictingValues)) {
-          // Check if this conflicting value is currently selected
-          if (selections[param] === value) {
-            warnings.push(...info.reasons);
-          }
-        }
+      // Build display content
+      const sections = [];
+      
+      // Critical conflicts (blocking)
+      if (conflicts && conflicts.length > 0) {
+        sections.push(`
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+            <div style="font-weight: 600; color: #EF4444; margin-bottom: 6px;">🚫 Конфликты параметров:</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--color-text-muted);">
+              ${conflicts.map(c => `<li>${c}</li>`).join('')}
+            </ul>
+          </div>
+        `);
       }
       
-      if (warnings.length > 0) {
-        elements.conflictWarnings.style.display = 'block';
-        elements.conflictWarnings.innerHTML = `
+      // Auto-corrections (informational)
+      if (autoCorrections && Object.keys(autoCorrections).length > 0) {
+        const correctionLabels = {
+          lightingQuality: 'Качество света',
+          focusMode: 'Режим фокуса',
+          lightingSource: 'Источник света'
+        };
+        const correctionsList = Object.entries(autoCorrections).map(([param, value]) => {
+          return `<li>${correctionLabels[param] || param}: → ${value}</li>`;
+        }).join('');
+        
+        sections.push(`
+          <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+            <div style="font-weight: 600; color: #3B82F6; margin-bottom: 6px;">🔄 Авто-коррекции (будут применены):</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--color-text-muted);">
+              ${correctionsList}
+            </ul>
+          </div>
+        `);
+      }
+      
+      // Warnings (non-blocking recommendations)
+      if (warnings && warnings.length > 0) {
+        sections.push(`
           <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px;">
-            <div style="font-weight: 600; color: #F59E0B; margin-bottom: 6px;">⚠️ Обнаружены конфликты:</div>
+            <div style="font-weight: 600; color: #F59E0B; margin-bottom: 6px;">💡 Рекомендации:</div>
             <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--color-text-muted);">
               ${warnings.map(w => `<li>${w}</li>`).join('')}
             </ul>
           </div>
-        `;
+        `);
+      }
+      
+      if (sections.length > 0) {
+        elements.conflictWarnings.style.display = 'block';
+        elements.conflictWarnings.innerHTML = sections.join('');
       } else {
         elements.conflictWarnings.style.display = 'none';
       }
