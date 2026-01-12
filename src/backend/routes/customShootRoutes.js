@@ -492,7 +492,9 @@ router.post('/:id/generate', async (req, res) => {
     const frameLabel = effectiveFrame?.label || 'По умолчанию';
     const locationLabel = location?.label || null;
     
-    // Save generated image to shoot history with full params (same as shootRoutes)
+    // Save generated image to shoot history with essential params only
+    // NOTE: promptJson and refs are NOT saved to keep JSON files small
+    //       refs are only for current UI display, not needed in history
     const imageData = {
       id: generateImageId(),
       imageUrl: result.image.dataUrl || `data:${result.image.mimeType};base64,${result.image.base64}`,
@@ -513,8 +515,7 @@ router.post('/:id/generate', async (req, res) => {
       extraPrompt: extraPrompt || '',
       presets: presets || null,
       prompt: result.prompt,
-      promptJson: result.promptJson,
-      refs,
+      // promptJson and refs omitted to save space
       generationTime: genDuration
     };
     
