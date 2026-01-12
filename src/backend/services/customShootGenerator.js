@@ -985,9 +985,14 @@ export async function generateCustomShootFrame({
       ambient
     });
     
-    // Send as JSON (same as shootGenerator)
-    const promptText = JSON.stringify(promptJson, null, 2);
-    console.log('[CustomShootGenerator] JSON Prompt built, length:', promptText.length);
+    // Convert JSON to readable text prompt for Gemini
+    // NOTE: We use promptJsonToText() to create a clean, structured prompt
+    // that Gemini can follow, instead of raw JSON
+    const promptText = promptJsonToText(promptJson);
+    console.log('[CustomShootGenerator] Text Prompt built, length:', promptText.length);
+    
+    // Also log JSON for debugging (but don't send it)
+    console.log('[CustomShootGenerator] Prompt JSON (for reference):', JSON.stringify(promptJson, null, 2).slice(0, 500) + '...');
     
     // Prepare reference images
     const referenceImages = [];
