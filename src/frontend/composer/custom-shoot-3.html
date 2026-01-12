@@ -3,119 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Custom Shoot 3 (TEST) — AIDA</title>
+  <title>Custom Shoot V3 — AIDA</title>
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="shoot-composer-styles.css">
   <style>
-    /* Custom Shoot specific styles */
+    /* V3 Specific Styles */
     
-    /* Reference Locks Panel */
-    .locks-panel {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-    
-    .locks-panel h4 {
-      font-size: 12px;
-      text-transform: uppercase;
-      color: var(--color-text-muted);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .lock-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: var(--color-bg);
-      border-radius: 8px;
-      margin-bottom: 8px;
-    }
-    
-    .lock-row:last-child {
-      margin-bottom: 0;
-    }
-    
-    .lock-icon {
-      font-size: 20px;
-      width: 32px;
-      text-align: center;
-    }
-    
-    .lock-info {
-      flex: 1;
-    }
-    
-    .lock-title {
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 2px;
-    }
-    
-    .lock-desc {
-      font-size: 11px;
-      color: var(--color-text-muted);
-    }
-    
-    .lock-preview-thumb {
-      width: 48px;
-      height: 48px;
-      border-radius: 6px;
-      overflow: hidden;
-      border: 2px solid var(--color-accent);
-      display: none;
-    }
-    
-    .lock-preview-thumb.active {
-      display: block;
-    }
-    
-    .lock-preview-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .lock-controls {
-      display: flex;
-      gap: 4px;
-    }
-    
-    .lock-btn {
-      padding: 6px 10px;
-      font-size: 11px;
-      border-radius: 4px;
-      border: 1px solid var(--color-border);
-      background: transparent;
-      color: var(--color-text-muted);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    
-    .lock-btn:hover {
-      border-color: var(--color-text-muted);
-    }
-    
-    .lock-btn.active {
-      background: var(--color-accent);
-      color: white;
-      border-color: var(--color-accent);
-    }
-    
-    .lock-btn.active-soft {
-      background: #8B5CF6;
-      color: white;
-      border-color: #8B5CF6;
-    }
-    
-    /* Universe Settings Section */
-    .universe-settings {
+    /* Analysis Panels */
+    .analysis-panel {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
@@ -123,175 +18,330 @@
       margin-bottom: 20px;
     }
     
-    .universe-settings h4 {
+    .analysis-panel h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .analysis-panel h4 .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: var(--color-primary);
+      color: white;
+      font-weight: 500;
+    }
+    
+    .upload-area {
+      border: 2px dashed var(--color-border);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+    }
+    
+    .upload-area:hover {
+      border-color: var(--color-primary);
+      background: rgba(var(--color-primary-rgb), 0.05);
+    }
+    
+    .upload-area.has-image {
+      border-style: solid;
+      border-color: var(--color-success);
+    }
+    
+    .upload-area-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    
+    .upload-area-text {
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+    
+    .preview-thumb {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 2px solid var(--color-border);
+    }
+    
+    .analysis-results {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 12px;
+      display: none;
+    }
+    
+    .analysis-results.visible {
+      display: block;
+    }
+    
+    .analysis-results h5 {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+    
+    .analysis-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .analysis-item:last-child {
+      border-bottom: none;
+    }
+    
+    .analysis-label {
+      color: var(--color-text-muted);
+    }
+    
+    .analysis-value {
+      font-weight: 500;
+    }
+    
+    /* V3 Settings Grid */
+    .v3-settings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    
+    @media (max-width: 900px) {
+      .v3-settings-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .v3-settings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .v3-settings-grid .form-group {
+      margin: 0;
+    }
+    
+    .v3-settings-grid label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+    
+    .v3-settings-grid select,
+    .v3-settings-grid input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      color: var(--color-text);
+      font-size: 13px;
+    }
+    
+    /* Section Dividers */
+    .section-divider {
+      height: 1px;
+      background: var(--color-border);
+      margin: 24px 0;
+    }
+    
+    /* Identity Lock Panel */
+    .identity-lock-panel {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .identity-lock-panel h4 {
+      color: #8B5CF6;
+      margin-bottom: 16px;
+    }
+    
+    .lock-strength-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .lock-strength-btn {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    
+    .lock-strength-btn:hover {
+      border-color: #8B5CF6;
+    }
+    
+    .lock-strength-btn.active {
+      background: #8B5CF6;
+      color: white;
+      border-color: #8B5CF6;
+    }
+    
+    /* Quality Gates Panel */
+    .quality-gates-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    
+    .quality-gates-panel h4 {
       font-size: 12px;
       text-transform: uppercase;
       color: var(--color-text-muted);
       margin-bottom: 16px;
     }
     
-    .universe-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-    
-    @media (max-width: 800px) {
-      .universe-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    .universe-grid .form-group {
-      margin: 0;
-    }
-    
-    .universe-grid label {
-      font-size: 12px;
-      margin-bottom: 4px;
-      display: block;
-    }
-    
-    .universe-grid select {
-      width: 100%;
-      padding: 8px 10px;
-      font-size: 12px;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      color: var(--color-text);
-    }
-    
-    /* History item with lock badges */
-    .history-lock-badges {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      display: flex;
-      gap: 4px;
-    }
-    
-    .history-lock-badge {
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
+    .quality-check {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 14px;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 13px;
     }
     
-    .history-lock-badge.style {
-      background: #F59E0B;
-    }
-    
-    .history-lock-badge.location {
-      background: #10B981;
-    }
-    
-    /* Lock selection hint on hover */
-    .generated-frame-card .lock-actions {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(transparent, rgba(0,0,0,0.9));
-      padding: 40px 10px 10px;
-      display: none;
-    }
-    
-    .generated-frame-card:hover .lock-actions {
-      display: block;
-    }
-    
-    .lock-action-btn {
-      display: block;
-      width: 100%;
-      padding: 6px 10px;
-      margin-bottom: 4px;
-      background: rgba(255,255,255,0.15);
-      border: none;
-      border-radius: 4px;
-      color: white;
-      font-size: 11px;
-      cursor: pointer;
-      text-align: left;
-    }
-    
-    .lock-action-btn:hover {
-      background: rgba(255,255,255,0.25);
-    }
-    
-    .lock-action-btn:last-child {
-      margin-bottom: 0;
-    }
-    
-    /* Clothing Items with Descriptions */
-    .clothing-items {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .clothing-item {
-      display: flex;
-      gap: 12px;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      padding: 12px;
-    }
-    
-    .clothing-item-preview {
-      position: relative;
-      width: 80px;
-      height: 80px;
-      flex-shrink: 0;
-    }
-    
-    .clothing-item-preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 6px;
-    }
-    
-    .clothing-item-preview .image-thumb-remove {
-      position: absolute;
-      top: -6px;
-      right: -6px;
+    .quality-check-icon {
       width: 20px;
       height: 20px;
-      background: var(--color-error);
-      color: white;
-      border: none;
       border-radius: 50%;
-      font-size: 10px;
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 10px;
     }
     
-    .clothing-description {
-      flex: 1;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      padding: 8px;
-      font-size: 13px;
-      color: var(--color-text);
-      resize: vertical;
-      font-family: inherit;
-    }
-    
-    .clothing-description::placeholder {
+    .quality-check-icon.pending {
+      background: var(--color-border);
       color: var(--color-text-muted);
     }
     
-    .clothing-description:focus {
-      outline: none;
-      border-color: var(--color-primary);
+    .quality-check-icon.pass {
+      background: var(--color-success);
+      color: white;
+    }
+    
+    .quality-check-icon.fail {
+      background: var(--color-error);
+      color: white;
+    }
+    
+    /* Generate Button V3 */
+    .btn-generate-v3 {
+      background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%);
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+      transition: all 0.2s;
+    }
+    
+    .btn-generate-v3:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+    }
+    
+    .btn-generate-v3:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    /* Generated Image Display */
+    .generated-image-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    
+    .generated-image-preview {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      display: block;
+      border-radius: 8px;
+    }
+    
+    .generation-metadata {
+      margin-top: 16px;
+      padding: 16px;
+      background: var(--color-bg);
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    
+    .generation-metadata-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    
+    .metadata-item {
+      text-align: center;
+    }
+    
+    .metadata-label {
+      font-size: 10px;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+    }
+    
+    .metadata-value {
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    
+    /* Spinner */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
     }
   </style>
 </head>
@@ -322,621 +372,446 @@
     <!-- Main Content -->
     <main class="main">
       <header class="page-header">
-        <h1 class="page-title">🔬 Custom Shoot v3.0 (Test Lab 3)</h1>
+        <h1 class="page-title">🔬 Custom Shoot V3</h1>
         <p class="page-subtitle">
-          Съёмка без готовой вселенной. Настрой все параметры вручную, используй Style Lock и Location Lock для консистентности.
+          Оптимизированная генерация с Vision API анализом. Идентичность > 95%, точность одежды > 95%.
         </p>
       </header>
 
       <div class="page-content">
-        <div class="composer-layout">
-          <!-- Steps Sidebar -->
-          <div class="steps-sidebar">
-            <ul class="steps-list">
-              <li class="step-item active" data-step="shoot">
-                <div class="step-number">1</div>
-                <div class="step-content">
-                  <div class="step-title">Съёмка</div>
-                  <div class="step-desc">Создать или выбрать</div>
-                  <div class="step-status pending" id="step-shoot-status">Не выбрано</div>
-                </div>
-              </li>
-              <li class="step-item locked" data-step="models">
-                <div class="step-number">2</div>
-                <div class="step-content">
-                  <div class="step-title">Модели</div>
-                  <div class="step-desc">До 3 моделей</div>
-                  <div class="step-status pending" id="step-models-status">0 / 3</div>
-                </div>
-              </li>
-              <li class="step-item locked" data-step="clothing">
-                <div class="step-number">3</div>
-                <div class="step-content">
-                  <div class="step-title">Одежда</div>
-                  <div class="step-desc">Референсы луков</div>
-                  <div class="step-status pending" id="step-clothing-status">Опционально</div>
-                </div>
-              </li>
-              <li class="step-item locked" data-step="generate">
-                <div class="step-number">4</div>
-                <div class="step-content">
-                  <div class="step-title">Генерация</div>
-                  <div class="step-desc">Кадры + настройки</div>
-                  <div class="step-status pending" id="step-generate-status">—</div>
-                </div>
-              </li>
-            </ul>
+        
+        <!-- Section 1: Model Reference -->
+        <div class="analysis-panel" id="model-analysis-panel">
+          <h4>
+            👤 Референс модели
+            <span class="badge" id="model-status">Не загружено</span>
+          </h4>
+          
+          <div class="upload-area" id="model-upload-area">
+            <input type="file" id="model-image-input" accept="image/*" style="display: none;">
+            <div class="upload-area-icon">📷</div>
+            <div class="upload-area-text">Загрузи фото модели для анализа идентичности</div>
+            <img id="model-preview" class="preview-thumb" style="display: none; margin-top: 12px;">
           </div>
-
-          <!-- Composer Main Area -->
-          <div class="composer-main">
-
-            <!-- Step 1: Select/Create Shoot -->
-            <div class="step-panel active" data-panel="shoot">
-              <div class="step-panel-header">
-                <h2 class="step-panel-title">Выбери или создай Custom Shoot</h2>
-                <p class="step-panel-desc">
-                  В Custom Shoot все визуальные параметры настраиваются вручную на этапе генерации.
-                </p>
-              </div>
-
-              <div class="form-actions" style="margin-bottom: 24px;">
-                <button class="btn btn-primary" id="btn-new-shoot">
-                  ✨ Новый Custom Shoot
-                </button>
-              </div>
-
-              <h3 class="section-title" style="margin-bottom: 16px;">Существующие Custom Shoots</h3>
-              <div id="shoots-list" class="shoots-list">
-                <div class="empty-state">
-                  <div class="empty-state-icon">✨</div>
-                  <div class="empty-state-title">Нет съёмок</div>
-                  <div class="empty-state-text">Создайте первый Custom Shoot</div>
-                </div>
-              </div>
-
-              <div class="composer-nav">
-                <div></div>
-                <button class="btn btn-primary" id="btn-next-to-models" disabled>
-                  Далее: Модели →
-                </button>
-              </div>
-            </div>
-
-            <!-- Step 2: Select Models -->
-            <div class="step-panel" data-panel="models">
-              <div class="step-panel-header">
-                <h2 class="step-panel-title">Добавь моделей</h2>
-                <p class="step-panel-desc">
-                  Выбери от 1 до 3 моделей для съёмки. Каждая модель сохраняет свою идентичность во всех кадрах.
-                </p>
-              </div>
-
-              <div id="model-slots" class="model-slots">
-                <div class="model-slot" data-slot="0" style="position: relative;">
-                  <div class="model-slot-icon">👤</div>
-                  <div class="model-slot-label">Модель 1</div>
-                </div>
-                <div class="model-slot" data-slot="1" style="position: relative;">
-                  <div class="model-slot-icon">👤</div>
-                  <div class="model-slot-label">Модель 2 (опц.)</div>
-                </div>
-                <div class="model-slot" data-slot="2" style="position: relative;">
-                  <div class="model-slot-icon">👤</div>
-                  <div class="model-slot-label">Модель 3 (опц.)</div>
-                </div>
-              </div>
-
-              <div id="available-models" style="display: none;">
-                <h3 class="section-title" style="margin: 24px 0 16px;">Доступные модели</h3>
-                <div id="models-grid" class="selection-grid"></div>
-              </div>
-
-              <div class="composer-nav">
-                <button class="btn btn-secondary" id="btn-back-to-shoot">
-                  ← Назад
-                </button>
-                <button class="btn btn-primary" id="btn-next-to-clothing" disabled>
-                  Далее: Одежда →
-                </button>
-              </div>
-            </div>
-
-            <!-- Step 3: Clothing -->
-            <div class="step-panel" data-panel="clothing">
-              <div class="step-panel-header">
-                <h2 class="step-panel-title">Загрузи одежду</h2>
-                <p class="step-panel-desc">
-                  Загрузи референсы одежды для каждой модели.
-                </p>
-              </div>
-
-              <div id="clothing-sections" class="clothing-sections">
-                <!-- Will be populated dynamically -->
-              </div>
-
-              <div class="composer-nav">
-                <button class="btn btn-secondary" id="btn-back-to-models">
-                  ← Назад
-                </button>
-                <button class="btn btn-primary" id="btn-next-to-frames">
-                  Далее: Генерация →
-                </button>
-              </div>
-            </div>
-
-            <!-- Step 4: Generation with Universe Settings (frames are selected here) -->
-            <div class="step-panel" data-panel="generate">
-              <div class="step-panel-header">
-                <h2 class="step-panel-title">Генерация с ручными настройками</h2>
-                <p class="step-panel-desc">
-                  Настрой визуальный стиль вручную. Используй Style Lock и Location Lock для консистентности между кадрами.
-                </p>
-              </div>
-
-              <!-- Reference Locks -->
-              <div class="locks-panel">
-                <h4>🔒 Reference Locks (консистентность)</h4>
-                
-                <div class="lock-row" id="style-lock-row">
-                  <div class="lock-icon">🎨</div>
-                  <div class="lock-info">
-                    <div class="lock-title">Style Lock</div>
-                    <div class="lock-desc">Фиксирует цвет, свет, текстуру</div>
-                  </div>
-                  <div class="lock-preview-thumb" id="style-lock-preview">
-                    <img src="" alt="Style ref" id="style-lock-img">
-                  </div>
-                  <div class="lock-controls">
-                    <button class="lock-btn active" id="style-lock-off" data-mode="off">Off</button>
-                    <button class="lock-btn" id="style-lock-strict" data-mode="strict">Strict</button>
-                    <button class="lock-btn" id="style-lock-soft" data-mode="soft">Soft</button>
-                  </div>
-                </div>
-                
-                <div class="lock-row" id="location-lock-row">
-                  <div class="lock-icon">🏠</div>
-                  <div class="lock-info">
-                    <div class="lock-title">Location Lock</div>
-                    <div class="lock-desc">Фиксирует фон / место съёмки</div>
-                  </div>
-                  <div class="lock-preview-thumb" id="location-lock-preview">
-                    <img src="" alt="Location ref" id="location-lock-img">
-                  </div>
-                  <div class="lock-controls">
-                    <button class="lock-btn active" id="location-lock-off" data-mode="off">Off</button>
-                    <button class="lock-btn" id="location-lock-strict" data-mode="strict">Strict</button>
-                    <button class="lock-btn" id="location-lock-soft" data-mode="soft">Soft</button>
-                  </div>
-                </div>
-                
-                <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px; padding: 8px; background: var(--color-bg); border-radius: 6px;">
-                  💡 Сгенерируй первый кадр, затем кликни на него в истории, чтобы установить как референс для Style Lock или Location Lock.
-                </div>
-              </div>
-
-              <!-- LAYER 1: Shoot Type (Context) -->
-              <div class="universe-settings" style="border-color: var(--color-primary); border-width: 2px;">
-                <h4>🎯 Тип съёмки <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">(определяет контекст всех параметров)</span></h4>
-                
-                <div class="form-group" style="margin: 0;">
-                  <select id="gen-shoot-type" style="width: 100%; padding: 10px 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 13px;">
-                    <option value="editorial" selected>Editorial — Художественная съёмка для журналов</option>
-                    <option value="catalog">Каталог — Чистые коммерческие снимки</option>
-                    <option value="lookbook">Lookbook — Презентация коллекции</option>
-                    <option value="campaign">Campaign — Рекламная кампания</option>
-                    <option value="street">Street — Уличная документальная</option>
-                    <option value="portrait">Портрет — Персональная съёмка</option>
-                    <option value="beauty">Beauty — Макияж и уход</option>
-                    <option value="sport">Спорт — Активная одежда в движении</option>
-                  </select>
-                </div>
-                <div id="shoot-type-hint" style="margin-top: 8px; font-size: 11px; color: var(--color-text-muted); padding: 8px; background: var(--color-bg); border-radius: 6px;">
-                  💡 Тип съёмки определяет допустимые комбинации параметров. Некоторые опции могут быть заблокированы.
-                </div>
-              </div>
-              
-              <!-- LAYERS 2-4: Visual Style (Camera + Lighting) -->
-              <div class="universe-settings">
-                <h4>🌌 Визуальный стиль</h4>
-                
-                <div class="universe-grid">
-                  <!-- LAYER 2: Camera Aesthetic -->
-                  <div class="form-group">
-                    <label for="gen-camera-aesthetic">📸 Эстетика камеры <span style="font-size: 9px; color: var(--color-text-muted);">(плёнка/объектив)</span></label>
-                    <select id="gen-camera-aesthetic">
-                      <option value="none">— Без конкретной —</option>
-                      <optgroup label="Плёночные">
-                        <option value="contax_t2" selected>Contax T2 (Portra)</option>
-                        <option value="hasselblad_mf">Hasselblad (Medium Format)</option>
-                        <option value="mamiya_rz67">Mamiya RZ67 (Studio)</option>
-                        <option value="leica_m">Leica M (Street)</option>
-                        <option value="canon_ae1">Canon AE-1 (Consumer)</option>
-                      </optgroup>
-                      <optgroup label="Lo-Fi / Toy">
-                        <option value="polaroid">Polaroid</option>
-                        <option value="disposable">Одноразовая камера</option>
-                        <option value="holga">Holga / Toy Camera</option>
-                      </optgroup>
-                      <optgroup label="Цифровые">
-                        <option value="iphone">iPhone / Smartphone</option>
-                        <option value="ricoh_gr">Ricoh GR (28mm)</option>
-                      </optgroup>
-                    </select>
-                  </div>
-                  
-                  <!-- Capture Style (kept) -->
-                  <div class="form-group">
-                    <label for="gen-capture-style">📷 Стиль захвата</label>
-                    <select id="gen-capture-style">
-                      <option value="candid_aware" selected>Естественный</option>
-                      <option value="editorial_posed">Editorial постановка</option>
-                      <option value="editorial_relaxed">Editorial расслаб.</option>
-                      <option value="candid_unaware">Candid</option>
-                      <option value="paparazzi_telephoto">Папарацци</option>
-                      <option value="harsh_flash_snapshot">Жёсткая вспышка</option>
-                      <option value="motion_blur_action">Размытие движ.</option>
-                    </select>
-                  </div>
-                  
-                  <!-- LAYER 3: Lighting Source (NEW) -->
-                  <div class="form-group">
-                    <label for="gen-lighting-source">💡 Источник света</label>
-                    <select id="gen-lighting-source">
-                      <option value="natural_daylight" selected>Естественный дневной</option>
-                      <option value="window_light">Свет из окна</option>
-                      <option value="on_camera_flash">Накамерная вспышка</option>
-                      <option value="studio_strobe">Студийный импульс</option>
-                      <option value="ring_flash">Кольцевая вспышка</option>
-                      <option value="mixed_ambient">Смешанный ambient</option>
-                      <option value="practicals">Практические источники</option>
-                      <option value="continuous_led">Постоянный LED</option>
-                    </select>
-                  </div>
-                  
-                  <!-- LAYER 4: Lighting Quality (NEW) -->
-                  <div class="form-group">
-                    <label for="gen-lighting-quality">✨ Качество света</label>
-                    <select id="gen-lighting-quality">
-                      <option value="soft_diffused" selected>Мягкий рассеянный</option>
-                      <option value="harsh_direct">Жёсткий прямой</option>
-                      <option value="contrasty">Контрастный</option>
-                      <option value="flat">Плоский</option>
-                      <option value="backlit">Контровой</option>
-                      <option value="moody_lowkey">Low-key / Moody</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Color -->
-                  <div class="form-group">
-                    <label for="gen-color">🎨 Цвет</label>
-                    <select id="gen-color">
-                      <option value="film_warm" selected>Тёплая плёнка</option>
-                      <option value="film_cool">Холодная плёнка</option>
-                      <option value="high_contrast">Высокий контраст</option>
-                      <option value="desaturated">Приглушённый</option>
-                      <option value="cross_process">Кросс-процесс</option>
-                      <option value="black_white">Ч/Б</option>
-                      <option value="vintage_fade">Винтажный fade</option>
-                      <option value="neutral_clean">Нейтральный</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Skin Texture -->
-                  <div class="form-group">
-                    <label for="gen-skin-texture">🧴 Текстура кожи</label>
-                    <select id="gen-skin-texture">
-                      <option value="natural_film" selected>Естественная</option>
-                      <option value="hyper_real">Гипер-реалистичная</option>
-                      <option value="flash_specular">Вспышка (блики)</option>
-                      <option value="matte_editorial">Матовая editorial</option>
-                      <option value="raw_unretouched">Без ретуши</option>
-                      <option value="sweaty_athletic">Спортивная</option>
-                      <option value="golden_hour_glow">Золотой час</option>
-                      <option value="pale_porcelain">Фарфоровая</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Era -->
-                  <div class="form-group">
-                    <label for="gen-era">📅 Эпоха</label>
-                    <select id="gen-era">
-                      <option value="contemporary" selected>Современный</option>
-                      <option value="90s_grunge">90s гранж</option>
-                      <option value="y2k_flash">Y2K вспышка</option>
-                      <option value="2000s_digital">2000s цифра</option>
-                      <option value="2010s_instagram">2010s Instagram</option>
-                      <option value="film_revival">Плёночный ренессанс</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <!-- Conflict warnings will appear here -->
-                <div id="conflict-warnings" style="margin-top: 12px; display: none;"></div>
-              </div>
-              
-              <!-- Hidden legacy field for compatibility -->
-              <input type="hidden" id="gen-camera-signature" value="contax_t2">
-              <input type="hidden" id="gen-light" value="natural_soft">
-              
-              <!-- Standard generation controls -->
-              <div class="generation-controls" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Параметры кадра</h4>
-                
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                  <!-- Location -->
-                  <div class="form-group" style="margin: 0;">
-                    <label for="gen-location">📍 Локация</label>
-                    <select id="gen-location" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                      <option value="">Без конкретной</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Emotion -->
-                  <div class="form-group" style="margin: 0;">
-                    <label for="gen-emotion">😊 Эмоция</label>
-                    <select id="gen-emotion" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                      <option value="">Нейтральная</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Aspect Ratio -->
-                  <div class="form-group" style="margin: 0;">
-                    <label for="gen-aspect-ratio">📐 Ориентация</label>
-                    <select id="gen-aspect-ratio" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                      <option value="3:4" selected>3:4 (Портрет)</option>
-                      <option value="4:3">4:3 (Пейзаж)</option>
-                      <option value="1:1">1:1 (Квадрат)</option>
-                      <option value="9:16">9:16 (Сторис)</option>
-                      <option value="16:9">16:9 (Кино)</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Image Size -->
-                  <div class="form-group" style="margin: 0;">
-                    <label for="gen-image-size">📏 Качество</label>
-                    <select id="gen-image-size" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                      <option value="2K" selected>2K (Стандарт)</option>
-                      <option value="4K">4K (Высокое качество)</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Pose Adherence -->
-                  <div class="form-group" style="margin: 0;">
-                    <label for="gen-pose-adherence">🎯 Следование эскизу</label>
-                    <select id="gen-pose-adherence" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                      <option value="1">1 — Свободно (только тип позы)</option>
-                      <option value="2" selected>2 — Похоже (поза 30-40%)</option>
-                      <option value="3">3 — Близко (поза 70-80%)</option>
-                      <option value="4">4 — Точно (поза + кадрирование!) ⚠️</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <!-- Model Behavior Section (CRITICAL for professional posing) -->
-                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
-                  <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🎭 Поведение модели <span style="color: var(--color-primary);">(как модель работает с камерой)</span></h4>
-                  
-                  <div class="form-group" style="margin: 0;">
-                    <select id="gen-model-behavior" style="width: 100%; padding: 10px 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 13px;">
-                      <option value="natural">🙂 Естественное — модель не позирует, candid момент</option>
-                      <option value="aware_relaxed">😊 Расслабленный контакт — знает о камере, но комфортно</option>
-                      <option value="engaged" selected>💫 Взаимодействие — активно работает с камерой</option>
-                      <option value="flirty">😏 Игривый / Заигрывание — флирт с камерой, соблазнительно</option>
-                      <option value="editorial_dramatic">🎭 Editorial драматичный — сильные позы, модель как скульптура</option>
-                      <option value="dynamic">⚡ Динамичный — в движении, action, энергия</option>
-                      <option value="vulnerable">💔 Открытый / Уязвимый — искренность, без защит</option>
-                      <option value="powerful">💪 Мощный / Уверенный — сила, доминирование пространства</option>
-                    </select>
-                  </div>
-                  <div id="model-behavior-hint" style="margin-top: 8px; font-size: 11px; color: var(--color-text-muted); padding: 8px; background: var(--color-bg); border-radius: 6px;">
-                    💡 Этот параметр определяет, как модель взаимодействует с камерой — от "естественного" candid момента до профессионального "заигрывания" с объективом.
-                  </div>
-                </div>
-                
-                <!-- Camera & Composition Controls -->
-                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
-                  <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🎥 Композиция кадра</h4>
-                  
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                    
-                    <!-- Shot Size (План) -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-shot-size">📏 План</label>
-                      <select id="gen-shot-size" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="default">Авто (по эскизу)</option>
-                        <option value="extreme_closeup">Макро (Глаза/Губы)</option>
-                        <option value="closeup">Крупный (Лицо)</option>
-                        <option value="medium_closeup">Портретный (По грудь)</option>
-                        <option value="medium_shot">Средний (По пояс)</option>
-                        <option value="cowboy_shot">Американский (По колено)</option>
-                        <option value="full_shot">Ростовой (Весь рост)</option>
-                        <option value="wide_shot">Общий (С окружением)</option>
-                      </select>
-                    </div>
-
-                    <!-- Camera Angle (Ракурс) -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-camera-angle">📐 Ракурс</label>
-                      <select id="gen-camera-angle" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="eye_level">На уровне глаз</option>
-                        <option value="low_angle">Нижний (Героический)</option>
-                        <option value="high_angle">Верхний</option>
-                        <option value="overhead">Overhead (Сверху вниз)</option>
-                        <option value="dutch_angle">Завал (Dutch Angle)</option>
-                        <option value="selfie">Селфи</option>
-                      </select>
-                    </div>
-
-                    <!-- Depth of Field (Фокус) -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-focus-mode">🎯 Фокус</label>
-                      <select id="gen-focus-mode" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="shallow" selected>Размытый фон (Боке)</option>
-                        <option value="deep">Всё в резкости (f/8+)</option>
-                        <option value="focus_face">Фокус на лице</option>
-                        <option value="soft_focus">Мягкий фокус (Dreamy)</option>
-                      </select>
-                    </div>
-                    
-                    <!-- Lens Focal Length (угол объектива) -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-lens-focal">🔭 Угол объектива</label>
-                      <select id="gen-lens-focal" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="auto" selected>Авто</option>
-                        <option value="fisheye">🐟 Фишай (8-16mm) — экстремальное искажение</option>
-                        <option value="ultra_wide">🌐 Сверхширокий (16-24mm)</option>
-                        <option value="wide">📷 Широкий (24-35mm)</option>
-                        <option value="standard">👁️ Стандартный (35-50mm) — как глаз</option>
-                        <option value="portrait">👤 Портретный (85-105mm) — сжатие</option>
-                        <option value="telephoto">🔭 Телефото (135-200mm)</option>
-                        <option value="super_telephoto">📡 Супер-телефото (300mm+)</option>
-                      </select>
-                    </div>
-
-                  </div>
-                </div>
-
-                <!-- Anti-AI / Realism Controls -->
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border);">
-                  <h4 style="margin-bottom: 8px; font-size: 11px; text-transform: uppercase; color: var(--color-text-muted);">🤖 Реализм (Anti-AI)</h4>
-                  
-                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                    <!-- Anti-AI Level -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-antiai-level">Уровень реализма</label>
-                      <select id="gen-antiai-level" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="off">Выкл (AI стиль)</option>
-                        <option value="low">Низкий (Чисто)</option>
-                        <option value="medium" selected>Средний (Естественно)</option>
-                        <option value="high">Высокий (Сыро/Raw)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- AMBIENT: Situational conditions (weather, season, time) -->
-                <div id="ambient-section" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); display: none;">
-                  <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🌤️ Условия съёмки</h4>
-                  <p style="font-size: 11px; color: var(--color-text-muted); margin-bottom: 12px;">Эти параметры применяются для экстерьерных локаций</p>
-                  
-                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                    <!-- Weather -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-weather">☀️ Погода</label>
-                      <select id="gen-weather" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="clear">Ясно</option>
-                        <option value="partly_cloudy">Переменная облачность</option>
-                        <option value="overcast">Пасмурно</option>
-                        <option value="light_rain">Лёгкий дождь</option>
-                        <option value="heavy_rain">Сильный дождь</option>
-                        <option value="fog">Туман</option>
-                        <option value="mist">Дымка</option>
-                        <option value="snow">Снег</option>
-                        <option value="storm">Гроза</option>
-                        <option value="wind">Ветрено</option>
-                      </select>
-                    </div>
-                    
-                    <!-- Time of Day -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-time-of-day">🕒 Время суток</label>
-                      <select id="gen-time-of-day" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="any">Любое</option>
-                        <option value="sunrise">Рассвет</option>
-                        <option value="golden_hour">Золотой час</option>
-                        <option value="midday">Полдень (яркое солнце)</option>
-                        <option value="afternoon">День</option>
-                        <option value="sunset">Закат</option>
-                        <option value="blue_hour">Синий час</option>
-                        <option value="night">Ночь</option>
-                      </select>
-                    </div>
-                    
-                    <!-- Season -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-season">🍂 Сезон</label>
-                      <select id="gen-season" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="spring">Весна</option>
-                        <option value="summer" selected>Лето</option>
-                        <option value="autumn">Осень</option>
-                        <option value="winter">Зима</option>
-                      </select>
-                    </div>
-                    
-                    <!-- Atmosphere -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-atmosphere">🌫️ Атмосфера</label>
-                      <select id="gen-atmosphere" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="neutral" selected>Нейтральная</option>
-                        <option value="dusty">Пыльная</option>
-                        <option value="humid">Влажная</option>
-                        <option value="crisp">Свежая/Морозная</option>
-                        <option value="smoky">Дымная</option>
-                        <option value="hazy">Туманная</option>
-                        <option value="steamy">Парящая</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Extra prompt -->
-                <div class="form-group" style="margin-top: 12px;">
-                  <label for="gen-extra-prompt">💬 Дополнительный промпт</label>
-                  <textarea id="gen-extra-prompt" placeholder="Дополнительные инструкции..." style="width: 100%; min-height: 50px; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"></textarea>
-                </div>
-              </div>
-              
-              <!-- Frames to generate -->
-              <div id="frames-to-generate" style="margin-bottom: 20px;">
-                <!-- Will be populated by JS -->
-              </div>
-
-              <!-- Generated Images History -->
-              <div id="generated-images">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                  <h3 class="section-title" style="margin: 0;">История генераций</h3>
-                  <span id="generation-count" style="font-size: 13px; color: var(--color-text-muted);">0 изображений</span>
-                </div>
-                <div id="images-gallery" class="selection-grid" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
-                  <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
-                    <div class="empty-state-icon">🎨</div>
-                    <div class="empty-state-title">Нет сгенерированных кадров</div>
-                    <div class="empty-state-text">Нажми "Генерировать" на карточке кадра выше</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="composer-nav">
-                <button class="btn btn-secondary" id="btn-back-to-frames">
-                  ← Назад к одежде
-                </button>
-                <button class="btn btn-secondary" id="btn-clear-history" style="color: var(--color-accent);">
-                  🗑️ Очистить историю
-                </button>
-              </div>
-            </div>
-
+          
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-secondary" id="btn-analyze-model" disabled>
+              🔍 Анализировать
+            </button>
+            <button class="btn btn-primary" id="btn-confirm-model" disabled>
+              ✓ Подтвердить
+            </button>
+          </div>
+          
+          <div class="analysis-results" id="model-analysis-results">
+            <h5>Результат анализа идентичности</h5>
+            <div id="model-analysis-content"></div>
           </div>
         </div>
+        
+        <!-- Section 2: Clothing Reference -->
+        <div class="analysis-panel" id="clothing-analysis-panel">
+          <h4>
+            👗 Референс одежды
+            <span class="badge" id="clothing-status">Не загружено</span>
+          </h4>
+          
+          <div class="upload-area" id="clothing-upload-area">
+            <input type="file" id="clothing-image-input" accept="image/*" multiple style="display: none;">
+            <div class="upload-area-icon">👔</div>
+            <div class="upload-area-text">Загрузи фото одежды для точного воспроизведения</div>
+            <div id="clothing-previews" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;"></div>
+          </div>
+          
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-secondary" id="btn-analyze-clothing" disabled>
+              🔍 Анализировать
+            </button>
+            <button class="btn btn-primary" id="btn-confirm-clothing" disabled>
+              ✓ Подтвердить
+            </button>
+          </div>
+          
+          <div class="analysis-results" id="clothing-analysis-results">
+            <h5>Результат анализа одежды</h5>
+            <div id="clothing-analysis-content"></div>
+          </div>
+        </div>
+        
+        <div class="section-divider"></div>
+        
+        <!-- Section 3: Identity Lock Settings -->
+        <div class="identity-lock-panel">
+          <h4>🔒 Identity Lock</h4>
+          
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="identity-lock-enabled" checked>
+            <span>Включить блокировку идентичности</span>
+          </label>
+          
+          <div class="lock-strength-buttons" id="identity-strength-buttons">
+            <button class="lock-strength-btn" data-strength="soft">
+              Мягкий<br><small>Похожий вид</small>
+            </button>
+            <button class="lock-strength-btn" data-strength="medium">
+              Средний<br><small>Основные черты</small>
+            </button>
+            <button class="lock-strength-btn active" data-strength="strict">
+              Строгий<br><small>Точная копия</small>
+            </button>
+          </div>
+        </div>
+        
+        <div class="section-divider"></div>
+        
+        <!-- Section 4: Photo Realism Settings -->
+        <div class="analysis-panel">
+          <h4>📸 Фотореализм (Камера и оптика)</h4>
+          
+          <div class="v3-settings-grid">
+            <div class="form-group">
+              <label for="v3-camera">Камера</label>
+              <select id="v3-camera">
+                <option value="contax_t2">Contax T2</option>
+                <option value="hasselblad_500cm">Hasselblad 500C/M</option>
+                <option value="leica_m6">Leica M6</option>
+                <option value="canon_5d">Canon 5D Mark IV</option>
+                <option value="sony_a7r">Sony A7R IV</option>
+                <option value="iphone_15_pro">iPhone 15 Pro</option>
+                <option value="red_komodo">RED Komodo 6K</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-lens">Объектив</label>
+              <select id="v3-lens">
+                <option value="35mm">35mm Wide</option>
+                <option value="50mm">50mm Standard</option>
+                <option value="85mm" selected>85mm Portrait</option>
+                <option value="135mm">135mm Telephoto</option>
+                <option value="200mm">200mm Long Telephoto</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-aperture">Диафрагма</label>
+              <select id="v3-aperture">
+                <option value="f1.4">f/1.4 — Сверхразмытый фон</option>
+                <option value="f1.8">f/1.8 — Размытый фон</option>
+                <option value="f2.8" selected>f/2.8 — Профессиональный портрет</option>
+                <option value="f4.0">f/4.0 — Умеренная глубина</option>
+                <option value="f5.6">f/5.6 — Баланс</option>
+                <option value="f8.0">f/8.0 — Всё в резкости</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-film">Плёнка / Профиль</label>
+              <select id="v3-film">
+                <option value="portra_400" selected>Kodak Portra 400</option>
+                <option value="portra_800">Kodak Portra 800</option>
+                <option value="ektar_100">Kodak Ektar 100</option>
+                <option value="tri_x_400">Kodak Tri-X 400 (Ч/Б)</option>
+                <option value="cinestill_800t">CineStill 800T</option>
+                <option value="fuji_pro_400h">Fuji Pro 400H</option>
+                <option value="digital_clean">Digital Clean</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-shutter">Выдержка</label>
+              <select id="v3-shutter">
+                <option value="">Авто</option>
+                <option value="1/30">1/30 — Размытие движения</option>
+                <option value="1/125">1/125 — Стандарт</option>
+                <option value="1/500">1/500 — Заморозка</option>
+                <option value="1/1000">1/1000 — Быстрое действие</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-iso">ISO</label>
+              <select id="v3-iso">
+                <option value="">Авто</option>
+                <option value="100">100 — Минимум шума</option>
+                <option value="400" selected>400 — Универсал</option>
+                <option value="800">800 — Слабый свет</option>
+                <option value="1600">1600 — Ночь</option>
+                <option value="3200">3200 — Экстрим</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Section 5: Lighting & Atmosphere -->
+        <div class="analysis-panel">
+          <h4>💡 Освещение и атмосфера</h4>
+          
+          <div class="v3-settings-grid">
+            <div class="form-group">
+              <label for="v3-lighting-setup">Схема освещения</label>
+              <select id="v3-lighting-setup">
+                <option value="natural_window" selected>Естественный (окно)</option>
+                <option value="golden_hour">Золотой час</option>
+                <option value="studio_soft">Студийный софтбокс</option>
+                <option value="ring_light">Кольцевой свет</option>
+                <option value="overcast">Пасмурный день</option>
+                <option value="harsh_sun">Жёсткое солнце</option>
+                <option value="backlit">Контровой свет</option>
+                <option value="practical">Практические источники</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-lighting-quality">Качество света</label>
+              <select id="v3-lighting-quality">
+                <option value="soft" selected>Мягкий рассеянный</option>
+                <option value="hard">Жёсткий прямой</option>
+                <option value="contrasty">Контрастный</option>
+                <option value="flat">Плоский</option>
+                <option value="moody">Атмосферный (Low-key)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-time-of-day">Время суток</label>
+              <select id="v3-time-of-day">
+                <option value="">Любое</option>
+                <option value="sunrise">Рассвет</option>
+                <option value="morning">Утро</option>
+                <option value="midday">Полдень</option>
+                <option value="golden_hour">Золотой час</option>
+                <option value="blue_hour">Синий час</option>
+                <option value="night">Ночь</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-weather">Погода</label>
+              <select id="v3-weather">
+                <option value="">Любая</option>
+                <option value="clear">Ясно</option>
+                <option value="cloudy">Облачно</option>
+                <option value="overcast">Пасмурно</option>
+                <option value="rain">Дождь</option>
+                <option value="fog">Туман</option>
+                <option value="snow">Снег</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-mood">Настроение</label>
+              <select id="v3-mood">
+                <option value="">Нейтральное</option>
+                <option value="warm_intimate">Тёплое, интимное</option>
+                <option value="cool_editorial">Холодное, editorial</option>
+                <option value="dramatic">Драматичное</option>
+                <option value="dreamy">Мечтательное</option>
+                <option value="energetic">Энергичное</option>
+                <option value="melancholic">Меланхоличное</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-location">Локация</label>
+              <input type="text" id="v3-location" placeholder="Опишите место съёмки...">
+            </div>
+          </div>
+        </div>
+        
+        <!-- Section 6: Composition & Pose -->
+        <div class="analysis-panel">
+          <h4>🎬 Композиция и поза</h4>
+          
+          <div class="v3-settings-grid">
+            <div class="form-group">
+              <label for="v3-shot-size">Размер плана</label>
+              <select id="v3-shot-size">
+                <option value="extreme_closeup">Макро (глаза/губы)</option>
+                <option value="closeup">Крупный (лицо)</option>
+                <option value="medium_closeup" selected>Портретный (голова+плечи)</option>
+                <option value="medium">Средний (по пояс)</option>
+                <option value="cowboy">Американский (по колено)</option>
+                <option value="full">Ростовой (весь рост)</option>
+                <option value="wide">Общий (с окружением)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-camera-angle">Ракурс камеры</label>
+              <select id="v3-camera-angle">
+                <option value="eye_level" selected>На уровне глаз</option>
+                <option value="slightly_high">Слегка сверху</option>
+                <option value="high">Сверху</option>
+                <option value="slightly_low">Слегка снизу</option>
+                <option value="low">Снизу (героический)</option>
+                <option value="dutch">Dutch Angle (завал)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-gaze">Направление взгляда</label>
+              <select id="v3-gaze">
+                <option value="camera" selected>В камеру</option>
+                <option value="away">В сторону</option>
+                <option value="down">Вниз</option>
+                <option value="up">Вверх</option>
+                <option value="over_shoulder">Через плечо</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-focus-point">Точка фокуса</label>
+              <select id="v3-focus-point">
+                <option value="eyes" selected>Глаза</option>
+                <option value="face">Лицо</option>
+                <option value="subject">Субъект целиком</option>
+                <option value="hands">Руки</option>
+                <option value="clothing">Одежда</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-pose-type">Тип позы</label>
+              <select id="v3-pose-type">
+                <option value="">Свободная</option>
+                <option value="standing">Стоя</option>
+                <option value="sitting">Сидя</option>
+                <option value="reclining">Лёжа/полулёжа</option>
+                <option value="walking">В движении</option>
+                <option value="dynamic">Динамичная</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-hand-placement">Положение рук</label>
+              <input type="text" id="v3-hand-placement" placeholder="Опционально...">
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top: 16px;">
+            <label for="v3-pose-description">Описание позы</label>
+            <textarea id="v3-pose-description" rows="2" placeholder="Подробное описание позы..." style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); resize: vertical;"></textarea>
+          </div>
+        </div>
+        
+        <!-- Technical Settings -->
+        <div class="analysis-panel">
+          <h4>⚙️ Технические настройки</h4>
+          
+          <div class="v3-settings-grid">
+            <div class="form-group">
+              <label for="v3-aspect-ratio">Соотношение сторон</label>
+              <select id="v3-aspect-ratio">
+                <option value="3:4" selected>3:4 (Портрет)</option>
+                <option value="4:3">4:3 (Пейзаж)</option>
+                <option value="1:1">1:1 (Квадрат)</option>
+                <option value="9:16">9:16 (Stories)</option>
+                <option value="16:9">16:9 (Кино)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="v3-image-size">Качество</label>
+              <select id="v3-image-size">
+                <option value="1K">1K (Быстро)</option>
+                <option value="2K" selected>2K (Стандарт)</option>
+                <option value="4K">4K (Высокое)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top: 16px;">
+            <label for="v3-extra-prompt">Дополнительные инструкции</label>
+            <textarea id="v3-extra-prompt" rows="2" placeholder="Любые дополнительные требования..." style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); resize: vertical;"></textarea>
+          </div>
+        </div>
+        
+        <!-- Quality Gates -->
+        <div class="quality-gates-panel">
+          <h4>✅ Quality Gates (Проверки качества)</h4>
+          
+          <div class="quality-check">
+            <div class="quality-check-icon pending" id="qg-identity">—</div>
+            <span>Тот же человек (идентичность лица)</span>
+          </div>
+          <div class="quality-check">
+            <div class="quality-check-icon pending" id="qg-clothing">—</div>
+            <span>Одежда соответствует референсу</span>
+          </div>
+          <div class="quality-check">
+            <div class="quality-check-icon pending" id="qg-realism">—</div>
+            <span>Фотореализм (нет AI артефактов)</span>
+          </div>
+          <div class="quality-check">
+            <div class="quality-check-icon pending" id="qg-anatomy">—</div>
+            <span>Корректная анатомия</span>
+          </div>
+          <div class="quality-check">
+            <div class="quality-check-icon pending" id="qg-exposure">—</div>
+            <span>Экспозиция и фокус</span>
+          </div>
+        </div>
+        
+        <!-- Generate Button -->
+        <button class="btn-generate-v3" id="btn-generate-v3" disabled>
+          🚀 Генерировать V3
+        </button>
+        
+        <!-- Generation Status -->
+        <div id="generation-status" style="text-align: center; margin-top: 20px; display: none;">
+          <div class="spinner"></div>
+          <span id="generation-status-text">Генерация...</span>
+        </div>
+        
+        <!-- Generated Image Display -->
+        <div class="generated-image-container" id="generated-image-container" style="display: none;">
+          <h4 style="margin-bottom: 16px;">🖼️ Результат</h4>
+          <img id="generated-image" class="generated-image-preview" src="" alt="Generated image">
+          
+          <div class="generation-metadata">
+            <div class="generation-metadata-grid">
+              <div class="metadata-item">
+                <div class="metadata-label">Время</div>
+                <div class="metadata-value" id="meta-time">—</div>
+              </div>
+              <div class="metadata-item">
+                <div class="metadata-label">Камера</div>
+                <div class="metadata-value" id="meta-camera">—</div>
+              </div>
+              <div class="metadata-item">
+                <div class="metadata-label">Объектив</div>
+                <div class="metadata-value" id="meta-lens">—</div>
+              </div>
+              <div class="metadata-item">
+                <div class="metadata-label">Диафрагма</div>
+                <div class="metadata-value" id="meta-aperture">—</div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 12px; margin-top: 16px;">
+            <a id="btn-download" class="btn btn-secondary" style="flex: 1; text-align: center;" download="v3-generation.png">
+              💾 Скачать
+            </a>
+            <button class="btn btn-primary" id="btn-regenerate" style="flex: 1;">
+              🔄 Перегенерировать
+            </button>
+          </div>
+          
+          <details style="margin-top: 16px;">
+            <summary style="cursor: pointer; font-size: 12px; color: var(--color-text-muted);">
+              📋 Показать промпт
+            </summary>
+            <pre id="generated-prompt" style="white-space: pre-wrap; word-break: break-word; background: var(--color-bg); padding: 12px; border-radius: 8px; font-size: 11px; max-height: 300px; overflow: auto; margin-top: 12px;"></pre>
+          </details>
+        </div>
+        
       </div>
     </main>
-  </div>
-  
-  <!-- Lightbox for generated images -->
-  <div class="lightbox-overlay" id="lightbox">
-    <button class="lightbox-close" id="lightbox-close">✕</button>
-    <button class="lightbox-nav prev" id="lightbox-prev">‹</button>
-    <button class="lightbox-nav next" id="lightbox-next">›</button>
-    <div class="lightbox-container">
-      <img class="lightbox-image zoomed-1x" id="lightbox-image" src="" alt="Preview">
-    </div>
-    <div class="lightbox-zoom-hint" id="lightbox-zoom-hint">Клик для увеличения (1x)</div>
-    <div class="lightbox-info" id="lightbox-info">1 / 1</div>
   </div>
 
   <script src="custom-shoot-3.js"></script>
   <script type="module" src="../shared/dev-console.js"></script>
 </body>
 </html>
-

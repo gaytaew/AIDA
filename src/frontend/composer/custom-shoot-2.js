@@ -118,6 +118,26 @@ function initElements() {
   elements.genModelBehavior = document.getElementById('gen-model-behavior');
   elements.modelBehaviorHint = document.getElementById('model-behavior-hint');
   
+  // ═══════════════════════════════════════════════════════════════
+  // Virtual Studio Controls (NEW)
+  // ═══════════════════════════════════════════════════════════════
+  elements.genQualityMode = document.getElementById('gen-quality-mode');
+  elements.qualityModeDraft = document.getElementById('quality-mode-draft');
+  elements.qualityModeProduction = document.getElementById('quality-mode-production');
+  
+  // VirtualCamera
+  elements.genVirtualFocal = document.getElementById('gen-virtual-focal');
+  elements.genVirtualAperture = document.getElementById('gen-virtual-aperture');
+  elements.genVirtualShutter = document.getElementById('gen-virtual-shutter');
+  elements.genMood = document.getElementById('gen-mood');
+  
+  // Lighting
+  elements.genLightPrimary = document.getElementById('gen-light-primary');
+  elements.genLightSecondary = document.getElementById('gen-light-secondary');
+  elements.genLightModifier = document.getElementById('gen-light-modifier');
+  elements.lightingConflictWarning = document.getElementById('lighting-conflict-warning');
+  elements.conflictDescription = document.getElementById('conflict-description');
+  
   // Ambient controls (situational: weather, season, atmosphere)
   elements.ambientSection = document.getElementById('ambient-section');
   elements.genWeather = document.getElementById('gen-weather');
@@ -181,6 +201,105 @@ function initEventListeners() {
   elements.locationLockOff.addEventListener('click', () => setLocationLockMode('off'));
   elements.locationLockStrict.addEventListener('click', () => setLocationLockMode('strict'));
   elements.locationLockSoft.addEventListener('click', () => setLocationLockMode('soft'));
+  
+  // ═══════════════════════════════════════════════════════════════
+  // Virtual Studio Event Listeners
+  // ═══════════════════════════════════════════════════════════════
+  
+  // Quality Mode Toggle
+  elements.qualityModeDraft?.addEventListener('click', () => setQualityMode('DRAFT'));
+  elements.qualityModeProduction?.addEventListener('click', () => setQualityMode('PRODUCTION'));
+  
+  // Lighting Conflict Detection
+  elements.genLightPrimary?.addEventListener('change', checkLightingConflict);
+  elements.genLightSecondary?.addEventListener('change', checkLightingConflict);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIRTUAL STUDIO FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Set Quality Mode (DRAFT or PRODUCTION)
+ */
+function setQualityMode(mode) {
+  if (elements.genQualityMode) {
+    elements.genQualityMode.value = mode;
+  }
+  
+  // Update button states
+  [elements.qualityModeDraft, elements.qualityModeProduction].forEach(btn => {
+    if (btn) {
+      btn.classList.remove('active');
+      if (btn.dataset.mode === mode) {
+        btn.classList.add('active');
+      }
+    }
+  });
+  
+  console.log('[VirtualStudio] Quality mode set to:', mode);
+}
+
+/**
+ * Check for lighting temperature conflicts
+ * Warm + Cool sources = conflict
+ */
+function checkLightingConflict() {
+  const primary = elements.genLightPrimary?.value;
+  const secondary = elements.genLightSecondary?.value;
+  
+  if (!primary || !secondary) {
+    hideLightingConflict();
+    return;
+  }
+  
+  // Temperature mapping for light sources
+  const temperatures = {
+    // Warm sources
+    'GOLDEN_HOUR': 'warm',
+    'TUNGSTEN': 'warm',
+    
+    // Cool sources
+    'WINDOW_LIGHT': 'cool',
+    'FLUORESCENT': 'cool',
+    'NEON': 'cool',
+    
+    // Neutral sources
+    'OVERCAST': 'neutral',
+    'DIRECT_SUN': 'neutral',
+    'STUDIO_STROBE': 'neutral',
+    'RING_LIGHT': 'neutral'
+  };
+  
+  const primaryTemp = temperatures[primary] || 'neutral';
+  const secondaryTemp = temperatures[secondary] || 'neutral';
+  
+  const hasConflict = (primaryTemp === 'warm' && secondaryTemp === 'cool') ||
+                      (primaryTemp === 'cool' && secondaryTemp === 'warm');
+  
+  if (hasConflict) {
+    const warmSource = primaryTemp === 'warm' ? primary : secondary;
+    const coolSource = primaryTemp === 'cool' ? primary : secondary;
+    showLightingConflict(warmSource, coolSource);
+  } else {
+    hideLightingConflict();
+  }
+}
+
+function showLightingConflict(warmSource, coolSource) {
+  if (elements.lightingConflictWarning) {
+    elements.lightingConflictWarning.style.display = 'block';
+  }
+  if (elements.conflictDescription) {
+    elements.conflictDescription.textContent = 
+      `${warmSource} (тёплый) + ${coolSource} (холодный). Тёплый источник = Key Light, холодный = Rim Light.`;
+  }
+}
+
+function hideLightingConflict() {
+  if (elements.lightingConflictWarning) {
+    elements.lightingConflictWarning.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -801,8 +920,32 @@ async function loadEmotions() {
  * Collect all current generation settings from UI
  */
 function collectGenerationSettings() {
+  // Collect Virtual Camera settings
+  const virtualCamera = {
+    focalLength: elements.genVirtualFocal?.value || 'PORTRAIT',
+    aperture: elements.genVirtualAperture?.value || 'FAST',
+    shutterSpeed: elements.genVirtualShutter?.value || 'FAST_SHUTTER'
+  };
+  
+  // Collect Lighting settings
+  const lighting = {
+    primarySource: elements.genLightPrimary?.value || 'WINDOW_LIGHT',
+    secondarySource: elements.genLightSecondary?.value || null,
+    modifier: elements.genLightModifier?.value || 'SOFTBOX'
+  };
+  
   return {
-    // NEW: 6-layer architecture
+    // ═══════════════════════════════════════════════════════════════
+    // Virtual Studio (NEW)
+    // ═══════════════════════════════════════════════════════════════
+    virtualCamera,
+    lighting,
+    qualityMode: elements.genQualityMode?.value || 'DRAFT',
+    mood: elements.genMood?.value || 'natural',
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 6-layer architecture (legacy, kept for compatibility)
+    // ═══════════════════════════════════════════════════════════════
     shootType: elements.genShootType?.value || 'editorial',
     cameraAesthetic: elements.genCameraAesthetic?.value || 'contax_t2',
     lightingSource: elements.genLightingSource?.value || 'natural_daylight',

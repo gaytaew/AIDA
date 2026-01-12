@@ -9,6 +9,25 @@
   <style>
     /* Custom Shoot specific styles */
     
+    /* Virtual Studio Quality Mode Buttons */
+    .quality-mode-btn {
+      transition: all 0.2s ease;
+    }
+    .quality-mode-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .quality-mode-btn.active {
+      border-color: #10B981 !important;
+      background: rgba(16, 185, 129, 0.15) !important;
+      color: #10B981 !important;
+    }
+    .quality-mode-btn[data-mode="PRODUCTION"].active {
+      border-color: #8B5CF6 !important;
+      background: rgba(139, 92, 246, 0.15) !important;
+      color: #8B5CF6 !important;
+    }
+    
     /* Reference Locks Panel */
     .locks-panel {
       background: var(--color-surface);
@@ -515,6 +534,138 @@
                 </div>
               </div>
 
+              <!-- ═══════════════════════════════════════════════════════════════ -->
+              <!-- VIRTUAL STUDIO - NEW Architecture -->
+              <!-- ═══════════════════════════════════════════════════════════════ -->
+              <div class="universe-settings" style="border-color: #10B981; border-width: 2px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), transparent);">
+                <h4>📸 Virtual Studio <span style="font-weight: normal; font-size: 10px; color: #10B981;">NEW</span></h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                  <!-- Quality Mode Toggle -->
+                  <div class="form-group" style="margin: 0; grid-column: span 2;">
+                    <label style="margin-bottom: 8px; display: block;">⚡ Режим качества</label>
+                    <div style="display: flex; gap: 8px;">
+                      <button type="button" class="quality-mode-btn active" data-mode="DRAFT" id="quality-mode-draft" style="flex: 1; padding: 12px; border: 2px solid #10B981; background: rgba(16, 185, 129, 0.1); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: #10B981; transition: all 0.2s;">
+                        🚀 DRAFT<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">1K • Быстро</span>
+                      </button>
+                      <button type="button" class="quality-mode-btn" data-mode="PRODUCTION" id="quality-mode-production" style="flex: 1; padding: 12px; border: 2px solid var(--color-border); background: transparent; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--color-text-muted); transition: all 0.2s;">
+                        💎 PRODUCTION<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">4K • Качество</span>
+                      </button>
+                    </div>
+                    <input type="hidden" id="gen-quality-mode" value="DRAFT">
+                  </div>
+                  
+                  <!-- Virtual Camera: Focal Length -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-virtual-focal">🔭 Фокусное расстояние</label>
+                    <select id="gen-virtual-focal" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 12px;">
+                      <option value="ULTRA_WIDE">Ultra Wide (14-24mm) — Архитектура, драма</option>
+                      <option value="STANDARD">Standard (35-50mm) — Как человеческий глаз</option>
+                      <option value="PORTRAIT" selected>Portrait (85-135mm) — Портреты, боке</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Virtual Camera: Aperture -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-virtual-aperture">📷 Диафрагма</label>
+                    <select id="gen-virtual-aperture" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 12px;">
+                      <option value="FAST" selected>Fast (f/1.2-2.8) — Размытый фон, боке</option>
+                      <option value="CLOSED">Closed (f/8-16) — Всё в резкости</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Virtual Camera: Shutter Speed -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-virtual-shutter">⏱️ Выдержка</label>
+                    <select id="gen-virtual-shutter" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 12px;">
+                      <option value="FAST_SHUTTER" selected>Fast — Заморозить движение</option>
+                      <option value="LONG_EXPOSURE">Long Exposure — Размытие, шлейфы</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Mood -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-mood">🎭 Настроение</label>
+                    <select id="gen-mood" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 12px;">
+                      <option value="natural" selected>Естественное</option>
+                      <option value="dramatic">Драматичное</option>
+                      <option value="romantic">Романтичное</option>
+                      <option value="moody">Мрачное / Moody</option>
+                      <option value="energetic">Энергичное</option>
+                      <option value="calm">Спокойное</option>
+                      <option value="editorial">Editorial</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div style="margin-top: 12px; font-size: 11px; color: var(--color-text-muted); padding: 8px; background: var(--color-bg); border-radius: 6px;">
+                  💡 Virtual Studio переводит настройки камеры в оптимизированные промпты для Gemini 3 Pro.
+                </div>
+              </div>
+              
+              <!-- Advanced Lighting (Virtual Studio) -->
+              <div class="universe-settings" style="border-color: #F59E0B;">
+                <h4>💡 Расширенное освещение <span style="font-weight: normal; font-size: 10px; color: #F59E0B;">Virtual Studio</span></h4>
+                
+                <div class="universe-grid">
+                  <!-- Primary Light Source -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-light-primary">🔆 Основной источник</label>
+                    <select id="gen-light-primary" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 12px;">
+                      <optgroup label="🌿 Естественные">
+                        <option value="GOLDEN_HOUR">Golden Hour — Тёплый закатный</option>
+                        <option value="OVERCAST">Overcast — Мягкий пасмурный</option>
+                        <option value="DIRECT_SUN">Direct Sun — Яркое солнце</option>
+                        <option value="WINDOW_LIGHT" selected>Window Light — Свет из окна</option>
+                      </optgroup>
+                      <optgroup label="💡 Искусственные">
+                        <option value="TUNGSTEN">Tungsten — Тёплый лампы накал.</option>
+                        <option value="FLUORESCENT">Fluorescent — Холодный офисный</option>
+                        <option value="NEON">Neon/LED — Цветной неон</option>
+                        <option value="STUDIO_STROBE">Studio Strobe — Студийный импульс</option>
+                        <option value="RING_LIGHT">Ring Light — Кольцевой свет</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  
+                  <!-- Secondary Light Source (Optional) -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-light-secondary">🔅 Дополнительный (опц.)</label>
+                    <select id="gen-light-secondary" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 12px;">
+                      <option value="">— Нет —</option>
+                      <optgroup label="🌿 Естественные">
+                        <option value="GOLDEN_HOUR">Golden Hour</option>
+                        <option value="OVERCAST">Overcast</option>
+                        <option value="DIRECT_SUN">Direct Sun</option>
+                        <option value="WINDOW_LIGHT">Window Light</option>
+                      </optgroup>
+                      <optgroup label="💡 Искусственные">
+                        <option value="TUNGSTEN">Tungsten</option>
+                        <option value="NEON">Neon/LED</option>
+                        <option value="STUDIO_STROBE">Studio Strobe</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  
+                  <!-- Light Modifier -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-light-modifier">✨ Модификатор света</label>
+                    <select id="gen-light-modifier" style="width: 100%; padding: 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 12px;">
+                      <option value="SOFTBOX" selected>Softbox — Мягкий рассеянный</option>
+                      <option value="HARD_LIGHT">Hard Light — Жёсткий контрастный</option>
+                      <option value="BEAUTY_DISH">Beauty Dish — Fashion/Beauty</option>
+                      <option value="UMBRELLA">Umbrella — Широкий мягкий</option>
+                      <option value="GRID">Grid/Snoot — Направленный луч</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <!-- Temperature Conflict Warning -->
+                <div id="lighting-conflict-warning" style="display: none; margin-top: 12px; padding: 10px; background: rgba(245, 158, 11, 0.1); border: 1px solid #F59E0B; border-radius: 6px; font-size: 11px; color: #F59E0B;">
+                  ⚠️ <strong>Смешанные температуры:</strong> <span id="conflict-description"></span>
+                </div>
+              </div>
+              
               <!-- LAYER 1: Shoot Type (Context) -->
               <div class="universe-settings" style="border-color: var(--color-primary); border-width: 2px;">
                 <h4>🎯 Тип съёмки <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">(определяет контекст всех параметров)</span></h4>

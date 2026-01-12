@@ -36,12 +36,41 @@ import {
 } from '../schema/stylePresets.js';
 import {
   generateCustomShootFrame,
-  prepareImageFromUrl
+  prepareImageFromUrl,
+  getVirtualStudioOptions,
+  QUALITY_MODES,
+  ASPECT_RATIOS
 } from '../services/customShootGenerator.js';
 import { getModelById, getModelsDir } from '../store/modelStore.js';
 import { getLocationById } from '../store/locationStore.js';
 import fs from 'fs/promises';
 import path from 'path';
+
+// V3 Services
+import {
+  analyzeClothingReference,
+  analyzeBatch as analyzeClothingBatch,
+  buildPromptDescription as buildClothingPromptDescription,
+  buildPreservationInstructions
+} from '../services/clothingAnalyzer.js';
+import {
+  analyzeModelReference,
+  analyzeMultipleReferences,
+  buildIdentityLockInstructions,
+  buildNarrativeDescription,
+  generateConsistencyMetadata
+} from '../services/modelIdentityAnalyzer.js';
+import {
+  PromptBuilderV3,
+  createPromptBuilderV3,
+  CAMERA_BODIES,
+  LENS_TYPES,
+  APERTURE_VALUES,
+  FILM_TYPES,
+  LIGHTING_SETUPS,
+  LIGHTING_QUALITIES
+} from '../services/promptBuilderV3.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 
 const router = express.Router();
 
@@ -76,6 +105,25 @@ router.get('/presets', async (req, res) => {
     res.json({ ok: true, presets });
   } catch (err) {
     console.error('[CustomShootRoutes] Error getting presets:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/custom-shoots/virtual-studio-options
+ * Get all Virtual Studio options for the new camera/lighting/reference UI
+ */
+router.get('/virtual-studio-options', async (req, res) => {
+  try {
+    const options = getVirtualStudioOptions();
+    res.json({ 
+      ok: true, 
+      options,
+      qualityModes: Object.values(QUALITY_MODES),
+      aspectRatios: Object.entries(ASPECT_RATIOS).map(([id, config]) => ({ id, ...config }))
+    });
+  } catch (err) {
+    console.error('[CustomShootRoutes] Error getting virtual studio options:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
@@ -383,7 +431,15 @@ router.post('/:id/generate', async (req, res) => {
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient,
       identityImages: reqIdentityImages,
-      clothingImages: reqClothingImages
+      clothingImages: reqClothingImages,
+      
+      // ═══════════════════════════════════════════════════════════════
+      // NEW: Virtual Studio Parameters
+      // ═══════════════════════════════════════════════════════════════
+      virtualCamera,  // { focalLength, aperture, shutterSpeed }
+      lighting,       // { primarySource, secondarySource, modifier }
+      qualityMode,    // 'DRAFT' | 'PRODUCTION'
+      mood            // string for atmosphere/feeling
     } = req.body;
     
     console.log('[CustomShootRoutes] Generate request for shoot:', shoot.id);
@@ -403,7 +459,12 @@ router.post('/:id/generate', async (req, res) => {
       lensFocalLength,
       ambient,
       frame: frame?.label || frame?.id || null,
-      extraPrompt: extraPrompt?.slice(0, 50) 
+      extraPrompt: extraPrompt?.slice(0, 50),
+      // Virtual Studio params
+      virtualCamera,
+      lighting,
+      qualityMode,
+      mood
     });
     
     // Prepare identity images
@@ -583,7 +644,15 @@ router.post('/:id/generate', async (req, res) => {
       // Lens Focal Length
       lensFocalLength,
       // Ambient (situational conditions: weather, season, atmosphere)
-      ambient
+      ambient,
+      
+      // ═══════════════════════════════════════════════════════════════
+      // Virtual Studio Parameters (new architecture)
+      // ═══════════════════════════════════════════════════════════════
+      virtualCamera,
+      lighting,
+      qualityMode: qualityMode || 'DRAFT',
+      mood: mood || 'natural'
     });
     
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);
@@ -743,6 +812,501 @@ router.get('/:shootId/images/:imageId', async (req, res) => {
     res.send(result.buffer);
   } catch (err) {
     console.error('[CustomShootRoutes] Error serving image:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// V3 ANALYSIS ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/custom-shoots/analyze-model
+ * Analyze a model reference image for identity markers
+ */
+router.post('/analyze-model', async (req, res) => {
+  try {
+    const { image, imageUrl, useCache = true } = req.body;
+    
+    let imageData = null;
+    
+    // Handle base64 image data
+    if (image?.base64) {
+      imageData = {
+        mimeType: image.mimeType || 'image/jpeg',
+        base64: image.base64
+      };
+    }
+    // Handle data URL
+    else if (imageUrl?.startsWith('data:')) {
+      const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        imageData = {
+          mimeType: match[1],
+          base64: match[2]
+        };
+      }
+    }
+    // Handle stored image path
+    else if (imageUrl && isStoredImagePath(imageUrl)) {
+      const result = await loadImageBuffer(imageUrl);
+      if (result.ok) {
+        imageData = {
+          mimeType: result.mimeType,
+          base64: result.buffer.toString('base64')
+        };
+      }
+    }
+    
+    if (!imageData) {
+      return res.status(400).json({ ok: false, error: 'No valid image provided' });
+    }
+    
+    console.log('[V3] Analyzing model reference...');
+    const result = await analyzeModelReference(imageData, { useCache });
+    
+    if (!result.ok) {
+      return res.status(500).json({ ok: false, error: result.error });
+    }
+    
+    // Build prompt components
+    const identityLockInstructions = buildIdentityLockInstructions(result.analysis);
+    const narrativeDescription = buildNarrativeDescription(result.analysis);
+    const consistencyMetadata = generateConsistencyMetadata(result.analysis);
+    
+    res.json({
+      ok: true,
+      analysis: result.analysis,
+      fromCache: result.fromCache,
+      promptComponents: {
+        identityLockInstructions,
+        narrativeDescription
+      },
+      consistencyMetadata
+    });
+    
+  } catch (err) {
+    console.error('[V3] Error analyzing model:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/custom-shoots/analyze-clothing
+ * Analyze a clothing reference image for exact reproduction
+ */
+router.post('/analyze-clothing', async (req, res) => {
+  try {
+    const { image, imageUrl, useCache = true } = req.body;
+    
+    let imageData = null;
+    
+    // Handle base64 image data
+    if (image?.base64) {
+      imageData = {
+        mimeType: image.mimeType || 'image/jpeg',
+        base64: image.base64
+      };
+    }
+    // Handle data URL
+    else if (imageUrl?.startsWith('data:')) {
+      const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        imageData = {
+          mimeType: match[1],
+          base64: match[2]
+        };
+      }
+    }
+    // Handle stored image path
+    else if (imageUrl && isStoredImagePath(imageUrl)) {
+      const result = await loadImageBuffer(imageUrl);
+      if (result.ok) {
+        imageData = {
+          mimeType: result.mimeType,
+          base64: result.buffer.toString('base64')
+        };
+      }
+    }
+    
+    if (!imageData) {
+      return res.status(400).json({ ok: false, error: 'No valid image provided' });
+    }
+    
+    console.log('[V3] Analyzing clothing reference...');
+    const result = await analyzeClothingReference(imageData, { useCache });
+    
+    if (!result.ok) {
+      return res.status(500).json({ ok: false, error: result.error });
+    }
+    
+    // Build prompt components
+    const promptDescription = buildClothingPromptDescription(result.analysis);
+    const preservationInstructions = buildPreservationInstructions(result.analysis);
+    
+    res.json({
+      ok: true,
+      analysis: result.analysis,
+      fromCache: result.fromCache,
+      promptComponents: {
+        promptDescription,
+        preservationInstructions
+      }
+    });
+    
+  } catch (err) {
+    console.error('[V3] Error analyzing clothing:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/custom-shoots/v3-options
+ * Get all V3 generation options for UI
+ */
+router.get('/v3-options', async (req, res) => {
+  try {
+    res.json({
+      ok: true,
+      options: {
+        cameras: Object.entries(CAMERA_BODIES).map(([id, cam]) => ({
+          id,
+          label: cam.label
+        })),
+        lenses: Object.entries(LENS_TYPES).map(([id, lens]) => ({
+          id,
+          label: lens.label
+        })),
+        apertures: Object.entries(APERTURE_VALUES).map(([id, ap]) => ({
+          id,
+          label: ap.label
+        })),
+        filmTypes: Object.entries(FILM_TYPES).map(([id, film]) => ({
+          id,
+          label: film.label
+        })),
+        lightingSetups: Object.entries(LIGHTING_SETUPS).map(([id, setup]) => ({
+          id,
+          label: setup.label
+        })),
+        lightingQualities: Object.entries(LIGHTING_QUALITIES).map(([id, quality]) => ({
+          id,
+          label: quality.label
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('[V3] Error getting options:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// V3 GENERATION ENDPOINT
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/custom-shoots/:id/generate-v3
+ * Generate an image using V3 structured prompts with Vision API analysis
+ */
+router.post('/:id/generate-v3', async (req, res) => {
+  try {
+    const shoot = await getCustomShootById(req.params.id);
+    
+    if (!shoot) {
+      return res.status(404).json({ ok: false, error: 'Shoot not found' });
+    }
+    
+    const {
+      // V3 specific params
+      modelAnalysis,
+      clothingAnalyses,
+      identityLockStrength = 'strict',
+      
+      // Photo realism settings
+      camera = 'contax_t2',
+      lens = '85mm',
+      aperture = 'f2.8',
+      filmType = 'portra_400',
+      shutterSpeed,
+      iso,
+      
+      // Atmospheric settings
+      location,
+      lightingSetup = 'natural_window',
+      lightingQuality = 'soft',
+      timeOfDay,
+      weather,
+      mood,
+      colorTemperature,
+      
+      // Composition settings
+      shotSize = 'medium_closeup',
+      cameraAngle = 'eye_level',
+      poseType,
+      poseDescription,
+      handPlacement,
+      gazeDirection = 'camera',
+      focusPoint = 'eyes',
+      
+      // Frame reference
+      frame,
+      
+      // Technical
+      aspectRatio = '3:4',
+      imageSize = '2K',
+      
+      // Extra
+      extraPrompt,
+      
+      // Identity/clothing images (if not using pre-analyzed)
+      identityImages: reqIdentityImages,
+      clothingImages: reqClothingImages
+    } = req.body;
+    
+    console.log('[V3] Generate request for shoot:', shoot.id);
+    
+    // Prepare identity images
+    let identityImages = [];
+    if (reqIdentityImages && Array.isArray(reqIdentityImages)) {
+      identityImages = reqIdentityImages;
+    } else if (shoot.models?.length > 0) {
+      for (const shootModel of shoot.models) {
+        const modelId = shootModel.modelId || shootModel.id;
+        if (!modelId) continue;
+        
+        const model = await getModelById(modelId);
+        if (model && model.imageFiles && model.imageFiles.length > 0) {
+          const modelsDir = getModelsDir();
+          
+          for (const filename of model.imageFiles) {
+            const filePath = path.join(modelsDir, model.id, filename);
+            try {
+              const buffer = await fs.readFile(filePath);
+              identityImages.push({
+                mimeType: 'image/jpeg',
+                base64: buffer.toString('base64')
+              });
+            } catch (e) {
+              console.warn(`[V3] Could not read identity image: ${filePath}`);
+            }
+          }
+        }
+      }
+    }
+    
+    // Prepare clothing images
+    let clothingImages = [];
+    if (reqClothingImages && Array.isArray(reqClothingImages)) {
+      clothingImages = reqClothingImages;
+    } else if (shoot.clothing?.length > 0) {
+      for (const clothing of shoot.clothing) {
+        if (clothing.refs) {
+          for (const ref of clothing.refs) {
+            const img = await prepareImageFromUrl(ref.url);
+            if (img) {
+              clothingImages.push(img);
+            }
+          }
+        }
+      }
+    }
+    
+    // Run analyses if not provided
+    let effectiveModelAnalysis = modelAnalysis;
+    let effectiveClothingAnalyses = clothingAnalyses || [];
+    
+    // Analyze model if we have images but no analysis
+    if (!effectiveModelAnalysis && identityImages.length > 0) {
+      console.log('[V3] Running model identity analysis...');
+      const modelResult = await analyzeMultipleReferences(identityImages);
+      if (modelResult.ok) {
+        effectiveModelAnalysis = modelResult.analysis;
+      }
+    }
+    
+    // Analyze clothing if we have images but no analyses
+    if (effectiveClothingAnalyses.length === 0 && clothingImages.length > 0) {
+      console.log('[V3] Running clothing analysis...');
+      const clothingResults = await analyzeClothingBatch(clothingImages);
+      effectiveClothingAnalyses = clothingResults
+        .filter(r => r.ok)
+        .map(r => r.analysis);
+    }
+    
+    // Build V3 prompt
+    const builder = createPromptBuilderV3();
+    
+    // Block 1: Hard Constraints
+    builder.setTechnicalRequirements(aspectRatio, imageSize);
+    builder.addPhotorealismRules();
+    
+    if (effectiveModelAnalysis) {
+      builder.setIdentityLock(effectiveModelAnalysis, identityLockStrength);
+    }
+    
+    if (effectiveClothingAnalyses.length > 0) {
+      builder.setClothingLock(effectiveClothingAnalyses);
+    }
+    
+    // Block 2: Photo Realism
+    builder.setCamera(camera);
+    builder.setLens(lens);
+    builder.setAperture(aperture);
+    builder.setFilmType(filmType);
+    if (shutterSpeed) builder.setShutterSpeed(shutterSpeed);
+    if (iso) builder.setISO(iso);
+    
+    // Block 3: Visual Identity
+    if (effectiveModelAnalysis) {
+      builder.setModelDescription(buildNarrativeDescription(effectiveModelAnalysis));
+    }
+    if (effectiveClothingAnalyses.length > 0) {
+      builder.setClothingDescriptions(
+        effectiveClothingAnalyses.map(a => buildClothingPromptDescription(a))
+      );
+    }
+    
+    // Block 4: Atmospheric
+    if (location) builder.setLocation(location);
+    builder.setLightingSetup(lightingSetup);
+    builder.setLightingQuality(lightingQuality);
+    if (timeOfDay) builder.setTimeOfDay(timeOfDay);
+    if (weather) builder.setWeather(weather);
+    if (mood) builder.setMood(mood);
+    if (colorTemperature) builder.setColorTemperature(colorTemperature);
+    
+    // Block 5: Composition
+    builder.setShotSize(shotSize);
+    builder.setCameraAngle(cameraAngle);
+    if (poseType) builder.setPoseType(poseType);
+    if (poseDescription) builder.setPoseDescription(poseDescription);
+    if (handPlacement) builder.setHandPlacement(handPlacement);
+    builder.setGazeDirection(gazeDirection);
+    builder.setFocusPoint(focusPoint);
+    
+    // Block 6: Quality Gates
+    builder.addQualityGates();
+    
+    // Extra prompt
+    if (extraPrompt) {
+      builder.hardConstraints.push(`\nADDITIONAL INSTRUCTIONS: ${extraPrompt}`);
+    }
+    
+    // Validate
+    const validation = builder.validateConflicts();
+    if (!validation.valid) {
+      console.warn('[V3] Prompt conflicts:', validation.conflicts);
+    }
+    
+    // Build final prompt
+    const promptText = builder.toText();
+    const promptJson = builder.build();
+    
+    console.log('[V3] Prompt built, length:', promptText.length);
+    
+    // Prepare reference images for generation
+    const referenceImages = [];
+    
+    // Add identity images
+    if (identityImages.length > 0) {
+      // Build collage for identity
+      const { buildCollage } = await import('../utils/imageCollage.js');
+      const identityCollage = await buildCollage(identityImages, {
+        maxSize: 1536,
+        maxCols: 2,
+        minTile: 512,
+        jpegQuality: 95
+      });
+      if (identityCollage) {
+        referenceImages.push(identityCollage);
+      }
+    }
+    
+    // Add clothing images (separately for quality)
+    for (const clothingImg of clothingImages) {
+      referenceImages.push(clothingImg);
+    }
+    
+    // Add pose sketch if available
+    const effectiveFrame = frame || shoot.currentFrame;
+    if (effectiveFrame) {
+      const sketchUrl = effectiveFrame.sketchUrl || effectiveFrame.sketchAsset?.url;
+      if (sketchUrl?.startsWith('data:')) {
+        const match = sketchUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          referenceImages.push({ mimeType: match[1], base64: match[2] });
+        }
+      }
+    }
+    
+    console.log(`[V3] Sending ${referenceImages.length} reference images`);
+    
+    // Track generation time
+    const genStartTime = Date.now();
+    
+    // Call Gemini
+    const result = await requestGeminiImage({
+      prompt: promptText,
+      referenceImages,
+      imageConfig: { aspectRatio, imageSize }
+    });
+    
+    const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);
+    
+    if (!result.ok) {
+      console.error('[V3] Generation failed:', result.error);
+      return res.status(500).json({ ok: false, error: result.error });
+    }
+    
+    console.log(`[V3] Generation successful in ${genDuration}s`);
+    
+    // Build image data
+    const imageData = {
+      id: generateImageId(),
+      imageUrl: `data:${result.mimeType};base64,${result.base64}`,
+      frameId: effectiveFrame?.id || null,
+      frameLabel: effectiveFrame?.label || 'V3 Generation',
+      aspectRatio,
+      imageSize,
+      // V3 specific metadata
+      v3: true,
+      camera,
+      lens,
+      aperture,
+      filmType,
+      lightingSetup,
+      lightingQuality,
+      shotSize,
+      cameraAngle,
+      gazeDirection,
+      identityLockStrength,
+      hasModelAnalysis: !!effectiveModelAnalysis,
+      clothingCount: effectiveClothingAnalyses.length,
+      prompt: promptText,
+      generationTime: genDuration
+    };
+    
+    // Save to shoot history
+    const savedImage = await addImageToShoot(shoot.id, imageData);
+    
+    res.json({
+      ok: true,
+      image: {
+        ...savedImage,
+        imageUrl: imageData.imageUrl
+      },
+      prompt: promptText,
+      promptJson,
+      validation,
+      analyses: {
+        model: effectiveModelAnalysis ? { summary: effectiveModelAnalysis.identitySummary } : null,
+        clothing: effectiveClothingAnalyses.map(a => ({ type: a.garmentType, color: a.primaryColor?.name }))
+      }
+    });
+    
+  } catch (err) {
+    console.error('[V3] Error generating:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
