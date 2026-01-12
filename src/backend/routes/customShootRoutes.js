@@ -8,6 +8,7 @@ import express from 'express';
 import {
   getAllCustomShoots,
   getCustomShootById,
+  getCustomShootWithImages,
   saveCustomShoot,
   deleteCustomShoot,
   addImageToShoot,
@@ -18,6 +19,7 @@ import {
   clearLocationLockOnShoot,
   updateShootParams
 } from '../store/customShootStore.js';
+import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
 import {
   createEmptyCustomShoot,
   validateCustomShoot,
@@ -91,11 +93,12 @@ router.post('/', async (req, res) => {
 
 /**
  * GET /api/custom-shoots/:id
- * Get a custom shoot by ID
+ * Get a custom shoot by ID (with images resolved to data URLs)
  */
 router.get('/:id', async (req, res) => {
   try {
-    const shoot = await getCustomShootById(req.params.id);
+    // Use getCustomShootWithImages to resolve stored image paths to data URLs
+    const shoot = await getCustomShootWithImages(req.params.id);
     
     if (!shoot) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
@@ -549,6 +552,41 @@ router.delete('/:id/images/:imageId', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error('[CustomShootRoutes] Error deleting image:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// IMAGE SERVING ENDPOINT
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/custom-shoots/:shootId/images/:imageId
+ * Serve a stored image directly (for future optimization)
+ */
+router.get('/:shootId/images/:imageId', async (req, res) => {
+  try {
+    const { shootId, imageId } = req.params;
+    
+    // Try common extensions
+    const extensions = ['jpg', 'jpeg', 'png', 'webp'];
+    let result = null;
+    
+    for (const ext of extensions) {
+      const imagePath = `${shootId}/${imageId}.${ext}`;
+      result = await loadImageBuffer(imagePath);
+      if (result.ok) break;
+    }
+    
+    if (!result || !result.ok) {
+      return res.status(404).json({ ok: false, error: 'Image not found' });
+    }
+    
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+    res.send(result.buffer);
+  } catch (err) {
+    console.error('[CustomShootRoutes] Error serving image:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

@@ -4,13 +4,16 @@
  * File-based storage for Custom Shoots.
  * Each shoot is stored as a separate JSON file.
  * 
- * IMPORTANT: Uses atomic writes and file-level locks to prevent race conditions.
+ * IMPORTANT: 
+ * - Uses atomic writes and file-level locks to prevent race conditions.
+ * - Generated images are stored as FILES (not base64 in JSON) to prevent memory bloat.
  */
 
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
+import { saveImage, loadImage, deleteImage, deleteShootImages, isStoredImagePath } from './imageStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -183,6 +186,8 @@ export async function saveCustomShoot(shoot) {
 
 /**
  * Delete a custom shoot
+ * 
+ * IMPORTANT: Also deletes all image files from disk.
  */
 export async function deleteCustomShoot(id) {
   await ensureStoreDir();
@@ -190,6 +195,10 @@ export async function deleteCustomShoot(id) {
   const filePath = path.join(STORE_DIR, `${id}.json`);
   
   try {
+    // Delete all images for this shoot
+    await deleteShootImages(id);
+    
+    // Delete the JSON file
     await fs.unlink(filePath);
     console.log(`[CustomShootStore] Deleted shoot: ${id}`);
     return true;
@@ -207,6 +216,8 @@ export async function deleteCustomShoot(id) {
 
 /**
  * Add a generated image to a shoot
+ * 
+ * IMPORTANT: Image data URL is saved to disk, only path is stored in JSON.
  */
 export async function addImageToShoot(shootId, imageData) {
   await ensureStoreDir();
@@ -222,10 +233,26 @@ export async function addImageToShoot(shootId, imageData) {
       shoot.generatedImages = [];
     }
     
-    // Add image (preserve ALL fields from imageData)
+    const imageId = imageData.id || `img_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    
+    // Save image to disk if it's a data URL
+    let imagePath = imageData.imageUrl;
+    if (imageData.imageUrl && imageData.imageUrl.startsWith('data:')) {
+      const saveResult = await saveImage(shootId, imageId, imageData.imageUrl);
+      if (saveResult.ok) {
+        imagePath = saveResult.filePath; // e.g. "CSHOOT_xxx/img_xxx.jpg"
+        console.log(`[CustomShootStore] Image saved to disk: ${imagePath}`);
+      } else {
+        console.error('[CustomShootStore] Failed to save image to disk:', saveResult.error);
+        // Continue with data URL as fallback (not ideal but prevents data loss)
+      }
+    }
+    
+    // Add image (preserve ALL fields from imageData, but replace imageUrl with path)
     const image = {
       ...imageData,
-      id: imageData.id || `img_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      id: imageId,
+      imageUrl: imagePath, // Now stores path like "CSHOOT_xxx/img_xxx.jpg"
       createdAt: new Date().toISOString(),
       isStyleReference: false,
       isLocationReference: false
@@ -241,6 +268,8 @@ export async function addImageToShoot(shootId, imageData) {
 
 /**
  * Remove an image from a shoot
+ * 
+ * IMPORTANT: Also deletes the image file from disk.
  */
 export async function removeImageFromShoot(shootId, imageId) {
   await ensureStoreDir();
@@ -257,6 +286,11 @@ export async function removeImageFromShoot(shootId, imageId) {
     }
     
     const image = shoot.generatedImages[index];
+    
+    // Delete image file from disk if it's a stored path
+    if (image.imageUrl && isStoredImagePath(image.imageUrl)) {
+      await deleteImage(image.imageUrl);
+    }
     
     // Clear locks if this was the reference
     if (image.isStyleReference) {
@@ -286,6 +320,9 @@ export async function removeImageFromShoot(shootId, imageId) {
 
 /**
  * Set style lock on a shoot
+ * 
+ * NOTE: Stores the image path (not data URL) in the lock.
+ * The path will be resolved when the shoot is fetched via getCustomShootWithImages.
  */
 export async function setStyleLockOnShoot(shootId, imageId, mode = 'strict') {
   await ensureStoreDir();
@@ -310,11 +347,12 @@ export async function setStyleLockOnShoot(shootId, imageId, mode = 'strict') {
     // Set new reference
     image.isStyleReference = true;
     
+    // Store the path (not data URL) - it will be resolved on read
     shoot.locks.style = {
       enabled: true,
       mode,
       sourceImageId: imageId,
-      sourceImageUrl: image.imageUrl
+      sourceImageUrl: image.imageUrl // This is now a path like "CSHOOT_xxx/img_xxx.jpg"
     };
     
     await _writeShoot(shoot);
@@ -325,6 +363,9 @@ export async function setStyleLockOnShoot(shootId, imageId, mode = 'strict') {
 
 /**
  * Set location lock on a shoot
+ * 
+ * NOTE: Stores the image path (not data URL) in the lock.
+ * The path will be resolved when the shoot is fetched via getCustomShootWithImages.
  */
 export async function setLocationLockOnShoot(shootId, imageId, mode = 'strict') {
   await ensureStoreDir();
@@ -349,11 +390,12 @@ export async function setLocationLockOnShoot(shootId, imageId, mode = 'strict') 
     // Set new reference
     image.isLocationReference = true;
     
+    // Store the path (not data URL) - it will be resolved on read
     shoot.locks.location = {
       enabled: true,
       mode,
       sourceImageId: imageId,
-      sourceImageUrl: image.imageUrl
+      sourceImageUrl: image.imageUrl // This is now a path like "CSHOOT_xxx/img_xxx.jpg"
     };
     
     await _writeShoot(shoot);
@@ -417,6 +459,53 @@ export async function clearLocationLockOnShoot(shootId) {
     };
     
     await _writeShoot(shoot);
+    
+    return shoot;
+  });
+}
+
+/**
+ * Get a custom shoot with image URLs resolved to data URLs
+ * 
+ * Use this when sending shoot data to the client.
+ * Converts stored paths like "CSHOOT_xxx/img_xxx.jpg" back to data URLs.
+ */
+export async function getCustomShootWithImages(id) {
+  await ensureStoreDir();
+  
+  return withFileLock(id, async () => {
+    const shoot = await _readShoot(id);
+    if (!shoot) return null;
+    
+    // Resolve image paths to data URLs
+    if (shoot.generatedImages?.length > 0) {
+      const resolvedImages = await Promise.all(
+        shoot.generatedImages.map(async (img) => {
+          if (img.imageUrl && isStoredImagePath(img.imageUrl)) {
+            const result = await loadImage(img.imageUrl);
+            if (result.ok) {
+              return { ...img, imageUrl: result.dataUrl };
+            }
+          }
+          return img;
+        })
+      );
+      shoot.generatedImages = resolvedImages;
+    }
+    
+    // Also resolve style/location lock source images
+    if (shoot.locks?.style?.sourceImageUrl && isStoredImagePath(shoot.locks.style.sourceImageUrl)) {
+      const result = await loadImage(shoot.locks.style.sourceImageUrl);
+      if (result.ok) {
+        shoot.locks.style.sourceImageUrl = result.dataUrl;
+      }
+    }
+    if (shoot.locks?.location?.sourceImageUrl && isStoredImagePath(shoot.locks.location.sourceImageUrl)) {
+      const result = await loadImage(shoot.locks.location.sourceImageUrl);
+      if (result.ok) {
+        shoot.locks.location.sourceImageUrl = result.dataUrl;
+      }
+    }
     
     return shoot;
   });
