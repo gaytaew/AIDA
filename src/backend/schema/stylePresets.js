@@ -39,10 +39,30 @@ export const SHOOT_TYPE_PRESETS = {
     id: 'editorial',
     label: 'Editorial',
     description: 'Художественная модная съёмка для журналов',
-    prompt: 'High fashion editorial photography for magazines, artistic expression, creative poses and compositions, fashion-forward styling, magazine cover quality, visual storytelling',
+    prompt: `High fashion editorial photography for magazines.
+
+ARTISTIC COMPOSITION (CRITICAL):
+- AVOID centered, symmetrical framing — use rule of thirds, dynamic diagonals
+- Create visual tension through asymmetry and negative space
+- Capture in-between moments, not peak poses
+- Allow parts of the model to be cropped unexpectedly
+- Use unusual angles and perspectives
+
+EXPRESSION & EMOTION:
+- The model's expression must feel GENUINE, not performed
+- Subtle, nuanced emotions — not theatrical or exaggerated
+- Eyes should have life and depth, not empty stare
+- Allow imperfect moments: slight squint, mid-blink, asymmetric smile
+
+ANTI-PLASTIC:
+- Real skin texture with pores, subtle imperfections
+- Natural light falloff and shadows
+- Avoid HDR look, avoid overly smooth skin
+- Film grain and optical imperfections add authenticity`,
     defaults: {
-      captureStyle: 'editorial_posed',
-      antiAi: 'medium'
+      captureStyle: 'editorial_relaxed',  // Changed from editorial_posed
+      antiAi: 'high',                      // Changed from medium
+      skinTexture: 'natural_film'
     },
     conflicts: {} // Editorial allows everything
   },

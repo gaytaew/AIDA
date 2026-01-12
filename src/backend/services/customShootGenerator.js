@@ -220,19 +220,43 @@ function buildAntiAiPrompt(antiAi) {
   const rules = [];
   
   if (antiAi.level === 'high') {
-    rules.push('ANTI-AI AESTHETIC (HIGH):');
-    rules.push('- Image must look like an authentic photograph, NOT AI-generated');
-    rules.push('- Include natural imperfections: micro-motion blur, slight exposure errors');
-    rules.push('- Skin must show real texture: pores, subtle blemishes, natural shine');
-    rules.push('- Allow compositional imperfections: not perfectly centered, slight tilt');
+    rules.push(`ANTI-AI AESTHETIC (MAXIMUM AUTHENTICITY):
+
+SKIN & FACE (CRITICAL):
+- Real skin texture with visible pores, especially on nose, cheeks, forehead
+- Natural shine on T-zone, not matte plastic
+- Subtle asymmetry in facial features (natural, not perfect)
+- Tiny imperfections: minor blemishes, freckles, fine lines around eyes
+- NO airbrushed look, NO plastic skin, NO uncanny valley
+
+EYES & EXPRESSION:
+- Eyes must have depth and life — catchlights, natural moisture
+- Avoid empty stare or "AI smile" — expression should feel spontaneous
+- Allow micro-expressions: slight squint, asymmetric smile, raised eyebrow
+- Iris detail should be visible, not flat colored circles
+
+TECHNICAL IMPERFECTIONS (add authenticity):
+- Micro motion blur on extremities (fingertips, hair strands)
+- Slight exposure variation (+/- 0.3 EV from perfect)
+- Natural lens falloff at edges
+- Film grain or digital noise appropriate to lighting
+- Focus slightly soft at edges of frame
+
+COMPOSITION:
+- Avoid perfectly centered, symmetrical framing
+- Allow slight camera tilt (0.5-2 degrees)
+- Negative space and asymmetry preferred`);
   } else if (antiAi.level === 'medium') {
-    rules.push('ANTI-AI AESTHETIC (MEDIUM):');
-    rules.push('- Natural photographic quality, avoid artificial perfection');
-    rules.push('- Real skin texture visible, no airbrushing');
-    rules.push('- Some natural imperfections allowed');
+    rules.push(`ANTI-AI AESTHETIC (MEDIUM):
+- Natural photographic quality, avoid artificial perfection
+- Real skin texture visible: pores, natural shine, no airbrushing
+- Expression should feel genuine, not performed
+- Some compositional and technical imperfections allowed`);
   } else if (antiAi.level === 'low') {
-    rules.push('ANTI-AI AESTHETIC (LOW):');
-    rules.push('- Generally natural look with minimal visible imperfections');
+    rules.push(`ANTI-AI AESTHETIC (LOW):
+- Generally natural look with minimal visible imperfections
+- Skin texture present but subtle
+- Clean commercial quality`);
   }
   
   // Individual settings
@@ -548,6 +572,10 @@ export function buildCustomShootPrompt({
         promptBlock: emotionPrompt,
         globalRules: GLOBAL_EMOTION_RULES
       };
+      
+      // Add emotion as HARD RULE - this is critical for avoiding neutral/plastic faces
+      promptJson.hardRules.push(`FACIAL EXPRESSION (CRITICAL): The model MUST show "${emotion.label}" emotion. This is NOT optional. The expression should feel genuine and spontaneous, not posed or theatrical.`);
+      
       console.log('[buildCustomShootPrompt] Emotion block added:', emotion.label);
     }
   } else {
@@ -778,13 +806,27 @@ export function promptJsonToText(promptJson) {
     sections.push(promptJson.ambient.prompt);
   }
   
-  // Emotion
-  if (promptJson.emotion) {
-    sections.push('\n=== EMOTION ===');
-    sections.push(promptJson.emotion);
-    if (promptJson.globalEmotionRules) {
-      sections.push('\nGlobal emotion rules:');
-      sections.push(promptJson.globalEmotionRules.join('\n'));
+  // Emotion / Expression (CRITICAL for natural look)
+  if (promptJson.emotion?.promptBlock) {
+    sections.push('\n=== EMOTION / FACIAL EXPRESSION ===');
+    sections.push('IMPORTANT: The model\'s expression is crucial for authenticity.');
+    sections.push(promptJson.emotion.promptBlock);
+    
+    // Physical hints for the emotion
+    if (promptJson.emotion.physicalHints?.length) {
+      sections.push('\nPhysical cues to show:');
+      sections.push(promptJson.emotion.physicalHints.join(', '));
+    }
+    
+    // What to avoid
+    if (promptJson.emotion.avoid?.length) {
+      sections.push(`\nAVOID these expressions: ${promptJson.emotion.avoid.join(', ')}`);
+    }
+    
+    // Global authenticity rules
+    if (promptJson.emotion.globalRules?.length) {
+      sections.push('\nEmotion authenticity rules:');
+      sections.push(promptJson.emotion.globalRules.join('\n'));
     }
   }
   
