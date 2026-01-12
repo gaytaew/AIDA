@@ -821,16 +821,38 @@ function buildStudioPrompt(location) {
 }
 
 /**
- * Build ambient prompt from weather/season/atmosphere parameters.
+ * Time of day options for ambient conditions
+ */
+export const TIME_OF_DAY_AMBIENT_OPTIONS = [
+  { id: 'any', label: 'Любое', prompt: null },
+  { id: 'sunrise', label: 'Рассвет', prompt: 'early morning sunrise light, golden-pink sky, soft warm directional light from low angle, long shadows' },
+  { id: 'golden_hour', label: 'Золотой час', prompt: 'golden hour lighting, warm orange-gold sun at low angle, soft shadows, magical glow on skin' },
+  { id: 'midday', label: 'Полдень', prompt: 'bright midday sun, harsh direct overhead sunlight, strong defined shadows, high contrast, squinting light' },
+  { id: 'afternoon', label: 'День', prompt: 'afternoon daylight, clear sky, natural outdoor lighting' },
+  { id: 'sunset', label: 'Закат', prompt: 'sunset lighting, warm red-orange glow, dramatic sky colors, silhouette potential, romantic mood' },
+  { id: 'blue_hour', label: 'Синий час', prompt: 'blue hour twilight, deep blue sky, city lights starting to glow, cool color temperature, moody atmosphere' },
+  { id: 'night', label: 'Ночь', prompt: 'nighttime, dark sky, artificial lighting from street lamps or city lights, high contrast pools of light' }
+];
+
+/**
+ * Build ambient prompt from weather/season/atmosphere/timeOfDay parameters.
  * 
  * IMPORTANT: This is called by generators, NOT by buildLocationPromptSnippet.
  * Ambient is a situational parameter set during generation.
  * 
- * @param {Object} ambient - { weather, season, atmosphere }
+ * @param {Object} ambient - { weather, season, atmosphere, timeOfDay }
  * @returns {string[]} - Array of prompt parts
  */
 export function buildAmbientPrompt(ambient = {}) {
   const parts = [];
+
+  // Time of Day (HIGHEST PRIORITY for lighting)
+  if (ambient.timeOfDay && ambient.timeOfDay !== 'any') {
+    const timeOption = TIME_OF_DAY_AMBIENT_OPTIONS.find(t => t.id === ambient.timeOfDay);
+    if (timeOption && timeOption.prompt) {
+      parts.push(timeOption.prompt);
+    }
+  }
 
   // Weather
   const weatherOption = WEATHER_OPTIONS.find(w => w.id === ambient.weather);

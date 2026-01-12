@@ -356,7 +356,7 @@ export function buildCustomShootPrompt({
     };
   }
   
-  // Add Ambient conditions (weather/season/atmosphere) - situational, from generator UI
+  // Add Ambient conditions (weather/season/atmosphere/timeOfDay) - situational, from generator UI
   // Only for outdoor/rooftop locations
   if (ambient && location) {
     const spaceType = location.spaceType || 'studio';
@@ -366,6 +366,7 @@ export function buildCustomShootPrompt({
       const ambientParts = buildAmbientPrompt(ambient);
       if (ambientParts.length > 0) {
         promptJson.ambient = {
+          timeOfDay: ambient.timeOfDay || 'any',
           weather: ambient.weather || 'clear',
           season: ambient.season || 'summer',
           atmosphere: ambient.atmosphere || 'neutral',
@@ -575,6 +576,12 @@ export function promptJsonToText(promptJson) {
   if (promptJson.location) {
     sections.push('\n=== LOCATION ===');
     sections.push(`${promptJson.location.label}: ${promptJson.location.description}`);
+  }
+  
+  // Ambient conditions (time of day, weather, season, atmosphere)
+  if (promptJson.ambient?.prompt) {
+    sections.push('\n=== AMBIENT CONDITIONS ===');
+    sections.push(promptJson.ambient.prompt);
   }
   
   // Emotion
