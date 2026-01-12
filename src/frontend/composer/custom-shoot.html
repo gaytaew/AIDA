@@ -684,6 +684,54 @@
                   </div>
                 </div>
                 
+                <!-- Camera & Composition Controls -->
+                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+                  <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🎥 Композиция кадра</h4>
+                  
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    
+                    <!-- Shot Size (План) -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-shot-size">📏 План</label>
+                      <select id="gen-shot-size" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                        <option value="default">Авто (по эскизу)</option>
+                        <option value="extreme_closeup">Макро (Глаза/Губы)</option>
+                        <option value="closeup">Крупный (Лицо)</option>
+                        <option value="medium_closeup">Портретный (По грудь)</option>
+                        <option value="medium_shot">Средний (По пояс)</option>
+                        <option value="cowboy_shot">Американский (По колено)</option>
+                        <option value="full_shot">Ростовой (Весь рост)</option>
+                        <option value="wide_shot">Общий (С окружением)</option>
+                      </select>
+                    </div>
+
+                    <!-- Camera Angle (Ракурс) -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-camera-angle">📐 Ракурс</label>
+                      <select id="gen-camera-angle" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                        <option value="eye_level">На уровне глаз</option>
+                        <option value="low_angle">Нижний (Героический)</option>
+                        <option value="high_angle">Верхний</option>
+                        <option value="overhead">Overhead (Сверху вниз)</option>
+                        <option value="dutch_angle">Завал (Dutch Angle)</option>
+                        <option value="selfie">Селфи</option>
+                      </select>
+                    </div>
+
+                    <!-- Depth of Field (Фокус) -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-focus-mode">🎯 Фокус</label>
+                      <select id="gen-focus-mode" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                        <option value="shallow" selected>Размытый фон (Боке)</option>
+                        <option value="deep">Всё в резкости (f/8+)</option>
+                        <option value="focus_face">Фокус на лице</option>
+                        <option value="soft_focus">Мягкий фокус (Dreamy)</option>
+                      </select>
+                    </div>
+
+                  </div>
+                </div>
+
                 <!-- AMBIENT: Situational conditions (weather, season, time) -->
                 <div id="ambient-section" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); display: none;">
                   <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🌤️ Условия съёмки</h4>

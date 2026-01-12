@@ -235,6 +235,8 @@ export function buildCustomShootPrompt({
   cameraSignature = null,
   skinTexture = null,
   poseAdherence = 2,
+  // Composition
+  composition = null,
   // Ambient (situational conditions: weather, season, atmosphere)
   ambient = null
 }) {
@@ -441,6 +443,62 @@ export function buildCustomShootPrompt({
     }
   }
   
+  // Add Composition (Shot Size, Angle, Focus)
+  if (composition) {
+    const { shotSize, cameraAngle, focusMode } = composition;
+    
+    // 1. SHOT SIZE
+    if (shotSize && shotSize !== 'default') {
+      const shotPrompts = {
+        'extreme_closeup': 'EXTREME CLOSE-UP SHOT. Frame tight on specific details (eyes, lips, accessories). The background is barely visible.',
+        'closeup': 'CLOSE-UP SHOT. Frame the face and neck. Intimate portrait style.',
+        'medium_closeup': 'MEDIUM CLOSE-UP SHOT. Head and shoulders framing. Classic portrait distance.',
+        'medium_shot': 'MEDIUM SHOT. Frame the subject from waist up. Visible body language.',
+        'cowboy_shot': 'AMERICAN SHOT (Cowboy Shot). Frame from knees up.',
+        'full_shot': 'FULL BODY SHOT. The entire subject is visible from head to toe.',
+        'wide_shot': 'WIDE SHOT. The subject is smaller in the frame, emphasizing the environment and location layout.'
+      };
+      
+      if (shotPrompts[shotSize]) {
+        promptJson.composition = promptJson.composition || {};
+        promptJson.composition.shotSize = shotPrompts[shotSize];
+        promptJson.hardRules.push(`COMPOSITION: ${shotPrompts[shotSize]}`);
+      }
+    }
+    
+    // 2. CAMERA ANGLE
+    if (cameraAngle && cameraAngle !== 'eye_level') {
+      const anglePrompts = {
+        'low_angle': 'LOW ANGLE SHOT. Camera looks UP at the subject. Makes the subject look powerful, dominant, or tall.',
+        'high_angle': 'HIGH ANGLE SHOT. Camera looks DOWN at the subject.',
+        'overhead': 'OVERHEAD / TOP-DOWN SHOT. Camera is directly above, looking 90 degrees down.',
+        'dutch_angle': 'DUTCH ANGLE. Tilted camera horizon line. Creates dynamic tension.',
+        'selfie': 'SELFIE ANGLE. Shot from arm\'s length, looking slightly down at self.'
+      };
+      
+      if (anglePrompts[cameraAngle]) {
+         promptJson.composition = promptJson.composition || {};
+         promptJson.composition.angle = anglePrompts[cameraAngle];
+         promptJson.hardRules.push(`ANGLE: ${anglePrompts[cameraAngle]}`);
+      }
+    }
+    
+    // 3. DEPTH OF FIELD
+    if (focusMode) {
+      const focusPrompts = {
+        'shallow': 'SHALLOW DEPTH OF FIELD (f/1.4 - f/2.8). Subject sharp, background completely blurred (bokeh). Separation.',
+        'deep': 'DEEP DEPTH OF FIELD (f/8 - f/11). Everything in focus from foreground to background. Clear environment.',
+        'focus_face': 'CRITICAL FOCUS ON EYES. Shallow depth of field, ears and background naturally fall off into blur.',
+        'soft_focus': 'SOFT FOCUS / DIFFUSION FILTER. Dreamy, glowing atmosphere. Slightly reduced local contrast.'
+      };
+      
+      if (focusPrompts[focusMode]) {
+        promptJson.composition = promptJson.composition || {};
+        promptJson.composition.focus = focusPrompts[focusMode];
+      }
+    }
+  }
+
   // Add Pose Reference if sketch is provided (same as shootGenerator)
   if (hasPoseSketch) {
     const adherenceLevel = poseAdherence || 2;
@@ -618,6 +676,8 @@ export async function generateCustomShootFrame({
   cameraSignature = null,
   skinTexture = null,
   poseAdherence = 2,
+  // Composition
+  composition = null,
   // Ambient (situational conditions: weather, season, atmosphere)
   ambient = null
 }) {
@@ -669,6 +729,8 @@ export async function generateCustomShootFrame({
       cameraSignature,
       skinTexture,
       poseAdherence,
+      // Composition
+      composition,
       // Ambient (situational conditions)
       ambient
     });

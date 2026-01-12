@@ -100,6 +100,11 @@ function initElements() {
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
   
+  // Composition controls
+  elements.genShotSize = document.getElementById('gen-shot-size');
+  elements.genCameraAngle = document.getElementById('gen-camera-angle');
+  elements.genFocusMode = document.getElementById('gen-focus-mode');
+  
   // Ambient controls (situational: weather, season, atmosphere)
   elements.ambientSection = document.getElementById('ambient-section');
   elements.genWeather = document.getElementById('gen-weather');
@@ -1241,6 +1246,12 @@ async function generateFrame(frameId) {
     cameraSignature: elements.genCameraSignature.value,
     skinTexture: elements.genSkinTexture.value,
     poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2,
+    // Composition
+    composition: {
+      shotSize: elements.genShotSize?.value || 'default',
+      cameraAngle: elements.genCameraAngle?.value || 'eye_level',
+      focusMode: elements.genFocusMode?.value || 'shallow'
+    },
     // Ambient (situational conditions: weather, season, atmosphere)
     ambient: {
       weather: elements.genWeather?.value || 'clear',
@@ -1283,6 +1294,8 @@ async function generateFrame(frameId) {
         cameraSignature: params.cameraSignature,
         skinTexture: params.skinTexture,
         poseAdherence: params.poseAdherence,
+        // Composition
+        composition: params.composition,
         // Ambient (situational conditions)
         ambient: params.ambient
       })
@@ -1313,6 +1326,7 @@ async function generateFrame(frameId) {
           cameraSignature: data.image.cameraSignature || 'none',
           skinTexture: data.image.skinTexture || 'none',
           poseAdherence: data.image.poseAdherence || 2,
+          composition: data.image.composition || null,
           extraPrompt: data.image.extraPrompt || '',
           presets: data.image.presets || null,
           prompt: data.prompt || null,
@@ -1694,6 +1708,19 @@ function buildFrameSettingsHtml(frame) {
   // Pose adherence (same as shoot-composer)
   if (frame.poseAdherence) {
     items.push(`<div><strong>🎯 Поза:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}</div>`);
+  }
+  
+  // Composition
+  if (frame.composition) {
+    const comp = frame.composition;
+    const itemsComp = [];
+    if (comp.shotSize && comp.shotSize !== 'default') itemsComp.push(`План: ${comp.shotSize}`);
+    if (comp.cameraAngle && comp.cameraAngle !== 'eye_level') itemsComp.push(`Ракурс: ${comp.cameraAngle}`);
+    if (comp.focusMode) itemsComp.push(`Фокус: ${comp.focusMode}`);
+    
+    if (itemsComp.length > 0) {
+      items.push(`<div><strong>🎥 Композиция:</strong> <span style="font-size:10px;">${itemsComp.join(', ')}</span></div>`);
+    }
   }
   
   // Presets (universe settings - unique to custom shoot)

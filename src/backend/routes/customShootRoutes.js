@@ -259,6 +259,8 @@ router.post('/:id/generate', async (req, res) => {
       cameraSignature,
       skinTexture,
       poseAdherence,
+      // Composition
+      composition,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient,
       identityImages: reqIdentityImages,
@@ -276,6 +278,7 @@ router.post('/:id/generate', async (req, res) => {
       cameraSignature,
       skinTexture,
       poseAdherence,
+      composition,
       ambient,
       frame: frame?.label || frame?.id || null,
       extraPrompt: extraPrompt?.slice(0, 50) 
@@ -420,6 +423,8 @@ router.post('/:id/generate', async (req, res) => {
       cameraSignature,
       skinTexture,
       poseAdherence: parseInt(poseAdherence) || 2,
+      // Composition
+      composition,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient
     });
@@ -496,6 +501,7 @@ router.post('/:id/generate', async (req, res) => {
       cameraSignature: cameraSignature || 'none',
       skinTexture: skinTexture || 'none',
       poseAdherence: parseInt(poseAdherence) || 2,
+      composition: composition || null,
       extraPrompt: extraPrompt || '',
       presets: presets || null,
       prompt: result.prompt,
