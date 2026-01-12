@@ -629,10 +629,13 @@ export function promptJsonToText(promptJson) {
  */
 async function packImagesToBoard(images, options = {}) {
   if (!images || images.length === 0) return null;
+  if (images.length === 1) return images[0]; // Don't collage single image
   
   return await buildCollage(images, {
-    maxSize: options.maxSize || 1024,
+    maxSize: options.maxSize || 2048,
     maxCols: options.maxCols || 3,
+    minTile: options.minTile || 400, // Larger tiles for detail preservation
+    jpegQuality: options.jpegQuality || 92,
     fit: options.fit || 'cover',
     background: options.background || '#ffffff'
   });
@@ -773,11 +776,14 @@ export async function generateCustomShootFrame({
       }
     }
     
-    // 4. Clothing images (collage)
+    // 4. Clothing images (collage) - high quality for detail preservation
     if (clothingImages.length > 0) {
       const clothingBoard = await packImagesToBoard(clothingImages, {
-        maxSize: 1536,
-        fit: 'contain'
+        maxSize: 2048,       // Larger canvas
+        minTile: 512,        // Bigger tiles for clothing details
+        maxCols: 2,          // Max 2 columns to keep images large
+        jpegQuality: 95,     // High quality
+        fit: 'contain'       // Show full garment
       });
       if (clothingBoard) {
         referenceImages.push(clothingBoard);
