@@ -84,9 +84,7 @@ function initElements() {
   // Generation controls
   elements.genLocation = document.getElementById('gen-location');
   elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
-  elements.genCameraSignature = document.getElementById('gen-camera-signature');
   elements.genCaptureStyle = document.getElementById('gen-capture-style');
-  elements.genLight = document.getElementById('gen-light');
   elements.genColor = document.getElementById('gen-color');
   elements.genSkinTexture = document.getElementById('gen-skin-texture');
   elements.genEra = document.getElementById('gen-era');
@@ -94,6 +92,18 @@ function initElements() {
   elements.genImageSize = document.getElementById('gen-image-size');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
+  
+  // NEW: 6-layer architecture controls
+  elements.genShootType = document.getElementById('gen-shoot-type');
+  elements.genCameraAesthetic = document.getElementById('gen-camera-aesthetic');
+  elements.genLightingSource = document.getElementById('gen-lighting-source');
+  elements.genLightingQuality = document.getElementById('gen-lighting-quality');
+  elements.shootTypeHint = document.getElementById('shoot-type-hint');
+  elements.conflictWarnings = document.getElementById('conflict-warnings');
+  
+  // Legacy hidden fields (for compatibility)
+  elements.genCameraSignature = document.getElementById('gen-camera-signature');
+  elements.genLight = document.getElementById('gen-light');
   
   // Composition controls
   elements.genShotSize = document.getElementById('gen-shot-size');
@@ -766,10 +776,18 @@ async function loadEmotions() {
  */
 function collectGenerationSettings() {
   return {
-    // Universe settings
+    // NEW: 6-layer architecture
+    shootType: elements.genShootType?.value || 'editorial',
+    cameraAesthetic: elements.genCameraAesthetic?.value || 'contax_t2',
+    lightingSource: elements.genLightingSource?.value || 'natural_daylight',
+    lightingQuality: elements.genLightingQuality?.value || 'soft_diffused',
+    
+    // Legacy (still collected for compatibility)
     cameraSignature: elements.genCameraSignature?.value || 'contax_t2',
-    captureStyle: elements.genCaptureStyle?.value || 'candid_aware',
     light: elements.genLight?.value || 'natural_soft',
+    
+    // Visual style
+    captureStyle: elements.genCaptureStyle?.value || 'candid_aware',
     color: elements.genColor?.value || 'film_warm',
     skinTexture: elements.genSkinTexture?.value || 'natural_film',
     era: elements.genEra?.value || 'contemporary',
@@ -806,15 +824,31 @@ function collectGenerationSettings() {
 function applyGenerationSettings(settings) {
   if (!settings) return;
   
-  // Universe settings
+  // NEW: 6-layer architecture settings
+  if (settings.shootType && elements.genShootType) {
+    elements.genShootType.value = settings.shootType;
+  }
+  if (settings.cameraAesthetic && elements.genCameraAesthetic) {
+    elements.genCameraAesthetic.value = settings.cameraAesthetic;
+  }
+  if (settings.lightingSource && elements.genLightingSource) {
+    elements.genLightingSource.value = settings.lightingSource;
+  }
+  if (settings.lightingQuality && elements.genLightingQuality) {
+    elements.genLightingQuality.value = settings.lightingQuality;
+  }
+  
+  // Legacy (hidden fields)
   if (settings.cameraSignature && elements.genCameraSignature) {
     elements.genCameraSignature.value = settings.cameraSignature;
   }
-  if (settings.captureStyle && elements.genCaptureStyle) {
-    elements.genCaptureStyle.value = settings.captureStyle;
-  }
   if (settings.light && elements.genLight) {
     elements.genLight.value = settings.light;
+  }
+  
+  // Visual style
+  if (settings.captureStyle && elements.genCaptureStyle) {
+    elements.genCaptureStyle.value = settings.captureStyle;
   }
   if (settings.color && elements.genColor) {
     elements.genColor.value = settings.color;
@@ -880,6 +914,9 @@ function applyGenerationSettings(settings) {
   
   // Update ambient section visibility
   updateAmbientSectionVisibility();
+  
+  // Check and display conflicts
+  checkAndDisplayConflicts();
 }
 
 /**
@@ -897,15 +934,15 @@ async function saveGenerationSettings() {
   saveSettingsTimeout = setTimeout(async () => {
     const settings = collectGenerationSettings();
     state.generationSettings = settings;
-    
-    try {
-      await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+  
+  try {
+    await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ generationSettings: settings })
-      });
+    });
       console.log('[CustomShoot] Settings saved');
-    } catch (e) {
+  } catch (e) {
       console.error('Error saving generation settings:', e);
     }
   }, 500); // 500ms debounce
@@ -916,21 +953,29 @@ async function saveGenerationSettings() {
  */
 function initSettingsAutoSave() {
   const settingsElements = [
-    elements.genCameraSignature,
+    // NEW: 6-layer architecture
+    elements.genShootType,
+    elements.genCameraAesthetic,
+    elements.genLightingSource,
+    elements.genLightingQuality,
+    // Visual style
     elements.genCaptureStyle,
-    elements.genLight,
     elements.genColor,
     elements.genSkinTexture,
     elements.genEra,
+    // Frame parameters
     elements.genLocation,
     elements.genEmotion,
     elements.genAspectRatio,
     elements.genImageSize,
     elements.genPoseAdherence,
+    // Composition
     elements.genShotSize,
     elements.genCameraAngle,
     elements.genFocusMode,
+    // Anti-AI
     elements.genAntiAiLevel,
+    // Ambient
     elements.genWeather,
     elements.genTimeOfDay,
     elements.genSeason,
@@ -940,7 +985,10 @@ function initSettingsAutoSave() {
   // Add change listeners to all select elements
   settingsElements.forEach(el => {
     if (el) {
-      el.addEventListener('change', saveGenerationSettings);
+      el.addEventListener('change', () => {
+        saveGenerationSettings();
+        checkAndDisplayConflicts();
+      });
     }
   });
   
@@ -953,6 +1001,158 @@ function initSettingsAutoSave() {
   if (elements.genPoseAdherence) {
     elements.genPoseAdherence.addEventListener('change', updateCompositionControlsState);
   }
+  
+  // Add special listener for shootType to apply defaults
+  if (elements.genShootType) {
+    elements.genShootType.addEventListener('change', handleShootTypeChange);
+  }
+  
+  // Add special listener for lightingSource to auto-set lightingQuality
+  if (elements.genLightingSource) {
+    elements.genLightingSource.addEventListener('change', handleLightingSourceChange);
+  }
+}
+
+/**
+ * Handle Shoot Type change - apply defaults and check conflicts
+ */
+async function handleShootTypeChange() {
+  const shootType = elements.genShootType?.value;
+  if (!shootType) return;
+  
+  try {
+    const res = await fetch(`/api/custom-shoots/shoot-type-defaults/${shootType}`);
+    const data = await res.json();
+    
+    if (data.ok && data.defaults) {
+      const defaults = data.defaults;
+      
+      // Apply defaults (but don't override if user already set something different)
+      if (defaults.captureStyle && elements.genCaptureStyle) {
+        elements.genCaptureStyle.value = defaults.captureStyle;
+      }
+      if (defaults.lightingSource && elements.genLightingSource) {
+        elements.genLightingSource.value = defaults.lightingSource;
+      }
+      if (defaults.lightingQuality && elements.genLightingQuality) {
+        elements.genLightingQuality.value = defaults.lightingQuality;
+      }
+      if (defaults.antiAi && elements.genAntiAiLevel) {
+        elements.genAntiAiLevel.value = defaults.antiAi;
+      }
+      
+      // Show hint
+      if (elements.shootTypeHint) {
+        elements.shootTypeHint.innerHTML = `💡 Применены рекомендуемые настройки для типа "${getShootTypeLabel(shootType)}"`;
+        elements.shootTypeHint.style.background = 'rgba(16, 185, 129, 0.1)';
+        elements.shootTypeHint.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+          elements.shootTypeHint.innerHTML = '💡 Тип съёмки определяет допустимые комбинации параметров.';
+          elements.shootTypeHint.style.background = '';
+          elements.shootTypeHint.style.borderColor = '';
+        }, 3000);
+      }
+      
+      saveGenerationSettings();
+      checkAndDisplayConflicts();
+    }
+  } catch (e) {
+    console.error('[CustomShoot] Error loading shoot type defaults:', e);
+  }
+}
+
+/**
+ * Handle Lighting Source change - auto-set Lighting Quality if implied
+ */
+function handleLightingSourceChange() {
+  const source = elements.genLightingSource?.value;
+  
+  // On-camera flash implies harsh direct lighting
+  if (source === 'on_camera_flash' && elements.genLightingQuality) {
+    elements.genLightingQuality.value = 'harsh_direct';
+    elements.genLightingQuality.disabled = true;
+    elements.genLightingQuality.title = 'Заблокировано: накамерная вспышка = жёсткий свет';
+  } else if (elements.genLightingQuality) {
+    elements.genLightingQuality.disabled = false;
+    elements.genLightingQuality.title = '';
+  }
+  
+  checkAndDisplayConflicts();
+}
+
+/**
+ * Check for conflicts and display warnings
+ */
+async function checkAndDisplayConflicts() {
+  if (!elements.conflictWarnings) return;
+  
+  const selections = {
+    shootType: elements.genShootType?.value,
+    cameraAesthetic: elements.genCameraAesthetic?.value,
+    lightingSource: elements.genLightingSource?.value,
+    lightingQuality: elements.genLightingQuality?.value,
+    captureStyle: elements.genCaptureStyle?.value,
+    timeOfDay: elements.genTimeOfDay?.value
+  };
+  
+  try {
+    const res = await fetch('/api/custom-shoots/all-conflicts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selections })
+    });
+    const data = await res.json();
+    
+    if (data.ok && data.conflicts) {
+      const warnings = [];
+      
+      // Check for conflicts in current selections
+      for (const [param, conflictingValues] of Object.entries(data.conflicts)) {
+        for (const [value, info] of Object.entries(conflictingValues)) {
+          // Check if this conflicting value is currently selected
+          if (selections[param] === value) {
+            warnings.push(...info.reasons);
+          }
+        }
+      }
+      
+      if (warnings.length > 0) {
+        elements.conflictWarnings.style.display = 'block';
+        elements.conflictWarnings.innerHTML = `
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px;">
+            <div style="font-weight: 600; color: #F59E0B; margin-bottom: 6px;">⚠️ Обнаружены конфликты:</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--color-text-muted);">
+              ${warnings.map(w => `<li>${w}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      } else {
+        elements.conflictWarnings.style.display = 'none';
+      }
+    }
+  } catch (e) {
+    console.error('[CustomShoot] Error checking conflicts:', e);
+    elements.conflictWarnings.style.display = 'none';
+  }
+}
+
+/**
+ * Get human-readable label for shoot type
+ */
+function getShootTypeLabel(shootType) {
+  const labels = {
+    catalog: 'Каталог',
+    editorial: 'Editorial',
+    street: 'Street',
+    lookbook: 'Lookbook',
+    campaign: 'Campaign',
+    portrait: 'Портрет',
+    beauty: 'Beauty',
+    sport: 'Спорт'
+  };
+  return labels[shootType] || shootType;
 }
 
 /**
@@ -1042,6 +1242,12 @@ function renderGeneratePage() {
   
   // Update composition controls state based on poseAdherence
   updateCompositionControlsState();
+  
+  // Check lighting source implications
+  handleLightingSourceChange();
+  
+  // Check and display conflicts
+  checkAndDisplayConflicts();
   
   // Update lock UI
   updateLockUI();
@@ -1384,39 +1590,56 @@ async function generateFrame(frameId) {
   btn.disabled = true;
   btn.textContent = '⏳ Генерация...';
   
-  // Get settings (same structure as shoot-composer)
+  // Get settings (NEW 6-layer architecture)
   const params = {
     frameId,
     locationId: elements.genLocation.value || null,
     emotionId: elements.genEmotion.value || null,
     extraPrompt: elements.genExtraPrompt.value.trim(),
-    // Universe settings (quick presets)
+    
+    // NEW: 6-layer architecture presets
     presets: {
-      camera: elements.genCameraSignature.value,
-      capture: elements.genCaptureStyle.value,
-      light: elements.genLight.value,
-      color: elements.genColor.value,
-      texture: elements.genSkinTexture.value,
-      era: elements.genEra.value
+      // Layer 1: Shoot Type
+      shootType: elements.genShootType?.value || 'editorial',
+      // Layer 2: Camera Aesthetic
+      cameraAesthetic: elements.genCameraAesthetic?.value || 'contax_t2',
+      // Layer 3: Lighting Source
+      lightingSource: elements.genLightingSource?.value || 'natural_daylight',
+      // Layer 4: Lighting Quality  
+      lightingQuality: elements.genLightingQuality?.value || 'soft_diffused',
+      // Capture Style
+      capture: elements.genCaptureStyle?.value || 'candid_aware',
+      // Color, Texture, Era
+      color: elements.genColor?.value || 'film_warm',
+      texture: elements.genSkinTexture?.value || 'natural_film',
+      era: elements.genEra?.value || 'contemporary',
+      // Legacy (for compatibility)
+      camera: elements.genCameraSignature?.value || elements.genCameraAesthetic?.value || 'contax_t2',
+      light: elements.genLight?.value || 'natural_soft'
     },
+    
     // Image format
-    aspectRatio: elements.genAspectRatio.value,
-    imageSize: elements.genImageSize.value,
-    // Artistic controls (same as shoot-composer)
-    captureStyle: elements.genCaptureStyle.value,
-    cameraSignature: elements.genCameraSignature.value,
-    skinTexture: elements.genSkinTexture.value,
+    aspectRatio: elements.genAspectRatio?.value || '3:4',
+    imageSize: elements.genImageSize?.value || '2K',
+    
+    // Artistic controls
+    captureStyle: elements.genCaptureStyle?.value || 'candid_aware',
+    cameraSignature: elements.genCameraAesthetic?.value || 'contax_t2',
+    skinTexture: elements.genSkinTexture?.value || 'natural_film',
     poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2,
+    
     // Composition
     composition: {
       shotSize: elements.genShotSize?.value || 'default',
       cameraAngle: elements.genCameraAngle?.value || 'eye_level',
       focusMode: elements.genFocusMode?.value || 'shallow'
     },
+    
     // Anti-AI
     antiAi: {
       level: elements.genAntiAiLevel?.value || 'medium'
     },
+    
     // Ambient (situational conditions: weather, season, atmosphere)
     ambient: {
       weather: elements.genWeather?.value || 'clear',

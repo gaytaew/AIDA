@@ -26,7 +26,12 @@ import {
   generateImageId,
   getAllPresets
 } from '../schema/customShoot.js';
-import { getAllStylePresets } from '../schema/stylePresets.js';
+import { 
+  getAllStylePresets, 
+  checkConflicts, 
+  getAllConflicts,
+  getShootTypeDefaults 
+} from '../schema/stylePresets.js';
 import {
   generateCustomShootFrame,
   prepareImageFromUrl
@@ -58,7 +63,7 @@ router.get('/', async (req, res) => {
 
 /**
  * GET /api/custom-shoots/presets
- * Get all available presets for UI
+ * Get all available presets for UI (including new 6-layer architecture)
  */
 router.get('/presets', async (req, res) => {
   try {
@@ -69,6 +74,66 @@ router.get('/presets', async (req, res) => {
     res.json({ ok: true, presets });
   } catch (err) {
     console.error('[CustomShootRoutes] Error getting presets:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/custom-shoots/check-conflicts
+ * Check for parameter conflicts
+ * Body: { currentSelections: {...}, paramToCheck: 'string', valueToCheck: 'string' }
+ */
+router.post('/check-conflicts', async (req, res) => {
+  try {
+    const { currentSelections, paramToCheck, valueToCheck } = req.body;
+    
+    if (!currentSelections || !paramToCheck || !valueToCheck) {
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'Missing required parameters: currentSelections, paramToCheck, valueToCheck' 
+      });
+    }
+    
+    const result = checkConflicts(currentSelections, paramToCheck, valueToCheck);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[CustomShootRoutes] Error checking conflicts:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/custom-shoots/all-conflicts
+ * Get all conflicts for current parameter set
+ * Body: { selections: {...} }
+ */
+router.post('/all-conflicts', async (req, res) => {
+  try {
+    const { selections } = req.body;
+    
+    if (!selections) {
+      return res.status(400).json({ ok: false, error: 'Missing selections' });
+    }
+    
+    const conflicts = getAllConflicts(selections);
+    res.json({ ok: true, conflicts });
+  } catch (err) {
+    console.error('[CustomShootRoutes] Error getting all conflicts:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/custom-shoots/shoot-type-defaults/:shootType
+ * Get suggested defaults for a shoot type
+ */
+router.get('/shoot-type-defaults/:shootType', async (req, res) => {
+  try {
+    const { shootType } = req.params;
+    const defaults = getShootTypeDefaults(shootType);
+    res.json({ ok: true, defaults });
+  } catch (err) {
+    console.error('[CustomShootRoutes] Error getting shoot type defaults:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

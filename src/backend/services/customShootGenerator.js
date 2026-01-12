@@ -14,7 +14,16 @@ import {
   SKIN_TEXTURE_PRESETS,
   universeToPromptBlock
 } from '../schema/universe.js';
-import { LIGHT_PRESETS, COLOR_PRESETS, ERA_PRESETS } from '../schema/stylePresets.js';
+import { 
+  LIGHT_PRESETS, 
+  COLOR_PRESETS, 
+  ERA_PRESETS,
+  SHOOT_TYPE_PRESETS,
+  CAMERA_AESTHETIC_PRESETS,
+  LIGHTING_SOURCE_PRESETS,
+  LIGHTING_QUALITY_PRESETS,
+  buildPresetsPrompt 
+} from '../schema/stylePresets.js';
 import { generateImageId } from '../schema/customShoot.js';
 import { buildLocationPromptSnippet, buildAmbientPrompt } from '../schema/location.js';
 
@@ -111,32 +120,65 @@ The specific space can be different. The model's position is completely free.`;
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Build prompt from Quick Mode presets
+ * Build prompt from Quick Mode presets (NEW 6-layer architecture)
  */
 function buildQuickModePrompt(presets) {
   const blocks = [];
   
-  // Camera Signature
-  if (presets.camera && CAMERA_SIGNATURE_PRESETS[presets.camera]) {
+  // Layer 1: Shoot Type (highest priority context)
+  if (presets.shootType && SHOOT_TYPE_PRESETS[presets.shootType]) {
+    const shootType = SHOOT_TYPE_PRESETS[presets.shootType];
+    if (shootType.prompt) {
+      blocks.push(`SHOOT TYPE: ${shootType.prompt}`);
+    }
+  }
+  
+  // Layer 2: Camera Aesthetic (NEW - film/lens look without lighting)
+  if (presets.cameraAesthetic && CAMERA_AESTHETIC_PRESETS[presets.cameraAesthetic]) {
+    const cam = CAMERA_AESTHETIC_PRESETS[presets.cameraAesthetic];
+    if (cam.prompt) {
+      blocks.push(`CAMERA AESTHETIC: ${cam.prompt}`);
+    }
+  }
+  // Fallback to legacy camera signature
+  else if (presets.camera && CAMERA_SIGNATURE_PRESETS[presets.camera]) {
     const cam = CAMERA_SIGNATURE_PRESETS[presets.camera];
     if (cam.prompt) {
       blocks.push(`CAMERA: ${cam.prompt}`);
     }
   }
   
-  // Capture Style
+  // Layer 3: Lighting Source (NEW - where light comes from)
+  if (presets.lightingSource && LIGHTING_SOURCE_PRESETS[presets.lightingSource]) {
+    const source = LIGHTING_SOURCE_PRESETS[presets.lightingSource];
+    if (source.prompt) {
+      blocks.push(`LIGHTING SOURCE: ${source.prompt}`);
+    }
+  }
+  
+  // Layer 4: Lighting Quality (NEW - how light behaves)
+  if (presets.lightingQuality && LIGHTING_QUALITY_PRESETS[presets.lightingQuality]) {
+    const quality = LIGHTING_QUALITY_PRESETS[presets.lightingQuality];
+    if (quality.prompt) {
+      blocks.push(`LIGHTING QUALITY: ${quality.prompt}`);
+    }
+  }
+  
+  // Fallback to legacy light preset (if no new lighting params)
+  if (!presets.lightingSource && !presets.lightingQuality) {
+    if (presets.light && LIGHT_PRESETS[presets.light]) {
+      const light = LIGHT_PRESETS[presets.light];
+      if (light.prompt) {
+        blocks.push(`LIGHTING: ${light.prompt}`);
+      }
+    }
+  }
+  
+  // Capture Style (kept for compatibility)
   if (presets.capture && CAPTURE_STYLE_PRESETS[presets.capture]) {
     const cap = CAPTURE_STYLE_PRESETS[presets.capture];
     if (cap.prompt) {
       blocks.push(`CAPTURE STYLE: ${cap.prompt}`);
-    }
-  }
-  
-  // Light
-  if (presets.light && LIGHT_PRESETS[presets.light]) {
-    const light = LIGHT_PRESETS[presets.light];
-    if (light.prompt) {
-      blocks.push(`LIGHTING: ${light.prompt}`);
     }
   }
   
@@ -148,7 +190,7 @@ function buildQuickModePrompt(presets) {
     }
   }
   
-  // Texture
+  // Texture (skin)
   if (presets.texture && SKIN_TEXTURE_PRESETS[presets.texture]) {
     const tex = SKIN_TEXTURE_PRESETS[presets.texture];
     if (tex.prompt) {
