@@ -779,6 +779,159 @@ export const ERA_PRESETS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// 6b. LENS FOCAL LENGTH - Perspective and field of view
+// ═══════════════════════════════════════════════════════════════
+
+export const LENS_FOCAL_LENGTH_PRESETS = {
+  auto: {
+    id: 'auto',
+    label: 'Авто',
+    description: 'Автоматический выбор по типу кадра',
+    prompt: null,
+    focalRange: null
+  },
+  
+  fisheye: {
+    id: 'fisheye',
+    label: 'Фишай (8-16mm)',
+    description: 'Экстремальное искажение, creative effect',
+    prompt: `FISHEYE LENS (8-16mm equivalent):
+- Extreme barrel distortion — straight lines curve dramatically
+- 180° field of view, everything fits in frame
+- Exaggerated perspective: objects close to lens appear huge
+- Surreal, psychedelic, skateboarding/action sports aesthetic
+- Face distortion when close — use for creative effect only
+- Background wraps around edges`,
+    focalRange: [8, 16],
+    distortion: 'extreme_barrel',
+    perspective: 'extreme_wide',
+    conflicts: {
+      shootType: ['catalog', 'beauty'], // Don't use fisheye for commercial/beauty
+      shotSize: ['closeup', 'extreme_closeup'] // Fisheye distorts faces badly
+    }
+  },
+  
+  ultra_wide: {
+    id: 'ultra_wide',
+    label: 'Сверхширокий (16-24mm)',
+    description: 'Широкое поле зрения, лёгкое искажение',
+    prompt: `ULTRA WIDE ANGLE LENS (16-24mm equivalent):
+- Very wide field of view — captures environment + subject
+- Noticeable perspective distortion (converging verticals)
+- Objects at edges appear stretched
+- Great for environmental portraits, architecture context
+- Subject appears smaller relative to background
+- Creates sense of space and scale`,
+    focalRange: [16, 24],
+    distortion: 'noticeable',
+    perspective: 'wide',
+    bestWith: {
+      shotSize: ['wide_shot', 'full_shot'],
+      shootType: ['street', 'editorial']
+    }
+  },
+  
+  wide: {
+    id: 'wide',
+    label: 'Широкий (24-35mm)',
+    description: 'Классический широкий угол, журнальный стиль',
+    prompt: `WIDE ANGLE LENS (24-35mm equivalent):
+- Classic editorial wide angle
+- Subtle perspective exaggeration
+- Good for full body + environment context
+- Slight elongation of features at close distance
+- Documentary/street photography standard
+- Richard Avedon, Helmut Newton territory`,
+    focalRange: [24, 35],
+    distortion: 'subtle',
+    perspective: 'moderately_wide',
+    bestWith: {
+      shotSize: ['full_shot', 'wide_shot', 'cowboy_shot'],
+      shootType: ['editorial', 'street']
+    }
+  },
+  
+  standard: {
+    id: 'standard',
+    label: 'Стандартный (35-50mm)',
+    description: 'Нейтральная перспектива, как видит глаз',
+    prompt: `STANDARD LENS (35-50mm equivalent):
+- Natural perspective — closest to human eye perception
+- No noticeable distortion
+- Versatile for all shot types
+- Documentary neutral look
+- 50mm = "nifty fifty", classic for a reason
+- Balanced compression — neither wide nor telephoto effect`,
+    focalRange: [35, 50],
+    distortion: 'none',
+    perspective: 'natural',
+    isDefault: true
+  },
+  
+  portrait: {
+    id: 'portrait',
+    label: 'Портретный (85-105mm)',
+    description: 'Идеально для портретов, мягкое сжатие',
+    prompt: `PORTRAIT LENS (85-105mm equivalent):
+- Classic portrait focal length
+- Flattering facial compression — nose appears smaller, face more balanced
+- Excellent background separation (shallow DOF easier to achieve)
+- Creamy bokeh, smooth out-of-focus areas
+- Working distance allows comfortable subject interaction
+- Peter Lindbergh, Mario Testino classic look`,
+    focalRange: [85, 105],
+    distortion: 'none',
+    perspective: 'slight_compression',
+    bestWith: {
+      shotSize: ['closeup', 'medium_closeup', 'medium_shot'],
+      shootType: ['portrait', 'beauty', 'editorial']
+    },
+    implies: {
+      focusMode: 'shallow' // Portrait lenses often used wide open
+    }
+  },
+  
+  telephoto: {
+    id: 'telephoto',
+    label: 'Телефото (135-200mm)',
+    description: 'Сильное сжатие, изоляция объекта',
+    prompt: `TELEPHOTO LENS (135-200mm equivalent):
+- Strong background compression — background feels closer
+- Extreme subject isolation from environment
+- Very shallow depth of field even at moderate apertures
+- Long working distance (paparazzi, sports, wildlife)
+- Flattening of facial features
+- Compressed perspective makes everything look stacked`,
+    focalRange: [135, 200],
+    distortion: 'none',
+    perspective: 'compressed',
+    bestWith: {
+      captureStyle: ['paparazzi_telephoto'],
+      shotSize: ['closeup', 'medium_closeup', 'medium_shot']
+    }
+  },
+  
+  super_telephoto: {
+    id: 'super_telephoto',
+    label: 'Супер-телефото (300mm+)',
+    description: 'Экстремальное сжатие, для спорта/wildlife',
+    prompt: `SUPER TELEPHOTO LENS (300mm+ equivalent):
+- Extreme compression — background appears flat
+- Massive subject isolation
+- Used from great distance
+- Sports, wildlife, paparazzi aesthetic
+- Very narrow field of view — just the subject
+- Heat shimmer and atmospheric haze visible`,
+    focalRange: [300, 600],
+    distortion: 'none',
+    perspective: 'extreme_compression',
+    conflicts: {
+      shotSize: ['wide_shot'] // Can't do wide shot with super telephoto
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
 // 7. MODEL BEHAVIOR - How the model interacts with camera (Layer 7)
 // ═══════════════════════════════════════════════════════════════
 
@@ -1386,6 +1539,18 @@ const LABELS = {
     'dynamic': 'Динамичный',
     'vulnerable': 'Открытый / Уязвимый',
     'powerful': 'Мощный / Уверенный'
+  },
+  
+  // Lens Focal Length
+  lensFocalLength: {
+    'auto': 'Авто',
+    'fisheye': 'Фишай (8-16mm)',
+    'ultra_wide': 'Сверхширокий (16-24mm)',
+    'wide': 'Широкий (24-35mm)',
+    'standard': 'Стандартный (35-50mm)',
+    'portrait': 'Портретный (85-105mm)',
+    'telephoto': 'Телефото (135-200mm)',
+    'super_telephoto': 'Супер-телефото (300mm+)'
   }
 };
 
@@ -1499,7 +1664,8 @@ export function getPresetById(category, id) {
     light: LIGHT_PRESETS,
     color: COLOR_PRESETS,
     era: ERA_PRESETS,
-    modelBehavior: MODEL_BEHAVIOR_PRESETS
+    modelBehavior: MODEL_BEHAVIOR_PRESETS,
+    lensFocalLength: LENS_FOCAL_LENGTH_PRESETS
   };
   
   return presets[category]?.[id] || null;
@@ -1517,7 +1683,8 @@ export function getPresetsArray(category) {
     light: LIGHT_PRESETS,
     color: COLOR_PRESETS,
     era: ERA_PRESETS,
-    modelBehavior: MODEL_BEHAVIOR_PRESETS
+    modelBehavior: MODEL_BEHAVIOR_PRESETS,
+    lensFocalLength: LENS_FOCAL_LENGTH_PRESETS
   };
   
   const categoryPresets = presets[category];
@@ -1579,7 +1746,8 @@ export function getAllStylePresets() {
     light: LIGHT_PRESETS,
     color: COLOR_PRESETS,
     era: ERA_PRESETS,
-    modelBehavior: MODEL_BEHAVIOR_PRESETS
+    modelBehavior: MODEL_BEHAVIOR_PRESETS,
+    lensFocalLength: LENS_FOCAL_LENGTH_PRESETS
   };
 }
 

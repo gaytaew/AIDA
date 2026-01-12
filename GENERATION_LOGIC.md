@@ -200,6 +200,46 @@ ring_flash → lightingQuality ЗАБЛОКИРОВАН на flat
 | `focus_face` | Фокус на лице | f/2.0 - f/4 | Уши и фон размыты |
 | `soft_focus` | Мягкий фокус | + diffusion filter | Dreamy, glow |
 
+##### Lens Focal Length (Угол объектива / Перспектива)
+
+| ID | Label | Фокусное | Эффект |
+|----|-------|----------|--------|
+| `auto` | Авто | — | Выбирается по контексту |
+| `fisheye` | Фишай | 8-16mm | Экстремальное искажение, 180° |
+| `ultra_wide` | Сверхширокий | 16-24mm | Широкое поле, заметное искажение |
+| `wide` | Широкий | 24-35mm | Классический wide, журнальный |
+| `standard` | Стандартный | 35-50mm | Как видит глаз, нейтрально |
+| `portrait` | Портретный | 85-105mm | Сжатие, льстит лицу |
+| `telephoto` | Телефото | 135-200mm | Сильное сжатие, изоляция |
+| `super_telephoto` | Супер-телефото | 300mm+ | Экстремальное сжатие, спорт |
+
+**Что определяет Lens Focal Length:**
+
+```
+✓ Перспектива (искажение/сжатие)
+✓ Поле зрения (сколько попадает в кадр)
+✓ Глубина резкости (легче/сложнее размытие)
+✓ Рабочая дистанция (близко/далеко от модели)
+✓ Характер боке
+```
+
+**Рекомендации по Shot Size:**
+
+| Shot Size | Рекомендуемый Lens |
+|-----------|-------------------|
+| `extreme_closeup` | portrait, standard |
+| `closeup` | portrait, telephoto |
+| `medium_shot` | standard, portrait |
+| `full_shot` | wide, standard |
+| `wide_shot` | ultra_wide, wide |
+
+**Конфликты Lens ↔ Shot Size:**
+
+```
+fisheye + closeup → ⚠️ Искажение лица!
+super_telephoto + wide_shot → ❌ Невозможно
+```
+
 **Конфликты Focus ↔ Camera Aesthetic:**
 
 ```
@@ -909,6 +949,7 @@ async function checkAndDisplayConflicts() {
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| 1.3 | 2026-01-12 | Добавлен Lens Focal Length — угол объектива (fisheye, wide, portrait, telephoto) |
 | 1.2 | 2026-01-12 | Добавлен СЛОЙ 7: Model Behavior — поведение модели с камерой (flirty, editorial, dynamic, etc.) |
 | 1.1 | 2026-01-12 | Добавлена секция 11: API валидации, авто-коррекции |
 | 1.0 | 2026-01-12 | Первая версия документа |

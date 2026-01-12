@@ -23,6 +23,7 @@ import {
   LIGHTING_SOURCE_PRESETS,
   LIGHTING_QUALITY_PRESETS,
   MODEL_BEHAVIOR_PRESETS,
+  LENS_FOCAL_LENGTH_PRESETS,
   buildPresetsPrompt,
   validateAndCorrectParams,
   getParameterRecommendations
@@ -313,7 +314,9 @@ export function buildCustomShootPrompt({
   lightingSource = null,
   lightingQuality = null,
   // Model Behavior (Layer 7)
-  modelBehavior = null
+  modelBehavior = null,
+  // Lens Focal Length
+  lensFocalLength = null
 }) {
   // ═══════════════════════════════════════════════════════════════
   // STEP 1: Validate and Auto-Correct Parameters
@@ -524,6 +527,21 @@ export function buildCustomShootPrompt({
       };
       // Add model behavior as a hard rule for maximum impact
       promptJson.hardRules.push(`MODEL BEHAVIOR: ${behaviorPreset.label} — The model's presence and camera interaction MUST follow these guidelines.`);
+    }
+  }
+  
+  // Lens Focal Length (perspective and field of view)
+  const effectiveLensFocalLength = lensFocalLength || customUniverse?.presets?.lensFocalLength || 'auto';
+  if (effectiveLensFocalLength && effectiveLensFocalLength !== 'auto') {
+    const lensPreset = LENS_FOCAL_LENGTH_PRESETS[effectiveLensFocalLength];
+    if (lensPreset && lensPreset.prompt) {
+      promptJson.lensFocalLength = {
+        preset: effectiveLensFocalLength,
+        label: lensPreset.label,
+        prompt: lensPreset.prompt,
+        focalRange: lensPreset.focalRange,
+        perspective: lensPreset.perspective
+      };
     }
   }
   
@@ -832,6 +850,12 @@ export function promptJsonToText(promptJson) {
     sections.push(promptJson.modelBehavior.prompt);
   }
   
+  // Lens Focal Length (perspective and field of view)
+  if (promptJson.lensFocalLength?.prompt) {
+    sections.push('\n=== LENS / PERSPECTIVE ===');
+    sections.push(promptJson.lensFocalLength.prompt);
+  }
+  
   // Frame
   if (promptJson.frame) {
     sections.push('\n=== FRAME / POSE ===');
@@ -989,7 +1013,9 @@ export async function generateCustomShootFrame({
   // Ambient (situational conditions: weather, season, atmosphere)
   ambient = null,
   // Model Behavior (Layer 7)
-  modelBehavior = null
+  modelBehavior = null,
+  // Lens Focal Length
+  lensFocalLength = null
 }) {
   try {
     console.log('[CustomShootGenerator] Starting frame generation...');
@@ -1046,7 +1072,9 @@ export async function generateCustomShootFrame({
       // Ambient (situational conditions)
       ambient,
       // Model Behavior
-      modelBehavior
+      modelBehavior,
+      // Lens Focal Length
+      lensFocalLength
     });
     
     // Convert JSON to readable text prompt for Gemini

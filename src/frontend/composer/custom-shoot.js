@@ -109,6 +109,7 @@ function initElements() {
   elements.genShotSize = document.getElementById('gen-shot-size');
   elements.genCameraAngle = document.getElementById('gen-camera-angle');
   elements.genFocusMode = document.getElementById('gen-focus-mode');
+  elements.genLensFocal = document.getElementById('gen-lens-focal');
   
   // Anti-AI
   elements.genAntiAiLevel = document.getElementById('gen-antiai-level');
@@ -807,6 +808,7 @@ function collectGenerationSettings() {
     shotSize: elements.genShotSize?.value || 'default',
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
     focusMode: elements.genFocusMode?.value || 'shallow',
+    lensFocalLength: elements.genLensFocal?.value || 'auto',
     
     // Anti-AI
     antiAiLevel: elements.genAntiAiLevel?.value || 'medium',
@@ -893,6 +895,9 @@ function applyGenerationSettings(settings) {
   }
   if (settings.focusMode && elements.genFocusMode) {
     elements.genFocusMode.value = settings.focusMode;
+  }
+  if (settings.lensFocalLength && elements.genLensFocal) {
+    elements.genLensFocal.value = settings.lensFocalLength;
   }
   
   // Anti-AI
@@ -985,6 +990,7 @@ function initSettingsAutoSave() {
     elements.genShotSize,
     elements.genCameraAngle,
     elements.genFocusMode,
+    elements.genLensFocal,
     // Anti-AI
     elements.genAntiAiLevel,
     // Model Behavior
@@ -1705,6 +1711,9 @@ async function generateFrame(frameId) {
       cameraAngle: elements.genCameraAngle?.value || 'eye_level',
       focusMode: elements.genFocusMode?.value || 'shallow'
     },
+    
+    // Lens Focal Length
+    lensFocalLength: elements.genLensFocal?.value || 'auto',
     
     // Anti-AI
     antiAi: {

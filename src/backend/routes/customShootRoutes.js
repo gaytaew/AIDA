@@ -378,6 +378,8 @@ router.post('/:id/generate', async (req, res) => {
       antiAi,
       // Model Behavior (Layer 7)
       modelBehavior,
+      // Lens Focal Length
+      lensFocalLength,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient,
       identityImages: reqIdentityImages,
@@ -398,6 +400,7 @@ router.post('/:id/generate', async (req, res) => {
       composition,
       antiAi,
       modelBehavior,
+      lensFocalLength,
       ambient,
       frame: frame?.label || frame?.id || null,
       extraPrompt: extraPrompt?.slice(0, 50) 
@@ -567,6 +570,8 @@ router.post('/:id/generate', async (req, res) => {
       antiAi,
       // Model Behavior (Layer 7)
       modelBehavior,
+      // Lens Focal Length
+      lensFocalLength,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient
     });
