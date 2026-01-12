@@ -199,57 +199,6 @@
       opacity: 0.4;
     }
 
-    /* Props editor */
-    .props-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .prop-tag {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 8px;
-      background: var(--color-surface-elevated);
-      border: 1px solid var(--color-border);
-      border-radius: 4px;
-      font-size: 12px;
-    }
-
-    .prop-tag-remove {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      color: var(--color-text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-    }
-
-    .prop-tag-remove:hover {
-      color: var(--color-accent);
-    }
-
-    .add-prop-input {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .add-prop-input input {
-      flex: 1;
-    }
-
-    .add-prop-input button {
-      padding: 8px 12px;
-    }
-
     /* Space type selector grid */
     .space-type-grid {
       display: grid;
@@ -381,7 +330,7 @@
       <header class="page-header">
         <h1 class="page-title">Каталог локаций</h1>
         <p class="page-subtitle">
-          Создавай локации с параметрами окружения: тип среды, поверхность, освещение, объекты.
+          База данных локаций: интерьеры, городские и природные пространства.
         </p>
       </header>
 
@@ -389,9 +338,28 @@
         <div class="editor-layout">
           <!-- Left: Create/Edit Panel -->
           <div class="panel">
+            
+            <!-- AI Generation Block -->
+            <div style="margin-bottom: 24px; padding: 16px; background: linear-gradient(to right, rgba(99, 102, 241, 0.05), transparent); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: var(--radius-md);">
+              <div class="panel-title" style="margin-bottom: 12px; color: var(--color-accent);">
+                <span class="panel-title-icon">✨</span>
+                <span>Создать с помощью AI</span>
+              </div>
+              <div class="form-group full" style="margin-bottom: 0;">
+                <label style="color: var(--color-accent);">Опиши локацию</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="ai-prompt-input" placeholder="Например: Роскошный лофт в стиле гранж с кирпичными стенами..." style="flex: 1; border-color: rgba(99, 102, 241, 0.3);">
+                  <button type="button" id="btn-ai-generate" class="btn btn-primary" style="white-space: nowrap;">✨ Создать</button>
+                </div>
+                <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 6px;">
+                  AI автоматически заполнит все параметры на основе твоего описания.
+                </div>
+              </div>
+            </div>
+
             <div class="panel-title">
               <span class="panel-title-icon">✏️</span>
-              <span>Создание локации</span>
+              <span>Редактирование параметров</span>
             </div>
 
             <form id="location-form">
@@ -429,7 +397,7 @@
                     <select id="interior-style"></select>
                   </div>
                   <div class="form-group">
-                    <label for="interior-window">Естественный свет</label>
+                    <label for="interior-window">Окна (тип)</label>
                     <select id="interior-window"></select>
                   </div>
                 </div>
@@ -445,7 +413,7 @@
                     <select id="urban-architecture"></select>
                   </div>
                   <div class="form-group">
-                    <label for="urban-density">Людность</label>
+                    <label for="urban-density">Людность (обычно)</label>
                     <select id="urban-density"></select>
                   </div>
                 </div>
@@ -489,7 +457,7 @@
                     <select id="transport-style"></select>
                   </div>
                   <div class="form-group">
-                    <label for="transport-motion">Движение</label>
+                    <label for="transport-motion">Состояние</label>
                     <select id="transport-motion"></select>
                   </div>
                 </div>
@@ -501,54 +469,15 @@
                     <select id="studio-backdrop"></select>
                   </div>
                   <div class="form-group">
-                    <label for="studio-lighting">Схема света</label>
+                    <label for="studio-lighting">Оборудование</label>
                     <select id="studio-lighting"></select>
                   </div>
                 </div>
 
-                <!-- NOTE: Ambient (weather, season, atmosphere) is set during generation, not in location editor -->
-                <!-- See Custom Shoot generator for situational parameters -->
-
-                <!-- UNIVERSAL: Lighting & Time (always shown) -->
+                <!-- DESCRIPTION & ATMOSPHERE (Updated) -->
                 <div class="form-group full" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border);">
-                  <label style="font-size: 13px; color: var(--color-text);">💡 Освещение</label>
-                </div>
-
-                <div class="form-group">
-                  <label for="location-lighting-type">Тип освещения</label>
-                  <select id="location-lighting-type"></select>
-                </div>
-
-                <div class="form-group">
-                  <label for="location-time-of-day">Время суток</label>
-                  <select id="location-time-of-day"></select>
-                </div>
-
-                <div class="form-group full">
-                  <label for="location-lighting-desc">Описание освещения</label>
-                  <input type="text" id="location-lighting-desc" placeholder="Например: soft window light from the left">
-                </div>
-
-                <!-- LEGACY: Environment type (hidden, for backwards compatibility) -->
-                <input type="hidden" id="location-environment">
-
-                <div class="form-group full">
-                  <label for="location-surface">Поверхность / Фон</label>
-                  <input type="text" id="location-surface" placeholder="Например: seamless white paper, concrete floor, wooden deck">
-                </div>
-
-                <div class="form-group full">
-                  <label>Объекты в кадре (props)</label>
-                  <div id="props-container" class="props-container"></div>
-                  <div class="add-prop-input">
-                    <input type="text" id="prop-input" placeholder="Добавить объект...">
-                    <button type="button" id="btn-add-prop" class="btn btn-secondary">+</button>
-                  </div>
-                </div>
-
-                <div class="form-group full">
-                  <label for="location-description">Описание для промпта</label>
-                  <textarea id="location-description" placeholder="Полное описание локации для генерации изображений..."></textarea>
+                  <label for="location-description">Визуальное описание и атмосфера</label>
+                  <textarea id="location-description" placeholder="Опиши материалы, цвета, мебель, состояние ремонта и общую атмосферу места (без упоминания погоды или времени суток)..." style="min-height: 100px;"></textarea>
                 </div>
               </div>
 
@@ -558,7 +487,7 @@
                 <label id="sketch-upload-zone" class="upload-zone">
                   <input type="file" id="sketch-file-input" accept="image/*" style="display: none;">
                   <div class="upload-zone-icon">🖼️</div>
-                  <div class="upload-zone-text">Загрузи референс или скетч локации</div>
+                  <div class="upload-zone-text">Загрузи фото локации</div>
                 </label>
               </div>
 
@@ -568,7 +497,7 @@
               </div>
 
               <div id="prompt-preview" class="prompt-preview" style="display: none;">
-                <div class="prompt-preview-label">Prompt Snippet</div>
+                <div class="prompt-preview-label">Что увидит нейросеть (Prompt Snippet)</div>
                 <div id="prompt-text"></div>
               </div>
 
@@ -612,5 +541,3 @@
   <script type="module" src="../shared/dev-console.js"></script>
 </body>
 </html>
-
-

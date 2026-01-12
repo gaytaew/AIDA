@@ -2,6 +2,7 @@
  * Location Editor
  * 
  * Handles location creation, editing, and gallery management.
+ * Focuses on static physical attributes (Space Type, Architecture, Atmosphere).
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -12,7 +13,6 @@ let locationOptions = null;
 let savedLocations = [];
 let currentLocation = null;
 let sketchImage = null; // { file, dataUrl, mimeType, base64 }
-let currentProps = []; // Array of prop strings
 let currentSpaceType = 'studio'; // Current selected space type
 
 // ═══════════════════════════════════════════════════════════════
@@ -21,16 +21,16 @@ let currentSpaceType = 'studio'; // Current selected space type
 
 function getElements() {
   return {
+    // AI Generator
+    aiPromptInput: document.getElementById('ai-prompt-input'),
+    btnAiGenerate: document.getElementById('btn-ai-generate'),
+
     // Form
     locationForm: document.getElementById('location-form'),
     labelInput: document.getElementById('location-label'),
     categorySelect: document.getElementById('location-category'),
-    environmentSelect: document.getElementById('location-environment'),
-    lightingTypeSelect: document.getElementById('location-lighting-type'),
-    timeOfDaySelect: document.getElementById('location-time-of-day'),
-    surfaceInput: document.getElementById('location-surface'),
-    lightingDescInput: document.getElementById('location-lighting-desc'),
     descriptionTextarea: document.getElementById('location-description'),
+    
     promptPreview: document.getElementById('prompt-preview'),
     promptText: document.getElementById('prompt-text'),
     btnClearForm: document.getElementById('btn-clear-form'),
@@ -46,7 +46,6 @@ function getElements() {
     sectionRooftop: document.getElementById('section-rooftop'),
     sectionTransport: document.getElementById('section-transport'),
     sectionStudio: document.getElementById('section-studio'),
-    // NOTE: sectionAmbient removed - weather/season set in generator, not location editor
     
     // Interior fields
     interiorType: document.getElementById('interior-type'),
@@ -76,13 +75,6 @@ function getElements() {
     // Studio fields
     studioBackdrop: document.getElementById('studio-backdrop'),
     studioLighting: document.getElementById('studio-lighting'),
-    
-    // NOTE: Ambient fields removed - weather/season are situational, set in generator
-    
-    // Props
-    propsContainer: document.getElementById('props-container'),
-    propInput: document.getElementById('prop-input'),
-    btnAddProp: document.getElementById('btn-add-prop'),
     
     // Sketch upload
     sketchUploadZone: document.getElementById('sketch-upload-zone'),
@@ -193,6 +185,7 @@ function hideStatus() {
 }
 
 function formatOptionLabel(value) {
+  if (!value) return '';
   return value
     .replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
@@ -221,15 +214,6 @@ function populateSelects() {
   // Category
   populateSelect(els.categorySelect, locationOptions.categories);
   populateSelect(els.filterCategory, locationOptions.categories, true);
-  
-  // Environment type (legacy, hidden)
-  populateSelect(els.environmentSelect, locationOptions.environmentType);
-  
-  // Lighting type
-  populateSelect(els.lightingTypeSelect, locationOptions.lightingType);
-  
-  // Time of day
-  populateSelect(els.timeOfDaySelect, locationOptions.timeOfDay);
   
   // Space type selector
   renderSpaceTypeSelector();
@@ -261,9 +245,6 @@ function populateSelects() {
   // Studio options
   populateSelectFromObjects(els.studioBackdrop, locationOptions.studioBackdrop);
   populateSelectFromObjects(els.studioLighting, locationOptions.studioLighting);
-  
-  // Ambient options
-  // NOTE: Ambient selects removed - weather/season are situational, set in generator
   
   // Update interior subtypes when type changes
   if (els.interiorType) {
@@ -356,7 +337,6 @@ function setSpaceType(spaceType) {
   sections.forEach(s => { if (s) s.style.display = 'none'; });
   
   // Show relevant section
-  // NOTE: sectionAmbient removed - weather/season set in generator, not location editor
   switch (spaceType) {
     case 'interior':
       if (els.sectionInterior) els.sectionInterior.style.display = 'contents';
@@ -376,19 +356,6 @@ function setSpaceType(spaceType) {
     case 'studio':
       if (els.sectionStudio) els.sectionStudio.style.display = 'contents';
       break;
-  }
-  
-  // Update legacy environment type for backwards compatibility
-  const envMap = {
-    interior: 'indoor',
-    exterior_urban: 'urban',
-    exterior_nature: 'nature',
-    rooftop_terrace: 'outdoor',
-    transport: 'outdoor',
-    studio: 'studio'
-  };
-  if (els.environmentSelect) {
-    els.environmentSelect.value = envMap[spaceType] || 'studio';
   }
   
   updatePromptPreview();
@@ -419,10 +386,14 @@ function initForm() {
     }
   });
   
+  // AI Generate button
+  if (els.btnAiGenerate) {
+    els.btnAiGenerate.addEventListener('click', generateFromPrompt);
+  }
+  
   // Update prompt preview on change - all form inputs
   const formInputs = [
-    els.environmentSelect, els.lightingTypeSelect, els.timeOfDaySelect,
-    els.surfaceInput, els.lightingDescInput, els.descriptionTextarea,
+    els.descriptionTextarea,
     // Interior
     els.interiorType, els.interiorSubtype, els.interiorStyle, els.interiorWindow,
     // Urban
@@ -435,7 +406,6 @@ function initForm() {
     els.transportType, els.transportStyle, els.transportMotion,
     // Studio
     els.studioBackdrop, els.studioLighting
-    // NOTE: Ambient fields removed - weather/season set in generator
   ];
   
   formInputs.forEach(input => {
@@ -457,15 +427,12 @@ function updatePromptPreview() {
       break;
     case 'exterior_urban':
       parts.push(...buildUrbanPreview(els));
-      parts.push(...buildAmbientPreview(els));
       break;
     case 'exterior_nature':
       parts.push(...buildNaturePreview(els));
-      parts.push(...buildAmbientPreview(els));
       break;
     case 'rooftop_terrace':
       parts.push(...buildRooftopPreview(els));
-      parts.push(...buildAmbientPreview(els));
       break;
     case 'transport':
       parts.push(...buildTransportPreview(els));
@@ -475,53 +442,7 @@ function updatePromptPreview() {
       break;
   }
   
-  // Surface
-  const surface = els.surfaceInput.value.trim();
-  if (surface) {
-    parts.push(surface);
-  }
-  
-  // Lighting type
-  const lightingType = els.lightingTypeSelect.value;
-  if (lightingType && lightingType !== 'natural') {
-    const lightMap = {
-      artificial: 'artificial lighting',
-      mixed: 'mixed lighting',
-      studio_flash: 'studio flash',
-      on_camera_flash: 'on-camera flash',
-      ambient: 'ambient light',
-      dramatic: 'dramatic lighting'
-    };
-    parts.push(lightMap[lightingType] || lightingType);
-  }
-  
-  // Time of day
-  const timeOfDay = els.timeOfDaySelect.value;
-  if (timeOfDay && timeOfDay !== 'any') {
-    const timeMap = {
-      golden_hour: 'golden hour light',
-      blue_hour: 'blue hour light',
-      midday: 'midday sun',
-      sunset: 'sunset light',
-      sunrise: 'sunrise light',
-      night: 'night time',
-      overcast: 'overcast/diffused light'
-    };
-    parts.push(timeMap[timeOfDay] || timeOfDay);
-  }
-  
-  // Lighting description
-  const lightingDesc = els.lightingDescInput.value.trim();
-  if (lightingDesc) {
-    parts.push(lightingDesc);
-  }
-  
-  // Props
-  if (currentProps.length > 0) {
-    parts.push(`props: ${currentProps.join(', ')}`);
-  }
-  
-  // Description
+  // Description (Visual & Atmosphere)
   const desc = els.descriptionTextarea.value.trim();
   if (desc) {
     parts.push(desc);
@@ -541,7 +462,7 @@ function buildInteriorPreview(els) {
   const styleOption = els.interiorStyle?.selectedOptions[0];
   const windowOption = els.interiorWindow?.selectedOptions[0];
   
-  if (subtypeOption?.text) {
+  if (subtypeOption?.text && subtypeOption.value) {
     parts.push(subtypeOption.text.toLowerCase());
   } else if (typeOption?.text) {
     parts.push(typeOption.text.toLowerCase());
@@ -652,26 +573,19 @@ function buildStudioPreview(els) {
   }
   
   if (lightingOption?.text) {
-    parts.push(`${lightingOption.text.toLowerCase()} lighting`);
+    parts.push(`${lightingOption.text.toLowerCase()} lighting equipment`);
   }
   
   return parts;
 }
-
-// NOTE: buildAmbientPreview removed - weather/season are situational parameters
-// set in the generator, not stored in location
 
 function clearForm() {
   const els = getElements();
   
   els.labelInput.value = '';
   els.categorySelect.selectedIndex = 0;
-  els.environmentSelect.selectedIndex = 0;
-  els.lightingTypeSelect.selectedIndex = 0;
-  els.timeOfDaySelect.selectedIndex = 0;
-  els.surfaceInput.value = '';
-  els.lightingDescInput.value = '';
   els.descriptionTextarea.value = '';
+  els.aiPromptInput.value = '';
   
   // Reset hierarchical fields
   if (els.interiorType) els.interiorType.selectedIndex = 0;
@@ -697,10 +611,7 @@ function clearForm() {
   if (els.studioBackdrop) els.studioBackdrop.selectedIndex = 0;
   if (els.studioLighting) els.studioLighting.selectedIndex = 0;
   
-  // NOTE: Ambient fields removed - weather/season set in generator
-  
   currentLocation = null;
-  currentProps = [];
   sketchImage = null;
   
   // Reset space type to studio
@@ -711,7 +622,6 @@ function clearForm() {
   els.promptPreview.style.display = 'none';
   els.btnDelete.style.display = 'none';
   
-  renderProps();
   hideStatus();
 }
 
@@ -727,17 +637,9 @@ async function saveLocation() {
   const locationData = {
     label,
     category: els.categorySelect.value,
-    description: els.descriptionTextarea.value.trim(),
-    environmentType: els.environmentSelect.value,
-    surface: els.surfaceInput.value.trim(),
-    lighting: {
-      type: els.lightingTypeSelect.value,
-      timeOfDay: els.timeOfDaySelect.value,
-      description: els.lightingDescInput.value.trim()
-    },
-    props: currentProps,
+    description: els.descriptionTextarea.value.trim(), // Visual/Atmosphere description
     
-    // NEW: Hierarchical context-aware parameters
+    // Hierarchical context-aware parameters
     spaceType: currentSpaceType,
     
     // Interior
@@ -780,8 +682,6 @@ async function saveLocation() {
       backdrop: els.studioBackdrop?.value || 'white_seamless',
       lightingSetup: els.studioLighting?.value || 'three_point'
     }
-    
-    // NOTE: No ambient here - weather/season are situational, set in generator
   };
   
   // Add sketch if available
@@ -845,55 +745,22 @@ async function deleteLocation(id) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PROPS
-// ═══════════════════════════════════════════════════════════════
-
-function initProps() {
+async function generateFromPrompt() {
   const els = getElements();
+  const prompt = els.aiPromptInput.value.trim();
   
-  els.btnAddProp.addEventListener('click', () => {
-    const value = els.propInput.value.trim();
-    if (value && !currentProps.includes(value)) {
-      currentProps.push(value);
-      els.propInput.value = '';
-      renderProps();
-      updatePromptPreview();
-    }
-  });
-  
-  els.propInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      els.btnAddProp.click();
-    }
-  });
-}
-
-function renderProps() {
-  const els = getElements();
-  
-  if (currentProps.length === 0) {
-    els.propsContainer.innerHTML = '<span style="color: var(--color-text-muted); font-size: 12px;">Нет объектов</span>';
+  if (!prompt) {
+    showStatus('⚠️ Введите описание локации', 'error');
     return;
   }
   
-  els.propsContainer.innerHTML = currentProps.map((prop, idx) => `
-    <span class="prop-tag">
-      ${escapeHtml(prop)}
-      <button type="button" class="prop-tag-remove" data-idx="${idx}">×</button>
-    </span>
-  `).join('');
+  showStatus('✨ Анализирую описание... (функция в разработке)', 'loading');
   
-  // Add remove handlers
-  els.propsContainer.querySelectorAll('.prop-tag-remove').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.idx, 10);
-      currentProps.splice(idx, 1);
-      renderProps();
-      updatePromptPreview();
-    });
-  });
+  // TODO: Implement actual AI generation endpoint
+  setTimeout(() => {
+    showStatus('⚠️ Функция AI генерации пока в разработке. Заполните форму вручную.', 'error');
+    setTimeout(hideStatus, 3000);
+  }, 1000);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1014,7 +881,10 @@ function renderGallery() {
   
   els.locationsGallery.innerHTML = filtered.map(location => {
     const hasSketch = location.sketchAsset?.url;
-    const envType = location.environmentType || 'studio';
+    // Map spaceType or fallback to old environmentType for display
+    const typeLabel = location.spaceType 
+      ? formatOptionLabel(location.spaceType)
+      : formatOptionLabel(location.environmentType || 'studio');
     
     return `
       <div class="location-card" data-id="${location.id}">
@@ -1027,8 +897,8 @@ function renderGallery() {
         <div class="location-card-info">
           <div class="location-card-title">${escapeHtml(location.label)}</div>
           <div class="location-card-meta">
-            <span class="location-card-tag">${formatOptionLabel(envType)}</span>
-            <span class="location-card-tag">${location.category}</span>
+            <span class="location-card-tag">${typeLabel}</span>
+            <span class="location-card-tag">${location.category || 'misc'}</span>
           </div>
         </div>
       </div>
@@ -1066,15 +936,7 @@ function fillForm(location) {
   
   els.labelInput.value = location.label || '';
   els.categorySelect.value = location.category || 'studio';
-  els.environmentSelect.value = location.environmentType || 'studio';
-  els.surfaceInput.value = location.surface || '';
   els.descriptionTextarea.value = location.description || '';
-  
-  if (location.lighting) {
-    els.lightingTypeSelect.value = location.lighting.type || 'natural';
-    els.timeOfDaySelect.value = location.lighting.timeOfDay || 'any';
-    els.lightingDescInput.value = location.lighting.description || '';
-  }
   
   // Set space type (with fallback for legacy locations)
   const spaceType = location.spaceType || mapLegacyEnvironmentToSpaceType(location.environmentType);
@@ -1116,11 +978,6 @@ function fillForm(location) {
     if (els.studioBackdrop) els.studioBackdrop.value = location.studio.backdrop || 'white_seamless';
     if (els.studioLighting) els.studioLighting.value = location.studio.lightingSetup || 'three_point';
   }
-  
-  // NOTE: ambient not loaded here - weather/season are situational, set in generator
-  
-  currentProps = Array.isArray(location.props) ? [...location.props] : [];
-  renderProps();
   
   if (location.sketchAsset?.url) {
     sketchImage = { dataUrl: location.sketchAsset.url };
@@ -1180,12 +1037,9 @@ async function init() {
   checkHealth();
   await loadOptions();
   initForm();
-  initProps();
   initSketchUpload();
   initFilters();
-  renderProps();
   await loadLocations();
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
