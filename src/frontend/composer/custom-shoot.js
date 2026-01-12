@@ -948,6 +948,67 @@ function initSettingsAutoSave() {
   if (elements.genExtraPrompt) {
     elements.genExtraPrompt.addEventListener('input', saveGenerationSettings);
   }
+  
+  // Add special listener for poseAdherence to update composition controls
+  if (elements.genPoseAdherence) {
+    elements.genPoseAdherence.addEventListener('change', updateCompositionControlsState);
+  }
+}
+
+/**
+ * Update composition controls state based on poseAdherence level
+ * When poseAdherence = 4 (exact), composition is locked by the sketch
+ */
+function updateCompositionControlsState() {
+  const adherence = parseInt(elements.genPoseAdherence?.value || '2');
+  const isExact = adherence === 4;
+  
+  // Get composition controls
+  const compositionControls = [
+    elements.genShotSize,
+    elements.genCameraAngle,
+    elements.genFocusMode
+  ];
+  
+  // Find or create the warning message
+  let warningEl = document.getElementById('composition-locked-warning');
+  
+  if (isExact) {
+    // Disable composition controls
+    compositionControls.forEach(el => {
+      if (el) {
+        el.disabled = true;
+        el.style.opacity = '0.5';
+        el.title = 'Заблокировано: точное следование эскизу (4) определяет кадрирование';
+      }
+    });
+    
+    // Show warning
+    if (!warningEl) {
+      const compositionSection = elements.genShotSize?.closest('.form-group')?.parentElement;
+      if (compositionSection) {
+        warningEl = document.createElement('div');
+        warningEl.id = 'composition-locked-warning';
+        warningEl.style.cssText = 'background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #F59E0B; display: flex; align-items: center; gap: 8px;';
+        warningEl.innerHTML = '⚠️ <span>Композиция определяется эскизом (Точное следование = 4)</span>';
+        compositionSection.insertBefore(warningEl, compositionSection.firstChild);
+      }
+    }
+    if (warningEl) warningEl.style.display = 'flex';
+    
+  } else {
+    // Enable composition controls
+    compositionControls.forEach(el => {
+      if (el) {
+        el.disabled = false;
+        el.style.opacity = '1';
+        el.title = '';
+      }
+    });
+    
+    // Hide warning
+    if (warningEl) warningEl.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -978,6 +1039,9 @@ function renderGeneratePage() {
   
   // Update ambient section visibility (after settings applied)
   updateAmbientSectionVisibility();
+  
+  // Update composition controls state based on poseAdherence
+  updateCompositionControlsState();
   
   // Update lock UI
   updateLockUI();
@@ -1775,10 +1839,10 @@ const SKIN_TEXTURE_LABELS = {
 };
 
 const POSE_ADHERENCE_LABELS = {
-  1: 'Свободно (только тип)',
-  2: 'Похоже (30-40%)',
-  3: 'Близко (70-80%)',
-  4: 'Точно (90-100%)'
+  1: 'Свободно (только тип позы)',
+  2: 'Похоже (поза 30-40%)',
+  3: 'Близко (поза 70-80%)',
+  4: 'Точно (поза + кадрирование)'
 };
 
 function buildFrameSettingsHtml(frame) {

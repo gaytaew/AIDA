@@ -509,17 +509,28 @@ export function buildCustomShootPrompt({
       3: 'close',
       4: 'exact'
     };
+    
+    // Smart adherence instructions based on what it controls
     const adherenceInstructions = {
-      1: 'POSE TYPE ONLY — DO NOT copy the exact pose from sketch. Only match the general category.',
-      2: 'GENERAL DIRECTION ONLY — create a similar vibe, not a copy. Match roughly 30-40% of the pose.',
-      3: 'FOLLOW CLOSELY — match about 70-80% of the pose. Main body line should match the sketch.',
-      4: 'STRICT MATCH — replicate the pose with maximum precision (90-100%). Every limb angle matters.'
+      1: `POSE TYPE ONLY — The sketch shows the general POSE CATEGORY (standing, sitting, walking).
+          DO NOT copy the exact limb positions.
+          COMPOSITION IS FREE: You may use ANY shot size, camera angle, and framing.`,
+      2: `GENERAL DIRECTION — Match roughly 30-40% of the pose. Same general body orientation.
+          COMPOSITION IS FREE: Shot size and camera angle can be different from sketch.
+          Follow the explicit composition settings in this prompt.`,
+      3: `FOLLOW CLOSELY — Match 70-80% of the pose. Main body line should match.
+          COMPOSITION IS PARTIALLY FREE: You may adjust shot size and angle slightly.
+          Prefer the explicit composition settings, but maintain pose consistency.`,
+      4: `STRICT MATCH — Replicate the pose with 90-100% precision. Every limb angle matters.
+          COMPOSITION IS LOCKED: The sketch also defines the framing, shot size, and camera angle.
+          DO NOT change the framing or crop — match the sketch composition exactly.`
     };
     
     promptJson.poseReference = {
       hasSketch: true,
       adherenceLevel,
       adherenceLabel: adherenceLabels[adherenceLevel],
+      compositionLocked: adherenceLevel === 4, // Important: composition locked only at level 4
       rules: [
         'A POSE SKETCH image is provided as reference.',
         'The sketch shows ONLY pose — ignore any clothing, face details, or hair in it.',
@@ -527,6 +538,13 @@ export function buildCustomShootPrompt({
         adherenceInstructions[adherenceLevel]
       ]
     };
+    
+    // When poseAdherence is 4, ignore user's composition settings
+    if (adherenceLevel === 4) {
+      promptJson.hardRules.push('POSE EXACT MATCH: The pose sketch defines BOTH the pose AND the framing. Follow it precisely.');
+      // Clear user composition overrides
+      delete promptJson.composition;
+    }
   }
   
   return promptJson;
