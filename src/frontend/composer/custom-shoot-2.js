@@ -997,7 +997,51 @@ function collectGenerationSettings() {
 function applyGenerationSettings(settings) {
   if (!settings) return;
   
-  // NEW: 6-layer architecture settings
+  // ═══════════════════════════════════════════════════════════════
+  // Virtual Studio Settings (NEW)
+  // ═══════════════════════════════════════════════════════════════
+  
+  // Quality Mode
+  if (settings.qualityMode) {
+    setQualityMode(settings.qualityMode);
+  }
+  
+  // Mood
+  if (settings.mood && elements.genMood) {
+    elements.genMood.value = settings.mood;
+  }
+  
+  // Virtual Camera
+  if (settings.virtualCamera) {
+    if (settings.virtualCamera.focalLength && elements.genVirtualFocal) {
+      elements.genVirtualFocal.value = settings.virtualCamera.focalLength;
+    }
+    if (settings.virtualCamera.aperture && elements.genVirtualAperture) {
+      elements.genVirtualAperture.value = settings.virtualCamera.aperture;
+    }
+    if (settings.virtualCamera.shutterSpeed && elements.genVirtualShutter) {
+      elements.genVirtualShutter.value = settings.virtualCamera.shutterSpeed;
+    }
+  }
+  
+  // Lighting
+  if (settings.lighting) {
+    if (settings.lighting.primarySource && elements.genLightPrimary) {
+      elements.genLightPrimary.value = settings.lighting.primarySource;
+    }
+    if (settings.lighting.secondarySource && elements.genLightSecondary) {
+      elements.genLightSecondary.value = settings.lighting.secondarySource;
+    }
+    if (settings.lighting.modifier && elements.genLightModifier) {
+      elements.genLightModifier.value = settings.lighting.modifier;
+    }
+    // Check for conflicts after applying
+    checkLightingConflict();
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 6-layer architecture settings (legacy)
+  // ═══════════════════════════════════════════════════════════════
   if (settings.shootType && elements.genShootType) {
     elements.genShootType.value = settings.shootType;
   }
