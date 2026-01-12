@@ -474,10 +474,10 @@ export const DEFAULT_LOCATION = {
   nature: { ...DEFAULT_NATURE },
   rooftop: { ...DEFAULT_ROOFTOP },
   transport: { ...DEFAULT_TRANSPORT },
-  studio: { ...DEFAULT_STUDIO },
+  studio: { ...DEFAULT_STUDIO }
   
-  // Universal ambient (weather only for outdoor/rooftop)
-  ambient: { ...DEFAULT_AMBIENT }
+  // NOTE: ambient (weather, season, atmosphere) is NOT stored in location
+  // It's a situational parameter set during image generation, not a location property
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -509,7 +509,7 @@ export function createEmptyLocation(label = 'Новая локация', categor
     rooftop: { ...DEFAULT_ROOFTOP },
     transport: { ...DEFAULT_TRANSPORT },
     studio: { ...DEFAULT_STUDIO },
-    ambient: { ...DEFAULT_AMBIENT },
+    // NOTE: no ambient here - it's set during generation, not stored in location
     createdAt: now,
     updatedAt: now
   };
@@ -601,13 +601,9 @@ export function buildLocationPromptSnippet(location) {
       }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // AMBIENT / WEATHER (only for outdoor/rooftop)
-  // ═══════════════════════════════════════════════════════════════
-
-  if (['exterior_urban', 'exterior_nature', 'rooftop_terrace'].includes(spaceType)) {
-    parts.push(...buildAmbientPrompt(location));
-  }
+  // NOTE: Ambient (weather, season, atmosphere) is NOT included here.
+  // Ambient is a situational parameter set during generation, not stored in location.
+  // Use buildAmbientPrompt() separately when generating to add weather/season.
 
   // ═══════════════════════════════════════════════════════════════
   // LIGHTING (universal)
@@ -824,9 +820,17 @@ function buildStudioPrompt(location) {
   return parts;
 }
 
-function buildAmbientPrompt(location) {
+/**
+ * Build ambient prompt from weather/season/atmosphere parameters.
+ * 
+ * IMPORTANT: This is called by generators, NOT by buildLocationPromptSnippet.
+ * Ambient is a situational parameter set during generation.
+ * 
+ * @param {Object} ambient - { weather, season, atmosphere }
+ * @returns {string[]} - Array of prompt parts
+ */
+export function buildAmbientPrompt(ambient = {}) {
   const parts = [];
-  const ambient = location.ambient || {};
 
   // Weather
   const weatherOption = WEATHER_OPTIONS.find(w => w.id === ambient.weather);
@@ -847,6 +851,15 @@ function buildAmbientPrompt(location) {
   }
 
   return parts;
+}
+
+/**
+ * Build ambient prompt as a single string.
+ * Convenience wrapper for generators.
+ */
+export function buildAmbientPromptText(ambient = {}) {
+  const parts = buildAmbientPrompt(ambient);
+  return parts.length > 0 ? parts.join(', ') : '';
 }
 
 /**
@@ -899,8 +912,11 @@ export const LOCATION_OPTIONS = {
 };
 
 /**
- * Get available parameters for a given space type
- * Used by UI to show/hide context-specific fields
+ * Get available PERMANENT parameters for a given space type.
+ * Used by Location Editor UI to show/hide context-specific fields.
+ * 
+ * NOTE: weather/season/atmosphere are NOT included here — they are
+ * situational parameters set in the generator, not stored in location.
  */
 export function getAvailableParameters(spaceType) {
   const base = ['timeOfDay', 'lighting', 'props', 'description'];
@@ -910,13 +926,16 @@ export function getAvailableParameters(spaceType) {
       return [...base, 'interiorType', 'interiorSubtype', 'interiorStyle', 'windowLight', 'furniture'];
       
     case 'exterior_urban':
-      return [...base, 'urbanType', 'urbanArchitecture', 'urbanDensity', 'weather', 'season', 'atmosphere'];
+      // NOTE: weather/season removed — set during generation
+      return [...base, 'urbanType', 'urbanArchitecture', 'urbanDensity'];
       
     case 'exterior_nature':
-      return [...base, 'natureType', 'vegetation', 'terrain', 'weather', 'season', 'atmosphere'];
+      // NOTE: weather/season removed — set during generation
+      return [...base, 'natureType', 'vegetation', 'terrain'];
       
     case 'rooftop_terrace':
-      return [...base, 'rooftopType', 'cityView', 'weather', 'season', 'atmosphere'];
+      // NOTE: weather/season removed — set during generation
+      return [...base, 'rooftopType', 'cityView'];
       
     case 'transport':
       return [...base, 'transportType', 'vehicleStyle', 'motion'];

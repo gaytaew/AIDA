@@ -684,6 +684,56 @@
                   </div>
                 </div>
                 
+                <!-- AMBIENT: Situational conditions (weather, season, time) -->
+                <div id="ambient-section" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); display: none;">
+                  <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🌤️ Условия съёмки</h4>
+                  <p style="font-size: 11px; color: var(--color-text-muted); margin-bottom: 12px;">Эти параметры применяются для экстерьерных локаций</p>
+                  
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    <!-- Weather -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-weather">☀️ Погода</label>
+                      <select id="gen-weather" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                        <option value="clear">Ясно</option>
+                        <option value="partly_cloudy">Переменная облачность</option>
+                        <option value="overcast">Пасмурно</option>
+                        <option value="light_rain">Лёгкий дождь</option>
+                        <option value="heavy_rain">Сильный дождь</option>
+                        <option value="fog">Туман</option>
+                        <option value="mist">Дымка</option>
+                        <option value="snow">Снег</option>
+                        <option value="storm">Гроза</option>
+                        <option value="wind">Ветрено</option>
+                      </select>
+                    </div>
+                    
+                    <!-- Season -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-season">🍂 Сезон</label>
+                      <select id="gen-season" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                        <option value="spring">Весна</option>
+                        <option value="summer" selected>Лето</option>
+                        <option value="autumn">Осень</option>
+                        <option value="winter">Зима</option>
+                      </select>
+                    </div>
+                    
+                    <!-- Atmosphere -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-atmosphere">🌫️ Атмосфера</label>
+                      <select id="gen-atmosphere" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                        <option value="neutral" selected>Нейтральная</option>
+                        <option value="dusty">Пыльная</option>
+                        <option value="humid">Влажная</option>
+                        <option value="crisp">Свежая/Морозная</option>
+                        <option value="smoky">Дымная</option>
+                        <option value="hazy">Туманная</option>
+                        <option value="steamy">Парящая</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
                 <!-- Extra prompt -->
                 <div class="form-group" style="margin-top: 12px;">
                   <label for="gen-extra-prompt">💬 Дополнительный промпт</label>

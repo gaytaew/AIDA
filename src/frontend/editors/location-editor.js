@@ -46,7 +46,7 @@ function getElements() {
     sectionRooftop: document.getElementById('section-rooftop'),
     sectionTransport: document.getElementById('section-transport'),
     sectionStudio: document.getElementById('section-studio'),
-    sectionAmbient: document.getElementById('section-ambient'),
+    // NOTE: sectionAmbient removed - weather/season set in generator, not location editor
     
     // Interior fields
     interiorType: document.getElementById('interior-type'),
@@ -77,10 +77,7 @@ function getElements() {
     studioBackdrop: document.getElementById('studio-backdrop'),
     studioLighting: document.getElementById('studio-lighting'),
     
-    // Ambient fields
-    ambientWeather: document.getElementById('ambient-weather'),
-    ambientSeason: document.getElementById('ambient-season'),
-    ambientAtmosphere: document.getElementById('ambient-atmosphere'),
+    // NOTE: Ambient fields removed - weather/season are situational, set in generator
     
     // Props
     propsContainer: document.getElementById('props-container'),
@@ -266,9 +263,7 @@ function populateSelects() {
   populateSelectFromObjects(els.studioLighting, locationOptions.studioLighting);
   
   // Ambient options
-  populateSelectFromObjects(els.ambientWeather, locationOptions.weather);
-  populateSelectFromObjects(els.ambientSeason, locationOptions.season);
-  populateSelectFromObjects(els.ambientAtmosphere, locationOptions.atmosphere);
+  // NOTE: Ambient selects removed - weather/season are situational, set in generator
   
   // Update interior subtypes when type changes
   if (els.interiorType) {
@@ -357,26 +352,23 @@ function setSpaceType(spaceType) {
     els.sectionRooftop,
     els.sectionTransport,
     els.sectionStudio,
-    els.sectionAmbient
   ];
   sections.forEach(s => { if (s) s.style.display = 'none'; });
   
   // Show relevant section
+  // NOTE: sectionAmbient removed - weather/season set in generator, not location editor
   switch (spaceType) {
     case 'interior':
       if (els.sectionInterior) els.sectionInterior.style.display = 'contents';
       break;
     case 'exterior_urban':
       if (els.sectionUrban) els.sectionUrban.style.display = 'contents';
-      if (els.sectionAmbient) els.sectionAmbient.style.display = 'block';
       break;
     case 'exterior_nature':
       if (els.sectionNature) els.sectionNature.style.display = 'contents';
-      if (els.sectionAmbient) els.sectionAmbient.style.display = 'block';
       break;
     case 'rooftop_terrace':
       if (els.sectionRooftop) els.sectionRooftop.style.display = 'contents';
-      if (els.sectionAmbient) els.sectionAmbient.style.display = 'block';
       break;
     case 'transport':
       if (els.sectionTransport) els.sectionTransport.style.display = 'contents';
@@ -442,9 +434,8 @@ function initForm() {
     // Transport
     els.transportType, els.transportStyle, els.transportMotion,
     // Studio
-    els.studioBackdrop, els.studioLighting,
-    // Ambient
-    els.ambientWeather, els.ambientSeason, els.ambientAtmosphere
+    els.studioBackdrop, els.studioLighting
+    // NOTE: Ambient fields removed - weather/season set in generator
   ];
   
   formInputs.forEach(input => {
@@ -667,27 +658,8 @@ function buildStudioPreview(els) {
   return parts;
 }
 
-function buildAmbientPreview(els) {
-  const parts = [];
-  
-  const weatherOption = els.ambientWeather?.selectedOptions[0];
-  const seasonOption = els.ambientSeason?.selectedOptions[0];
-  const atmosOption = els.ambientAtmosphere?.selectedOptions[0];
-  
-  if (weatherOption?.value && weatherOption.value !== 'clear') {
-    parts.push(weatherOption.text.toLowerCase());
-  }
-  
-  if (seasonOption?.text) {
-    parts.push(`${seasonOption.text.toLowerCase()} atmosphere`);
-  }
-  
-  if (atmosOption?.value && atmosOption.value !== 'neutral') {
-    parts.push(`${atmosOption.text.toLowerCase()} air`);
-  }
-  
-  return parts;
-}
+// NOTE: buildAmbientPreview removed - weather/season are situational parameters
+// set in the generator, not stored in location
 
 function clearForm() {
   const els = getElements();
@@ -725,9 +697,7 @@ function clearForm() {
   if (els.studioBackdrop) els.studioBackdrop.selectedIndex = 0;
   if (els.studioLighting) els.studioLighting.selectedIndex = 0;
   
-  if (els.ambientWeather) els.ambientWeather.selectedIndex = 0;
-  if (els.ambientSeason) els.ambientSeason.selectedIndex = 0;
-  if (els.ambientAtmosphere) els.ambientAtmosphere.selectedIndex = 0;
+  // NOTE: Ambient fields removed - weather/season set in generator
   
   currentLocation = null;
   currentProps = [];
@@ -809,14 +779,9 @@ async function saveLocation() {
     studio: {
       backdrop: els.studioBackdrop?.value || 'white_seamless',
       lightingSetup: els.studioLighting?.value || 'three_point'
-    },
-    
-    // Ambient
-    ambient: {
-      weather: els.ambientWeather?.value || 'clear',
-      season: els.ambientSeason?.value || 'summer',
-      atmosphere: els.ambientAtmosphere?.value || 'neutral'
     }
+    
+    // NOTE: No ambient here - weather/season are situational, set in generator
   };
   
   // Add sketch if available
@@ -1152,11 +1117,7 @@ function fillForm(location) {
     if (els.studioLighting) els.studioLighting.value = location.studio.lightingSetup || 'three_point';
   }
   
-  if (location.ambient) {
-    if (els.ambientWeather) els.ambientWeather.value = location.ambient.weather || 'clear';
-    if (els.ambientSeason) els.ambientSeason.value = location.ambient.season || 'summer';
-    if (els.ambientAtmosphere) els.ambientAtmosphere.value = location.ambient.atmosphere || 'neutral';
-  }
+  // NOTE: ambient not loaded here - weather/season are situational, set in generator
   
   currentProps = Array.isArray(location.props) ? [...location.props] : [];
   renderProps();

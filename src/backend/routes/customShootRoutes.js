@@ -259,6 +259,8 @@ router.post('/:id/generate', async (req, res) => {
       cameraSignature,
       skinTexture,
       poseAdherence,
+      // Ambient (situational conditions: weather, season, atmosphere)
+      ambient,
       identityImages: reqIdentityImages,
       clothingImages: reqClothingImages
     } = req.body;
@@ -274,6 +276,7 @@ router.post('/:id/generate', async (req, res) => {
       cameraSignature,
       skinTexture,
       poseAdherence,
+      ambient,
       frame: frame?.label || frame?.id || null,
       extraPrompt: extraPrompt?.slice(0, 50) 
     });
@@ -403,7 +406,9 @@ router.post('/:id/generate', async (req, res) => {
       captureStyle,
       cameraSignature,
       skinTexture,
-      poseAdherence: parseInt(poseAdherence) || 2
+      poseAdherence: parseInt(poseAdherence) || 2,
+      // Ambient (situational conditions: weather, season, atmosphere)
+      ambient
     });
     
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);

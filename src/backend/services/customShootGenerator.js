@@ -16,7 +16,7 @@ import {
 } from '../schema/universe.js';
 import { LIGHT_PRESETS, COLOR_PRESETS, ERA_PRESETS } from '../schema/stylePresets.js';
 import { generateImageId } from '../schema/customShoot.js';
-import { buildLocationPromptSnippet } from '../schema/location.js';
+import { buildLocationPromptSnippet, buildAmbientPrompt } from '../schema/location.js';
 
 // ═══════════════════════════════════════════════════════════════
 // PROMPT BUILDERS FOR REFERENCE LOCKS
@@ -234,7 +234,9 @@ export function buildCustomShootPrompt({
   captureStyle = null,
   cameraSignature = null,
   skinTexture = null,
-  poseAdherence = 2
+  poseAdherence = 2,
+  // Ambient (situational conditions: weather, season, atmosphere)
+  ambient = null
 }) {
   const promptJson = {
     format: 'aida_custom_shoot_v1',
@@ -349,10 +351,27 @@ export function buildCustomShootPrompt({
       label: location.label || 'Custom location',
       description: locationDescription,
       // Include space type info for better context
-      spaceType: location.spaceType || null,
-      // Include ambient conditions (weather/season) if outdoor
-      ambient: location.ambient || null
+      spaceType: location.spaceType || null
     };
+  }
+  
+  // Add Ambient conditions (weather/season/atmosphere) - situational, from generator UI
+  // Only for outdoor/rooftop locations
+  if (ambient && location) {
+    const spaceType = location.spaceType || 'studio';
+    const isOutdoor = ['exterior_urban', 'exterior_nature', 'rooftop_terrace'].includes(spaceType);
+    
+    if (isOutdoor) {
+      const ambientParts = buildAmbientPrompt(ambient);
+      if (ambientParts.length > 0) {
+        promptJson.ambient = {
+          weather: ambient.weather || 'clear',
+          season: ambient.season || 'summer',
+          atmosphere: ambient.atmosphere || 'neutral',
+          prompt: ambientParts.join(', ')
+        };
+      }
+    }
   }
   
   // Add Emotion (using same format as shootGenerator)
@@ -597,7 +616,9 @@ export async function generateCustomShootFrame({
   captureStyle = null,
   cameraSignature = null,
   skinTexture = null,
-  poseAdherence = 2
+  poseAdherence = 2,
+  // Ambient (situational conditions: weather, season, atmosphere)
+  ambient = null
 }) {
   try {
     console.log('[CustomShootGenerator] Starting frame generation...');
@@ -646,7 +667,9 @@ export async function generateCustomShootFrame({
       captureStyle,
       cameraSignature,
       skinTexture,
-      poseAdherence
+      poseAdherence,
+      // Ambient (situational conditions)
+      ambient
     });
     
     // Send as JSON (same as shootGenerator)

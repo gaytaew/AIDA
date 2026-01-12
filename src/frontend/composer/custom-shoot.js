@@ -100,6 +100,12 @@ function initElements() {
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
   
+  // Ambient controls (situational: weather, season, atmosphere)
+  elements.ambientSection = document.getElementById('ambient-section');
+  elements.genWeather = document.getElementById('gen-weather');
+  elements.genSeason = document.getElementById('gen-season');
+  elements.genAtmosphere = document.getElementById('gen-atmosphere');
+  
   // Lock controls
   elements.styleLockOff = document.getElementById('style-lock-off');
   elements.styleLockStrict = document.getElementById('style-lock-strict');
@@ -856,8 +862,17 @@ function renderGeneratePage() {
   // Populate location dropdown
   elements.genLocation.innerHTML = '<option value="">Без конкретной</option>';
   state.locations.forEach(loc => {
-    elements.genLocation.innerHTML += `<option value="${loc.id}">${escapeHtml(loc.label)}</option>`;
+    // Include spaceType for ambient section visibility
+    const spaceType = loc.spaceType || 'studio';
+    elements.genLocation.innerHTML += `<option value="${loc.id}" data-space-type="${spaceType}">${escapeHtml(loc.label)}</option>`;
   });
+  
+  // Add location change listener for ambient section visibility
+  elements.genLocation.removeEventListener('change', handleLocationChange);
+  elements.genLocation.addEventListener('change', handleLocationChange);
+  
+  // Initial ambient section state
+  updateAmbientSectionVisibility();
   
   // Populate emotion dropdown
   elements.genEmotion.innerHTML = '<option value="">Нейтральная</option>';
@@ -873,6 +888,33 @@ function renderGeneratePage() {
   
   // Render history
   renderGeneratedHistory();
+}
+
+/**
+ * Handle location change to show/hide ambient section
+ */
+function handleLocationChange() {
+  updateAmbientSectionVisibility();
+}
+
+/**
+ * Show/hide ambient section based on selected location's spaceType
+ */
+function updateAmbientSectionVisibility() {
+  if (!elements.ambientSection) return;
+  
+  const selectedOption = elements.genLocation?.selectedOptions[0];
+  const spaceType = selectedOption?.dataset?.spaceType || '';
+  const locationId = elements.genLocation?.value;
+  
+  // Find location in state to check spaceType
+  const location = state.locations.find(l => l.id === locationId);
+  const effectiveSpaceType = location?.spaceType || spaceType || 'studio';
+  
+  // Show ambient section for outdoor locations
+  const isOutdoor = ['exterior_urban', 'exterior_nature', 'rooftop_terrace'].includes(effectiveSpaceType);
+  
+  elements.ambientSection.style.display = isOutdoor ? 'block' : 'none';
 }
 
 function updateLockUI() {
@@ -1197,7 +1239,13 @@ async function generateFrame(frameId) {
     captureStyle: elements.genCaptureStyle.value,
     cameraSignature: elements.genCameraSignature.value,
     skinTexture: elements.genSkinTexture.value,
-    poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2
+    poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2,
+    // Ambient (situational conditions: weather, season, atmosphere)
+    ambient: {
+      weather: elements.genWeather?.value || 'clear',
+      season: elements.genSeason?.value || 'summer',
+      atmosphere: elements.genAtmosphere?.value || 'neutral'
+    }
   };
   
   // Update shoot with current presets first
@@ -1232,7 +1280,9 @@ async function generateFrame(frameId) {
         captureStyle: params.captureStyle,
         cameraSignature: params.cameraSignature,
         skinTexture: params.skinTexture,
-        poseAdherence: params.poseAdherence
+        poseAdherence: params.poseAdherence,
+        // Ambient (situational conditions)
+        ambient: params.ambient
       })
     });
     
