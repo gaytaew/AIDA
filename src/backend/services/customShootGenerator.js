@@ -46,47 +46,36 @@ function buildStyleLockPrompt(lock) {
   if (!lock || !lock.enabled) return null;
   
   if (lock.mode === 'strict') {
-    return `STYLE REFERENCE (STRICT VISUAL & LOOK):
+    return `STYLE REFERENCE (STRICT VISUAL MATCH):
 ===========================================
-CRITICAL INSTRUCTION: COPY THE STYLE, NOT THE IMAGE!
+The reference photo defines the VISUAL STYLE. Copy these elements:
 
-You are given a STYLE REFERENCE photo. Your job is to create a COMPLETELY NEW photograph that has the SAME VISUAL STYLE but is TOTALLY DIFFERENT in composition.
+✓ COPY FROM REFERENCE:
+  - Color grading / color palette / white balance
+  - Lighting style (soft/hard, direction, contrast ratio)
+  - Film look / grain / texture treatment
+  - Makeup style (eyeliner, lip color, blush, etc.)
+  - Hair styling (texture, shine, volume)
+  - Overall mood and atmosphere
 
-╔═══════════════════════════════════════════════════════════════════╗
-║ COPY THESE (STYLE ELEMENTS):                                      ║
-╠═══════════════════════════════════════════════════════════════════╣
-║ ✓ Color grading / color palette / white balance                   ║
-║ ✓ Lighting style (soft/hard, direction, contrast ratio)           ║
-║ ✓ Film look / grain / texture treatment                           ║
-║ ✓ Makeup style (eyeliner, lip color, blush, etc.)                 ║
-║ ✓ Hair styling (texture, shine, volume)                           ║
-║ ✓ Overall mood and atmosphere                                     ║
-╚═══════════════════════════════════════════════════════════════════╝
+✗ DO NOT COPY FROM REFERENCE:
+  - The pose — use pose from PROMPT instructions (Pose Sketch, Frame)
+  - The camera angle — use angle from PROMPT instructions
+  - The framing/crop — use framing from PROMPT instructions
 
-╔═══════════════════════════════════════════════════════════════════╗
-║ DO NOT COPY (MUST BE DIFFERENT):                                  ║
-╠═══════════════════════════════════════════════════════════════════╣
-║ ✗ THE POSE - Model MUST be in a DIFFERENT body position           ║
-║ ✗ THE CAMERA ANGLE - Use a DIFFERENT angle                        ║
-║ ✗ THE FRAMING - Use DIFFERENT crop/composition                    ║
-║ ✗ THE GESTURE - Hands, head tilt, body turn must DIFFER           ║
-║ ✗ THE EXPRESSION - Unless specified, vary the expression          ║
-╚═══════════════════════════════════════════════════════════════════╝
-
-ANTI-CLONE RULE: If the reference shows the model from the waist up facing left — you could show full-body facing right, or close-up from below, or from behind, etc. THE MORE DIFFERENT THE POSE AND ANGLE, THE BETTER.
-
-Output: A new photograph that looks like it's from the SAME PHOTOSHOOT but is a COMPLETELY DIFFERENT FRAME.`;
+IMPORTANT: Pose and composition are controlled by other parameters in this prompt.
+Follow the prompt for pose/angle/framing, follow the reference for visual style.
+Result: Same photoshoot look, but different frame as specified in prompt.`;
   }
   
   if (lock.mode === 'soft') {
     return `STYLE REFERENCE (SOFT MATCH):
-Use the style reference for visual INSPIRATION only:
+Use the style reference for visual inspiration:
 - Similar color temperature and overall mood
 - Similar lighting quality and direction  
 - Similar texture treatment and contrast level
 
-IMPORTANT: The pose, angle, framing, and composition MUST be completely different from the reference.
-Create a new, unique image that feels like it's from the same photoshoot but is NOT a copy.`;
+Pose and composition: Follow the PROMPT instructions, not the reference.`;
   }
   
   return null;
@@ -580,8 +569,7 @@ export function buildCustomShootPrompt({
   
   // Add anti-duplication rule when locks are active
   if ((locks?.style?.enabled && hasStyleRef) || (locks?.location?.enabled && hasLocationRef)) {
-    promptJson.hardRules.push('ANTI-CLONE RULE: The reference image is for STYLE/LOCATION only. You MUST NOT recreate or closely imitate the reference pose or composition. Generate a COMPLETELY DIFFERENT body position, camera angle, and framing. The output should look like a different frame from the same photoshoot, NOT the same frame.');
-    promptJson.hardRules.push('VARIETY: If the reference shows frontal pose — show from the side. If standing — show sitting. If full-body — show close-up. Maximize difference in composition while maintaining style consistency.');
+    promptJson.hardRules.push('STYLE vs COMPOSITION SEPARATION: The reference image provides VISUAL STYLE only (colors, lighting, makeup, hair). The POSE and COMPOSITION are defined by other parameters in this prompt (Pose Sketch, Frame, Shot Size, Camera Angle). IGNORE the pose/composition from the style reference — follow the prompt instructions instead.');
   }
   
   // Add Frame/Pose

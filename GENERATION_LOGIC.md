@@ -965,20 +965,21 @@ Reference Lock позволяет "закрепить" визуальный ст
 | `strict` | Точное соответствие стиля: цвета, освещение, makeup, hair. Результат должен выглядеть как из ОДНОЙ фотосессии |
 | `soft` | Вдохновение: похожая цветовая температура, настроение, но с естественными вариациями |
 
-### 12.4 КРИТИЧЕСКОЕ ПРАВИЛО: Anti-Clone
+### 12.4 Разделение Style и Composition
 
 **ПРОБЛЕМА**: Gemini склонен копировать референс полностью — вместе с позой.
 
-**РЕШЕНИЕ**: В промпте Style Lock явно указано:
-- ✅ КОПИРУЙ: цвета, освещение, makeup, hair, атмосферу
-- ❌ НЕ КОПИРУЙ: позу, угол камеры, кадрирование, жесты
+**РЕШЕНИЕ**: В промпте явно указано разделение:
+- ✅ КОПИРУЙ ИЗ РЕФЕРЕНСА: цвета, освещение, makeup, hair, атмосферу, текстуры
+- ❌ БЕРИ ИЗ ПРОМПТА (не из референса): позу, угол камеры, кадрирование
 
-**Правило вариации**:
+**Принцип**: 
 ```
-Если референс: фронтально — сделай сбоку
-Если референс: стоя — сделай сидя
-Если референс: full-body — сделай close-up
+Поза и композиция = контролируется настройками генерации (Pose Sketch, Frame, Shot Size)
+Визуальный стиль = копируется из Style Lock референса
 ```
+
+Пользователь управляет композицией через параметры — Style Lock влияет только на "look & feel".
 
 ### 12.5 Технические детали
 
@@ -990,9 +991,10 @@ if (shoot.locks?.style?.enabled && shoot.locks.style.sourceImageUrl) {
   referenceImages.push(styleRefImage);
 }
 
-// В промпт добавляются hardRules:
-'ANTI-CLONE RULE: The reference is for STYLE only. Create DIFFERENT pose/angle/framing.'
-'VARIETY: Maximize difference in composition while maintaining style consistency.'
+// В промпт добавляется hardRule:
+'STYLE vs COMPOSITION SEPARATION: The reference provides VISUAL STYLE only. 
+ POSE and COMPOSITION are defined by other parameters (Pose Sketch, Frame, Shot Size). 
+ Follow the prompt for pose — follow the reference for style.'
 ```
 
 ---
