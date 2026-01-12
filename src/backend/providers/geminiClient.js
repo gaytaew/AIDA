@@ -270,19 +270,6 @@ async function callGeminiWithRetry(body) {
   );
 }
 
-/**
- * Create safety settings for Gemini API
- * Using BLOCK_ONLY_HIGH to permit artistic freedom
- */
-function createSafetySettings() {
-  return [
-    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
-  ];
-}
-
 function createGeminiBody(prompt, processedImages, imageConfig) {
   const parts = [];
 
@@ -306,22 +293,6 @@ function createGeminiBody(prompt, processedImages, imageConfig) {
   const aspectRatio = typeof cfg.aspectRatio === 'string' && cfg.aspectRatio ? cfg.aspectRatio : '1:1';
   const imageSize = typeof cfg.imageSize === 'string' && cfg.imageSize ? cfg.imageSize : '1K';
 
-  // Build image config with Virtual Studio compliance settings
-  const imageGenerationConfig = {
-    aspectRatio,
-    imageSize
-  };
-  
-  // Enable adult person generation for fashion photography
-  if (cfg.personGeneration !== false) {
-    imageGenerationConfig.personGeneration = 'allow_adult';
-  }
-  
-  // Add watermark for compliance
-  if (cfg.addWatermark !== false) {
-    imageGenerationConfig.addWatermark = true;
-  }
-
   const body = {
     contents: [
       {
@@ -330,10 +301,11 @@ function createGeminiBody(prompt, processedImages, imageConfig) {
     ],
     generationConfig: {
       responseModalities: ['Image'],
-      imageConfig: imageGenerationConfig
-    },
-    // Safety settings to permit artistic freedom
-    safetySettings: createSafetySettings()
+      imageConfig: {
+        aspectRatio,
+        imageSize
+      }
+    }
   };
 
   return body;
