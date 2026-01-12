@@ -24,6 +24,17 @@ function getElements() {
     // AI Generator
     aiPromptInput: document.getElementById('ai-prompt-input'),
     btnAiGenerate: document.getElementById('btn-ai-generate'),
+    
+    // Sketch/AI Upload
+    sketchUploadZone: document.getElementById('sketch-upload-zone'),
+    sketchFileInput: document.getElementById('sketch-file-input'),
+    aiUploadPreviewImg: document.getElementById('ai-upload-preview-img'),
+    aiUploadPreviewIcon: document.getElementById('ai-upload-preview-icon'),
+    
+    // Large Preview (optional view)
+    sketchPreview: document.getElementById('sketch-preview'),
+    sketchPreviewImg: document.getElementById('sketch-preview-img'),
+    sketchRemove: document.getElementById('sketch-remove'),
 
     // Form
     locationForm: document.getElementById('location-form'),
@@ -75,13 +86,6 @@ function getElements() {
     // Studio fields
     studioBackdrop: document.getElementById('studio-backdrop'),
     studioLighting: document.getElementById('studio-lighting'),
-    
-    // Sketch upload
-    sketchUploadZone: document.getElementById('sketch-upload-zone'),
-    sketchFileInput: document.getElementById('sketch-file-input'),
-    sketchPreview: document.getElementById('sketch-preview'),
-    sketchPreviewImg: document.getElementById('sketch-preview-img'),
-    sketchRemove: document.getElementById('sketch-remove'),
     
     // Gallery
     filterCategory: document.getElementById('filter-category'),
@@ -617,8 +621,12 @@ function clearForm() {
   // Reset space type to studio
   setSpaceType('studio');
   
+  // Reset sketch previews
   els.sketchPreview.style.display = 'none';
-  els.sketchUploadZone.style.display = 'block';
+  els.aiUploadPreviewImg.style.display = 'none';
+  els.aiUploadPreviewIcon.style.display = 'block';
+  els.sketchUploadZone.classList.remove('has-image');
+  
   els.promptPreview.style.display = 'none';
   els.btnDelete.style.display = 'none';
   
@@ -829,35 +837,33 @@ function initSketchUpload() {
     e.target.value = '';
   });
   
-  // Drag & drop
+  // Drag & drop on the button
   ['dragenter', 'dragover'].forEach(evt => {
     els.sketchUploadZone.addEventListener(evt, (e) => {
       e.preventDefault();
-      els.sketchUploadZone.classList.add('dragover');
-    });
-  });
-  
-  ['dragleave', 'dragend'].forEach(evt => {
-    els.sketchUploadZone.addEventListener(evt, (e) => {
-      e.preventDefault();
-      els.sketchUploadZone.classList.remove('dragover');
+      // Optional: add highlight style
     });
   });
   
   els.sketchUploadZone.addEventListener('drop', async (e) => {
     e.preventDefault();
-    els.sketchUploadZone.classList.remove('dragover');
     if (e.dataTransfer?.files?.[0]) {
       await loadSketchFile(e.dataTransfer.files[0]);
     }
   });
   
-  // Remove sketch
-  els.sketchRemove.addEventListener('click', () => {
-    sketchImage = null;
-    els.sketchPreview.style.display = 'none';
-    els.sketchUploadZone.style.display = 'block';
-  });
+  // Remove sketch (big preview button)
+  if (els.sketchRemove) {
+    els.sketchRemove.addEventListener('click', () => {
+      sketchImage = null;
+      els.sketchPreview.style.display = 'none';
+      
+      // Reset small preview
+      els.aiUploadPreviewImg.style.display = 'none';
+      els.aiUploadPreviewIcon.style.display = 'block';
+      els.sketchUploadZone.classList.remove('has-image');
+    });
+  }
 }
 
 async function loadSketchFile(file) {
@@ -877,9 +883,18 @@ async function loadSketchFile(file) {
       base64: compressed.base64
     };
     
-    els.sketchPreviewImg.src = compressed.dataUrl;
-    els.sketchPreview.style.display = 'block';
-    els.sketchUploadZone.style.display = 'none';
+    // Update large preview
+    if (els.sketchPreviewImg) els.sketchPreviewImg.src = compressed.dataUrl;
+    if (els.sketchPreview) els.sketchPreview.style.display = 'block';
+    
+    // Update small AI button preview
+    if (els.aiUploadPreviewImg) {
+      els.aiUploadPreviewImg.src = compressed.dataUrl;
+      els.aiUploadPreviewImg.style.display = 'block';
+    }
+    if (els.aiUploadPreviewIcon) els.aiUploadPreviewIcon.style.display = 'none';
+    if (els.sketchUploadZone) els.sketchUploadZone.classList.add('has-image');
+    
   } catch (e) {
     console.error('Failed to load/compress sketch:', e);
   }
@@ -1033,13 +1048,26 @@ function fillForm(location) {
   
   if (location.sketchAsset?.url) {
     sketchImage = { dataUrl: location.sketchAsset.url };
-    els.sketchPreviewImg.src = location.sketchAsset.url;
-    els.sketchPreview.style.display = 'block';
-    els.sketchUploadZone.style.display = 'none';
+    
+    if (els.sketchPreviewImg) els.sketchPreviewImg.src = location.sketchAsset.url;
+    if (els.sketchPreview) els.sketchPreview.style.display = 'block';
+    
+    // Update small preview
+    if (els.aiUploadPreviewImg) {
+      els.aiUploadPreviewImg.src = location.sketchAsset.url;
+      els.aiUploadPreviewImg.style.display = 'block';
+    }
+    if (els.aiUploadPreviewIcon) els.aiUploadPreviewIcon.style.display = 'none';
+    if (els.sketchUploadZone) els.sketchUploadZone.classList.add('has-image');
+    
   } else {
     sketchImage = null;
-    els.sketchPreview.style.display = 'none';
-    els.sketchUploadZone.style.display = 'block';
+    if (els.sketchPreview) els.sketchPreview.style.display = 'none';
+    
+    // Reset small preview
+    if (els.aiUploadPreviewImg) els.aiUploadPreviewImg.style.display = 'none';
+    if (els.aiUploadPreviewIcon) els.aiUploadPreviewIcon.style.display = 'block';
+    if (els.sketchUploadZone) els.sketchUploadZone.classList.remove('has-image');
   }
   
   els.btnDelete.style.display = 'block';

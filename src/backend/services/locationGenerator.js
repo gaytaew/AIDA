@@ -1,14 +1,14 @@
 /**
  * Location Generator Service
  * 
- * Uses Gemini to generate structured location data from text prompts or images.
+ * Uses OpenAI (ChatGPT) to generate structured location data from text prompts or images.
  */
 
 import { LOCATION_OPTIONS } from '../schema/location.js';
 import config from '../config.js';
 import { fetch } from 'undici';
 
-const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Construct a compact representation of available options for the AI
 function buildOptionsPrompt() {
@@ -67,64 +67,69 @@ function buildOptionsPrompt() {
 }
 
 export async function generateLocationFromPrompt(userPrompt, imageBase64 = null) {
-  const apiKey = config.GEMINI_API_KEY;
+  const apiKey = config.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error('Gemini API key is not configured');
+    throw new Error('OpenAI API key is not configured');
   }
 
   try {
     const systemInstruction = buildOptionsPrompt();
     
-    const parts = [{ text: systemInstruction }];
+    const messages = [
+      { role: "system", content: systemInstruction }
+    ];
+    
+    const userContent = [];
     
     if (userPrompt) {
-      parts.push({ text: `\nUSER DESCRIPTION: "${userPrompt}"` });
+      userContent.push({ type: "text", text: userPrompt });
     }
     
     if (imageBase64) {
-      const base64Clean = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-      parts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Clean
+      // OpenAI expects data URL
+      userContent.push({
+        type: "image_url",
+        image_url: {
+          url: imageBase64
         }
       });
-      parts.push({ text: "Analyze this image and generate the location configuration matching it." });
     }
 
+    if (userContent.length === 0) {
+      throw new Error('Prompt or image is required');
+    }
+
+    messages.push({ role: "user", content: userContent });
+
     const body = {
-      contents: [{ parts }],
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
+      model: "gpt-4o",
+      messages: messages,
+      response_format: { type: "json_object" },
+      max_tokens: 1000
     };
 
-    const response = await fetch(`${GEMINI_TEXT_URL}?key=${apiKey}`, {
+    const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+      throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
-    const candidate = data.candidates?.[0];
-    const textPart = candidate?.content?.parts?.find(p => p.text);
+    const content = data.choices?.[0]?.message?.content;
 
-    if (!textPart) {
-      throw new Error('No text in Gemini response');
+    if (!content) {
+      throw new Error('No content in OpenAI response');
     }
 
-    let jsonStr = textPart.text;
-    // Clean markdown if present (though responseMimeType: json should prevent it)
-    jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
-
-    return JSON.parse(jsonStr);
+    return JSON.parse(content);
     
   } catch (err) {
     console.error('[LocationGenerator] Error:', err);

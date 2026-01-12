@@ -8,7 +8,6 @@
   <style>
     /* Location Editor specific styles */
 
-    /* Form group label override for this page */
     .form-group label {
       font-size: 12px;
       font-weight: 600;
@@ -17,7 +16,42 @@
       letter-spacing: 0.03em;
     }
 
-    /* Sketch preview */
+    /* AI Image Upload Button */
+    .ai-image-upload {
+      width: 42px;
+      height: 42px;
+      border: 1px dashed var(--color-accent);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: rgba(99, 102, 241, 0.1);
+      transition: all 0.2s;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .ai-image-upload:hover {
+      background: rgba(99, 102, 241, 0.2);
+    }
+
+    .ai-image-upload.has-image {
+      border-style: solid;
+      padding: 0;
+    }
+
+    .ai-image-upload img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ai-image-upload-icon {
+      font-size: 20px;
+    }
+
+    /* Sketch preview (Legacy / Full size) */
     .sketch-preview {
       margin-top: 16px;
       position: relative;
@@ -345,14 +379,23 @@
                 <span class="panel-title-icon">✨</span>
                 <span>Создать с помощью AI</span>
               </div>
-              <div class="form-group full" style="margin-bottom: 0;">
-                <label style="color: var(--color-accent);">Опиши локацию</label>
-                <div style="display: flex; gap: 8px;">
-                  <input type="text" id="ai-prompt-input" placeholder="Например: Роскошный лофт в стиле гранж с кирпичными стенами..." style="flex: 1; border-color: rgba(99, 102, 241, 0.3);">
-                  <button type="button" id="btn-ai-generate" class="btn btn-primary" style="white-space: nowrap;">✨ Создать</button>
-                </div>
-                <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 6px;">
-                  AI автоматически заполнит все параметры на основе твоего описания.
+              
+              <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <!-- Image Upload (New) -->
+                <label id="sketch-upload-zone" class="ai-image-upload" title="Загрузить фото локации">
+                  <input type="file" id="sketch-file-input" accept="image/*" style="display: none;">
+                  <div id="ai-upload-preview-icon" class="ai-image-upload-icon">📷</div>
+                  <img id="ai-upload-preview-img" style="display: none;" src="" alt="preview">
+                </label>
+
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; gap: 8px;">
+                    <input type="text" id="ai-prompt-input" placeholder="Опишите локацию (или просто загрузите фото)..." style="flex: 1; border-color: rgba(99, 102, 241, 0.3);">
+                    <button type="button" id="btn-ai-generate" class="btn btn-primary" style="white-space: nowrap;">✨ Создать</button>
+                  </div>
+                  <div style="font-size: 11px; color: var(--color-text-muted);">
+                    AI автоматически заполнит параметры на основе фото или описания.
+                  </div>
                 </div>
               </div>
             </div>
@@ -481,19 +524,10 @@
                 </div>
               </div>
 
-              <!-- Sketch upload -->
-              <div class="form-group full" style="margin-top: 16px;">
-                <label>Референс локации</label>
-                <label id="sketch-upload-zone" class="upload-zone">
-                  <input type="file" id="sketch-file-input" accept="image/*" style="display: none;">
-                  <div class="upload-zone-icon">🖼️</div>
-                  <div class="upload-zone-text">Загрузи фото локации</div>
-                </label>
-              </div>
-
+              <!-- Sketch Preview (Full Size, if needed to see details) -->
               <div id="sketch-preview" class="sketch-preview" style="display: none;">
                 <img id="sketch-preview-img" src="" alt="Sketch preview">
-                <button type="button" id="sketch-remove" class="sketch-preview-remove">×</button>
+                <button type="button" id="sketch-remove" class="sketch-preview-remove" title="Удалить фото">×</button>
               </div>
 
               <div id="prompt-preview" class="prompt-preview" style="display: none;">
