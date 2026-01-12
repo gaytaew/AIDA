@@ -490,6 +490,14 @@ export async function getCustomShootWithImages(id) {
           return img;
         })
       );
+      
+      // Sort by createdAt descending (newest first)
+      resolvedImages.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.timestamp || 0);
+        const dateB = new Date(b.createdAt || b.timestamp || 0);
+        return dateB - dateA;
+      });
+      
       shoot.generatedImages = resolvedImages;
     }
     

@@ -25,7 +25,6 @@ const state = {
   // Selected for current shoot
   selectedModels: [null, null, null],
   clothingByModel: [[], [], []],
-  selectedFrames: [],
   
   // Generated frames history
   generatedFrames: [],
@@ -35,8 +34,8 @@ const state = {
   locationLock: { enabled: false, mode: null, imageId: null, imageUrl: null }
 };
 
-// Step order for navigation
-const STEP_ORDER = ['shoot', 'models', 'clothing', 'frames', 'generate'];
+// Step order for navigation (frames step removed - frames are selected directly in generate step)
+const STEP_ORDER = ['shoot', 'models', 'clothing', 'generate'];
 
 // ═══════════════════════════════════════════════════════════════
 // DOM ELEMENTS
@@ -71,14 +70,7 @@ function initElements() {
   elements.btnNextToFrames = document.getElementById('btn-next-to-frames');
   elements.stepClothingStatus = document.getElementById('step-clothing-status');
   
-  // Step 4: Frames
-  elements.selectedFrames = document.getElementById('selected-frames');
-  elements.framesGrid = document.getElementById('frames-grid');
-  elements.btnBackToClothing = document.getElementById('btn-back-to-clothing');
-  elements.btnNextToGenerate = document.getElementById('btn-next-to-generate');
-  elements.stepFramesStatus = document.getElementById('step-frames-status');
-  
-  // Step 5: Generate
+  // Step 4: Generate (frames are selected directly here)
   elements.btnBackToFrames = document.getElementById('btn-back-to-frames');
   elements.btnClearHistory = document.getElementById('btn-clear-history');
   elements.imagesGallery = document.getElementById('images-gallery');
@@ -151,16 +143,16 @@ function initEventListeners() {
   elements.btnBackToShoot.addEventListener('click', () => goToStep('shoot'));
   elements.btnNextToClothing.addEventListener('click', () => goToStep('clothing'));
   
-  // Step 3: Clothing
+  // Step 3: Clothing (now goes directly to generate, skipping frames step)
   elements.btnBackToModels.addEventListener('click', () => goToStep('models'));
-  elements.btnNextToFrames.addEventListener('click', () => goToStep('frames'));
+  elements.btnNextToFrames.addEventListener('click', () => goToStep('generate'));
   
-  // Step 4: Frames
-  elements.btnBackToClothing.addEventListener('click', () => goToStep('clothing'));
-  elements.btnNextToGenerate.addEventListener('click', () => goToStep('generate'));
+  // Step 4: Frames (kept for backward compatibility but not used in navigation)
+  elements.btnBackToClothing?.addEventListener('click', () => goToStep('clothing'));
+  elements.btnNextToGenerate?.addEventListener('click', () => goToStep('generate'));
   
-  // Step 5: Generate
-  elements.btnBackToFrames.addEventListener('click', () => goToStep('frames'));
+  // Step 5: Generate (now step 4)
+  elements.btnBackToFrames.addEventListener('click', () => goToStep('clothing'));
   elements.btnClearHistory.addEventListener('click', clearGenerationHistory);
   
   // Lock buttons
@@ -205,10 +197,6 @@ function goToStep(stepId) {
     case 'clothing':
       renderClothingSections();
       break;
-    case 'frames':
-      renderSelectedFrames();
-      renderFramesCatalog();
-      break;
     case 'generate':
       renderGeneratePage();
       break;
@@ -221,7 +209,6 @@ function updateStepStatuses() {
   const hasShoot = !!state.currentShoot;
   const hasModels = state.selectedModels.filter(m => m !== null).length > 0;
   const modelCount = state.selectedModels.filter(m => m !== null).length;
-  const frameCount = state.selectedFrames.length;
   
   // Update step lock status
   elements.stepItems.forEach(item => {
@@ -236,9 +223,6 @@ function updateStepStatuses() {
         locked = !hasShoot;
         break;
       case 'clothing':
-        locked = !hasModels;
-        break;
-      case 'frames':
         locked = !hasModels;
         break;
       case 'generate':
@@ -265,14 +249,15 @@ function updateStepStatuses() {
   elements.stepClothingStatus.textContent = hasClothing ? 'Загружено' : 'Опционально';
   elements.stepClothingStatus.className = hasClothing ? 'step-status ready' : 'step-status pending';
   
-  elements.stepFramesStatus.textContent = `${frameCount} кадров`;
-  elements.stepFramesStatus.className = frameCount > 0 ? 'step-status ready' : 'step-status pending';
+  // Generate step status - show frame count from catalog
+  const frameCount = state.frames.length;
+  elements.stepGenerateStatus.textContent = frameCount > 0 ? `${frameCount} кадров` : '—';
+  elements.stepGenerateStatus.className = frameCount > 0 ? 'step-status ready' : 'step-status pending';
   
   // Update navigation buttons
   elements.btnNextToModels.disabled = !hasShoot;
   elements.btnNextToClothing.disabled = !hasModels;
   elements.btnNextToFrames.disabled = !hasModels;
-  elements.btnNextToGenerate.disabled = !hasModels;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -409,9 +394,6 @@ function loadShootState() {
     });
   }
   
-  // Load frames
-  state.selectedFrames = state.currentShoot.frames || [];
-  
   // Load generated images
   state.generatedFrames = (state.currentShoot.generatedImages || []).map(img => ({
     ...img, // Load ALL saved properties (prompt, refs, composition, settings, etc.)
@@ -440,7 +422,6 @@ async function deleteShoot(shootId) {
         state.currentShoot = null;
         state.selectedModels = [null, null, null];
         state.clothingByModel = [[], [], []];
-        state.selectedFrames = [];
         state.generatedFrames = [];
       }
       renderShootsList();
@@ -770,101 +751,8 @@ async function loadEmotions() {
   }
 }
 
-function renderSelectedFrames() {
-  if (state.selectedFrames.length === 0) {
-    elements.selectedFrames.innerHTML = `
-      <div class="empty-state" style="padding: 40px;">
-        <div class="empty-state-icon">🖼️</div>
-        <div class="empty-state-title">Нет кадров</div>
-        <div class="empty-state-text">Добавьте кадры из каталога ниже</div>
-      </div>
-    `;
-    return;
-  }
-  
-  elements.selectedFrames.innerHTML = state.selectedFrames.map((sf, index) => {
-    const frame = state.frames.find(f => f.id === sf.frameId);
-    return `
-      <div class="frame-item">
-        <div class="frame-item-order">${index + 1}</div>
-        ${frame?.sketchUrl ? `
-          <div class="frame-item-preview">
-            <img src="${frame.sketchUrl}" alt="">
-          </div>
-        ` : ''}
-        <div class="frame-item-info">
-          <div class="frame-item-title">${escapeHtml(frame?.label || sf.frameId)}</div>
-        </div>
-        <div class="frame-item-actions">
-          <button class="btn btn-secondary" style="padding: 8px 12px;" data-remove-frame="${index}">✕</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-  
-  elements.selectedFrames.querySelectorAll('[data-remove-frame]').forEach(btn => {
-    btn.addEventListener('click', () => removeFrame(parseInt(btn.dataset.removeFrame)));
-  });
-}
-
-function renderFramesCatalog() {
-  if (state.frames.length === 0) {
-    elements.framesGrid.innerHTML = `
-      <div class="empty-state" style="grid-column: 1 / -1;">
-        <div class="empty-state-icon">🖼️</div>
-        <div class="empty-state-title">Нет кадров</div>
-        <div class="empty-state-text"><a href="/editors/frame-editor.html">Создайте кадры</a></div>
-      </div>
-    `;
-    return;
-  }
-  
-  elements.framesGrid.innerHTML = state.frames.map(f => `
-    <div class="selection-card" data-frame-id="${f.id}">
-      ${f.sketchUrl ? `
-        <div class="selection-card-preview">
-          <img src="${f.sketchUrl}" alt="${escapeHtml(f.label)}">
-        </div>
-      ` : '<div class="selection-card-icon">🖼️</div>'}
-      <div class="selection-card-title">${escapeHtml(f.label)}</div>
-    </div>
-  `).join('');
-  
-  elements.framesGrid.querySelectorAll('.selection-card').forEach(card => {
-    card.addEventListener('click', () => addFrame(card.dataset.frameId));
-  });
-}
-
-async function addFrame(frameId) {
-  state.selectedFrames.push({ frameId });
-  await saveShootFrames();
-  renderSelectedFrames();
-  updateStepStatuses();
-}
-
-async function removeFrame(index) {
-  state.selectedFrames.splice(index, 1);
-  await saveShootFrames();
-  renderSelectedFrames();
-  updateStepStatuses();
-}
-
-async function saveShootFrames() {
-  if (!state.currentShoot) return;
-  
-  try {
-    await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ frames: state.selectedFrames })
-    });
-  } catch (e) {
-    console.error('Error saving frames:', e);
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════
-// STEP 5: GENERATE
+// STEP 4: GENERATE (frames are selected directly here)
 // ═══════════════════════════════════════════════════════════════
 
 function renderGeneratePage() {
@@ -1153,25 +1041,27 @@ async function setAsLocationRef(imageId) {
 }
 
 function renderFramesToGenerate() {
-  if (state.selectedFrames.length === 0) {
+  // Show ALL frames from catalog (no pre-selection required)
+  if (state.frames.length === 0) {
     elements.framesToGenerate.innerHTML = `
       <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
-        <h4 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Генерация</h4>
+        <h4 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации</h4>
         <div class="frame-gen-card" data-frame-id="" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 2px solid var(--color-accent); border-radius: 8px;">
           <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🎯</div>
           <div style="flex: 1;">
             <div style="font-weight: 600; margin-bottom: 4px;">По умолчанию</div>
-            <div style="font-size: 12px; color: var(--color-text-muted);">Стандартные параметры</div>
+            <div style="font-size: 12px; color: var(--color-text-muted);">Генерация без конкретного эскиза позы</div>
           </div>
           <button class="btn btn-primary btn-gen-frame" data-frame-id="" style="padding: 10px 20px; font-size: 13px;">🚀 Генерировать</button>
+        </div>
+        <div style="margin-top: 12px; font-size: 12px; color: var(--color-text-muted);">
+          💡 <a href="/editors/frame-editor.html">Создайте кадры</a> в редакторе для более точного контроля поз
         </div>
       </div>
     `;
   } else {
-    const frameCards = state.selectedFrames.map((sf, idx) => {
-      const frame = state.frames.find(f => f.id === sf.frameId);
-      if (!frame) return '';
-      
+    // Show all frames from catalog
+    const frameCards = state.frames.map((frame, idx) => {
       const sketchImg = frame.sketchUrl 
         ? `<img src="${frame.sketchUrl}" alt="sketch" style="width: 100%; height: 100%; object-fit: contain;">`
         : '<span style="font-size: 24px;">🖼️</span>';
@@ -1180,7 +1070,8 @@ function renderFramesToGenerate() {
         <div class="frame-gen-card" data-frame-id="${frame.id}" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 8px;">
           <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden;">${sketchImg}</div>
           <div style="flex: 1;">
-            <div style="font-weight: 600; margin-bottom: 4px;">${idx + 1}. ${escapeHtml(frame.label)}</div>
+            <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(frame.label)}</div>
+            ${frame.description ? `<div style="font-size: 11px; color: var(--color-text-muted);">${escapeHtml(frame.description)}</div>` : ''}
           </div>
           <button class="btn btn-primary btn-gen-frame" data-frame-id="${frame.id}" style="padding: 10px 20px; font-size: 13px;">🚀 Генерировать</button>
         </div>
@@ -1189,12 +1080,13 @@ function renderFramesToGenerate() {
     
     elements.framesToGenerate.innerHTML = `
       <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
-        <h4 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации (${state.selectedFrames.length})</h4>
+        <h4 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации (${state.frames.length})</h4>
         ${frameCards}
         <div class="frame-gen-card" data-frame-id="" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: 8px; opacity: 0.7; margin-top: 8px;">
           <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🎯</div>
           <div style="flex: 1;">
             <div style="font-weight: 500;">По умолчанию (без эскиза)</div>
+            <div style="font-size: 11px; color: var(--color-text-muted);">Свободная поза</div>
           </div>
           <button class="btn btn-secondary btn-gen-frame" data-frame-id="" style="padding: 10px 20px; font-size: 13px;">Генерировать</button>
         </div>

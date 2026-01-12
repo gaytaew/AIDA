@@ -322,19 +322,11 @@
                   <div class="step-status pending" id="step-clothing-status">Опционально</div>
                 </div>
               </li>
-              <li class="step-item locked" data-step="frames">
+              <li class="step-item locked" data-step="generate">
                 <div class="step-number">4</div>
                 <div class="step-content">
-                  <div class="step-title">Кадры</div>
-                  <div class="step-desc">Позы и композиции</div>
-                  <div class="step-status pending" id="step-frames-status">0 кадров</div>
-                </div>
-              </li>
-              <li class="step-item locked" data-step="generate">
-                <div class="step-number">5</div>
-                <div class="step-content">
                   <div class="step-title">Генерация</div>
-                  <div class="step-desc">Настройки + запуск</div>
+                  <div class="step-desc">Кадры + настройки</div>
                   <div class="step-status pending" id="step-generate-status">—</div>
                 </div>
               </li>
@@ -433,50 +425,12 @@
                   ← Назад
                 </button>
                 <button class="btn btn-primary" id="btn-next-to-frames">
-                  Далее: Кадры →
-                </button>
-              </div>
-            </div>
-
-            <!-- Step 4: Frames -->
-            <div class="step-panel" data-panel="frames">
-              <div class="step-panel-header">
-                <h2 class="step-panel-title">Добавь кадры</h2>
-                <p class="step-panel-desc">
-                  Выбери кадры из каталога для генерации с эскизами поз.
-                </p>
-              </div>
-
-              <div id="selected-frames" class="frames-list" style="margin-bottom: 24px;">
-                <div class="empty-state" style="padding: 40px;">
-                  <div class="empty-state-icon">🖼️</div>
-                  <div class="empty-state-title">Нет кадров</div>
-                  <div class="empty-state-text">Добавьте кадры из каталога ниже</div>
-                </div>
-              </div>
-
-              <h3 class="section-title" style="margin-bottom: 16px;">Каталог кадров</h3>
-              <div id="frames-grid" class="selection-grid">
-                <div class="empty-state" style="grid-column: 1 / -1;">
-                  <div class="empty-state-icon">🖼️</div>
-                  <div class="empty-state-title">Нет кадров в каталоге</div>
-                  <div class="empty-state-text">
-                    <a href="/editors/frame-editor.html">Создайте кадры</a> в редакторе
-                  </div>
-                </div>
-              </div>
-
-              <div class="composer-nav">
-                <button class="btn btn-secondary" id="btn-back-to-clothing">
-                  ← Назад
-                </button>
-                <button class="btn btn-primary" id="btn-next-to-generate">
                   Далее: Генерация →
                 </button>
               </div>
             </div>
 
-            <!-- Step 5: Generation with Universe Settings -->
+            <!-- Step 4: Generation with Universe Settings (frames are selected here) -->
             <div class="step-panel" data-panel="generate">
               <div class="step-panel-header">
                 <h2 class="step-panel-title">Генерация с ручными настройками</h2>
@@ -844,7 +798,7 @@
 
               <div class="composer-nav">
                 <button class="btn btn-secondary" id="btn-back-to-frames">
-                  ← Назад
+                  ← Назад к одежде
                 </button>
                 <button class="btn btn-secondary" id="btn-clear-history" style="color: var(--color-accent);">
                   🗑️ Очистить историю

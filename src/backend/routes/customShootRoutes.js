@@ -521,9 +521,15 @@ router.post('/:id/generate', async (req, res) => {
     
     const savedImage = await addImageToShoot(shoot.id, imageData);
     
+    // Return the original data URL for immediate display (not the stored path)
+    const responseImage = {
+      ...savedImage,
+      imageUrl: imageData.imageUrl  // Use original data URL, not the saved path
+    };
+    
     res.json({
       ok: true,
-      image: savedImage,
+      image: responseImage,
       prompt: result.prompt,
       refs
     });
