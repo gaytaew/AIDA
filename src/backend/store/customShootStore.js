@@ -590,6 +590,14 @@ export async function updateShootParams(shootId, updates) {
       shoot.clothing = updates.clothing;
     }
     
+    // Update generation settings (all UI settings for the generate step)
+    if (updates.generationSettings !== undefined) {
+      shoot.generationSettings = {
+        ...shoot.generationSettings,
+        ...updates.generationSettings
+      };
+    }
+    
     await _writeShoot(shoot);
     
     return shoot;

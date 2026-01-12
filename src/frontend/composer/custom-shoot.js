@@ -31,7 +31,10 @@ const state = {
   
   // Reference Locks state
   styleLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
-  locationLock: { enabled: false, mode: null, imageId: null, imageUrl: null }
+  locationLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
+  
+  // Generation settings (persisted per shoot)
+  generationSettings: {}
 };
 
 // Step order for navigation (frames step removed - frames are selected directly in generate step)
@@ -407,6 +410,9 @@ function loadShootState() {
   // Load locks
   state.styleLock = state.currentShoot.locks?.style || { enabled: false, mode: null, imageId: null, imageUrl: null };
   state.locationLock = state.currentShoot.locks?.location || { enabled: false, mode: null, imageId: null, imageUrl: null };
+  
+  // Load generation settings
+  state.generationSettings = state.currentShoot.generationSettings || {};
 }
 
 async function deleteShoot(shootId) {
@@ -752,6 +758,199 @@ async function loadEmotions() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// GENERATION SETTINGS PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Collect all current generation settings from UI
+ */
+function collectGenerationSettings() {
+  return {
+    // Universe settings
+    cameraSignature: elements.genCameraSignature?.value || 'contax_t2',
+    captureStyle: elements.genCaptureStyle?.value || 'candid_aware',
+    light: elements.genLight?.value || 'natural_soft',
+    color: elements.genColor?.value || 'film_warm',
+    skinTexture: elements.genSkinTexture?.value || 'natural_film',
+    era: elements.genEra?.value || 'contemporary',
+    
+    // Frame parameters
+    locationId: elements.genLocation?.value || '',
+    emotionId: elements.genEmotion?.value || '',
+    aspectRatio: elements.genAspectRatio?.value || '3:4',
+    imageSize: elements.genImageSize?.value || '2K',
+    poseAdherence: elements.genPoseAdherence?.value || '2',
+    
+    // Composition
+    shotSize: elements.genShotSize?.value || 'default',
+    cameraAngle: elements.genCameraAngle?.value || 'eye_level',
+    focusMode: elements.genFocusMode?.value || 'shallow',
+    
+    // Anti-AI
+    antiAiLevel: elements.genAntiAiLevel?.value || 'medium',
+    
+    // Ambient
+    weather: elements.genWeather?.value || 'clear',
+    timeOfDay: elements.genTimeOfDay?.value || 'any',
+    season: elements.genSeason?.value || 'summer',
+    atmosphere: elements.genAtmosphere?.value || 'neutral',
+    
+    // Extra prompt
+    extraPrompt: elements.genExtraPrompt?.value || ''
+  };
+}
+
+/**
+ * Apply loaded generation settings to UI
+ */
+function applyGenerationSettings(settings) {
+  if (!settings) return;
+  
+  // Universe settings
+  if (settings.cameraSignature && elements.genCameraSignature) {
+    elements.genCameraSignature.value = settings.cameraSignature;
+  }
+  if (settings.captureStyle && elements.genCaptureStyle) {
+    elements.genCaptureStyle.value = settings.captureStyle;
+  }
+  if (settings.light && elements.genLight) {
+    elements.genLight.value = settings.light;
+  }
+  if (settings.color && elements.genColor) {
+    elements.genColor.value = settings.color;
+  }
+  if (settings.skinTexture && elements.genSkinTexture) {
+    elements.genSkinTexture.value = settings.skinTexture;
+  }
+  if (settings.era && elements.genEra) {
+    elements.genEra.value = settings.era;
+  }
+  
+  // Frame parameters
+  if (settings.locationId !== undefined && elements.genLocation) {
+    elements.genLocation.value = settings.locationId;
+  }
+  if (settings.emotionId !== undefined && elements.genEmotion) {
+    elements.genEmotion.value = settings.emotionId;
+  }
+  if (settings.aspectRatio && elements.genAspectRatio) {
+    elements.genAspectRatio.value = settings.aspectRatio;
+  }
+  if (settings.imageSize && elements.genImageSize) {
+    elements.genImageSize.value = settings.imageSize;
+  }
+  if (settings.poseAdherence && elements.genPoseAdherence) {
+    elements.genPoseAdherence.value = settings.poseAdherence;
+  }
+  
+  // Composition
+  if (settings.shotSize && elements.genShotSize) {
+    elements.genShotSize.value = settings.shotSize;
+  }
+  if (settings.cameraAngle && elements.genCameraAngle) {
+    elements.genCameraAngle.value = settings.cameraAngle;
+  }
+  if (settings.focusMode && elements.genFocusMode) {
+    elements.genFocusMode.value = settings.focusMode;
+  }
+  
+  // Anti-AI
+  if (settings.antiAiLevel && elements.genAntiAiLevel) {
+    elements.genAntiAiLevel.value = settings.antiAiLevel;
+  }
+  
+  // Ambient
+  if (settings.weather && elements.genWeather) {
+    elements.genWeather.value = settings.weather;
+  }
+  if (settings.timeOfDay && elements.genTimeOfDay) {
+    elements.genTimeOfDay.value = settings.timeOfDay;
+  }
+  if (settings.season && elements.genSeason) {
+    elements.genSeason.value = settings.season;
+  }
+  if (settings.atmosphere && elements.genAtmosphere) {
+    elements.genAtmosphere.value = settings.atmosphere;
+  }
+  
+  // Extra prompt
+  if (settings.extraPrompt !== undefined && elements.genExtraPrompt) {
+    elements.genExtraPrompt.value = settings.extraPrompt;
+  }
+  
+  // Update ambient section visibility
+  updateAmbientSectionVisibility();
+}
+
+/**
+ * Save current generation settings to server (debounced)
+ */
+let saveSettingsTimeout = null;
+async function saveGenerationSettings() {
+  if (!state.currentShoot) return;
+  
+  // Debounce to avoid too many requests
+  if (saveSettingsTimeout) {
+    clearTimeout(saveSettingsTimeout);
+  }
+  
+  saveSettingsTimeout = setTimeout(async () => {
+    const settings = collectGenerationSettings();
+    state.generationSettings = settings;
+    
+    try {
+      await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generationSettings: settings })
+      });
+      console.log('[CustomShoot] Settings saved');
+    } catch (e) {
+      console.error('Error saving generation settings:', e);
+    }
+  }, 500); // 500ms debounce
+}
+
+/**
+ * Initialize event listeners for auto-saving generation settings
+ */
+function initSettingsAutoSave() {
+  const settingsElements = [
+    elements.genCameraSignature,
+    elements.genCaptureStyle,
+    elements.genLight,
+    elements.genColor,
+    elements.genSkinTexture,
+    elements.genEra,
+    elements.genLocation,
+    elements.genEmotion,
+    elements.genAspectRatio,
+    elements.genImageSize,
+    elements.genPoseAdherence,
+    elements.genShotSize,
+    elements.genCameraAngle,
+    elements.genFocusMode,
+    elements.genAntiAiLevel,
+    elements.genWeather,
+    elements.genTimeOfDay,
+    elements.genSeason,
+    elements.genAtmosphere
+  ];
+  
+  // Add change listeners to all select elements
+  settingsElements.forEach(el => {
+    if (el) {
+      el.addEventListener('change', saveGenerationSettings);
+    }
+  });
+  
+  // Add input listener to extra prompt (with debounce already in saveGenerationSettings)
+  if (elements.genExtraPrompt) {
+    elements.genExtraPrompt.addEventListener('input', saveGenerationSettings);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // STEP 4: GENERATE (frames are selected directly here)
 // ═══════════════════════════════════════════════════════════════
 
@@ -768,14 +967,17 @@ function renderGeneratePage() {
   elements.genLocation.removeEventListener('change', handleLocationChange);
   elements.genLocation.addEventListener('change', handleLocationChange);
   
-  // Initial ambient section state
-  updateAmbientSectionVisibility();
-  
   // Populate emotion dropdown
   elements.genEmotion.innerHTML = '<option value="">Нейтральная</option>';
   state.emotions.forEach(e => {
     elements.genEmotion.innerHTML += `<option value="${e.id}">${e.label}</option>`;
   });
+  
+  // Apply saved generation settings AFTER populating dropdowns
+  applyGenerationSettings(state.generationSettings);
+  
+  // Update ambient section visibility (after settings applied)
+  updateAmbientSectionVisibility();
   
   // Update lock UI
   updateLockUI();
@@ -1688,6 +1890,7 @@ async function init() {
   initElements();
   initEventListeners();
   initLightbox();
+  initSettingsAutoSave();
   
   await checkServerStatus();
   
