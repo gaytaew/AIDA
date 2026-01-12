@@ -13,6 +13,7 @@ let savedLocations = [];
 let currentLocation = null;
 let sketchImage = null; // { file, dataUrl, mimeType, base64 }
 let currentProps = []; // Array of prop strings
+let currentSpaceType = 'studio'; // Current selected space type
 
 // ═══════════════════════════════════════════════════════════════
 // ELEMENTS
@@ -34,6 +35,52 @@ function getElements() {
     promptText: document.getElementById('prompt-text'),
     btnClearForm: document.getElementById('btn-clear-form'),
     btnDelete: document.getElementById('btn-delete'),
+    
+    // Space type selector
+    spaceTypeSelector: document.getElementById('space-type-selector'),
+    
+    // Context sections
+    sectionInterior: document.getElementById('section-interior'),
+    sectionUrban: document.getElementById('section-urban'),
+    sectionNature: document.getElementById('section-nature'),
+    sectionRooftop: document.getElementById('section-rooftop'),
+    sectionTransport: document.getElementById('section-transport'),
+    sectionStudio: document.getElementById('section-studio'),
+    sectionAmbient: document.getElementById('section-ambient'),
+    
+    // Interior fields
+    interiorType: document.getElementById('interior-type'),
+    interiorSubtype: document.getElementById('interior-subtype'),
+    interiorStyle: document.getElementById('interior-style'),
+    interiorWindow: document.getElementById('interior-window'),
+    
+    // Urban fields
+    urbanType: document.getElementById('urban-type'),
+    urbanArchitecture: document.getElementById('urban-architecture'),
+    urbanDensity: document.getElementById('urban-density'),
+    
+    // Nature fields
+    natureType: document.getElementById('nature-type'),
+    natureVegetation: document.getElementById('nature-vegetation'),
+    natureTerrain: document.getElementById('nature-terrain'),
+    
+    // Rooftop fields
+    rooftopType: document.getElementById('rooftop-type'),
+    rooftopView: document.getElementById('rooftop-view'),
+    
+    // Transport fields
+    transportType: document.getElementById('transport-type'),
+    transportStyle: document.getElementById('transport-style'),
+    transportMotion: document.getElementById('transport-motion'),
+    
+    // Studio fields
+    studioBackdrop: document.getElementById('studio-backdrop'),
+    studioLighting: document.getElementById('studio-lighting'),
+    
+    // Ambient fields
+    ambientWeather: document.getElementById('ambient-weather'),
+    ambientSeason: document.getElementById('ambient-season'),
+    ambientAtmosphere: document.getElementById('ambient-atmosphere'),
     
     // Props
     propsContainer: document.getElementById('props-container'),
@@ -178,7 +225,7 @@ function populateSelects() {
   populateSelect(els.categorySelect, locationOptions.categories);
   populateSelect(els.filterCategory, locationOptions.categories, true);
   
-  // Environment type
+  // Environment type (legacy, hidden)
   populateSelect(els.environmentSelect, locationOptions.environmentType);
   
   // Lighting type
@@ -186,6 +233,48 @@ function populateSelects() {
   
   // Time of day
   populateSelect(els.timeOfDaySelect, locationOptions.timeOfDay);
+  
+  // Space type selector
+  renderSpaceTypeSelector();
+  
+  // Interior options
+  populateSelectFromObjects(els.interiorType, locationOptions.interiorType);
+  populateSelectFromObjects(els.interiorStyle, locationOptions.interiorStyle);
+  populateSelectFromObjects(els.interiorWindow, locationOptions.windowLight);
+  
+  // Urban options
+  populateSelectFromObjects(els.urbanType, locationOptions.urbanType);
+  populateSelectFromObjects(els.urbanArchitecture, locationOptions.urbanArchitecture);
+  populateSelectFromObjects(els.urbanDensity, locationOptions.urbanDensity);
+  
+  // Nature options
+  populateSelectFromObjects(els.natureType, locationOptions.natureType);
+  populateSelectFromObjects(els.natureVegetation, locationOptions.vegetation);
+  populateSelectFromObjects(els.natureTerrain, locationOptions.terrain);
+  
+  // Rooftop options
+  populateSelectFromObjects(els.rooftopType, locationOptions.rooftopType);
+  populateSelectFromObjects(els.rooftopView, locationOptions.cityView);
+  
+  // Transport options
+  populateSelectFromObjects(els.transportType, locationOptions.transportType);
+  populateSelectFromObjects(els.transportStyle, locationOptions.vehicleStyle);
+  populateSelectFromObjects(els.transportMotion, locationOptions.motion);
+  
+  // Studio options
+  populateSelectFromObjects(els.studioBackdrop, locationOptions.studioBackdrop);
+  populateSelectFromObjects(els.studioLighting, locationOptions.studioLighting);
+  
+  // Ambient options
+  populateSelectFromObjects(els.ambientWeather, locationOptions.weather);
+  populateSelectFromObjects(els.ambientSeason, locationOptions.season);
+  populateSelectFromObjects(els.ambientAtmosphere, locationOptions.atmosphere);
+  
+  // Update interior subtypes when type changes
+  if (els.interiorType) {
+    els.interiorType.addEventListener('change', updateInteriorSubtypes);
+    updateInteriorSubtypes();
+  }
 }
 
 function populateSelect(select, options, addAll = false) {
@@ -203,6 +292,114 @@ function populateSelect(select, options, addAll = false) {
     option.textContent = formatOptionLabel(opt);
     select.appendChild(option);
   });
+}
+
+function populateSelectFromObjects(select, options) {
+  if (!select || !options) return;
+  
+  select.innerHTML = '';
+  
+  options.forEach(opt => {
+    const option = document.createElement('option');
+    option.value = opt.id;
+    option.textContent = opt.label || formatOptionLabel(opt.id);
+    select.appendChild(option);
+  });
+}
+
+function updateInteriorSubtypes() {
+  const els = getElements();
+  const selectedType = els.interiorType?.value;
+  const typeOption = locationOptions.interiorType?.find(t => t.id === selectedType);
+  
+  if (typeOption?.subtypes) {
+    populateSelectFromObjects(els.interiorSubtype, typeOption.subtypes);
+  } else {
+    els.interiorSubtype.innerHTML = '<option value="">—</option>';
+  }
+}
+
+function renderSpaceTypeSelector() {
+  const els = getElements();
+  if (!els.spaceTypeSelector || !locationOptions.spaceType) return;
+  
+  els.spaceTypeSelector.innerHTML = locationOptions.spaceType.map(st => `
+    <button type="button" class="space-type-btn ${st.id === currentSpaceType ? 'active' : ''}" data-space-type="${st.id}">
+      <span class="space-type-btn-icon">${st.icon}</span>
+      <span class="space-type-btn-label">${st.label}</span>
+    </button>
+  `).join('');
+  
+  // Add click handlers
+  els.spaceTypeSelector.querySelectorAll('.space-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const spaceType = btn.dataset.spaceType;
+      setSpaceType(spaceType);
+    });
+  });
+}
+
+function setSpaceType(spaceType) {
+  currentSpaceType = spaceType;
+  
+  const els = getElements();
+  
+  // Update buttons
+  els.spaceTypeSelector.querySelectorAll('.space-type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.spaceType === spaceType);
+  });
+  
+  // Hide all context sections
+  const sections = [
+    els.sectionInterior,
+    els.sectionUrban,
+    els.sectionNature,
+    els.sectionRooftop,
+    els.sectionTransport,
+    els.sectionStudio,
+    els.sectionAmbient
+  ];
+  sections.forEach(s => { if (s) s.style.display = 'none'; });
+  
+  // Show relevant section
+  switch (spaceType) {
+    case 'interior':
+      if (els.sectionInterior) els.sectionInterior.style.display = 'contents';
+      break;
+    case 'exterior_urban':
+      if (els.sectionUrban) els.sectionUrban.style.display = 'contents';
+      if (els.sectionAmbient) els.sectionAmbient.style.display = 'block';
+      break;
+    case 'exterior_nature':
+      if (els.sectionNature) els.sectionNature.style.display = 'contents';
+      if (els.sectionAmbient) els.sectionAmbient.style.display = 'block';
+      break;
+    case 'rooftop_terrace':
+      if (els.sectionRooftop) els.sectionRooftop.style.display = 'contents';
+      if (els.sectionAmbient) els.sectionAmbient.style.display = 'block';
+      break;
+    case 'transport':
+      if (els.sectionTransport) els.sectionTransport.style.display = 'contents';
+      break;
+    case 'studio':
+      if (els.sectionStudio) els.sectionStudio.style.display = 'contents';
+      break;
+  }
+  
+  // Update legacy environment type for backwards compatibility
+  const envMap = {
+    interior: 'indoor',
+    exterior_urban: 'urban',
+    exterior_nature: 'nature',
+    rooftop_terrace: 'outdoor',
+    transport: 'outdoor',
+    studio: 'studio'
+  };
+  if (els.environmentSelect) {
+    els.environmentSelect.value = envMap[spaceType] || 'studio';
+  }
+  
+  updatePromptPreview();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -230,10 +427,24 @@ function initForm() {
     }
   });
   
-  // Update prompt preview on change
+  // Update prompt preview on change - all form inputs
   const formInputs = [
     els.environmentSelect, els.lightingTypeSelect, els.timeOfDaySelect,
-    els.surfaceInput, els.lightingDescInput, els.descriptionTextarea
+    els.surfaceInput, els.lightingDescInput, els.descriptionTextarea,
+    // Interior
+    els.interiorType, els.interiorSubtype, els.interiorStyle, els.interiorWindow,
+    // Urban
+    els.urbanType, els.urbanArchitecture, els.urbanDensity,
+    // Nature
+    els.natureType, els.natureVegetation, els.natureTerrain,
+    // Rooftop
+    els.rooftopType, els.rooftopView,
+    // Transport
+    els.transportType, els.transportStyle, els.transportMotion,
+    // Studio
+    els.studioBackdrop, els.studioLighting,
+    // Ambient
+    els.ambientWeather, els.ambientSeason, els.ambientAtmosphere
   ];
   
   formInputs.forEach(input => {
@@ -248,18 +459,29 @@ function updatePromptPreview() {
   const els = getElements();
   const parts = [];
   
-  // Environment type
-  const envType = els.environmentSelect.value;
-  if (envType) {
-    const envMap = {
-      studio: 'studio setting',
-      indoor: 'indoor environment',
-      outdoor: 'outdoor location',
-      urban: 'urban environment',
-      nature: 'natural setting',
-      abstract: 'abstract background'
-    };
-    parts.push(envMap[envType] || formatOptionLabel(envType));
+  // Space type specific parts
+  switch (currentSpaceType) {
+    case 'interior':
+      parts.push(...buildInteriorPreview(els));
+      break;
+    case 'exterior_urban':
+      parts.push(...buildUrbanPreview(els));
+      parts.push(...buildAmbientPreview(els));
+      break;
+    case 'exterior_nature':
+      parts.push(...buildNaturePreview(els));
+      parts.push(...buildAmbientPreview(els));
+      break;
+    case 'rooftop_terrace':
+      parts.push(...buildRooftopPreview(els));
+      parts.push(...buildAmbientPreview(els));
+      break;
+    case 'transport':
+      parts.push(...buildTransportPreview(els));
+      break;
+    case 'studio':
+      parts.push(...buildStudioPreview(els));
+      break;
   }
   
   // Surface
@@ -268,7 +490,7 @@ function updatePromptPreview() {
     parts.push(surface);
   }
   
-  // Lighting
+  // Lighting type
   const lightingType = els.lightingTypeSelect.value;
   if (lightingType && lightingType !== 'natural') {
     const lightMap = {
@@ -319,6 +541,154 @@ function updatePromptPreview() {
   els.promptPreview.style.display = 'block';
 }
 
+function buildInteriorPreview(els) {
+  const parts = [];
+  
+  // Get selected labels from options
+  const typeOption = els.interiorType?.selectedOptions[0];
+  const subtypeOption = els.interiorSubtype?.selectedOptions[0];
+  const styleOption = els.interiorStyle?.selectedOptions[0];
+  const windowOption = els.interiorWindow?.selectedOptions[0];
+  
+  if (subtypeOption?.text) {
+    parts.push(subtypeOption.text.toLowerCase());
+  } else if (typeOption?.text) {
+    parts.push(typeOption.text.toLowerCase());
+  }
+  
+  if (styleOption?.text) {
+    parts.push(`${styleOption.text.toLowerCase()} style`);
+  }
+  
+  if (windowOption?.value && windowOption.value !== 'none') {
+    parts.push(`natural light from ${windowOption.text.toLowerCase()}`);
+  }
+  
+  return parts;
+}
+
+function buildUrbanPreview(els) {
+  const parts = [];
+  
+  const typeOption = els.urbanType?.selectedOptions[0];
+  const archOption = els.urbanArchitecture?.selectedOptions[0];
+  const densityOption = els.urbanDensity?.selectedOptions[0];
+  
+  if (typeOption?.text) {
+    parts.push(typeOption.text.toLowerCase());
+  }
+  
+  if (archOption?.text) {
+    parts.push(`${archOption.text.toLowerCase()} architecture`);
+  }
+  
+  if (densityOption?.value && densityOption.value !== 'moderate') {
+    parts.push(densityOption.text.toLowerCase());
+  }
+  
+  return parts;
+}
+
+function buildNaturePreview(els) {
+  const parts = [];
+  
+  const typeOption = els.natureType?.selectedOptions[0];
+  const vegOption = els.natureVegetation?.selectedOptions[0];
+  const terrainOption = els.natureTerrain?.selectedOptions[0];
+  
+  if (typeOption?.text) {
+    parts.push(typeOption.text.toLowerCase());
+  }
+  
+  if (vegOption?.value && vegOption.value !== 'lush') {
+    parts.push(`${vegOption.text.toLowerCase()} vegetation`);
+  }
+  
+  if (terrainOption?.value && terrainOption.value !== 'flat') {
+    parts.push(`${terrainOption.text.toLowerCase()} terrain`);
+  }
+  
+  return parts;
+}
+
+function buildRooftopPreview(els) {
+  const parts = [];
+  
+  const typeOption = els.rooftopType?.selectedOptions[0];
+  const viewOption = els.rooftopView?.selectedOptions[0];
+  
+  if (typeOption?.text) {
+    parts.push(typeOption.text.toLowerCase());
+  }
+  
+  if (viewOption?.value && viewOption.value !== 'no_view') {
+    parts.push(`with ${viewOption.text.toLowerCase()}`);
+  }
+  
+  return parts;
+}
+
+function buildTransportPreview(els) {
+  const parts = [];
+  
+  const typeOption = els.transportType?.selectedOptions[0];
+  const styleOption = els.transportStyle?.selectedOptions[0];
+  const motionOption = els.transportMotion?.selectedOptions[0];
+  
+  if (typeOption?.text) {
+    parts.push(typeOption.text.toLowerCase());
+  }
+  
+  if (styleOption?.value && styleOption.value !== 'everyday') {
+    parts.push(`${styleOption.text.toLowerCase()} style`);
+  }
+  
+  if (motionOption?.value && motionOption.value !== 'parked') {
+    parts.push(motionOption.text.toLowerCase());
+  }
+  
+  return parts;
+}
+
+function buildStudioPreview(els) {
+  const parts = ['studio setting'];
+  
+  const backdropOption = els.studioBackdrop?.selectedOptions[0];
+  const lightingOption = els.studioLighting?.selectedOptions[0];
+  
+  if (backdropOption?.text) {
+    parts.push(backdropOption.text.toLowerCase());
+  }
+  
+  if (lightingOption?.text) {
+    parts.push(`${lightingOption.text.toLowerCase()} lighting`);
+  }
+  
+  return parts;
+}
+
+function buildAmbientPreview(els) {
+  const parts = [];
+  
+  const weatherOption = els.ambientWeather?.selectedOptions[0];
+  const seasonOption = els.ambientSeason?.selectedOptions[0];
+  const atmosOption = els.ambientAtmosphere?.selectedOptions[0];
+  
+  if (weatherOption?.value && weatherOption.value !== 'clear') {
+    parts.push(weatherOption.text.toLowerCase());
+  }
+  
+  if (seasonOption?.text) {
+    parts.push(`${seasonOption.text.toLowerCase()} atmosphere`);
+  }
+  
+  if (atmosOption?.value && atmosOption.value !== 'neutral') {
+    parts.push(`${atmosOption.text.toLowerCase()} air`);
+  }
+  
+  return parts;
+}
+
 function clearForm() {
   const els = getElements();
   
@@ -331,9 +701,40 @@ function clearForm() {
   els.lightingDescInput.value = '';
   els.descriptionTextarea.value = '';
   
+  // Reset hierarchical fields
+  if (els.interiorType) els.interiorType.selectedIndex = 0;
+  if (els.interiorSubtype) els.interiorSubtype.selectedIndex = 0;
+  if (els.interiorStyle) els.interiorStyle.selectedIndex = 0;
+  if (els.interiorWindow) els.interiorWindow.selectedIndex = 0;
+  
+  if (els.urbanType) els.urbanType.selectedIndex = 0;
+  if (els.urbanArchitecture) els.urbanArchitecture.selectedIndex = 0;
+  if (els.urbanDensity) els.urbanDensity.selectedIndex = 0;
+  
+  if (els.natureType) els.natureType.selectedIndex = 0;
+  if (els.natureVegetation) els.natureVegetation.selectedIndex = 0;
+  if (els.natureTerrain) els.natureTerrain.selectedIndex = 0;
+  
+  if (els.rooftopType) els.rooftopType.selectedIndex = 0;
+  if (els.rooftopView) els.rooftopView.selectedIndex = 0;
+  
+  if (els.transportType) els.transportType.selectedIndex = 0;
+  if (els.transportStyle) els.transportStyle.selectedIndex = 0;
+  if (els.transportMotion) els.transportMotion.selectedIndex = 0;
+  
+  if (els.studioBackdrop) els.studioBackdrop.selectedIndex = 0;
+  if (els.studioLighting) els.studioLighting.selectedIndex = 0;
+  
+  if (els.ambientWeather) els.ambientWeather.selectedIndex = 0;
+  if (els.ambientSeason) els.ambientSeason.selectedIndex = 0;
+  if (els.ambientAtmosphere) els.ambientAtmosphere.selectedIndex = 0;
+  
   currentLocation = null;
   currentProps = [];
   sketchImage = null;
+  
+  // Reset space type to studio
+  setSpaceType('studio');
   
   els.sketchPreview.style.display = 'none';
   els.sketchUploadZone.style.display = 'block';
@@ -364,7 +765,58 @@ async function saveLocation() {
       timeOfDay: els.timeOfDaySelect.value,
       description: els.lightingDescInput.value.trim()
     },
-    props: currentProps
+    props: currentProps,
+    
+    // NEW: Hierarchical context-aware parameters
+    spaceType: currentSpaceType,
+    
+    // Interior
+    interior: {
+      type: els.interiorType?.value || 'residential',
+      subtype: els.interiorSubtype?.value || 'apartment',
+      style: els.interiorStyle?.value || 'modern_minimal',
+      windowLight: els.interiorWindow?.value || 'large'
+    },
+    
+    // Urban
+    urban: {
+      type: els.urbanType?.value || 'city_street',
+      architecture: els.urbanArchitecture?.value || 'modern',
+      density: els.urbanDensity?.value || 'sparse'
+    },
+    
+    // Nature
+    nature: {
+      type: els.natureType?.value || 'forest',
+      vegetation: els.natureVegetation?.value || 'lush',
+      terrain: els.natureTerrain?.value || 'flat'
+    },
+    
+    // Rooftop
+    rooftop: {
+      type: els.rooftopType?.value || 'open_rooftop',
+      cityView: els.rooftopView?.value || 'skyline'
+    },
+    
+    // Transport
+    transport: {
+      type: els.transportType?.value || 'car_interior',
+      vehicleStyle: els.transportStyle?.value || 'luxury',
+      motion: els.transportMotion?.value || 'parked'
+    },
+    
+    // Studio
+    studio: {
+      backdrop: els.studioBackdrop?.value || 'white_seamless',
+      lightingSetup: els.studioLighting?.value || 'three_point'
+    },
+    
+    // Ambient
+    ambient: {
+      weather: els.ambientWeather?.value || 'clear',
+      season: els.ambientSeason?.value || 'summer',
+      atmosphere: els.ambientAtmosphere?.value || 'neutral'
+    }
   };
   
   // Add sketch if available
@@ -659,6 +1111,53 @@ function fillForm(location) {
     els.lightingDescInput.value = location.lighting.description || '';
   }
   
+  // Set space type (with fallback for legacy locations)
+  const spaceType = location.spaceType || mapLegacyEnvironmentToSpaceType(location.environmentType);
+  setSpaceType(spaceType);
+  
+  // Fill hierarchical fields
+  if (location.interior) {
+    if (els.interiorType) els.interiorType.value = location.interior.type || 'residential';
+    updateInteriorSubtypes(); // Update subtypes based on type
+    if (els.interiorSubtype) els.interiorSubtype.value = location.interior.subtype || '';
+    if (els.interiorStyle) els.interiorStyle.value = location.interior.style || 'modern_minimal';
+    if (els.interiorWindow) els.interiorWindow.value = location.interior.windowLight || 'large';
+  }
+  
+  if (location.urban) {
+    if (els.urbanType) els.urbanType.value = location.urban.type || 'city_street';
+    if (els.urbanArchitecture) els.urbanArchitecture.value = location.urban.architecture || 'modern';
+    if (els.urbanDensity) els.urbanDensity.value = location.urban.density || 'sparse';
+  }
+  
+  if (location.nature) {
+    if (els.natureType) els.natureType.value = location.nature.type || 'forest';
+    if (els.natureVegetation) els.natureVegetation.value = location.nature.vegetation || 'lush';
+    if (els.natureTerrain) els.natureTerrain.value = location.nature.terrain || 'flat';
+  }
+  
+  if (location.rooftop) {
+    if (els.rooftopType) els.rooftopType.value = location.rooftop.type || 'open_rooftop';
+    if (els.rooftopView) els.rooftopView.value = location.rooftop.cityView || 'skyline';
+  }
+  
+  if (location.transport) {
+    if (els.transportType) els.transportType.value = location.transport.type || 'car_interior';
+    if (els.transportStyle) els.transportStyle.value = location.transport.vehicleStyle || 'luxury';
+    if (els.transportMotion) els.transportMotion.value = location.transport.motion || 'parked';
+  }
+  
+  if (location.studio) {
+    if (els.studioBackdrop) els.studioBackdrop.value = location.studio.backdrop || 'white_seamless';
+    if (els.studioLighting) els.studioLighting.value = location.studio.lightingSetup || 'three_point';
+  }
+  
+  if (location.ambient) {
+    if (els.ambientWeather) els.ambientWeather.value = location.ambient.weather || 'clear';
+    if (els.ambientSeason) els.ambientSeason.value = location.ambient.season || 'summer';
+    if (els.ambientAtmosphere) els.ambientAtmosphere.value = location.ambient.atmosphere || 'neutral';
+  }
+  
   currentProps = Array.isArray(location.props) ? [...location.props] : [];
   renderProps();
   
@@ -675,6 +1174,19 @@ function fillForm(location) {
   
   els.btnDelete.style.display = 'block';
   updatePromptPreview();
+}
+
+// Map legacy environmentType to new spaceType
+function mapLegacyEnvironmentToSpaceType(envType) {
+  const map = {
+    studio: 'studio',
+    indoor: 'interior',
+    outdoor: 'exterior_nature',
+    urban: 'exterior_urban',
+    nature: 'exterior_nature',
+    abstract: 'studio'
+  };
+  return map[envType] || 'studio';
 }
 
 function initFilters() {

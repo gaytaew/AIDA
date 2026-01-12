@@ -249,6 +249,78 @@
     .add-prop-input button {
       padding: 8px 12px;
     }
+
+    /* Space type selector grid */
+    .space-type-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .space-type-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 12px 8px;
+      background: var(--color-surface-elevated);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font-main);
+    }
+
+    .space-type-btn:hover {
+      border-color: var(--color-border-hover);
+      background: var(--color-bg);
+    }
+
+    .space-type-btn.active {
+      border-color: var(--color-accent);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .space-type-btn-icon {
+      font-size: 24px;
+    }
+
+    .space-type-btn-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-align: center;
+    }
+
+    .space-type-btn.active .space-type-btn-label {
+      color: var(--color-accent);
+    }
+
+    /* Context sections */
+    .context-section {
+      display: contents;
+    }
+
+    .context-section.hidden {
+      display: none !important;
+    }
+
+    /* Section divider */
+    .section-divider {
+      grid-column: 1 / -1;
+      border-top: 1px solid var(--color-border);
+      margin: 16px 0 8px;
+      padding-top: 16px;
+    }
+
+    .section-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
@@ -334,9 +406,128 @@
                   <select id="location-category"></select>
                 </div>
 
-                <div class="form-group">
-                  <label for="location-environment">Тип среды</label>
-                  <select id="location-environment"></select>
+                <!-- PRIMARY: Space Type Selector -->
+                <div class="form-group full" style="margin-top: 16px;">
+                  <label>Тип пространства</label>
+                  <div id="space-type-selector" class="space-type-grid"></div>
+                </div>
+
+                <!-- CONTEXT-SPECIFIC SECTIONS (shown/hidden based on spaceType) -->
+                
+                <!-- INTERIOR SECTION -->
+                <div id="section-interior" class="context-section" style="display: none;">
+                  <div class="form-group">
+                    <label for="interior-type">Тип помещения</label>
+                    <select id="interior-type"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="interior-subtype">Комната/Место</label>
+                    <select id="interior-subtype"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="interior-style">Стиль интерьера</label>
+                    <select id="interior-style"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="interior-window">Естественный свет</label>
+                    <select id="interior-window"></select>
+                  </div>
+                </div>
+
+                <!-- URBAN SECTION -->
+                <div id="section-urban" class="context-section" style="display: none;">
+                  <div class="form-group">
+                    <label for="urban-type">Тип места</label>
+                    <select id="urban-type"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="urban-architecture">Архитектура</label>
+                    <select id="urban-architecture"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="urban-density">Людность</label>
+                    <select id="urban-density"></select>
+                  </div>
+                </div>
+
+                <!-- NATURE SECTION -->
+                <div id="section-nature" class="context-section" style="display: none;">
+                  <div class="form-group">
+                    <label for="nature-type">Тип природы</label>
+                    <select id="nature-type"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="nature-vegetation">Растительность</label>
+                    <select id="nature-vegetation"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="nature-terrain">Рельеф</label>
+                    <select id="nature-terrain"></select>
+                  </div>
+                </div>
+
+                <!-- ROOFTOP SECTION -->
+                <div id="section-rooftop" class="context-section" style="display: none;">
+                  <div class="form-group">
+                    <label for="rooftop-type">Тип площадки</label>
+                    <select id="rooftop-type"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="rooftop-view">Вид</label>
+                    <select id="rooftop-view"></select>
+                  </div>
+                </div>
+
+                <!-- TRANSPORT SECTION -->
+                <div id="section-transport" class="context-section" style="display: none;">
+                  <div class="form-group">
+                    <label for="transport-type">Тип транспорта</label>
+                    <select id="transport-type"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="transport-style">Стиль</label>
+                    <select id="transport-style"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="transport-motion">Движение</label>
+                    <select id="transport-motion"></select>
+                  </div>
+                </div>
+
+                <!-- STUDIO SECTION -->
+                <div id="section-studio" class="context-section" style="display: none;">
+                  <div class="form-group">
+                    <label for="studio-backdrop">Фон</label>
+                    <select id="studio-backdrop"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="studio-lighting">Схема света</label>
+                    <select id="studio-lighting"></select>
+                  </div>
+                </div>
+
+                <!-- AMBIENT SECTION (only for outdoor/rooftop) -->
+                <div id="section-ambient" class="context-section" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+                  <div class="form-group full" style="margin-bottom: 8px;">
+                    <label style="font-size: 13px; color: var(--color-text);">🌤️ Погода и атмосфера</label>
+                  </div>
+                  <div class="form-group">
+                    <label for="ambient-weather">Погода</label>
+                    <select id="ambient-weather"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ambient-season">Сезон</label>
+                    <select id="ambient-season"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ambient-atmosphere">Атмосфера воздуха</label>
+                    <select id="ambient-atmosphere"></select>
+                  </div>
+                </div>
+
+                <!-- UNIVERSAL: Lighting & Time (always shown) -->
+                <div class="form-group full" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+                  <label style="font-size: 13px; color: var(--color-text);">💡 Освещение</label>
                 </div>
 
                 <div class="form-group">
@@ -350,13 +541,16 @@
                 </div>
 
                 <div class="form-group full">
-                  <label for="location-surface">Поверхность / Фон</label>
-                  <input type="text" id="location-surface" placeholder="Например: seamless white paper, concrete floor, wooden deck">
-                </div>
-
-                <div class="form-group full">
                   <label for="location-lighting-desc">Описание освещения</label>
                   <input type="text" id="location-lighting-desc" placeholder="Например: soft window light from the left">
+                </div>
+
+                <!-- LEGACY: Environment type (hidden, for backwards compatibility) -->
+                <input type="hidden" id="location-environment">
+
+                <div class="form-group full">
+                  <label for="location-surface">Поверхность / Фон</label>
+                  <input type="text" id="location-surface" placeholder="Например: seamless white paper, concrete floor, wooden deck">
                 </div>
 
                 <div class="form-group full">

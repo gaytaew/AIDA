@@ -20,6 +20,7 @@ import {
   CAPTURE_STYLE_PRESETS, 
   SKIN_TEXTURE_PRESETS 
 } from '../schema/universe.js';
+import { buildLocationPromptSnippet } from '../schema/location.js';
 
 // ═══════════════════════════════════════════════════════════════
 // JSON PROMPT BUILDER
@@ -634,24 +635,31 @@ function buildAntiAiBlock(universe) {
 
 /**
  * Build location block from location data
+ * Uses new hierarchical buildLocationPromptSnippet for rich descriptions
  */
 function buildLocationBlock(location) {
   if (!location) {
     return null;
   }
 
+  // Use new hierarchical prompt builder for comprehensive location description
+  const richDescription = buildLocationPromptSnippet(location);
+
   return {
     label: location.label || null,
-    description: location.description || null,
-    promptSnippet: location.promptSnippet || null,  // Ready-to-use prompt text
+    description: richDescription || location.description || null,
+    promptSnippet: location.promptSnippet || null,  // Legacy: Ready-to-use prompt text
     environmentType: location.environmentType || null,
+    spaceType: location.spaceType || null,  // NEW: hierarchical space type
     surface: location.surface || null,
     lighting: location.lighting ? {
       type: location.lighting.type || 'natural',
       timeOfDay: location.lighting.timeOfDay || 'any',
       description: location.lighting.description || null
     } : null,
-    props: Array.isArray(location.props) && location.props.length > 0 ? location.props : null
+    props: Array.isArray(location.props) && location.props.length > 0 ? location.props : null,
+    // NEW: Ambient conditions (weather, season) for outdoor locations
+    ambient: location.ambient || null
   };
 }
 

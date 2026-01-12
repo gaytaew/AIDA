@@ -16,6 +16,7 @@ import {
 } from '../schema/universe.js';
 import { LIGHT_PRESETS, COLOR_PRESETS, ERA_PRESETS } from '../schema/stylePresets.js';
 import { generateImageId } from '../schema/customShoot.js';
+import { buildLocationPromptSnippet } from '../schema/location.js';
 
 // ═══════════════════════════════════════════════════════════════
 // PROMPT BUILDERS FOR REFERENCE LOCKS
@@ -341,9 +342,16 @@ export function buildCustomShootPrompt({
   
   // Add Location (if not using Location Lock)
   if (location && !hasLocationRef) {
+    // Use new hierarchical prompt builder for rich location descriptions
+    const locationDescription = buildLocationPromptSnippet(location) || location.description || location.promptSnippet || '';
+    
     promptJson.location = {
       label: location.label || 'Custom location',
-      description: location.description || location.promptSnippet || ''
+      description: locationDescription,
+      // Include space type info for better context
+      spaceType: location.spaceType || null,
+      // Include ambient conditions (weather/season) if outdoor
+      ambient: location.ambient || null
     };
   }
   
