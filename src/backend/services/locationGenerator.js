@@ -1,7 +1,7 @@
 /**
  * Location Generator Service
  * 
- * Uses OpenAI (ChatGPT) to generate structured location data from text prompts or images.
+ * Uses OpenAI (GPT-5.2) to generate structured location data from text prompts or images.
  */
 
 import { LOCATION_OPTIONS } from '../schema/location.js';
@@ -86,7 +86,6 @@ export async function generateLocationFromPrompt(userPrompt, imageBase64 = null)
     }
     
     if (imageBase64) {
-      // OpenAI expects data URL
       userContent.push({
         type: "image_url",
         image_url: {
@@ -102,10 +101,11 @@ export async function generateLocationFromPrompt(userPrompt, imageBase64 = null)
     messages.push({ role: "user", content: userContent });
 
     const body = {
-      model: "gpt-4o",
+      model: config.OPENAI_TEXT_MODEL, // Defaults to 'gpt-5.2'
       messages: messages,
       response_format: { type: "json_object" },
-      max_tokens: 1000
+      // GPT-5.2 requires max_completion_tokens
+      max_completion_tokens: 2000
     };
 
     const response = await fetch(OPENAI_API_URL, {
