@@ -411,12 +411,12 @@ function loadShootState() {
   
   // Load generated images
   state.generatedFrames = (state.currentShoot.generatedImages || []).map(img => ({
-    id: img.id,
-    imageUrl: img.imageUrl,
-    isStyleReference: img.isStyleReference,
-    isLocationReference: img.isLocationReference,
-    timestamp: img.createdAt,
-    paramsSnapshot: img.paramsSnapshot
+    ...img, // Load ALL saved properties (prompt, refs, composition, settings, etc.)
+    status: 'ready',
+    timestamp: img.createdAt || img.timestamp,
+    // Ensure booleans
+    isStyleReference: !!img.isStyleReference,
+    isLocationReference: !!img.isLocationReference
   }));
   
   // Load locks

@@ -32,24 +32,21 @@ function buildStyleLockPrompt(lock) {
   if (!lock || !lock.enabled) return null;
   
   if (lock.mode === 'strict') {
-    return `STYLE REFERENCE — VISUAL PROCESSING ONLY (CRITICAL):
-Copy the VISUAL PROCESSING from the style reference image:
-✓ COPY: Color grading, color temperature, color cast
-✓ COPY: Lighting quality (harsh/soft), shadow character, highlight behavior
-✓ COPY: Skin texture rendering, material rendering
-✓ COPY: Film/digital aesthetic, grain structure, contrast
-✓ COPY: Post-processing philosophy (matte, contrasty, faded, etc.)
+    return `STYLE REFERENCE (STRICT VISUAL & LOOK):
+CRITICAL: You MUST separate the STYLE from the COMPOSITION.
 
-⚠️ DO NOT COPY — MUST BE DIFFERENT:
-✗ Model pose — MUST follow the NEW pose sketch/description
-✗ Model position in frame — create NEW composition
-✗ Camera angle — can be different
-✗ Framing/cropping — can be different
-✗ Background composition — can show different parts of location
+1. WHAT TO COPY (STRICTLY):
+- The VISUAL PROCESSING: Color grading, lighting contrast, film stock look, grain.
+- The MODEL'S LOOK: Makeup style (e.g. if reference has eyeliner, use eyeliner), hair texture/finish, skin finish.
+- The ATMOSPHERE: The "vibe" and mood of the shot.
 
-The reference is for COLOR GRADING and LIGHTING FEEL only.
-Generate a COMPLETELY NEW SHOT with the SAME VISUAL TREATMENT.
-Do NOT recreate the reference image — create a NEW image that looks like it was shot in the SAME SESSION.`;
+2. WHAT TO IGNORE (COMPLETELY):
+- IGNORE the Camera Angle of the reference. Use the angle described in the prompt/pose.
+- IGNORE the Model's Pose from the reference.
+- IGNORE the Framing/Crop from the reference.
+
+INSTRUCTION:
+Generate a NEW image that looks like it belongs to the SAME PHOTOSHOOT as the reference, featuring the SAME STYLING (makeup/hair) and PROCESSING, but with a COMPLETELY DIFFERENT composition and pose.`;
   }
   
   if (lock.mode === 'soft') {
