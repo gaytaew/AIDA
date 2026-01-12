@@ -15,6 +15,8 @@ import { createLocation } from '../store/locationStore.js';
 import { UNIVERSE_OPTIONS, createEmptyUniverse, universeToPromptBlock } from '../schema/universe.js';
 import { createEmptyLocation, generateLocationId } from '../schema/location.js';
 import { analyzeReferencesAndGenerateUniverse, validateImageData } from '../services/universeAnalyzer.js';
+import { UNIVERSE_PARAMS, getAllParamsFlat, getBlocksStructure } from '../schema/universeParams.js';
+import { buildUniverseNarrative, buildUniverseText, buildUniverseForPrompt, getDefaultParams } from '../schema/universeNarrativeBuilder.js';
 
 const router = express.Router();
 
@@ -39,6 +41,78 @@ router.get('/options', (req, res) => {
     ok: true,
     data: UNIVERSE_OPTIONS
   });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CUSTOM SHOOT 4: Universe Parameters API
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/universes/params — Get all universe parameters for Custom Shoot 4
+router.get('/params', (req, res) => {
+  res.json({
+    ok: true,
+    data: {
+      params: UNIVERSE_PARAMS,
+      blocks: getBlocksStructure(),
+      defaults: getDefaultParams()
+    }
+  });
+});
+
+// GET /api/universes/params/blocks — Get blocks structure for UI
+router.get('/params/blocks', (req, res) => {
+  res.json({
+    ok: true,
+    data: getBlocksStructure()
+  });
+});
+
+// GET /api/universes/params/defaults — Get default parameter values
+router.get('/params/defaults', (req, res) => {
+  res.json({
+    ok: true,
+    data: getDefaultParams()
+  });
+});
+
+// POST /api/universes/params/preview — Preview narrative from parameters
+router.post('/params/preview', (req, res) => {
+  try {
+    const params = req.body.params || getDefaultParams();
+    
+    const narrative = buildUniverseNarrative(params);
+    const text = buildUniverseText(params);
+    const forPrompt = buildUniverseForPrompt(params);
+    
+    res.json({
+      ok: true,
+      data: {
+        narrative,  // Object with blocks
+        text,       // Formatted text with markdown
+        forPrompt   // Object ready for prompt generation
+      }
+    });
+  } catch (err) {
+    console.error('[Universe] Params preview error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/universes/params/build — Build universe from parameters (for generation)
+router.post('/params/build', (req, res) => {
+  try {
+    const params = req.body.params || getDefaultParams();
+    
+    const universe = buildUniverseForPrompt(params);
+    
+    res.json({
+      ok: true,
+      data: universe
+    });
+  } catch (err) {
+    console.error('[Universe] Params build error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // GET /api/universes/template — Get empty universe template

@@ -515,149 +515,42 @@
                 </div>
               </div>
 
-              <!-- LAYER 1: Shoot Type (Context) -->
-              <div class="universe-settings" style="border-color: var(--color-primary); border-width: 2px;">
-                <h4>🎯 Тип съёмки <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">(определяет контекст всех параметров)</span></h4>
-                
-                <div class="form-group" style="margin: 0;">
-                  <select id="gen-shoot-type" style="width: 100%; padding: 10px 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 13px;">
-                    <option value="editorial" selected>Editorial — Художественная съёмка для журналов</option>
-                    <option value="catalog">Каталог — Чистые коммерческие снимки</option>
-                    <option value="lookbook">Lookbook — Презентация коллекции</option>
-                    <option value="campaign">Campaign — Рекламная кампания</option>
-                    <option value="street">Street — Уличная документальная</option>
-                    <option value="portrait">Портрет — Персональная съёмка</option>
-                    <option value="beauty">Beauty — Макияж и уход</option>
-                    <option value="sport">Спорт — Активная одежда в движении</option>
-                  </select>
-                </div>
-                <div id="shoot-type-hint" style="margin-top: 8px; font-size: 11px; color: var(--color-text-muted); padding: 8px; background: var(--color-bg); border-radius: 6px;">
-                  💡 Тип съёмки определяет допустимые комбинации параметров. Некоторые опции могут быть заблокированы.
+              <!-- ═══════════════════════════════════════════════════════════ -->
+              <!-- UNIVERSE PARAMETERS (7 blocks - dynamically rendered) -->
+              <!-- ═══════════════════════════════════════════════════════════ -->
+              
+              <div id="universe-params-container">
+                <!-- Блоки будут загружены динамически из API -->
+                <div class="universe-settings" style="text-align: center; padding: 40px;">
+                  <div style="font-size: 24px; margin-bottom: 12px;">⏳</div>
+                  <div style="color: var(--color-text-muted);">Загрузка параметров вселенной...</div>
                 </div>
               </div>
               
-              <!-- LAYERS 2-4: Visual Style (Camera + Lighting) -->
-              <div class="universe-settings">
-                <h4>🌌 Визуальный стиль</h4>
-                
-                <div class="universe-grid">
-                  <!-- LAYER 2: Camera Aesthetic -->
-                  <div class="form-group">
-                    <label for="gen-camera-aesthetic">📸 Эстетика камеры <span style="font-size: 9px; color: var(--color-text-muted);">(плёнка/объектив)</span></label>
-                    <select id="gen-camera-aesthetic">
-                      <option value="none">— Без конкретной —</option>
-                      <optgroup label="Плёночные">
-                        <option value="contax_t2" selected>Contax T2 (Portra)</option>
-                        <option value="hasselblad_mf">Hasselblad (Medium Format)</option>
-                        <option value="mamiya_rz67">Mamiya RZ67 (Studio)</option>
-                        <option value="leica_m">Leica M (Street)</option>
-                        <option value="canon_ae1">Canon AE-1 (Consumer)</option>
-                      </optgroup>
-                      <optgroup label="Lo-Fi / Toy">
-                        <option value="polaroid">Polaroid</option>
-                        <option value="disposable">Одноразовая камера</option>
-                        <option value="holga">Holga / Toy Camera</option>
-                      </optgroup>
-                      <optgroup label="Цифровые">
-                        <option value="iphone">iPhone / Smartphone</option>
-                        <option value="ricoh_gr">Ricoh GR (28mm)</option>
-                      </optgroup>
-                    </select>
-                  </div>
-                  
-                  <!-- Capture Style (kept) -->
-                  <div class="form-group">
-                    <label for="gen-capture-style">📷 Стиль захвата</label>
-                    <select id="gen-capture-style">
-                      <option value="candid_aware" selected>Естественный</option>
-                      <option value="editorial_posed">Editorial постановка</option>
-                      <option value="editorial_relaxed">Editorial расслаб.</option>
-                      <option value="candid_unaware">Candid</option>
-                      <option value="paparazzi_telephoto">Папарацци</option>
-                      <option value="harsh_flash_snapshot">Жёсткая вспышка</option>
-                      <option value="motion_blur_action">Размытие движ.</option>
-                    </select>
-                  </div>
-                  
-                  <!-- LAYER 3: Lighting Source (NEW) -->
-                  <div class="form-group">
-                    <label for="gen-lighting-source">💡 Источник света</label>
-                    <select id="gen-lighting-source">
-                      <option value="natural_daylight" selected>Естественный дневной</option>
-                      <option value="window_light">Свет из окна</option>
-                      <option value="on_camera_flash">Накамерная вспышка</option>
-                      <option value="studio_strobe">Студийный импульс</option>
-                      <option value="ring_flash">Кольцевая вспышка</option>
-                      <option value="mixed_ambient">Смешанный ambient</option>
-                      <option value="practicals">Практические источники</option>
-                      <option value="continuous_led">Постоянный LED</option>
-                    </select>
-                  </div>
-                  
-                  <!-- LAYER 4: Lighting Quality (NEW) -->
-                  <div class="form-group">
-                    <label for="gen-lighting-quality">✨ Качество света</label>
-                    <select id="gen-lighting-quality">
-                      <option value="soft_diffused" selected>Мягкий рассеянный</option>
-                      <option value="harsh_direct">Жёсткий прямой</option>
-                      <option value="contrasty">Контрастный</option>
-                      <option value="flat">Плоский</option>
-                      <option value="backlit">Контровой</option>
-                      <option value="moody_lowkey">Low-key / Moody</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Color -->
-                  <div class="form-group">
-                    <label for="gen-color">🎨 Цвет</label>
-                    <select id="gen-color">
-                      <option value="film_warm" selected>Тёплая плёнка</option>
-                      <option value="film_cool">Холодная плёнка</option>
-                      <option value="high_contrast">Высокий контраст</option>
-                      <option value="desaturated">Приглушённый</option>
-                      <option value="cross_process">Кросс-процесс</option>
-                      <option value="black_white">Ч/Б</option>
-                      <option value="vintage_fade">Винтажный fade</option>
-                      <option value="neutral_clean">Нейтральный</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Skin Texture -->
-                  <div class="form-group">
-                    <label for="gen-skin-texture">🧴 Текстура кожи</label>
-                    <select id="gen-skin-texture">
-                      <option value="natural_film" selected>Естественная</option>
-                      <option value="hyper_real">Гипер-реалистичная</option>
-                      <option value="flash_specular">Вспышка (блики)</option>
-                      <option value="matte_editorial">Матовая editorial</option>
-                      <option value="raw_unretouched">Без ретуши</option>
-                      <option value="sweaty_athletic">Спортивная</option>
-                      <option value="golden_hour_glow">Золотой час</option>
-                      <option value="pale_porcelain">Фарфоровая</option>
-                    </select>
-                  </div>
-                  
-                  <!-- Era -->
-                  <div class="form-group">
-                    <label for="gen-era">📅 Эпоха</label>
-                    <select id="gen-era">
-                      <option value="contemporary" selected>Современный</option>
-                      <option value="90s_grunge">90s гранж</option>
-                      <option value="y2k_flash">Y2K вспышка</option>
-                      <option value="2000s_digital">2000s цифра</option>
-                      <option value="2010s_instagram">2010s Instagram</option>
-                      <option value="film_revival">Плёночный ренессанс</option>
-                    </select>
-                  </div>
+              <!-- Narrative Preview (показывает как параметры превращаются в текст) -->
+              <div class="universe-settings" id="narrative-preview-panel" style="display: none;">
+                <h4 style="display: flex; align-items: center; gap: 8px;">
+                  📝 Превью промпта
+                  <button id="btn-toggle-preview" style="margin-left: auto; padding: 4px 8px; font-size: 11px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer;">
+                    Свернуть
+                  </button>
+                </h4>
+                <div id="narrative-preview-content" style="font-size: 12px; line-height: 1.6; background: var(--color-bg); padding: 12px; border-radius: 8px; max-height: 200px; overflow-y: auto;">
+                  <div style="color: var(--color-text-muted);">Выбери параметры для превью...</div>
                 </div>
-                
-                <!-- Conflict warnings will appear here -->
-                <div id="conflict-warnings" style="margin-top: 12px; display: none;"></div>
               </div>
               
-              <!-- Hidden legacy field for compatibility -->
+              <!-- Hidden legacy fields for compatibility -->
               <input type="hidden" id="gen-camera-signature" value="contax_t2">
               <input type="hidden" id="gen-light" value="natural_soft">
+              <input type="hidden" id="gen-shoot-type" value="editorial">
+              <input type="hidden" id="gen-camera-aesthetic" value="contax_t2">
+              <input type="hidden" id="gen-lighting-source" value="natural_daylight">
+              <input type="hidden" id="gen-lighting-quality" value="soft_diffused">
+              <input type="hidden" id="gen-capture-style" value="candid_aware">
+              <input type="hidden" id="gen-color" value="film_warm">
+              <input type="hidden" id="gen-skin-texture" value="natural_film">
+              <input type="hidden" id="gen-era" value="contemporary">
               
               <!-- Standard generation controls -->
               <div class="generation-controls" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">

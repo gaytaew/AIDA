@@ -34,7 +34,14 @@ const state = {
   locationLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
   
   // Generation settings (persisted per shoot)
-  generationSettings: {}
+  generationSettings: {},
+  
+  // Universe params (Custom Shoot 4 - new architecture)
+  universeParams: null,       // Schema from API
+  universeBlocks: [],         // Block structure for UI
+  universeDefaults: {},       // Default values
+  universeValues: {},         // Current selected values
+  narrativePreview: null      // Generated narrative preview
 };
 
 // Step order for navigation (frames step removed - frames are selected directly in generate step)
@@ -794,6 +801,165 @@ async function loadEmotions() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// UNIVERSE PARAMS (Custom Shoot 4 - New Architecture)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Load universe parameters from API
+ */
+async function loadUniverseParams() {
+  try {
+    const res = await fetch('/api/universes/params');
+    const data = await res.json();
+    
+    if (data.ok && data.data) {
+      state.universeParams = data.data.params;
+      state.universeBlocks = data.data.blocks;
+      state.universeDefaults = data.data.defaults;
+      
+      // Initialize values with defaults
+      state.universeValues = { ...data.data.defaults };
+      
+      console.log('[CustomShoot4] Loaded universe params:', state.universeBlocks.length, 'blocks');
+    }
+  } catch (e) {
+    console.error('[CustomShoot4] Error loading universe params:', e);
+  }
+}
+
+/**
+ * Render universe parameter blocks in UI
+ */
+function renderUniverseParamsUI() {
+  const container = document.getElementById('universe-params-container');
+  if (!container || !state.universeParams || !state.universeBlocks) {
+    return;
+  }
+  
+  const blocksHtml = state.universeBlocks.map(block => {
+    const blockParams = block.id === 'antiAi' 
+      ? [state.universeParams.antiAi.antiAiLevel]
+      : Object.values(state.universeParams[block.id] || {});
+    
+    const paramsHtml = blockParams.map(param => {
+      if (!param || !param.options) return '';
+      
+      const currentValue = state.universeValues[param.id] || param.options[0]?.value;
+      
+      const optionsHtml = param.options.map(opt => {
+        const selected = opt.value === currentValue ? 'selected' : '';
+        return `<option value="${opt.value}" ${selected} title="${escapeHtml(opt.desc || '')}">${escapeHtml(opt.label)}</option>`;
+      }).join('');
+      
+      return `
+        <div class="form-group" style="margin: 0;">
+          <label for="universe-${param.id}" style="font-size: 12px; margin-bottom: 4px; display: block;">
+            ${escapeHtml(param.label)}
+          </label>
+          <select id="universe-${param.id}" 
+                  data-param-id="${param.id}" 
+                  class="universe-param-select"
+                  style="width: 100%; padding: 8px 10px; font-size: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text);">
+            ${optionsHtml}
+          </select>
+          ${param.description ? `<div style="font-size: 10px; color: var(--color-text-muted); margin-top: 2px;">${escapeHtml(param.description)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+    
+    return `
+      <div class="universe-settings universe-block" data-block-id="${block.id}">
+        <h4 style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          ${block.label}
+          <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">${escapeHtml(block.description)}</span>
+        </h4>
+        <div class="universe-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          ${paramsHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = blocksHtml;
+  
+  // Add change listeners
+  container.querySelectorAll('.universe-param-select').forEach(select => {
+    select.addEventListener('change', (e) => {
+      const paramId = e.target.dataset.paramId;
+      state.universeValues[paramId] = e.target.value;
+      updateNarrativePreview();
+      saveGenerationSettings();
+    });
+  });
+  
+  // Show narrative preview panel
+  const previewPanel = document.getElementById('narrative-preview-panel');
+  if (previewPanel) {
+    previewPanel.style.display = 'block';
+  }
+  
+  // Initial preview
+  updateNarrativePreview();
+}
+
+/**
+ * Update narrative preview from current parameter values
+ */
+async function updateNarrativePreview() {
+  const previewContent = document.getElementById('narrative-preview-content');
+  if (!previewContent) return;
+  
+  try {
+    const res = await fetch('/api/universes/params/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ params: state.universeValues })
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok && data.data) {
+      state.narrativePreview = data.data;
+      
+      // Render preview as formatted blocks
+      const narrative = data.data.narrative;
+      const sections = [];
+      
+      if (narrative.tech) {
+        sections.push(`<div style="margin-bottom: 8px;"><strong style="color: var(--color-primary);">📷 Техника:</strong> ${escapeHtml(narrative.tech)}</div>`);
+      }
+      if (narrative.era) {
+        sections.push(`<div style="margin-bottom: 8px;"><strong style="color: var(--color-primary);">🎬 Эпоха:</strong> ${escapeHtml(narrative.era)}</div>`);
+      }
+      if (narrative.color) {
+        sections.push(`<div style="margin-bottom: 8px;"><strong style="color: var(--color-primary);">🎨 Цвет:</strong> ${escapeHtml(narrative.color)}</div>`);
+      }
+      if (narrative.lens) {
+        sections.push(`<div style="margin-bottom: 8px;"><strong style="color: var(--color-primary);">🔭 Оптика:</strong> ${escapeHtml(narrative.lens)}</div>`);
+      }
+      if (narrative.mood) {
+        sections.push(`<div style="margin-bottom: 8px;"><strong style="color: var(--color-primary);">💫 Настроение:</strong> ${escapeHtml(narrative.mood)}</div>`);
+      }
+      if (narrative.antiAi) {
+        sections.push(`<div style="margin-bottom: 8px;"><strong style="color: var(--color-primary);">🤖 Реализм:</strong> ${escapeHtml(narrative.antiAi)}</div>`);
+      }
+      
+      previewContent.innerHTML = sections.join('') || '<div style="color: var(--color-text-muted);">Выбери параметры для превью...</div>';
+    }
+  } catch (e) {
+    console.error('[CustomShoot4] Error updating narrative preview:', e);
+    previewContent.innerHTML = '<div style="color: var(--color-accent);">Ошибка загрузки превью</div>';
+  }
+}
+
+/**
+ * Collect universe params for generation
+ */
+function collectUniverseParams() {
+  return { ...state.universeValues };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // GENERATION SETTINGS PERSISTENCE
 // ═══════════════════════════════════════════════════════════════
 
@@ -1314,6 +1480,9 @@ function updateCompositionControlsState() {
 // ═══════════════════════════════════════════════════════════════
 
 function renderGeneratePage() {
+  // Render universe params blocks (Custom Shoot 4 - new architecture)
+  renderUniverseParamsUI();
+  
   // Populate location dropdown
   elements.genLocation.innerHTML = '<option value="">Без конкретной</option>';
   state.locations.forEach(loc => {
@@ -1688,32 +1857,32 @@ async function generateFrame(frameId) {
   btn.disabled = true;
   btn.textContent = '⏳ Генерация...';
   
-  // Get settings (NEW 6-layer architecture)
+  // Get settings (Custom Shoot 4 - new universe params architecture)
+  const universeParams = collectUniverseParams();
+  
   const params = {
     frameId,
     locationId: elements.genLocation.value || null,
     emotionId: elements.genEmotion.value || null,
     extraPrompt: elements.genExtraPrompt.value.trim(),
     
-    // NEW: 6-layer architecture presets
+    // NEW: Universe params (Custom Shoot 4)
+    universeParams: universeParams,
+    
+    // Legacy presets (for compatibility with existing generation pipeline)
     presets: {
-      // Layer 1: Shoot Type
-      shootType: elements.genShootType?.value || 'editorial',
-      // Layer 2: Camera Aesthetic
-      cameraAesthetic: elements.genCameraAesthetic?.value || 'contax_t2',
-      // Layer 3: Lighting Source
-      lightingSource: elements.genLightingSource?.value || 'natural_daylight',
-      // Layer 4: Lighting Quality  
-      lightingQuality: elements.genLightingQuality?.value || 'soft_diffused',
-      // Capture Style
-      capture: elements.genCaptureStyle?.value || 'candid_aware',
-      // Color, Texture, Era
-      color: elements.genColor?.value || 'film_warm',
-      texture: elements.genSkinTexture?.value || 'natural_film',
-      era: elements.genEra?.value || 'contemporary',
-      // Legacy (for compatibility)
-      camera: elements.genCameraSignature?.value || elements.genCameraAesthetic?.value || 'contax_t2',
-      light: elements.genLight?.value || 'natural_soft'
+      // Map from universeParams to legacy format
+      shootType: universeParams.culturalContext || 'editorial',
+      cameraAesthetic: universeParams.cameraClass || 'contax_t2',
+      lightingSource: 'natural_daylight',
+      lightingQuality: 'soft_diffused',
+      capture: universeParams.spontaneity || 'candid_aware',
+      color: universeParams.saturation || 'film_warm',
+      texture: universeParams.retouchLevel || 'natural_film',
+      era: universeParams.decade || 'contemporary',
+      // Legacy
+      camera: universeParams.cameraClass || 'contax_t2',
+      light: 'natural_soft'
     },
     
     // Image format
@@ -2290,7 +2459,8 @@ async function init() {
     loadModels(),
     loadFrames(),
     loadLocations(),
-    loadEmotions()
+    loadEmotions(),
+    loadUniverseParams()
   ]);
   
   updateStepStatuses();
