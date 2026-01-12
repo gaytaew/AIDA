@@ -359,15 +359,15 @@ export function buildCustomShootPrompt({
     formatVersion: 1,
     generatedAt: new Date().toISOString(),
     
-    // Hard rules
+    // Hard rules (MOST IMPORTANT - these come first in the prompt)
     hardRules: [
       'Return photorealistic images (no illustration, no CGI, no 3D render, no painterly look).',
       'Natural skin texture, believable fabric behavior, real optics.',
       'No watermarks, no text overlays, no captions, no logos.',
-      'STRICTLY match identity reference images (faces, anatomy) for models.',
+      hasIdentityRefs ? 'FACE IDENTITY IS CRITICAL: The generated person MUST be the EXACT SAME person as in the identity reference photo. Same face shape, same eyes, same nose, same lips. This is the #1 priority.' : null,
       'STRICTLY match clothing reference images (silhouette, color, construction, materials).',
       'Do NOT invent brands/logos/text.'
-    ],
+    ].filter(Boolean),
     
     // Custom Universe (from presets or fine params)
     visualStyle: null,
@@ -385,14 +385,36 @@ export function buildCustomShootPrompt({
     // Emotion
     emotion: null,
     
-    // Identity
+    // Identity (CRITICAL - face must match exactly)
     identity: {
       hasRefs: hasIdentityRefs,
       rules: hasIdentityRefs ? [
-        'Use the uploaded person photo(s) as strict identity reference.',
-        'Generate the same person, preserving exact facial identity.',
-        'Do not beautify, do not stylize the face.',
-        'Match face structure, hairline, eye spacing, nose, lips exactly.'
+        'CRITICAL IDENTITY MATCH — The person in the reference photo MUST appear in the generated image.',
+        '',
+        'FACIAL STRUCTURE (exact match required):',
+        '- Face shape: same oval/round/square/heart shape',
+        '- Forehead: same height and width',
+        '- Eyes: same spacing, same shape, same size, same color',
+        '- Nose: same bridge width, same nostril shape, same tip',
+        '- Lips: same fullness, same shape, same proportions',
+        '- Jawline: same angle and definition',
+        '- Cheekbones: same prominence',
+        '',
+        'SKIN & DETAILS:',
+        '- Preserve any freckles, moles, or birthmarks',
+        '- Same skin tone and undertone',
+        '- Same eyebrow shape and thickness',
+        '',
+        'HAIR:',
+        '- Same hair color and texture',
+        '- Same hairline shape',
+        '',
+        'FORBIDDEN:',
+        '- Do NOT beautify or idealize the face',
+        '- Do NOT change eye color',
+        '- Do NOT change face proportions',
+        '- Do NOT make the face more symmetrical',
+        '- Do NOT smooth away distinctive features'
       ] : [],
       description: modelDescription || null
     },
