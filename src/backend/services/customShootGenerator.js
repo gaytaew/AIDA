@@ -22,6 +22,7 @@ import {
   CAMERA_AESTHETIC_PRESETS,
   LIGHTING_SOURCE_PRESETS,
   LIGHTING_QUALITY_PRESETS,
+  MODEL_BEHAVIOR_PRESETS,
   buildPresetsPrompt,
   validateAndCorrectParams,
   getParameterRecommendations
@@ -310,7 +311,9 @@ export function buildCustomShootPrompt({
   shootType = null,
   cameraAesthetic = null,
   lightingSource = null,
-  lightingQuality = null
+  lightingQuality = null,
+  // Model Behavior (Layer 7)
+  modelBehavior = null
 }) {
   // ═══════════════════════════════════════════════════════════════
   // STEP 1: Validate and Auto-Correct Parameters
@@ -504,6 +507,23 @@ export function buildCustomShootPrompt({
         label: lightQualityPreset.label,
         prompt: lightQualityPreset.prompt
       };
+    }
+  }
+  
+  // Layer 7: Model Behavior (how model interacts with camera)
+  const effectiveModelBehavior = modelBehavior || customUniverse?.presets?.modelBehavior || 'engaged';
+  if (effectiveModelBehavior && effectiveModelBehavior !== 'none') {
+    const behaviorPreset = MODEL_BEHAVIOR_PRESETS[effectiveModelBehavior];
+    if (behaviorPreset) {
+      promptJson.modelBehavior = {
+        preset: effectiveModelBehavior,
+        label: behaviorPreset.label,
+        prompt: behaviorPreset.prompt,
+        intensity: behaviorPreset.intensity,
+        cameraAwareness: behaviorPreset.cameraAwareness
+      };
+      // Add model behavior as a hard rule for maximum impact
+      promptJson.hardRules.push(`MODEL BEHAVIOR: ${behaviorPreset.label} — The model's presence and camera interaction MUST follow these guidelines.`);
     }
   }
   
@@ -806,6 +826,12 @@ export function promptJsonToText(promptJson) {
     sections.push(`${promptJson.lightingQuality.label}: ${promptJson.lightingQuality.prompt}`);
   }
   
+  // Model Behavior (Layer 7) — CRITICAL for professional posing
+  if (promptJson.modelBehavior?.prompt) {
+    sections.push('\n=== MODEL BEHAVIOR (CRITICAL) ===');
+    sections.push(promptJson.modelBehavior.prompt);
+  }
+  
   // Frame
   if (promptJson.frame) {
     sections.push('\n=== FRAME / POSE ===');
@@ -961,7 +987,9 @@ export async function generateCustomShootFrame({
   // Anti-AI override
   antiAi = null,
   // Ambient (situational conditions: weather, season, atmosphere)
-  ambient = null
+  ambient = null,
+  // Model Behavior (Layer 7)
+  modelBehavior = null
 }) {
   try {
     console.log('[CustomShootGenerator] Starting frame generation...');
@@ -1016,7 +1044,9 @@ export async function generateCustomShootFrame({
       // Anti-AI
       antiAi,
       // Ambient (situational conditions)
-      ambient
+      ambient,
+      // Model Behavior
+      modelBehavior
     });
     
     // Convert JSON to readable text prompt for Gemini

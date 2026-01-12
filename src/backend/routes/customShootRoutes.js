@@ -376,6 +376,8 @@ router.post('/:id/generate', async (req, res) => {
       composition,
       // Anti-AI
       antiAi,
+      // Model Behavior (Layer 7)
+      modelBehavior,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient,
       identityImages: reqIdentityImages,
@@ -395,6 +397,7 @@ router.post('/:id/generate', async (req, res) => {
       poseAdherence,
       composition,
       antiAi,
+      modelBehavior,
       ambient,
       frame: frame?.label || frame?.id || null,
       extraPrompt: extraPrompt?.slice(0, 50) 
@@ -562,6 +565,8 @@ router.post('/:id/generate', async (req, res) => {
       composition,
       // Anti-AI
       antiAi,
+      // Model Behavior (Layer 7)
+      modelBehavior,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient
     });

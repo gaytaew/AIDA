@@ -779,6 +779,248 @@ export const ERA_PRESETS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// 7. MODEL BEHAVIOR - How the model interacts with camera (Layer 7)
+// ═══════════════════════════════════════════════════════════════
+
+export const MODEL_BEHAVIOR_PRESETS = {
+  natural: {
+    id: 'natural',
+    label: 'Естественное',
+    description: 'Модель ведёт себя естественно, не позирует',
+    prompt: `MODEL BEHAVIOR: Natural and unposed.
+- Model appears caught in a genuine moment, not posing
+- Relaxed body language, no tension
+- Eyes may be looking away from camera or at camera casually
+- No deliberate "model poses" or fashion clichés
+- Like a candid moment that happened to be photographed`,
+    intensity: 'low',
+    cameraAwareness: 'unaware_or_casual'
+  },
+  
+  aware_relaxed: {
+    id: 'aware_relaxed',
+    label: 'Расслабленный контакт',
+    description: 'Знает о камере, но расслаблен',
+    prompt: `MODEL BEHAVIOR: Camera-aware but relaxed.
+- Model is aware of camera but not performing for it
+- Comfortable, confident presence
+- Occasional eye contact with camera, but not forced
+- Like talking to a friend who happens to have a camera
+- Natural hand placement, no stiff poses`,
+    intensity: 'low',
+    cameraAwareness: 'aware_casual'
+  },
+  
+  engaged: {
+    id: 'engaged',
+    label: 'Взаимодействие',
+    description: 'Активно работает с камерой, но естественно',
+    prompt: `MODEL BEHAVIOR: Actively engaged with camera.
+- Model is "working" the camera — creating visual interest
+- Dynamic energy: weight shifts, subtle movement between frames
+- Chin angles, shoulder positioning, deliberate but not stiff
+- Eyes have intention and connection with lens
+- Professional model technique visible but not overdone`,
+    intensity: 'medium',
+    cameraAwareness: 'engaged'
+  },
+  
+  flirty: {
+    id: 'flirty',
+    label: 'Игривый / Заигрывание',
+    description: 'Модель "флиртует" с камерой, соблазнительно',
+    prompt: `MODEL BEHAVIOR: Flirty and seductive camera presence.
+
+CRITICAL — THIS IS NOT ABOUT SEXUAL POSES. It's about ENERGY and ATTITUDE:
+- Eyes that "see" the viewer — inviting, knowing, playful
+- Subtle smile or barely-there smirk
+- Head tilts that create intimacy
+- Body language that draws the viewer in
+- Like the model has a secret they might share
+- Confident, almost teasing energy
+
+PHYSICAL CUES (subtle, not exaggerated):
+- Slightly parted lips
+- One eyebrow micro-raised
+- Chin down, eyes up through lashes
+- Shoulder turned slightly toward camera
+- Weight on back foot, hip shift
+- Fingers touching face, hair, or clothing casually
+
+AVOID:
+- Duck face or pouting
+- Hands on hips cliché
+- Stiff "sexy pose" attempts
+- Theatrical winking
+- Overdone expressions`,
+    intensity: 'high',
+    cameraAwareness: 'seductive'
+  },
+  
+  editorial_dramatic: {
+    id: 'editorial_dramatic',
+    label: 'Editorial драматичный',
+    description: 'Сильные позы, модель = скульптура',
+    prompt: `MODEL BEHAVIOR: High fashion editorial presence.
+
+THE MODEL IS A SCULPTURE — every angle intentional:
+- Strong, deliberate poses with clear lines
+- Body creates geometric shapes and negative space
+- Movement frozen at peak moment
+- Eyes intense or completely disengaged (looking through camera)
+- Hands and fingers have intention, not just hanging
+
+POSING PRINCIPLES:
+- Create triangles with limbs
+- Use diagonals and asymmetry
+- Elongate lines (neck, fingers, legs)
+- One body part leads, others follow
+- "S-curve" or "contrapposto" in standing poses
+- If sitting: one leg forward, one back; never symmetrical
+
+HEAD AND FACE:
+- Neck elongated, chin slightly extended
+- Strong jaw angles
+- Eyes can be: intense/piercing, dreamy/distant, or closed
+- Expression minimal but specific — not blank
+
+AVOID:
+- Symmetrical standing (soldier pose)
+- Hands in pockets hiding body language
+- Hunched shoulders
+- Uncertain facial expression
+- Looking at camera with "am I doing this right?" energy`,
+    intensity: 'high',
+    cameraAwareness: 'intense_or_detached'
+  },
+  
+  dynamic: {
+    id: 'dynamic',
+    label: 'Динамичный / В движении',
+    description: 'Модель в движении, энергия, action',
+    prompt: `MODEL BEHAVIOR: Dynamic movement and action.
+
+THE MODEL IS IN MOTION — not posing statically:
+- Captured mid-stride, mid-turn, mid-gesture
+- Hair and fabric showing movement
+- Body weight shifting, not static
+- Energy and momentum visible
+- Like a film still from a sequence
+
+MOVEMENT IDEAS:
+- Walking toward or past camera
+- Turning to look over shoulder
+- Arms in gesture (adjusting clothes, touching hair)
+- Stepping up/down, leaning forward/back
+- Wind interaction (hair, clothes billowing)
+
+PHYSICS MATTER:
+- Motion blur on extremities (hands, hair tips) = authenticity
+- Clothes follow body movement with slight delay
+- Weight distribution realistic (not floating)
+
+EXPRESSION:
+- Caught between expressions, not frozen smile
+- Eyes tracking movement direction
+- Natural exertion micro-expressions if athletic
+
+AVOID:
+- Frozen "jump shot" with stiff body
+- Fake running with both feet on ground
+- Static pose with hair artificially blown`,
+    intensity: 'high',
+    cameraAwareness: 'action_focused'
+  },
+  
+  vulnerable: {
+    id: 'vulnerable',
+    label: 'Открытый / Уязвимый',
+    description: 'Искренность, без защит, intimate moment',
+    prompt: `MODEL BEHAVIOR: Vulnerable and intimate.
+
+THE MODEL IS UNGUARDED — this is about authenticity:
+- No performance, no posing
+- Genuine emotion visible in face and body
+- Like a private moment accidentally witnessed
+- Stillness and quiet energy
+- Eyes that reveal inner state
+
+BODY LANGUAGE:
+- Shoulders may be rounded (not "proper posture")
+- Arms close to body, self-comforting gestures
+- Head tilted down or to side
+- Curled or tucked positions if sitting/lying
+- Hands doing something unconscious (fiddling, touching)
+
+FACIAL EXPRESSION:
+- Eyes unfocused or looking down
+- No smile unless genuine/sad
+- Imperfect asymmetry in expression
+- The face between expressions
+
+ATMOSPHERE:
+- Quiet, contemplative mood
+- Intimate framing
+- Feels like a stolen moment
+
+AVOID:
+- Performative sadness
+- Hands covering face cliché
+- Theatrical vulnerability
+- "Artsy" poses that feel contrived`,
+    intensity: 'medium',
+    cameraAwareness: 'internal'
+  },
+  
+  powerful: {
+    id: 'powerful',
+    label: 'Мощный / Уверенный',
+    description: 'Сила, уверенность, доминирование пространства',
+    prompt: `MODEL BEHAVIOR: Powerful and commanding presence.
+
+THE MODEL OWNS THE SPACE:
+- Confident, grounded stance
+- Takes up space deliberately
+- Energy projects outward
+- Unshakeable composure
+- Like they belong exactly where they are
+
+BODY LANGUAGE:
+- Wide stance, feet firmly planted
+- Shoulders back, chest open
+- Chin level or slightly elevated
+- Direct eye contact with camera (if looking at it)
+- Hands relaxed but visible, not hidden
+
+ENERGY:
+- Quiet strength, not aggressive
+- No need to prove anything
+- Secure in themselves
+- Magnetic presence that draws attention
+
+POSING VARIATIONS:
+- Standing: legs apart, weight centered
+- Sitting: taking up space, one arm extended
+- Leaning: against something, owning it
+- Walking: purposeful stride, destination in mind
+
+FACE:
+- Neutral or slight smile
+- Eyes steady and direct
+- No tension in jaw or forehead
+- Expression says "I know my worth"
+
+AVOID:
+- Aggressive or angry expression
+- Arms crossed defensively
+- Trying too hard to look tough
+- Performative "power pose" clichés`,
+    intensity: 'medium',
+    cameraAwareness: 'confident_presence'
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
 // CONFLICT DETECTION SYSTEM
 // ═══════════════════════════════════════════════════════════════
 
@@ -1132,6 +1374,18 @@ const LABELS = {
     'portrait': 'Портрет',
     'beauty': 'Beauty',
     'sport': 'Спорт'
+  },
+  
+  // Model Behavior
+  modelBehavior: {
+    'natural': 'Естественное',
+    'aware_relaxed': 'Расслабленный контакт',
+    'engaged': 'Взаимодействие',
+    'flirty': 'Игривый / Заигрывание',
+    'editorial_dramatic': 'Editorial драматичный',
+    'dynamic': 'Динамичный',
+    'vulnerable': 'Открытый / Уязвимый',
+    'powerful': 'Мощный / Уверенный'
   }
 };
 
@@ -1244,7 +1498,8 @@ export function getPresetById(category, id) {
     lightingQuality: LIGHTING_QUALITY_PRESETS,
     light: LIGHT_PRESETS,
     color: COLOR_PRESETS,
-    era: ERA_PRESETS
+    era: ERA_PRESETS,
+    modelBehavior: MODEL_BEHAVIOR_PRESETS
   };
   
   return presets[category]?.[id] || null;
@@ -1261,7 +1516,8 @@ export function getPresetsArray(category) {
     lightingQuality: LIGHTING_QUALITY_PRESETS,
     light: LIGHT_PRESETS,
     color: COLOR_PRESETS,
-    era: ERA_PRESETS
+    era: ERA_PRESETS,
+    modelBehavior: MODEL_BEHAVIOR_PRESETS
   };
   
   const categoryPresets = presets[category];
@@ -1322,7 +1578,8 @@ export function getAllStylePresets() {
     lightingQuality: LIGHTING_QUALITY_PRESETS,
     light: LIGHT_PRESETS,
     color: COLOR_PRESETS,
-    era: ERA_PRESETS
+    era: ERA_PRESETS,
+    modelBehavior: MODEL_BEHAVIOR_PRESETS
   };
 }
 

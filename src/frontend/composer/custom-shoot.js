@@ -113,6 +113,10 @@ function initElements() {
   // Anti-AI
   elements.genAntiAiLevel = document.getElementById('gen-antiai-level');
   
+  // Model Behavior (Layer 7)
+  elements.genModelBehavior = document.getElementById('gen-model-behavior');
+  elements.modelBehaviorHint = document.getElementById('model-behavior-hint');
+  
   // Ambient controls (situational: weather, season, atmosphere)
   elements.ambientSection = document.getElementById('ambient-section');
   elements.genWeather = document.getElementById('gen-weather');
@@ -807,6 +811,9 @@ function collectGenerationSettings() {
     // Anti-AI
     antiAiLevel: elements.genAntiAiLevel?.value || 'medium',
     
+    // Model Behavior (Layer 7)
+    modelBehavior: elements.genModelBehavior?.value || 'engaged',
+    
     // Ambient
     weather: elements.genWeather?.value || 'clear',
     timeOfDay: elements.genTimeOfDay?.value || 'any',
@@ -893,6 +900,11 @@ function applyGenerationSettings(settings) {
     elements.genAntiAiLevel.value = settings.antiAiLevel;
   }
   
+  // Model Behavior
+  if (settings.modelBehavior && elements.genModelBehavior) {
+    elements.genModelBehavior.value = settings.modelBehavior;
+  }
+  
   // Ambient
   if (settings.weather && elements.genWeather) {
     elements.genWeather.value = settings.weather;
@@ -975,6 +987,8 @@ function initSettingsAutoSave() {
     elements.genFocusMode,
     // Anti-AI
     elements.genAntiAiLevel,
+    // Model Behavior
+    elements.genModelBehavior,
     // Ambient
     elements.genWeather,
     elements.genTimeOfDay,
@@ -1696,6 +1710,9 @@ async function generateFrame(frameId) {
     antiAi: {
       level: elements.genAntiAiLevel?.value || 'medium'
     },
+    
+    // Model Behavior (Layer 7) - how model interacts with camera
+    modelBehavior: elements.genModelBehavior?.value || 'engaged',
     
     // Ambient (situational conditions: weather, season, atmosphere)
     ambient: {
