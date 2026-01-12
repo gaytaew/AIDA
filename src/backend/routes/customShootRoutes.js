@@ -508,11 +508,30 @@ router.post('/:id/generate', async (req, res) => {
     let identityCollage = null;
     let clothingCollage = null;
     
+    // Identity collage: HIGH QUALITY for face recognition
+    // - Larger size (1536px) to preserve facial details
+    // - Higher JPEG quality (95) to avoid compression artifacts
+    // - Larger minimum tile (512px) for each face
+    // - Max 2 columns to keep faces bigger
     if (identityImages.length > 0) {
-      identityCollage = await buildCollage(identityImages, { maxSize: 512, maxCols: 3, jpegQuality: 85 });
+      identityCollage = await buildCollage(identityImages, { 
+        maxSize: 1536,      // Much larger for face details
+        maxCols: 2,         // Fewer columns = bigger faces
+        minTile: 512,       // Each face at least 512px
+        jpegQuality: 95,    // Maximum quality
+        fit: 'cover',
+        position: 'attention'  // Smart crop focusing on faces
+      });
     }
+    
+    // Clothing collage: moderate quality (clothing is less sensitive)
     if (clothingImages.length > 0) {
-      clothingCollage = await buildCollage(clothingImages, { maxSize: 512, maxCols: 3, jpegQuality: 85 });
+      clothingCollage = await buildCollage(clothingImages, { 
+        maxSize: 1024,      // Larger for clothing details
+        maxCols: 3,         // More columns OK for clothing
+        minTile: 400,
+        jpegQuality: 92
+      });
     }
     
     // Track generation time

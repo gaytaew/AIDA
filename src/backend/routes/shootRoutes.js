@@ -638,20 +638,26 @@ router.post('/:id/generate', async (req, res) => {
     let identityCollage = null;
     let clothingCollage = null;
     
+    // Identity collage: HIGH QUALITY for face recognition
     if (identityImages.length > 0) {
       identityCollage = await buildCollage(identityImages, {
-        maxSize: 1536,
-        maxCols: 3,
-        jpegQuality: 92
+        maxSize: 1536,      // Large size for face details
+        maxCols: 2,         // Fewer columns = bigger faces
+        minTile: 512,       // Each face at least 512px
+        jpegQuality: 95,    // Maximum quality for faces
+        fit: 'cover',
+        position: 'attention'  // Smart crop focusing on faces
       });
       console.log(`[ShootRoutes] Identity collage built from ${identityImages.length} images`);
     }
     
+    // Clothing collage: moderate quality
     if (clothingImages.length > 0) {
       clothingCollage = await buildCollage(clothingImages, {
-        maxSize: 1536,
-        maxCols: 4,
-        jpegQuality: 90,
+        maxSize: 1024,
+        maxCols: 3,
+        minTile: 400,
+        jpegQuality: 92,
         fit: 'contain'
       });
       console.log(`[ShootRoutes] Clothing collage built from ${clothingImages.length} images`);
@@ -893,19 +899,25 @@ router.post('/:id/generate-frame', async (req, res) => {
     let identityCollage = null;
     let clothingCollage = null;
     
+    // Identity collage: HIGH QUALITY for face recognition
     if (identityImages.length > 0) {
       identityCollage = await buildCollage(identityImages, {
-        maxSize: 1536,
-        maxCols: 3,
-        jpegQuality: 92
+        maxSize: 1536,      // Large size for face details
+        maxCols: 2,         // Fewer columns = bigger faces
+        minTile: 512,       // Each face at least 512px
+        jpegQuality: 95,    // Maximum quality for faces
+        fit: 'cover',
+        position: 'attention'  // Smart crop focusing on faces
       });
     }
     
+    // Clothing collage: moderate quality
     if (clothingImages.length > 0) {
       clothingCollage = await buildCollage(clothingImages, {
-        maxSize: 1536,
-        maxCols: 4,
-        jpegQuality: 90,
+        maxSize: 1024,
+        maxCols: 3,
+        minTile: 400,
+        jpegQuality: 92,
         fit: 'contain'
       });
     }

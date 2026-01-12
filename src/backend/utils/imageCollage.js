@@ -162,16 +162,28 @@ export async function buildCollage(images, options = {}) {
 
 /**
  * Build identity collage (optimized for face identity)
+ * 
+ * IMPORTANT: Face references need HIGH quality to preserve:
+ * - Facial structure (eye spacing, nose, jawline)
+ * - Skin texture and freckles
+ * - Hair pattern and color
+ * 
+ * Settings rationale:
+ * - maxSize: 1536 — large enough for face details
+ * - minTile: 512 — each face is at least 512px (critical for recognition)
+ * - maxCols: 2 — fewer faces per row = bigger individual tiles
+ * - jpegQuality: 95 — near-lossless to preserve subtle features
+ * - position: 'attention' — Sharp's smart crop that focuses on faces
  */
 export async function buildIdentityCollage(images, options = {}) {
   return await buildCollage(images, {
-    maxSize: options.maxSize ?? 2048,
-    jpegQuality: options.jpegQuality ?? 92,
+    maxSize: options.maxSize ?? 1536,
+    jpegQuality: options.jpegQuality ?? 95,
     background: options.background ?? '#ffffff',
     fit: options.fit ?? 'cover',
-    position: options.position ?? 'centre',
-    minTile: 400,
-    maxCols: 3
+    position: options.position ?? 'attention',  // Smart crop for faces
+    minTile: options.minTile ?? 512,            // Each face at least 512px
+    maxCols: options.maxCols ?? 2               // Fewer columns = bigger faces
   });
 }
 
