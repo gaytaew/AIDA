@@ -894,18 +894,21 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
   // 11. Check Shot Size recommendations for Focus
   if (paramToCheck === 'focusMode' && currentSelections.shotSize) {
     const shotSizeFocusRecommendations = {
-      'extreme_closeup': ['shallow_dof', 'very_shallow_dof'], // Close-ups benefit from shallow DOF
+      'extreme_closeup': ['shallow_dof', 'very_shallow_dof'],
       'closeup': ['shallow_dof', 'moderate_dof'],
       'medium_closeup': ['shallow_dof', 'moderate_dof'],
       'medium': ['moderate_dof', 'shallow_dof'],
       'medium_wide': ['moderate_dof', 'deep_focus'],
-      'wide': ['deep_focus', 'moderate_dof'], // Wide shots need more in focus
-      'extreme_wide': ['deep_focus'] // Environment shots = deep focus
+      'wide': ['deep_focus', 'moderate_dof'],
+      'extreme_wide': ['deep_focus']
     };
     
     const recommended = shotSizeFocusRecommendations[currentSelections.shotSize];
     if (recommended && !recommended.includes(valueToCheck)) {
-      warnings.push(`Для "${currentSelections.shotSize}" рекомендуется: ${recommended.join(' или ')}`);
+      // Use human-readable labels
+      const shotLabel = LABELS.shotSize[currentSelections.shotSize] || currentSelections.shotSize;
+      const focusLabels = recommended.map(id => LABELS.focusMode[id] || id).join(' или ');
+      warnings.push(`Для плана «${shotLabel}» лучше подходит: ${focusLabels}`);
     }
   }
   
@@ -1031,6 +1034,94 @@ export function validateAndCorrectParams(params) {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// HUMAN-READABLE LABELS FOR ALL PARAMETERS
+// ═══════════════════════════════════════════════════════════════
+
+const LABELS = {
+  // Focus Mode
+  focusMode: {
+    'very_shallow_dof': 'Сильное размытие фона',
+    'shallow_dof': 'Размытый фон',
+    'shallow': 'Размытый фон',
+    'moderate_dof': 'Умеренная глубина',
+    'deep_focus': 'Всё в резкости',
+    'deep': 'Всё в резкости',
+    'focus_face': 'Фокус на лице',
+    'soft_focus': 'Мягкий фокус',
+    'default': 'По умолчанию'
+  },
+  
+  // Shot Size
+  shotSize: {
+    'extreme_closeup': 'Макро',
+    'closeup': 'Крупный план',
+    'medium_closeup': 'Портретный план',
+    'medium_shot': 'Средний план',
+    'medium': 'Средний план',
+    'cowboy_shot': 'Американский план',
+    'full_shot': 'Ростовой план',
+    'wide_shot': 'Общий план',
+    'wide': 'Общий план',
+    'extreme_wide': 'Панорама'
+  },
+  
+  // Lighting Quality
+  lightingQuality: {
+    'harsh_direct': 'Жёсткий свет',
+    'soft_diffused': 'Мягкий свет',
+    'contrasty': 'Контрастный',
+    'flat': 'Плоский',
+    'backlit': 'Контровой свет',
+    'moody_lowkey': 'Атмосферный тёмный'
+  },
+  
+  // Lighting Source
+  lightingSource: {
+    'natural_daylight': 'Дневной свет',
+    'window_light': 'Свет из окна',
+    'on_camera_flash': 'Вспышка',
+    'studio_strobe': 'Студийный свет',
+    'ring_flash': 'Кольцевой свет',
+    'mixed_ambient': 'Смешанный свет',
+    'practicals': 'Практические источники',
+    'continuous_led': 'LED свет'
+  },
+  
+  // Camera Aesthetic
+  cameraAesthetic: {
+    'none': 'Без стилизации',
+    'contax_t2': 'Contax T2 (плёнка)',
+    'hasselblad_mf': 'Hasselblad (средний формат)',
+    'leica_m': 'Leica M (street)',
+    'mamiya_rz67': 'Mamiya RZ67 (портрет)',
+    'polaroid': 'Polaroid',
+    'disposable': 'Одноразовая камера',
+    'holga': 'Holga (toy camera)',
+    'iphone': 'iPhone',
+    'ricoh_gr': 'Ricoh GR (28mm)'
+  },
+  
+  // Shoot Type
+  shootType: {
+    'catalog': 'Каталог',
+    'editorial': 'Editorial',
+    'street': 'Street / Documentary',
+    'lookbook': 'Lookbook',
+    'campaign': 'Рекламная кампания',
+    'portrait': 'Портрет',
+    'beauty': 'Beauty',
+    'sport': 'Спорт'
+  }
+};
+
+/**
+ * Get human-readable label for a parameter value
+ */
+function getLabel(param, value) {
+  return LABELS[param]?.[value] || value;
+}
+
 /**
  * Get recommendations for a specific parameter based on current context
  * @param {Object} context - Current parameter context
@@ -1043,19 +1134,20 @@ export function getParameterRecommendations(context, param) {
   // Shot Size → Focus Mode recommendations
   if (param === 'focusMode' && context.shotSize) {
     const shotFocusMap = {
-      'extreme_closeup': { recommended: ['very_shallow_dof', 'shallow_dof'], info: 'Крупный план красиво смотрится с размытием' },
-      'closeup': { recommended: ['shallow_dof'], info: 'Портретный план с размытым фоном' },
+      'extreme_closeup': { recommended: ['very_shallow_dof', 'shallow_dof'], info: 'Крупный план красиво смотрится с размытием фона' },
+      'closeup': { recommended: ['shallow_dof'], info: 'Портретный план лучше с размытым фоном' },
       'medium_closeup': { recommended: ['shallow_dof', 'moderate_dof'], info: 'Классический портрет' },
-      'medium': { recommended: ['moderate_dof'], info: 'Средний план - умеренная глубина' },
+      'medium': { recommended: ['moderate_dof'], info: 'Средний план — умеренная глубина резкости' },
       'medium_wide': { recommended: ['moderate_dof', 'deep_focus'], info: 'Показываем окружение' },
-      'wide': { recommended: ['deep_focus'], avoid: ['shallow_dof'], info: 'Общий план - всё в фокусе' },
-      'extreme_wide': { recommended: ['deep_focus'], avoid: ['shallow_dof', 'very_shallow_dof'], info: 'Пейзажный план' }
+      'wide': { recommended: ['deep_focus'], avoid: ['shallow_dof'], info: 'Общий план — всё должно быть в фокусе' },
+      'extreme_wide': { recommended: ['deep_focus'], avoid: ['shallow_dof', 'very_shallow_dof'], info: 'Панорамный кадр' }
     };
     
     const rec = shotFocusMap[context.shotSize];
     if (rec) {
-      recommendations.recommended = rec.recommended || [];
-      recommendations.avoid = rec.avoid || [];
+      // Convert IDs to labels
+      recommendations.recommended = rec.recommended?.map(id => getLabel('focusMode', id)) || [];
+      recommendations.avoid = rec.avoid?.map(id => getLabel('focusMode', id)) || [];
       recommendations.info = rec.info || '';
     }
   }
@@ -1063,17 +1155,17 @@ export function getParameterRecommendations(context, param) {
   // Time of Day → Lighting Quality recommendations
   if (param === 'lightingQuality' && context.timeOfDay) {
     const timeQualityMap = {
-      'golden_hour': { recommended: ['backlit', 'soft_diffused', 'contrasty'], info: 'Золотой час - мягкий тёплый свет' },
-      'midday': { recommended: ['harsh_direct', 'contrasty'], avoid: ['moody_lowkey'], info: 'Полдень - жёсткий свет сверху' },
-      'blue_hour': { recommended: ['moody_lowkey', 'soft_diffused'], avoid: ['harsh_direct'], info: 'Синий час - мягкое свечение' },
-      'night': { recommended: ['moody_lowkey', 'contrasty'], avoid: ['soft_diffused'], info: 'Ночь - контрастный свет от источников' },
-      'overcast': { recommended: ['soft_diffused', 'flat'], avoid: ['harsh_direct'], info: 'Пасмурно - естественный софтбокс' }
+      'golden_hour': { recommended: ['backlit', 'soft_diffused', 'contrasty'], info: 'Золотой час — мягкий тёплый свет' },
+      'midday': { recommended: ['harsh_direct', 'contrasty'], avoid: ['moody_lowkey'], info: 'Полдень — жёсткий свет сверху' },
+      'blue_hour': { recommended: ['moody_lowkey', 'soft_diffused'], avoid: ['harsh_direct'], info: 'Синий час — мягкое свечение' },
+      'night': { recommended: ['moody_lowkey', 'contrasty'], avoid: ['soft_diffused'], info: 'Ночь — контрастный свет от источников' },
+      'overcast': { recommended: ['soft_diffused', 'flat'], avoid: ['harsh_direct'], info: 'Пасмурно — естественный рассеянный свет' }
     };
     
     const rec = timeQualityMap[context.timeOfDay];
     if (rec) {
-      recommendations.recommended = rec.recommended || [];
-      recommendations.avoid = rec.avoid || [];
+      recommendations.recommended = rec.recommended?.map(id => getLabel('lightingQuality', id)) || [];
+      recommendations.avoid = rec.avoid?.map(id => getLabel('lightingQuality', id)) || [];
       recommendations.info = rec.info || '';
     }
   }
@@ -1081,17 +1173,17 @@ export function getParameterRecommendations(context, param) {
   // Space Type → Lighting Source recommendations
   if (param === 'lightingSource' && context.spaceType) {
     const spaceSourceMap = {
-      'exterior': { recommended: ['natural_daylight', 'on_camera_flash'], avoid: ['studio_strobe', 'ring_flash', 'continuous_led'], info: 'На улице - естественный свет или вспышка' },
-      'rooftop': { recommended: ['natural_daylight'], avoid: ['studio_strobe', 'ring_flash'], info: 'Крыша - открытое небо' },
-      'interior_studio': { recommended: ['studio_strobe', 'ring_flash', 'continuous_led'], avoid: ['natural_daylight'], info: 'Студия - контролируемый свет' },
-      'interior_with_windows': { recommended: ['window_light', 'natural_daylight', 'practicals'], info: 'Интерьер с окнами - смешанный свет' },
-      'interior': { recommended: ['practicals', 'continuous_led', 'mixed_ambient'], info: 'Интерьер - ambient свет' }
+      'exterior': { recommended: ['natural_daylight', 'on_camera_flash'], avoid: ['studio_strobe', 'ring_flash', 'continuous_led'], info: 'На улице — естественный свет или вспышка' },
+      'rooftop': { recommended: ['natural_daylight'], avoid: ['studio_strobe', 'ring_flash'], info: 'Крыша — открытое небо' },
+      'interior_studio': { recommended: ['studio_strobe', 'ring_flash', 'continuous_led'], avoid: ['natural_daylight'], info: 'Студия — контролируемое освещение' },
+      'interior_with_windows': { recommended: ['window_light', 'natural_daylight', 'practicals'], info: 'Интерьер с окнами — смешанный свет' },
+      'interior': { recommended: ['practicals', 'continuous_led', 'mixed_ambient'], info: 'Интерьер — ambient освещение' }
     };
     
     const rec = spaceSourceMap[context.spaceType];
     if (rec) {
-      recommendations.recommended = rec.recommended || [];
-      recommendations.avoid = rec.avoid || [];
+      recommendations.recommended = rec.recommended?.map(id => getLabel('lightingSource', id)) || [];
+      recommendations.avoid = rec.avoid?.map(id => getLabel('lightingSource', id)) || [];
       recommendations.info = rec.info || '';
     }
   }
@@ -1099,17 +1191,17 @@ export function getParameterRecommendations(context, param) {
   // Shoot Type → Camera Aesthetic recommendations
   if (param === 'cameraAesthetic' && context.shootType) {
     const shootCameraMap = {
-      'editorial': { recommended: ['hasselblad_mf', 'mamiya_rz67', 'leica_m', 'contax_t2'], info: 'Editorial - высокое качество' },
-      'street': { recommended: ['leica_m', 'ricoh_gr', 'contax_t2', 'disposable'], info: 'Street - компактные камеры' },
-      'catalog': { recommended: ['hasselblad_mf', 'none'], avoid: ['holga', 'disposable'], info: 'Каталог - чистое качество' },
-      'beauty': { recommended: ['hasselblad_mf', 'mamiya_rz67'], avoid: ['iphone', 'disposable'], info: 'Beauty - максимальная детализация' },
-      'sport': { recommended: ['none', 'ricoh_gr'], info: 'Спорт - технические характеристики' }
+      'editorial': { recommended: ['hasselblad_mf', 'mamiya_rz67', 'leica_m', 'contax_t2'], info: 'Editorial — высокое качество изображения' },
+      'street': { recommended: ['leica_m', 'ricoh_gr', 'contax_t2', 'disposable'], info: 'Street — компактные камеры с характером' },
+      'catalog': { recommended: ['hasselblad_mf', 'none'], avoid: ['holga', 'disposable'], info: 'Каталог — чистое качество без стилизации' },
+      'beauty': { recommended: ['hasselblad_mf', 'mamiya_rz67'], avoid: ['iphone', 'disposable'], info: 'Beauty — максимальная детализация' },
+      'sport': { recommended: ['none', 'ricoh_gr'], info: 'Спорт — нейтральный look' }
     };
     
     const rec = shootCameraMap[context.shootType];
     if (rec) {
-      recommendations.recommended = rec.recommended || [];
-      recommendations.avoid = rec.avoid || [];
+      recommendations.recommended = rec.recommended?.map(id => getLabel('cameraAesthetic', id)) || [];
+      recommendations.avoid = rec.avoid?.map(id => getLabel('cameraAesthetic', id)) || [];
       recommendations.info = rec.info || '';
     }
   }

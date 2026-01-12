@@ -1130,13 +1130,34 @@ async function checkAndDisplayConflicts() {
       
       // Auto-corrections (informational)
       if (autoCorrections && Object.keys(autoCorrections).length > 0) {
-        const correctionLabels = {
+        const paramLabels = {
           lightingQuality: 'Качество света',
           focusMode: 'Режим фокуса',
-          lightingSource: 'Источник света'
+          lightingSource: 'Источник света',
+          cameraAesthetic: 'Эстетика камеры',
+          shootType: 'Тип съёмки'
+        };
+        const valueLabels = {
+          // Lighting Quality
+          'harsh_direct': 'Жёсткий свет',
+          'soft_diffused': 'Мягкий свет',
+          'contrasty': 'Контрастный',
+          'flat': 'Плоский',
+          'backlit': 'Контровой',
+          'moody_lowkey': 'Атмосферный',
+          // Focus Mode
+          'shallow_dof': 'Размытый фон',
+          'deep_focus': 'Всё в резкости',
+          'moderate_dof': 'Умеренная глубина',
+          // Lighting Source
+          'natural_daylight': 'Дневной свет',
+          'window_light': 'Свет из окна',
+          'studio_strobe': 'Студийный свет'
         };
         const correctionsList = Object.entries(autoCorrections).map(([param, value]) => {
-          return `<li>${correctionLabels[param] || param}: → ${value}</li>`;
+          const paramName = paramLabels[param] || param;
+          const valueName = valueLabels[value] || value;
+          return `<li>${paramName} → <strong>${valueName}</strong></li>`;
         }).join('');
         
         sections.push(`
