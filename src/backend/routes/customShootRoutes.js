@@ -436,8 +436,9 @@ router.post('/:id/generate', async (req, res) => {
       }
     }
     
-    // Prepare clothing images
+    // Prepare clothing images and descriptions
     let clothingImages = [];
+    let clothingDescriptions = [];
     if (reqClothingImages && Array.isArray(reqClothingImages)) {
       clothingImages = reqClothingImages;
     } else if (shoot.clothing?.length > 0) {
@@ -445,7 +446,13 @@ router.post('/:id/generate', async (req, res) => {
         if (clothing.refs) {
           for (const ref of clothing.refs) {
             const img = await prepareImageFromUrl(ref.url);
-            if (img) clothingImages.push(img);
+            if (img) {
+              clothingImages.push(img);
+              // Collect description if provided
+              if (ref.description && ref.description.trim()) {
+                clothingDescriptions.push(ref.description.trim());
+              }
+            }
           }
         }
       }
@@ -548,6 +555,7 @@ router.post('/:id/generate', async (req, res) => {
       shoot,
       identityImages,
       clothingImages,
+      clothingDescriptions, // NEW: detailed clothing descriptions
       styleRefImage,
       locationRefImage,
       locationSketchImage,

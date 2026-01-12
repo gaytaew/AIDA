@@ -657,11 +657,20 @@ function renderClothingSections() {
         </label>
         
         ${clothing.length > 0 ? `
-          <div class="images-preview" style="margin-top: 16px;">
+          <div class="clothing-items" style="margin-top: 16px;">
             ${clothing.map((c, ci) => `
-              <div class="image-thumb">
-                <img src="${c.url}" alt="Clothing ${ci + 1}">
-                <button class="image-thumb-remove" data-model="${index}" data-clothing="${ci}">✕</button>
+              <div class="clothing-item" data-model="${index}" data-idx="${ci}">
+                <div class="clothing-item-preview">
+                  <img src="${c.url}" alt="Clothing ${ci + 1}">
+                  <button class="image-thumb-remove" data-model="${index}" data-clothing="${ci}">✕</button>
+                </div>
+                <textarea 
+                  class="clothing-description" 
+                  data-model="${index}" 
+                  data-idx="${ci}"
+                  placeholder="Опишите фасон: длина, ширина, посадка, как сидит..."
+                  rows="2"
+                >${escapeHtml(c.description || '')}</textarea>
               </div>
             `).join('')}
           </div>
@@ -680,6 +689,18 @@ function renderClothingSections() {
       e.stopPropagation();
       removeClothingItem(parseInt(btn.dataset.model), parseInt(btn.dataset.clothing));
     });
+  });
+  
+  // Description input handlers
+  elements.clothingSections.querySelectorAll('.clothing-description').forEach(textarea => {
+    textarea.addEventListener('input', debounce(() => {
+      const modelIdx = parseInt(textarea.dataset.model);
+      const clothingIdx = parseInt(textarea.dataset.idx);
+      if (state.clothingByModel[modelIdx] && state.clothingByModel[modelIdx][clothingIdx]) {
+        state.clothingByModel[modelIdx][clothingIdx].description = textarea.value;
+        saveShootClothing();
+      }
+    }, 500));
   });
 }
 

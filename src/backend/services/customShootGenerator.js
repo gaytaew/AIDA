@@ -296,7 +296,7 @@ export function buildCustomShootPrompt({
   emotionId = null,
   extraPrompt = '',
   modelDescription = '',
-  clothingNotes = '',
+  clothingDescriptions = [], // NEW: array of detailed clothing descriptions
   hasIdentityRefs = false,
   hasClothingRefs = false,
   hasStyleRef = false,
@@ -376,7 +376,7 @@ export function buildCustomShootPrompt({
       'Natural skin texture, believable fabric behavior, real optics.',
       'No watermarks, no text overlays, no captions, no logos.',
       hasIdentityRefs ? 'FACE IDENTITY IS CRITICAL: The generated person MUST be the EXACT SAME person as in the identity reference photo. Same face shape, same eyes, same nose, same lips. This is the #1 priority.' : null,
-      'STRICTLY match clothing reference images (silhouette, color, construction, materials).',
+      hasClothingRefs ? 'CLOTHING IS CRITICAL: The garments MUST match the reference images EXACTLY — same silhouette (wide/slim/oversized), same length (long/cropped/ankle), same fit (loose/fitted/tailored). If user provided descriptions — follow them precisely.' : null,
       'Do NOT invent brands/logos/text.'
     ].filter(Boolean),
     
@@ -434,11 +434,15 @@ export function buildCustomShootPrompt({
     clothing: {
       hasRefs: hasClothingRefs,
       rules: hasClothingRefs ? [
-        'Strictly follow clothing reference images.',
-        'Match silhouette, cut, color, construction, and fabric behavior.',
-        'Do not invent patterns or logos.'
+        'CLOTHING REFERENCE IMAGES ARE PROVIDED — you MUST follow them STRICTLY.',
+        'SILHOUETTE IS CRITICAL: Match the exact shape — wide pants stay wide, slim pants stay slim, oversized stays oversized.',
+        'PROPORTIONS: Match lengths (ankle-length, cropped, knee-length), widths (loose, fitted, tailored).',
+        'CONSTRUCTION: Match seams, stitching, closures, pockets, cuffs, collars.',
+        'FABRIC BEHAVIOR: If the reference shows flowing fabric — show flowing. If structured — show structured.',
+        'COLOR & PATTERN: Exact color match. Do not invent logos, patterns, or text.',
+        'FIT: How the garment sits on the body — tight, relaxed, oversized — must match reference.'
       ] : [],
-      notes: clothingNotes || null
+      descriptions: clothingDescriptions.length > 0 ? clothingDescriptions : null
     },
     
     // Anti-AI
@@ -930,10 +934,16 @@ export function promptJsonToText(promptJson) {
   
   // Clothing
   if (promptJson.clothing?.hasRefs) {
-    sections.push('\n=== CLOTHING ===');
+    sections.push('\n=== CLOTHING (CRITICAL) ===');
+    sections.push('Clothing reference images are provided. Follow them STRICTLY:');
     sections.push(promptJson.clothing.rules.join('\n'));
-    if (promptJson.clothing.notes) {
-      sections.push(`Notes: ${promptJson.clothing.notes}`);
+    
+    // Add user descriptions if provided
+    if (promptJson.clothing.descriptions && promptJson.clothing.descriptions.length > 0) {
+      sections.push('\nSPECIFIC GARMENT INSTRUCTIONS (from user — MUST follow):');
+      promptJson.clothing.descriptions.forEach((desc, i) => {
+        sections.push(`  ${i + 1}. ${desc}`);
+      });
     }
   }
   
@@ -995,6 +1005,7 @@ export async function generateCustomShootFrame({
   shoot,
   identityImages = [],
   clothingImages = [],
+  clothingDescriptions = [], // NEW: detailed clothing descriptions
   styleRefImage = null,
   locationRefImage = null,
   locationSketchImage = null,
@@ -1059,7 +1070,7 @@ export async function generateCustomShootFrame({
       emotionId,
       extraPrompt,
       modelDescription: '',
-      clothingNotes: '',
+      clothingDescriptions, // NEW: detailed clothing descriptions
       hasIdentityRefs: identityImages.length > 0,
       hasClothingRefs: clothingImages.length > 0,
       hasStyleRef: !!styleRefImage,

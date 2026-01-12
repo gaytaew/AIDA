@@ -999,10 +999,58 @@ if (shoot.locks?.style?.enabled && shoot.locks.style.sourceImageUrl) {
 
 ---
 
+## 13. Clothing References (Референсы одежды)
+
+### 13.1 Проблема
+
+Gemini склонен "интерпретировать" одежду из референсов — менять фасон, длину, ширину. Например, широкие длинные брюки могут превратиться в узкие укороченные.
+
+### 13.2 Решение
+
+1. **Усиленные правила в промпте**:
+   - SILHOUETTE IS CRITICAL: Match the exact shape — wide pants stay wide, slim pants stay slim
+   - PROPORTIONS: Match lengths (ankle-length, cropped, knee-length), widths (loose, fitted, tailored)
+   - FIT: How the garment sits on the body — tight, relaxed, oversized — must match reference
+
+2. **Поле описания для каждого предмета одежды**:
+   - Пользователь может описать каждый предмет: "Широкие длинные брюки палаццо, свободная посадка на талии"
+   - Эти описания передаются в промпт как SPECIFIC GARMENT INSTRUCTIONS
+
+### 13.3 Формат описания одежды
+
+Рекомендуемый формат описания:
+```
+[Тип предмета], [фасон/крой], [длина], [ширина/посадка], [как сидит на теле]
+
+Примеры:
+- "Широкие брюки палаццо, длина до пола, свободная посадка"
+- "Оверсайз блейзер, плечи опущены, рукава длинные"
+- "Облегающая водолазка, высокое горло, плотная посадка"
+```
+
+### 13.4 Техническая реализация
+
+```javascript
+// В UI: каждый предмет одежды имеет поле description
+clothingByModel[index].push({ url: dataUrl, description: '' });
+
+// В генератор передаётся массив описаний
+clothingDescriptions = clothing.refs
+  .filter(ref => ref.description?.trim())
+  .map(ref => ref.description.trim());
+
+// В промпте:
+'SPECIFIC GARMENT INSTRUCTIONS (from user — MUST follow):'
+'  1. Широкие брюки палаццо, длина до пола, свободная посадка'
+```
+
+---
+
 ## Changelog
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| 1.5 | 2026-01-12 | Добавлена секция 13: Clothing References с описаниями фасонов |
 | 1.4 | 2026-01-12 | Добавлена секция 12: Reference Locks (Style Lock, Location Lock, Anti-Clone) |
 | 1.3 | 2026-01-12 | Добавлен Lens Focal Length — угол объектива (fisheye, wide, portrait, telephoto) |
 | 1.2 | 2026-01-12 | Добавлен СЛОЙ 7: Model Behavior — поведение модели с камерой (flirty, editorial, dynamic, etc.) |
