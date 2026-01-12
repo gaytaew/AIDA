@@ -105,6 +105,9 @@ function initElements() {
   elements.genCameraAngle = document.getElementById('gen-camera-angle');
   elements.genFocusMode = document.getElementById('gen-focus-mode');
   
+  // Anti-AI
+  elements.genAntiAiLevel = document.getElementById('gen-antiai-level');
+  
   // Ambient controls (situational: weather, season, atmosphere)
   elements.ambientSection = document.getElementById('ambient-section');
   elements.genWeather = document.getElementById('gen-weather');
@@ -1252,6 +1255,10 @@ async function generateFrame(frameId) {
       cameraAngle: elements.genCameraAngle?.value || 'eye_level',
       focusMode: elements.genFocusMode?.value || 'shallow'
     },
+    // Anti-AI
+    antiAi: {
+      level: elements.genAntiAiLevel?.value || 'medium'
+    },
     // Ambient (situational conditions: weather, season, atmosphere)
     ambient: {
       weather: elements.genWeather?.value || 'clear',
@@ -1296,6 +1303,8 @@ async function generateFrame(frameId) {
         poseAdherence: params.poseAdherence,
         // Composition
         composition: params.composition,
+        // Anti-AI
+        antiAi: params.antiAi,
         // Ambient (situational conditions)
         ambient: params.ambient
       })
@@ -1327,6 +1336,7 @@ async function generateFrame(frameId) {
           skinTexture: data.image.skinTexture || 'none',
           poseAdherence: data.image.poseAdherence || 2,
           composition: data.image.composition || null,
+          antiAi: data.image.antiAi || null,
           extraPrompt: data.image.extraPrompt || '',
           presets: data.image.presets || null,
           prompt: data.prompt || null,
@@ -1721,6 +1731,12 @@ function buildFrameSettingsHtml(frame) {
     if (itemsComp.length > 0) {
       items.push(`<div><strong>🎥 Композиция:</strong> <span style="font-size:10px;">${itemsComp.join(', ')}</span></div>`);
     }
+  }
+  
+  // Anti-AI
+  if (frame.antiAi?.level && frame.antiAi.level !== 'off') {
+    const labels = { low: 'Низкий', medium: 'Средний', high: 'Высокий' };
+    items.push(`<div><strong>🤖 Anti-AI:</strong> ${labels[frame.antiAi.level] || frame.antiAi.level}</div>`);
   }
   
   // Presets (universe settings - unique to custom shoot)

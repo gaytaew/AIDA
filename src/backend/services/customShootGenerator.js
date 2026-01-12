@@ -234,6 +234,8 @@ export function buildCustomShootPrompt({
   poseAdherence = 2,
   // Composition
   composition = null,
+  // Anti-AI override
+  antiAi = null,
   // Ambient (situational conditions: weather, season, atmosphere)
   ambient = null
 }) {
@@ -400,8 +402,9 @@ export function buildCustomShootPrompt({
   }
   
   // Add Anti-AI
-  if (customUniverse?.antiAi) {
-    promptJson.antiAi = buildAntiAiPrompt(customUniverse.antiAi);
+  const effectiveAntiAi = antiAi || customUniverse?.antiAi;
+  if (effectiveAntiAi) {
+    promptJson.antiAi = buildAntiAiPrompt(effectiveAntiAi);
   }
   
   // Add Capture Style (same as shootGenerator)
@@ -675,6 +678,8 @@ export async function generateCustomShootFrame({
   poseAdherence = 2,
   // Composition
   composition = null,
+  // Anti-AI override
+  antiAi = null,
   // Ambient (situational conditions: weather, season, atmosphere)
   ambient = null
 }) {
@@ -728,6 +733,8 @@ export async function generateCustomShootFrame({
       poseAdherence,
       // Composition
       composition,
+      // Anti-AI
+      antiAi,
       // Ambient (situational conditions)
       ambient
     });

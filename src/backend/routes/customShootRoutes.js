@@ -261,6 +261,8 @@ router.post('/:id/generate', async (req, res) => {
       poseAdherence,
       // Composition
       composition,
+      // Anti-AI
+      antiAi,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient,
       identityImages: reqIdentityImages,
@@ -279,6 +281,7 @@ router.post('/:id/generate', async (req, res) => {
       skinTexture,
       poseAdherence,
       composition,
+      antiAi,
       ambient,
       frame: frame?.label || frame?.id || null,
       extraPrompt: extraPrompt?.slice(0, 50) 
@@ -425,6 +428,8 @@ router.post('/:id/generate', async (req, res) => {
       poseAdherence: parseInt(poseAdherence) || 2,
       // Composition
       composition,
+      // Anti-AI
+      antiAi,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient
     });
@@ -502,6 +507,7 @@ router.post('/:id/generate', async (req, res) => {
       skinTexture: skinTexture || 'none',
       poseAdherence: parseInt(poseAdherence) || 2,
       composition: composition || null,
+      antiAi: antiAi || null,
       extraPrompt: extraPrompt || '',
       presets: presets || null,
       prompt: result.prompt,

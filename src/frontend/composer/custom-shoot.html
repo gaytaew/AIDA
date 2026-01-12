@@ -732,6 +732,24 @@
                   </div>
                 </div>
 
+                <!-- Anti-AI / Realism Controls -->
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border);">
+                  <h4 style="margin-bottom: 8px; font-size: 11px; text-transform: uppercase; color: var(--color-text-muted);">🤖 Реализм (Anti-AI)</h4>
+                  
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                    <!-- Anti-AI Level -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-antiai-level">Уровень реализма</label>
+                      <select id="gen-antiai-level" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                        <option value="off">Выкл (AI стиль)</option>
+                        <option value="low">Низкий (Чисто)</option>
+                        <option value="medium" selected>Средний (Естественно)</option>
+                        <option value="high">Высокий (Сыро/Raw)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- AMBIENT: Situational conditions (weather, season, time) -->
                 <div id="ambient-section" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); display: none;">
                   <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🌤️ Условия съёмки</h4>
