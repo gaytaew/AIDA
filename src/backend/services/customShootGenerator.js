@@ -292,17 +292,20 @@ export function buildCustomShootPrompt({
   // STEP 1: Validate and Auto-Correct Parameters
   // ═══════════════════════════════════════════════════════════════
   
+  // Extract 6-layer params from presets (sent from frontend) or universe settings
+  const presets = customUniverse?.presets || {};
+  
   const rawParams = {
-    shootType: shootType || customUniverse?.shootType || 'editorial',
-    cameraAesthetic: cameraAesthetic || customUniverse?.cameraAesthetic?.preset || 'none',
-    lightingSource: lightingSource || customUniverse?.lightingSource?.preset || 'natural_daylight',
-    lightingQuality: lightingQuality || customUniverse?.lightingQuality?.preset || 'soft_diffused',
+    shootType: shootType || presets.shootType || customUniverse?.shootType || 'editorial',
+    cameraAesthetic: cameraAesthetic || presets.cameraAesthetic || customUniverse?.cameraAesthetic?.preset || 'none',
+    lightingSource: lightingSource || presets.lightingSource || customUniverse?.lightingSource?.preset || 'natural_daylight',
+    lightingQuality: lightingQuality || presets.lightingQuality || customUniverse?.lightingQuality?.preset || 'soft_diffused',
     focusMode: composition?.focusMode || 'default',
     shotSize: composition?.shotSize || 'medium_shot',
     timeOfDay: ambient?.timeOfDay || 'any',
     weather: ambient?.weather || 'clear',
     spaceType: location?.spaceType || 'mixed',
-    captureStyle: captureStyle || 'none'
+    captureStyle: captureStyle || presets.capture || 'none'
   };
   
   // Validate and get auto-corrections
