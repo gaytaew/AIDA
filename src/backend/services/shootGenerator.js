@@ -976,19 +976,12 @@ export async function generateShootFrame({
       }
     }
 
-    // Pack clothing images into a board - high quality for detail preservation
+    // Add clothing images separately - DON'T collage to preserve full quality and proportions
     if (clothingImages.length > 0) {
-      const clothingBoard = await packImagesToBoard(clothingImages, {
-        maxSize: 2048,       // Larger canvas
-        minTile: 512,        // Bigger tiles for clothing details
-        maxCols: 2,          // Max 2 columns to keep images large
-        jpegQuality: 95,     // High quality
-        fit: 'contain'       // Show full garment
-      });
-      if (clothingBoard) {
-        referenceImages.push(clothingBoard);
-        console.log('[ShootGenerator] Clothing board created');
+      for (const clothingImg of clothingImages) {
+        referenceImages.push(clothingImg);
       }
+      console.log(`[ShootGenerator] Added ${clothingImages.length} clothing refs separately`);
     }
 
     // Add pose sketch as reference if available

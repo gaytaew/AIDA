@@ -537,13 +537,15 @@ router.post('/:id/generate', async (req, res) => {
       });
     }
     
-    // Clothing collage: moderate quality (clothing is less sensitive)
+    // Clothing collage: HIGH quality, CONTAIN to show full garments without cropping
     if (clothingImages.length > 0) {
       clothingCollage = await buildCollage(clothingImages, { 
-        maxSize: 1024,      // Larger for clothing details
-        maxCols: 3,         // More columns OK for clothing
-        minTile: 400,
-        jpegQuality: 92
+        maxSize: 1536,      // Large for clothing details
+        maxCols: 2,         // Fewer columns = bigger images
+        minTile: 512,       // Large tiles
+        jpegQuality: 95,    // High quality
+        fit: 'contain',     // IMPORTANT: show full garment, don't crop
+        background: '#ffffff'
       });
     }
     

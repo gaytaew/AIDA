@@ -1132,19 +1132,14 @@ export async function generateCustomShootFrame({
       }
     }
     
-    // 4. Clothing images (collage) - high quality for detail preservation
+    // 4. Clothing images - DON'T collage, send each separately for maximum quality
+    // Collaging causes cropping/distortion issues with varied aspect ratios
     if (clothingImages.length > 0) {
-      const clothingBoard = await packImagesToBoard(clothingImages, {
-        maxSize: 2048,       // Larger canvas
-        minTile: 512,        // Bigger tiles for clothing details
-        maxCols: 2,          // Max 2 columns to keep images large
-        jpegQuality: 95,     // High quality
-        fit: 'contain'       // Show full garment
-      });
-      if (clothingBoard) {
-        referenceImages.push(clothingBoard);
-        console.log('[CustomShootGenerator] Clothing board added');
+      // Add each clothing image separately to preserve full quality and proportions
+      for (const clothingImg of clothingImages) {
+        referenceImages.push(clothingImg);
       }
+      console.log(`[CustomShootGenerator] Added ${clothingImages.length} clothing refs separately`);
     }
     
     // 5. Pose sketch (same as shootGenerator)
