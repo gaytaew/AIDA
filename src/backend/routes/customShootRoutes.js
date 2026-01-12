@@ -114,16 +114,15 @@ router.get('/:id', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
   try {
-    const shoot = await getCustomShootById(req.params.id);
-    
-    if (!shoot) {
-      return res.status(404).json({ ok: false, error: 'Shoot not found' });
-    }
-    
+    // updateShootParams handles not-found case internally
     const updatedShoot = await updateShootParams(req.params.id, req.body);
     
     res.json({ ok: true, shoot: updatedShoot });
   } catch (err) {
+    // Handle not found
+    if (err.message.includes('not found')) {
+      return res.status(404).json({ ok: false, error: 'Shoot not found' });
+    }
     console.error('[CustomShootRoutes] Error updating shoot:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
