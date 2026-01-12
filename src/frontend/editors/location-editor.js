@@ -749,18 +749,70 @@ async function generateFromPrompt() {
   const els = getElements();
   const prompt = els.aiPromptInput.value.trim();
   
-  if (!prompt) {
-    showStatus('⚠️ Введите описание локации', 'error');
+  // Check if we have an image uploaded in the sketch zone
+  const hasImage = !!sketchImage;
+  
+  if (!prompt && !hasImage) {
+    showStatus('⚠️ Введите описание или загрузите фото', 'error');
     return;
   }
   
-  showStatus('✨ Анализирую описание... (функция в разработке)', 'loading');
+  showStatus('✨ AI анализирует локацию...', 'loading');
   
-  // TODO: Implement actual AI generation endpoint
-  setTimeout(() => {
-    showStatus('⚠️ Функция AI генерации пока в разработке. Заполните форму вручную.', 'error');
-    setTimeout(hideStatus, 3000);
-  }, 1000);
+  try {
+    const payload = {
+      prompt: prompt || (hasImage ? "Analyze this image and describe the location structure." : ""),
+      image: hasImage ? sketchImage.dataUrl : null
+    };
+    
+    const res = await fetch('/api/locations/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || 'Generation failed');
+    }
+    
+    const generated = data.data;
+    
+    // Fill the form with generated data
+    // We reuse fillForm, but handle potential missing fields gracefully
+    // fillForm expects a full location object, so we might need to be careful
+    
+    // 1. Basic fields
+    if (generated.label) els.labelInput.value = generated.label;
+    if (generated.category) els.categorySelect.value = generated.category;
+    if (generated.description) els.descriptionTextarea.value = generated.description;
+    
+    // 2. Space Type
+    if (generated.spaceType) {
+      setSpaceType(generated.spaceType);
+    }
+    
+    // 3. Hierarchical fields
+    // We can merge generated data into a temporary object and call fillForm
+    // or just set fields directly. Since fillForm handles everything, let's use it partially.
+    
+    // Construct a partial location object to pass to fillForm
+    // We want to preserve the sketch image if it exists
+    const tempLocation = {
+      ...generated,
+      sketchAsset: sketchImage ? { url: sketchImage.dataUrl } : null
+    };
+    
+    fillForm(tempLocation);
+    
+    showStatus('✨ Локация заполнена!', 'success');
+    setTimeout(hideStatus, 2000);
+    
+  } catch (e) {
+    console.error('AI Generation error:', e);
+    showStatus(`❌ Ошибка AI: ${e.message}`, 'error');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

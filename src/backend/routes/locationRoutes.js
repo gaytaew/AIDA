@@ -16,6 +16,7 @@ import {
   deleteLocation
 } from '../store/locationStore.js';
 import { LOCATION_OPTIONS } from '../schema/location.js';
+import { generateLocationFromPrompt } from '../services/locationGenerator.js';
 
 const router = express.Router();
 
@@ -25,6 +26,27 @@ router.get('/options', (req, res) => {
     ok: true,
     data: LOCATION_OPTIONS
   });
+});
+
+// POST /api/locations/generate — Generate location data from prompt/image
+router.post('/generate', async (req, res) => {
+  try {
+    const { prompt, image } = req.body;
+    
+    if (!prompt && !image) {
+      return res.status(400).json({ ok: false, error: 'Prompt or image is required' });
+    }
+
+    const locationData = await generateLocationFromPrompt(prompt, image);
+
+    res.json({
+      ok: true,
+      data: locationData
+    });
+  } catch (err) {
+    console.error('[Location] Generate error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // GET /api/locations — List all locations (with optional filters)
