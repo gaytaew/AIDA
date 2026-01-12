@@ -667,8 +667,8 @@
                   <div class="form-group" style="margin: 0;">
                     <label for="gen-image-size">📏 Качество</label>
                     <select id="gen-image-size" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                      <option value="1K" selected>1K (Быстро)</option>
-                      <option value="2K">2K (Высокое)</option>
+                      <option value="2K" selected>2K (Стандарт)</option>
+                      <option value="4K">4K (Высокое качество)</option>
                     </select>
                   </div>
                   
@@ -689,7 +689,7 @@
                   <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🌤️ Условия съёмки</h4>
                   <p style="font-size: 11px; color: var(--color-text-muted); margin-bottom: 12px;">Эти параметры применяются для экстерьерных локаций</p>
                   
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
                     <!-- Weather -->
                     <div class="form-group" style="margin: 0;">
                       <label for="gen-weather">☀️ Погода</label>
@@ -704,6 +704,21 @@
                         <option value="snow">Снег</option>
                         <option value="storm">Гроза</option>
                         <option value="wind">Ветрено</option>
+                      </select>
+                    </div>
+                    
+                    <!-- Time of Day -->
+                    <div class="form-group" style="margin: 0;">
+                      <label for="gen-time-of-day">🕒 Время суток</label>
+                      <select id="gen-time-of-day" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                        <option value="any">Любое</option>
+                        <option value="sunrise">Рассвет</option>
+                        <option value="golden_hour">Золотой час</option>
+                        <option value="midday">Полдень (яркое солнце)</option>
+                        <option value="afternoon">День</option>
+                        <option value="sunset">Закат</option>
+                        <option value="blue_hour">Синий час</option>
+                        <option value="night">Ночь</option>
                       </select>
                     </div>
                     

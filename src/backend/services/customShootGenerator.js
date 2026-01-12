@@ -604,6 +604,7 @@ export async function generateCustomShootFrame({
   clothingImages = [],
   styleRefImage = null,
   locationRefImage = null,
+  locationSketchImage = null,
   poseSketchImage = null,
   frame = null,
   emotionId = null,
@@ -688,7 +689,10 @@ export async function generateCustomShootFrame({
     // 2. Location reference (second priority)
     if (locationRefImage && locks?.location?.enabled) {
       referenceImages.push(locationRefImage);
-      console.log('[CustomShootGenerator] Location reference added');
+      console.log('[CustomShootGenerator] Location Lock reference added');
+    } else if (locationSketchImage) {
+      referenceImages.push(locationSketchImage);
+      console.log('[CustomShootGenerator] Location Sketch added');
     }
     
     // 3. Identity images (collage)

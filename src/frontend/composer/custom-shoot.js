@@ -103,6 +103,7 @@ function initElements() {
   // Ambient controls (situational: weather, season, atmosphere)
   elements.ambientSection = document.getElementById('ambient-section');
   elements.genWeather = document.getElementById('gen-weather');
+  elements.genTimeOfDay = document.getElementById('gen-time-of-day');
   elements.genSeason = document.getElementById('gen-season');
   elements.genAtmosphere = document.getElementById('gen-atmosphere');
   
@@ -1243,6 +1244,7 @@ async function generateFrame(frameId) {
     // Ambient (situational conditions: weather, season, atmosphere)
     ambient: {
       weather: elements.genWeather?.value || 'clear',
+      timeOfDay: elements.genTimeOfDay?.value || 'any',
       season: elements.genSeason?.value || 'summer',
       atmosphere: elements.genAtmosphere?.value || 'neutral'
     }

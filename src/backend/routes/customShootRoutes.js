@@ -338,6 +338,18 @@ router.post('/:id/generate', async (req, res) => {
       locationRefImage = await prepareImageFromUrl(shoot.locks.location.sourceImageUrl);
     }
     
+    // Prepare location sketch image
+    let locationSketchImage = null;
+    if (location) {
+      const sketchUrl = location.sketchAsset?.url || location.sketchAsset || location.sketchUrl;
+      if (sketchUrl) {
+        locationSketchImage = await prepareImageFromUrl(sketchUrl);
+        if (locationSketchImage) {
+          console.log('[CustomShootRoutes] Location sketch loaded');
+        }
+      }
+    }
+    
     console.log('[CustomShootRoutes] Prepared refs:', {
       identity: identityImages.length,
       clothing: clothingImages.length,
@@ -394,6 +406,7 @@ router.post('/:id/generate', async (req, res) => {
       clothingImages,
       styleRefImage,
       locationRefImage,
+      locationSketchImage,
       poseSketchImage,
       frame: effectiveFrame,
       emotionId: emotionId || shoot.currentEmotion,
@@ -453,6 +466,13 @@ router.post('/:id/generate', async (req, res) => {
         kind: 'location_lock',
         label: 'Location Lock',
         previewUrl: `data:${locationRefImage.mimeType};base64,${locationRefImage.base64}`
+      });
+    }
+    if (locationSketchImage && !locationRefImage) {
+      refs.push({
+        kind: 'location_sketch',
+        label: 'Референс локации',
+        previewUrl: `data:${locationSketchImage.mimeType};base64,${locationSketchImage.base64}`
       });
     }
     
