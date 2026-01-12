@@ -8,6 +8,7 @@
 import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
+import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
 import { 
   CAMERA_SIGNATURE_PRESETS, 
   CAPTURE_STYLE_PRESETS, 
@@ -46,31 +47,46 @@ function buildStyleLockPrompt(lock) {
   
   if (lock.mode === 'strict') {
     return `STYLE REFERENCE (STRICT VISUAL & LOOK):
-CRITICAL: You MUST separate the STYLE from the COMPOSITION.
+===========================================
+CRITICAL INSTRUCTION: COPY THE STYLE, NOT THE IMAGE!
 
-1. WHAT TO COPY (STRICTLY):
-- The VISUAL PROCESSING: Color grading, lighting contrast, film stock look, grain.
-- The MODEL'S LOOK: Makeup style (e.g. if reference has eyeliner, use eyeliner), hair texture/finish, skin finish.
-- The ATMOSPHERE: The "vibe" and mood of the shot.
+You are given a STYLE REFERENCE photo. Your job is to create a COMPLETELY NEW photograph that has the SAME VISUAL STYLE but is TOTALLY DIFFERENT in composition.
 
-2. WHAT TO IGNORE (COMPLETELY):
-- IGNORE the Camera Angle of the reference. Use the angle described in the prompt/pose.
-- IGNORE the Model's Pose from the reference.
-- IGNORE the Framing/Crop from the reference.
+╔═══════════════════════════════════════════════════════════════════╗
+║ COPY THESE (STYLE ELEMENTS):                                      ║
+╠═══════════════════════════════════════════════════════════════════╣
+║ ✓ Color grading / color palette / white balance                   ║
+║ ✓ Lighting style (soft/hard, direction, contrast ratio)           ║
+║ ✓ Film look / grain / texture treatment                           ║
+║ ✓ Makeup style (eyeliner, lip color, blush, etc.)                 ║
+║ ✓ Hair styling (texture, shine, volume)                           ║
+║ ✓ Overall mood and atmosphere                                     ║
+╚═══════════════════════════════════════════════════════════════════╝
 
-INSTRUCTION:
-Generate a NEW image that looks like it belongs to the SAME PHOTOSHOOT as the reference, featuring the SAME STYLING (makeup/hair) and PROCESSING, but with a COMPLETELY DIFFERENT composition and pose.`;
+╔═══════════════════════════════════════════════════════════════════╗
+║ DO NOT COPY (MUST BE DIFFERENT):                                  ║
+╠═══════════════════════════════════════════════════════════════════╣
+║ ✗ THE POSE - Model MUST be in a DIFFERENT body position           ║
+║ ✗ THE CAMERA ANGLE - Use a DIFFERENT angle                        ║
+║ ✗ THE FRAMING - Use DIFFERENT crop/composition                    ║
+║ ✗ THE GESTURE - Hands, head tilt, body turn must DIFFER           ║
+║ ✗ THE EXPRESSION - Unless specified, vary the expression          ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+ANTI-CLONE RULE: If the reference shows the model from the waist up facing left — you could show full-body facing right, or close-up from below, or from behind, etc. THE MORE DIFFERENT THE POSE AND ANGLE, THE BETTER.
+
+Output: A new photograph that looks like it's from the SAME PHOTOSHOOT but is a COMPLETELY DIFFERENT FRAME.`;
   }
   
   if (lock.mode === 'soft') {
     return `STYLE REFERENCE (SOFT MATCH):
-Use the style reference for visual inspiration:
+Use the style reference for visual INSPIRATION only:
 - Similar color temperature and overall mood
-- Similar lighting direction and quality  
-- Similar texture treatment and contrast
+- Similar lighting quality and direction  
+- Similar texture treatment and contrast level
 
-Allow natural variation — same "family" of images.
-The pose, composition, and framing should be COMPLETELY NEW.`;
+IMPORTANT: The pose, angle, framing, and composition MUST be completely different from the reference.
+Create a new, unique image that feels like it's from the same photoshoot but is NOT a copy.`;
   }
   
   return null;
@@ -564,7 +580,8 @@ export function buildCustomShootPrompt({
   
   // Add anti-duplication rule when locks are active
   if ((locks?.style?.enabled && hasStyleRef) || (locks?.location?.enabled && hasLocationRef)) {
-    promptJson.hardRules.push('CRITICAL: Do NOT recreate the reference image. Generate a COMPLETELY NEW and UNIQUE shot. The pose, composition, and model position MUST be different from the reference.');
+    promptJson.hardRules.push('ANTI-CLONE RULE: The reference image is for STYLE/LOCATION only. You MUST NOT recreate or closely imitate the reference pose or composition. Generate a COMPLETELY DIFFERENT body position, camera angle, and framing. The output should look like a different frame from the same photoshoot, NOT the same frame.');
+    promptJson.hardRules.push('VARIETY: If the reference shows frontal pose — show from the side. If standing — show sitting. If full-body — show close-up. Maximize difference in composition while maintaining style consistency.');
   }
   
   // Add Frame/Pose
@@ -1207,7 +1224,7 @@ export async function generateCustomShootFrame({
 }
 
 /**
- * Prepare image object from URL/dataURL for generation
+ * Prepare image object from URL/dataURL or file path for generation
  */
 export async function prepareImageFromUrl(imageUrl) {
   if (!imageUrl) return null;
@@ -1223,9 +1240,28 @@ export async function prepareImageFromUrl(imageUrl) {
     }
   }
   
-  // If it's a file path or URL, we need to fetch it
-  // This would need to be implemented based on your infrastructure
-  console.warn('[CustomShootGenerator] Non-dataURL image reference not yet supported:', imageUrl.slice(0, 50));
+  // If it's a stored image path (e.g. "CSHOOT_xxx/img_xxx.jpg")
+  if (isStoredImagePath(imageUrl)) {
+    const result = await loadImageBuffer(imageUrl);
+    if (result.ok) {
+      console.log('[CustomShootGenerator] Loaded stored image:', imageUrl);
+      return {
+        mimeType: result.mimeType,
+        base64: result.buffer.toString('base64')
+      };
+    } else {
+      console.error('[CustomShootGenerator] Failed to load stored image:', imageUrl, result.error);
+      return null;
+    }
+  }
+  
+  // HTTP URL — not supported yet
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    console.warn('[CustomShootGenerator] HTTP image references not yet supported:', imageUrl.slice(0, 50));
+    return null;
+  }
+  
+  console.warn('[CustomShootGenerator] Unknown image reference format:', imageUrl.slice(0, 50));
   return null;
 }
 

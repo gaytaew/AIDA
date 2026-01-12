@@ -945,10 +945,63 @@ async function checkAndDisplayConflicts() {
 
 ---
 
+## 12. Reference Locks (Style Lock / Location Lock)
+
+### 12.1 Что такое Reference Lock
+
+Reference Lock позволяет "закрепить" визуальный стиль или локацию из одного удачного кадра и использовать его для генерации новых кадров. Это обеспечивает консистентность серии фотографий.
+
+### 12.2 Типы Locks
+
+| Lock | Что копирует | Что НЕ копирует |
+|------|-------------|-----------------|
+| **Style Lock** | Color grading, освещение, makeup, hair styling, texture, mood | Позу, угол камеры, композицию, кадрирование |
+| **Location Lock** | Физическое пространство, окружение | Позицию модели в этом пространстве |
+
+### 12.3 Режимы Style Lock
+
+| Режим | Описание |
+|-------|----------|
+| `strict` | Точное соответствие стиля: цвета, освещение, makeup, hair. Результат должен выглядеть как из ОДНОЙ фотосессии |
+| `soft` | Вдохновение: похожая цветовая температура, настроение, но с естественными вариациями |
+
+### 12.4 КРИТИЧЕСКОЕ ПРАВИЛО: Anti-Clone
+
+**ПРОБЛЕМА**: Gemini склонен копировать референс полностью — вместе с позой.
+
+**РЕШЕНИЕ**: В промпте Style Lock явно указано:
+- ✅ КОПИРУЙ: цвета, освещение, makeup, hair, атмосферу
+- ❌ НЕ КОПИРУЙ: позу, угол камеры, кадрирование, жесты
+
+**Правило вариации**:
+```
+Если референс: фронтально — сделай сбоку
+Если референс: стоя — сделай сидя
+Если референс: full-body — сделай close-up
+```
+
+### 12.5 Технические детали
+
+```javascript
+// Style Lock передаётся в Gemini как reference image
+// Загружается через loadImageBuffer() из imageStore
+if (shoot.locks?.style?.enabled && shoot.locks.style.sourceImageUrl) {
+  styleRefImage = await loadImageBuffer(shoot.locks.style.sourceImageUrl);
+  referenceImages.push(styleRefImage);
+}
+
+// В промпт добавляются hardRules:
+'ANTI-CLONE RULE: The reference is for STYLE only. Create DIFFERENT pose/angle/framing.'
+'VARIETY: Maximize difference in composition while maintaining style consistency.'
+```
+
+---
+
 ## Changelog
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| 1.4 | 2026-01-12 | Добавлена секция 12: Reference Locks (Style Lock, Location Lock, Anti-Clone) |
 | 1.3 | 2026-01-12 | Добавлен Lens Focal Length — угол объектива (fisheye, wide, portrait, telephoto) |
 | 1.2 | 2026-01-12 | Добавлен СЛОЙ 7: Model Behavior — поведение модели с камерой (flirty, editorial, dynamic, etc.) |
 | 1.1 | 2026-01-12 | Добавлена секция 11: API валидации, авто-коррекции |
