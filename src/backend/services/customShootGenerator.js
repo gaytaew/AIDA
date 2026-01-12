@@ -812,21 +812,33 @@ export function promptJsonToText(promptJson) {
     sections.push('IMPORTANT: The model\'s expression is crucial for authenticity.');
     sections.push(promptJson.emotion.promptBlock);
     
-    // Physical hints for the emotion
-    if (promptJson.emotion.physicalHints?.length) {
+    // Physical hints for the emotion (can be string or array)
+    if (promptJson.emotion.physicalHints) {
       sections.push('\nPhysical cues to show:');
-      sections.push(promptJson.emotion.physicalHints.join(', '));
+      if (Array.isArray(promptJson.emotion.physicalHints)) {
+        sections.push(promptJson.emotion.physicalHints.join(', '));
+      } else {
+        sections.push(promptJson.emotion.physicalHints);
+      }
     }
     
-    // What to avoid
-    if (promptJson.emotion.avoid?.length) {
-      sections.push(`\nAVOID these expressions: ${promptJson.emotion.avoid.join(', ')}`);
+    // What to avoid (can be string or array)
+    if (promptJson.emotion.avoid) {
+      if (Array.isArray(promptJson.emotion.avoid)) {
+        sections.push(`\nAVOID these expressions: ${promptJson.emotion.avoid.join(', ')}`);
+      } else {
+        sections.push(`\nAVOID: ${promptJson.emotion.avoid}`);
+      }
     }
     
     // Global authenticity rules
-    if (promptJson.emotion.globalRules?.length) {
+    if (promptJson.emotion.globalRules) {
       sections.push('\nEmotion authenticity rules:');
-      sections.push(promptJson.emotion.globalRules.join('\n'));
+      if (Array.isArray(promptJson.emotion.globalRules)) {
+        sections.push(promptJson.emotion.globalRules.join('\n'));
+      } else {
+        sections.push(promptJson.emotion.globalRules);
+      }
     }
   }
   
