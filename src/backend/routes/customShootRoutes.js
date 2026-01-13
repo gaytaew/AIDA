@@ -785,7 +785,9 @@ router.post('/:id/generate', async (req, res) => {
       presets: presets || null,
       prompt: result.prompt,
       refs: refs, // Save refs with preview thumbnails
-      generationTime: genDuration
+      generationTime: genDuration,
+      // Universe params snapshot for "copy settings" feature
+      universeParams: universeParams || null
     };
     
     const savedImage = await addImageToShoot(shoot.id, imageData);

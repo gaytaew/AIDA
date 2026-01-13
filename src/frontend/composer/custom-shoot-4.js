@@ -683,12 +683,12 @@ function renderClothingSections() {
         <div class="look-prompt-section" style="margin-bottom: 16px;">
           <label style="font-size: 11px; color: var(--color-text-muted); display: block; margin-bottom: 4px;">
             ✨ Общий стиль образа (опционально)
-          </label>
-          <textarea 
+        </label>
+                <textarea 
             class="look-prompt-input" 
-            data-model="${index}"
+                  data-model="${index}" 
             placeholder="Например: 90s casual street style, relaxed silhouette, layered look..."
-            rows="2"
+                  rows="2"
             style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"
           >${escapeHtml(lookPrompt)}</textarea>
           <div style="display: flex; justify-content: flex-end; margin-top: 6px; gap: 8px; align-items: center;">
@@ -698,8 +698,8 @@ function renderClothingSections() {
               data-model="${index}"
               style="padding: 4px 12px; font-size: 11px; background: var(--color-primary); border: none; border-radius: 4px; color: white; cursor: pointer; transition: all 0.2s;"
             >📌 Закрепить</button>
+              </div>
           </div>
-        </div>
         
         <!-- Список вещей -->
         <div class="clothing-items-list">
@@ -1857,14 +1857,20 @@ async function generateFrame(frameId) {
     if (data.ok && data.image) {
       if (placeholderIndex >= 0) {
         state.generatedFrames[placeholderIndex] = {
+          // Core identity
           id: data.image.id,
           imageUrl: data.image.imageUrl,
           isStyleReference: false,
           isLocationReference: false,
           status: 'ready',
           timestamp: new Date().toISOString(),
-          // Frame data
+          
+          // Frame metadata
+          frameId: data.image.frameId || null,
           frameLabel: data.image.frameLabel || 'По умолчанию',
+          
+          // Per-frame settings (for copy feature)
+          locationId: data.image.locationId || null,
           locationLabel: data.image.locationLabel || null,
           emotionId: data.image.emotionId || null,
           aspectRatio: data.image.aspectRatio || '3:4',
@@ -1872,12 +1878,17 @@ async function generateFrame(frameId) {
           poseAdherence: data.image.poseAdherence || 2,
           composition: data.image.composition || null,
           extraPrompt: data.image.extraPrompt || '',
+          
+          // Debug/history
           prompt: data.prompt || null,
           refs: data.refs || [],
           generationTime: data.image.generationTime || null,
-          // Universe params snapshot
+          
+          // Universe params snapshot (CRITICAL for copy feature)
           universeParams: data.image.universeParams || null
         };
+        
+        console.log('[Generate] Saved frame with universeParams:', data.image.universeParams ? Object.keys(data.image.universeParams) : 'NONE');
       }
       
       // Clear extra prompt
@@ -2069,107 +2080,110 @@ function renderGeneratedHistory() {
 function copyFrameSettings(frameIndex) {
   const frame = state.generatedFrames[frameIndex];
   if (!frame) {
-    console.warn('Frame not found:', frameIndex);
+    console.warn('[CopySettings] Frame not found at index:', frameIndex);
+    showToast('❌ Кадр не найден');
     return;
   }
   
-  console.log('[CopySettings] Copying settings from frame:', frame);
+  console.log('[CopySettings] === STARTING COPY ===');
+  console.log('[CopySettings] Frame data:', JSON.stringify(frame, null, 2).slice(0, 1000));
+  console.log('[CopySettings] universeParams:', frame.universeParams);
   
   const changedElements = []; // Track changed elements for highlighting
+  let changeLog = [];
+  
+  // Helper function to safely set select value
+  function setSelectValue(selectEl, value, label) {
+    if (!selectEl) {
+      console.log(`[CopySettings] ${label}: element not found`);
+      return false;
+    }
+    if (value === undefined || value === null) {
+      console.log(`[CopySettings] ${label}: no value to set`);
+      return false;
+    }
+    
+    const oldValue = selectEl.value;
+    const strValue = String(value);
+    
+    // Check if option exists
+    const optionExists = Array.from(selectEl.options).some(opt => opt.value === strValue);
+    if (!optionExists) {
+      console.log(`[CopySettings] ${label}: option "${strValue}" not found in select`);
+      return false;
+    }
+    
+    selectEl.value = strValue;
+    
+    if (oldValue !== selectEl.value) {
+      changedElements.push(selectEl);
+      changeLog.push(`${label}: ${oldValue} → ${selectEl.value}`);
+      console.log(`[CopySettings] ${label}: CHANGED from "${oldValue}" to "${selectEl.value}"`);
+      return true;
+    } else {
+      console.log(`[CopySettings] ${label}: already set to "${strValue}"`);
+      return false;
+    }
+  }
   
   // 1. Apply Universe params (all visual settings)
-  if (frame.universeParams) {
+  if (frame.universeParams && typeof frame.universeParams === 'object') {
+    console.log('[CopySettings] Applying universe params:', Object.keys(frame.universeParams));
     state.universeValues = { ...frame.universeParams };
     
     // Update all universe select elements
-    document.querySelectorAll('.universe-param-select').forEach(select => {
+    const universeSelects = document.querySelectorAll('.universe-param-select');
+    console.log(`[CopySettings] Found ${universeSelects.length} universe selects`);
+    
+    universeSelects.forEach(select => {
       const paramId = select.dataset.paramId;
       if (paramId && frame.universeParams[paramId] !== undefined) {
-        const oldValue = select.value;
-        select.value = frame.universeParams[paramId];
-        if (oldValue !== select.value) {
-          changedElements.push(select);
-        }
+        setSelectValue(select, frame.universeParams[paramId], `Universe.${paramId}`);
       }
     });
     
     // Update narrative preview
-    updateNarrativePreview();
+    if (typeof updateNarrativePreview === 'function') {
+      updateNarrativePreview();
+    }
+  } else {
+    console.log('[CopySettings] No universeParams in frame');
   }
   
-  // 2. Apply per-frame settings (location, emotion, aspect ratio, etc.)
+  // 2. Apply per-frame settings
   
   // Location
-  if (frame.locationId && elements.genLocation) {
-    const options = Array.from(elements.genLocation.options);
-    const match = options.find(opt => 
-      opt.value === frame.locationId || 
-      opt.textContent.includes(frame.locationLabel || '')
-    );
-    if (match) {
-      const oldValue = elements.genLocation.value;
-      elements.genLocation.value = match.value;
-      if (oldValue !== elements.genLocation.value) {
-        changedElements.push(elements.genLocation);
-      }
-    }
+  if (frame.locationId) {
+    setSelectValue(elements.genLocation, frame.locationId, 'Location');
   }
   
   // Emotion
-  if (frame.emotionId && elements.genEmotion) {
-    const options = Array.from(elements.genEmotion.options);
-    const match = options.find(opt => opt.value === frame.emotionId);
-    if (match) {
-      const oldValue = elements.genEmotion.value;
-      elements.genEmotion.value = match.value;
-      if (oldValue !== elements.genEmotion.value) {
-        changedElements.push(elements.genEmotion);
-      }
-    }
+  if (frame.emotionId) {
+    setSelectValue(elements.genEmotion, frame.emotionId, 'Emotion');
   }
   
   // Aspect ratio
-  if (frame.aspectRatio && elements.genAspectRatio) {
-    const oldValue = elements.genAspectRatio.value;
-    elements.genAspectRatio.value = frame.aspectRatio;
-    if (oldValue !== elements.genAspectRatio.value) {
-      changedElements.push(elements.genAspectRatio);
-    }
+  if (frame.aspectRatio) {
+    setSelectValue(elements.genAspectRatio, frame.aspectRatio, 'AspectRatio');
   }
   
   // Image size
-  if (frame.imageSize && elements.genImageSize) {
-    const oldValue = elements.genImageSize.value;
-    elements.genImageSize.value = frame.imageSize;
-    if (oldValue !== elements.genImageSize.value) {
-      changedElements.push(elements.genImageSize);
-    }
+  if (frame.imageSize) {
+    setSelectValue(elements.genImageSize, frame.imageSize, 'ImageSize');
   }
   
   // Pose adherence
-  if (frame.poseAdherence && elements.genPoseAdherence) {
-    const oldValue = elements.genPoseAdherence.value;
-    elements.genPoseAdherence.value = String(frame.poseAdherence);
-    if (oldValue !== elements.genPoseAdherence.value) {
-      changedElements.push(elements.genPoseAdherence);
-    }
+  if (frame.poseAdherence) {
+    setSelectValue(elements.genPoseAdherence, frame.poseAdherence, 'PoseAdherence');
   }
   
   // Composition (shot size, camera angle)
   if (frame.composition) {
-    if (frame.composition.shotSize && elements.genShotSize) {
-      const oldValue = elements.genShotSize.value;
-      elements.genShotSize.value = frame.composition.shotSize;
-      if (oldValue !== elements.genShotSize.value) {
-        changedElements.push(elements.genShotSize);
-      }
+    if (frame.composition.shotSize) {
+      setSelectValue(elements.genShotSize, frame.composition.shotSize, 'ShotSize');
     }
-    if (frame.composition.cameraAngle && elements.genCameraAngle) {
-      const oldValue = elements.genCameraAngle.value;
-      elements.genCameraAngle.value = frame.composition.cameraAngle;
-      if (oldValue !== elements.genCameraAngle.value) {
-        changedElements.push(elements.genCameraAngle);
-      }
+    if (frame.composition.cameraAngle) {
+      setSelectValue(elements.genCameraAngle, frame.composition.cameraAngle, 'CameraAngle');
     }
   }
   
@@ -2177,10 +2191,15 @@ function copyFrameSettings(frameIndex) {
   if (frame.extraPrompt && elements.genExtraPrompt) {
     elements.genExtraPrompt.value = frame.extraPrompt;
     changedElements.push(elements.genExtraPrompt);
+    changeLog.push(`ExtraPrompt: set`);
   }
   
   // Save updated settings
   saveGenerationSettings();
+  
+  console.log('[CopySettings] === COPY COMPLETE ===');
+  console.log('[CopySettings] Changed elements:', changedElements.length);
+  console.log('[CopySettings] Change log:', changeLog);
   
   // Highlight changed elements with animation
   changedElements.forEach(el => {
