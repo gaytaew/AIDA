@@ -614,13 +614,16 @@
                   
                   <!-- Pose Adherence -->
                   <div class="form-group" style="margin: 0;">
-                    <label for="gen-pose-adherence">🎯 Следование эскизу</label>
+                    <label for="gen-pose-adherence">🎯 Следование эскизу позы</label>
                     <select id="gen-pose-adherence" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                      <option value="1">1 — Свободно (только тип позы)</option>
-                      <option value="2" selected>2 — Похоже (поза 30-40%)</option>
-                      <option value="3">3 — Близко (поза 70-80%)</option>
-                      <option value="4">4 — Точно (поза + кадрирование!) ⚠️</option>
+                      <option value="1">1 — Свободно (~15%): только тип (стоит/сидит), руки/ноги новые</option>
+                      <option value="2" selected>2 — Похоже (~35%): общее направление, своя интерпретация</option>
+                      <option value="3">3 — Близко (~75%): та же поза, мелкие вариации</option>
+                      <option value="4">4 — Точно (~95%): техническое копирование углов ⚠️</option>
                     </select>
+                    <small style="display: block; margin-top: 4px; color: var(--color-text-muted); font-size: 10px;">
+                      Уровень 1-2: модель создаёт свою версию. Уровень 3-4: точное повторение эскиза.
+                    </small>
                   </div>
                 </div>
                 

@@ -14,6 +14,7 @@ import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
 import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
+import { POSE_ADHERENCE_MAP } from './shootGenerator.js';
 import { buildLocationPromptSnippet, buildAmbientPrompt } from '../schema/location.js';
 import { generateImageId } from '../schema/customShoot.js';
 
@@ -382,13 +383,15 @@ ${location.label}: ${locationDesc}`);
 ${frame.label || 'Custom frame'}: ${frame.description || frame.poseDescription || ''}`);
     
     if (hasPoseSketch) {
-      const adherenceLabels = { 1: 'free', 2: 'loose', 3: 'close', 4: 'exact' };
+      const adherence = POSE_ADHERENCE_MAP[poseAdherence] || POSE_ADHERENCE_MAP[2];
       sections.push(`
-POSE SKETCH [$6] provided. Adherence level: ${poseAdherence}/4 (${adherenceLabels[poseAdherence] || 'loose'})
-${poseAdherence === 4 ? 'EXACT MATCH: Copy pose and framing precisely.' : 
-  poseAdherence === 3 ? 'CLOSE MATCH: Follow 70-80% of pose.' :
-  poseAdherence === 2 ? 'LOOSE MATCH: General direction, 30-40% adherence.' :
-  'FREE: Only match pose type (standing/sitting), invent new limb positions.'}`);
+=== POSE SKETCH REFERENCE [$6] ===
+
+ADHERENCE LEVEL: ${poseAdherence}/4 (${adherence.label.toUpperCase()}) — Match ~${adherence.matchPercent}
+
+${adherence.instruction}
+
+${adherence.forbid ? `⛔ ${adherence.forbid}` : ''}`);
     }
   }
   

@@ -48,42 +48,103 @@ const POSING_STYLE_MAP = {
   4: { label: 'studio', instruction: 'High fashion studio pose. Maximally posed and deliberate. Classic fashion photography positioning.' }
 };
 
-// Pose adherence descriptions — STRICT GRADIENT
+// Pose adherence descriptions — STRICT GRADIENT with detailed body part instructions
 const POSE_ADHERENCE_MAP = {
   1: { 
     label: 'free', 
-    instruction: `POSE TYPE ONLY — DO NOT copy the exact pose from sketch.
-Only match the general category: standing/sitting/lying/crouching.
-DELIBERATELY create a DIFFERENT pose within that category.
-Arms, legs, head position should be INVENTED FRESH — do NOT reference the sketch for limb positions.
-The sketch is only a hint about whether the model is upright or not.`,
-    forbid: 'Do NOT match limb angles. Do NOT match head tilt. Do NOT mirror the sketch composition.'
+    instruction: `POSE TYPE ONLY — The sketch is just a category hint, NOT a pose reference.
+
+WHAT TO MATCH (only):
+- General posture category: standing / sitting / lying / crouching / leaning
+- General camera framing: full body / half body / close-up
+
+WHAT TO IGNORE (completely):
+- Arm positions — invent new ones
+- Leg positions — invent new ones  
+- Hand placement — invent new placement
+- Head tilt and angle — choose freely
+- Shoulder line — natural to new pose
+- Hip angle — natural to new pose
+- Weight distribution — new balance point
+
+GOAL: Create a FRESH, DIFFERENT pose that only shares the basic category (e.g., "standing" or "sitting").`,
+    forbid: 'FORBIDDEN: Copying ANY limb angles from sketch. Matching head position. Mirroring the composition. The result should look like a DIFFERENT photo, not a recreation.',
+    matchPercent: '10-20%'
   },
   2: { 
     label: 'loose', 
-    instruction: `GENERAL DIRECTION ONLY — create a similar vibe, not a copy.
-Match roughly 30-40% of the pose: if sitting, sit similarly; if leaning, lean in same direction.
-But arm positions, hand placement, head angle should be DIFFERENT from sketch.
-Add natural variation — the model is doing their own version of this pose.`,
-    forbid: 'Do NOT precisely copy arm angles. Do NOT match exact head tilt. Allow significant variation.'
+    instruction: `GENERAL VIBE — Similar energy, different execution.
+
+WHAT TO MATCH (~40%):
+- Body direction (facing left/right/camera)
+- General stance (relaxed/tense/dynamic)
+- Approximate weight distribution
+- General framing and crop
+
+WHAT TO VARY (~60%):
+- Exact arm angles — similar direction but different bend
+- Hand positions — same general area, different placement
+- Head tilt — same general direction, different degree
+- Leg positions — if crossed in sketch, can be crossed differently
+- Micro-adjustments — ±20° on all angles
+
+GOAL: Someone looking at both would say "similar vibe" not "same pose".`,
+    forbid: 'FORBIDDEN: Precise angle matching. Exact hand/finger positions. Identical head tilt. This should feel like the model\'s OWN interpretation of a general direction.',
+    matchPercent: '30-40%'
   },
   3: { 
     label: 'close', 
-    instruction: `FOLLOW CLOSELY — match about 70-80% of the pose.
-Main body line and weight distribution should match the sketch.
-Limb angles should be similar but small variations are OK.
-Head position and gaze direction should approximate the reference.`,
-    forbid: null
+    instruction: `CLOSE MATCH — Recognizably the same pose with natural variation.
+
+WHAT TO MATCH (~75%):
+- Body contour and silhouette line
+- Main limb positions (arms up/down/out, legs stance)
+- Weight distribution and balance point
+- Head direction and approximate tilt
+- Shoulder line angle
+- Hip angle
+- General hand areas (near face, at side, in pocket, etc.)
+
+WHAT CAN VARY (~25%):
+- Exact finger positions
+- Precise wrist angles (±10°)
+- Subtle head rotation (±15°)
+- Minor leg adjustments
+- Natural micro-movements
+
+GOAL: Someone comparing would say "that's the same pose" with minor natural differences.`,
+    forbid: null,
+    matchPercent: '70-80%'
   },
   4: { 
     label: 'exact', 
-    instruction: `STRICT MATCH — replicate the pose with maximum precision (90-100%).
-Body contours must align with sketch. Limb angles must match exactly.
-Head tilt, shoulder line, hip angle — all must match the reference.
-This is technical pose matching, like a drawing reference.`,
-    forbid: 'Do NOT deviate from the sketch. Every limb angle matters.'
+    instruction: `STRICT REPLICATION — Technical precision, like a drawing reference.
+
+WHAT TO MATCH (everything):
+- BODY CONTOUR: Exact silhouette line matching the sketch
+- SPINE LINE: Same curve/straightness
+- SHOULDER ANGLE: Match to within 5°
+- ARM ANGLES: Both upper and lower arm angles must match
+- ELBOW POSITION: Same relative to body
+- HAND PLACEMENT: Same position relative to body
+- HEAD TILT: Same angle in all axes (pitch/yaw/roll)
+- CHIN DIRECTION: Same as sketch
+- LEG POSITIONS: Same stance, same angles
+- KNEE BEND: Same degree
+- HIP ANGLE: Same rotation
+- WEIGHT BALANCE: Same distribution
+- FRAMING: Same crop and composition
+
+TECHNICAL APPROACH: Treat the sketch as a technical reference drawing. Every angle matters. This is pose REPLICATION, not interpretation.
+
+GOAL: The resulting pose should overlay almost perfectly with the sketch.`,
+    forbid: 'FORBIDDEN: Any creative interpretation. Any "natural variation". Any deviation from sketch angles. This is TECHNICAL matching.',
+    matchPercent: '90-100%'
   }
 };
+
+// Export for use in customShootGenerator
+export { POSE_ADHERENCE_MAP };
 
 /**
  * Build the structured JSON prompt from modules
