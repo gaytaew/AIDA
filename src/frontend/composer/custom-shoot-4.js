@@ -640,6 +640,18 @@ async function saveShootModels() {
 // ═══════════════════════════════════════════════════════════════
 
 function renderClothingSections() {
+  console.log('[RenderClothing] state.clothingByModel:', state.clothingByModel.map((items, idx) => ({
+    modelIdx: idx,
+    itemsCount: items.length,
+    items: items.map(item => ({
+      id: item.id,
+      name: item.name,
+      prompt: item.prompt?.slice(0, 50),
+      imagesCount: item.images?.length
+    }))
+  })));
+  console.log('[RenderClothing] state.lookPrompts:', state.lookPrompts);
+  
   const activeModels = state.selectedModels.filter(m => m !== null);
   
   if (activeModels.length === 0) {
