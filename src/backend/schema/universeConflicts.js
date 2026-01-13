@@ -282,6 +282,98 @@ const CONFLICT_RULES = [
     title: 'Туман + жёсткие тени',
     message: 'В тумане свет рассеивается, жёсткие тени невозможны.',
     suggestion: 'При тумане используйте soft или diffused качество.'
+  },
+  
+  // ───────────────────────────────────────────────────────────────
+  // ФИЗИЧЕСКИ НЕВОЗМОЖНЫЕ КОМБИНАЦИИ (обнаружены при тестировании)
+  // Модель игнорирует эти параметры — нужно предупреждать заранее
+  // ───────────────────────────────────────────────────────────────
+  {
+    id: 'rain_golden_hour',
+    check: (p) => p.weatherLighting === 'rainy' && p.lightSource === 'golden_hour',
+    type: 'conflict',
+    title: 'Дождь + Golden Hour',
+    message: 'Golden hour требует ясного неба с низким солнцем. При дожде солнце скрыто облаками.',
+    suggestion: 'Для дождя используйте overcast или diffused источник. Для golden hour — clear или partly_cloudy погоду.'
+  },
+  {
+    id: 'rain_direct_sun',
+    check: (p) => p.weatherLighting === 'rainy' && p.lightSource === 'direct_sun',
+    type: 'conflict',
+    title: 'Дождь + прямое солнце',
+    message: 'Прямое солнце невозможно при дожде — облака блокируют свет.',
+    suggestion: 'Для дождя используйте overcast или mixed источники.'
+  },
+  {
+    id: 'hard_light_golden_hour',
+    check: (p) => p.lightQuality === 'hard' && p.lightSource === 'golden_hour',
+    type: 'conflict',
+    title: 'Жёсткий свет + Golden Hour',
+    message: 'Golden hour физически даёт МЯГКИЙ свет из-за атмосферного рассеивания. Жёсткие тени невозможны.',
+    suggestion: 'Для golden hour используйте soft или medium качество. Для hard света — midday или studio.'
+  },
+  {
+    id: 'hard_light_overcast_source',
+    check: (p) => p.lightQuality === 'hard' && p.lightSource === 'overcast',
+    type: 'conflict',
+    title: 'Жёсткий свет + пасмурный источник',
+    message: 'Пасмурное небо — гигантский софтбокс, даёт только мягкий рассеянный свет.',
+    suggestion: 'Для hard света используйте direct_sun, studio_hard или practicals.'
+  },
+  
+  // ───────────────────────────────────────────────────────────────
+  // DOF + дистанция (AI склонен игнорировать deep DOF)
+  // ───────────────────────────────────────────────────────────────
+  {
+    id: 'deep_dof_intimate',
+    check: (p) => (p.apertureIntent === 'closed' || p.apertureIntent === 'hyperfocal') && 
+                  p.cameraProximity === 'intimate',
+    type: 'warning',
+    title: 'Deep DOF + интимная дистанция',
+    message: 'При близкой дистанции даже f/8-16 может не дать полную резкость. AI часто игнорирует deep DOF.',
+    suggestion: 'Для гарантированного deep DOF добавьте в промпт повторение: "EVERYTHING must be in sharp focus, f/11-16".'
+  },
+  {
+    id: 'deep_dof_fashion',
+    check: (p) => (p.apertureIntent === 'closed' || p.apertureIntent === 'hyperfocal') && 
+                  (p.culturalContext === 'lookbook_catalog' || p.culturalContext === 'ecommerce'),
+    type: 'hint',
+    title: 'Deep DOF в fashion',
+    message: 'AI обучен на fashion-фото с bokeh. Глубокий DOF редок и модель может его игнорировать.',
+    suggestion: 'Усильте требование: явно укажите "NO BOKEH, NO BLUR, sharp background" в промпте.'
+  },
+  
+  // ───────────────────────────────────────────────────────────────
+  // Экспозиция и контекст
+  // ───────────────────────────────────────────────────────────────
+  {
+    id: 'underexposure_ecommerce',
+    check: (p) => p.exposureCompensation === 'underexposed' && p.culturalContext === 'ecommerce',
+    type: 'warning',
+    title: 'Недоэкспозиция в e-commerce',
+    message: 'E-commerce требует хорошо освещённый продукт. Недоэкспозиция скроет детали.',
+    suggestion: 'Для e-commerce используйте neutral или slightly_bright экспозицию.'
+  },
+  
+  // ───────────────────────────────────────────────────────────────
+  // Температура + источник (физические ограничения)
+  // ───────────────────────────────────────────────────────────────
+  {
+    id: 'cool_temp_golden_hour',
+    check: (p) => p.whiteBalance === 'cool_daylight' && p.lightSource === 'golden_hour',
+    type: 'conflict',
+    title: 'Холодная температура + Golden Hour',
+    message: 'Golden hour = 3500-4500K (тёплый). Холодная температура 6500K+ несовместима.',
+    suggestion: 'Для golden hour используйте warm_golden или warm_tungsten температуру.'
+  },
+  {
+    id: 'warm_temp_overcast',
+    check: (p) => (p.whiteBalance === 'warm_tungsten' || p.whiteBalance === 'warm_golden') && 
+                  p.lightSource === 'overcast',
+    type: 'warning',
+    title: 'Тёплая температура + пасмурный день',
+    message: 'Пасмурное небо = 6500-7500K (холодный). Тёплый WB может выглядеть неестественно.',
+    suggestion: 'Для overcast обычно используют cool_daylight или neutral_daylight.'
   }
 ];
 
