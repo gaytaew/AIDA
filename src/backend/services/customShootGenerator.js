@@ -396,6 +396,61 @@ ${adherence.forbid ? `⛔ ${adherence.forbid}` : ''}`);
   }
   
   // ═══════════════════════════════════════════════════════════════
+  // SECTION 9B: COMPOSITION (shotSize + cameraAngle) — STRICT
+  // ═══════════════════════════════════════════════════════════════
+  
+  if (composition && (composition.shotSize || composition.cameraAngle)) {
+    const SHOT_SIZE_DIRECTIVES = {
+      extreme_closeup: 'EXTREME CLOSE-UP: Only face/detail visible, fills 90%+ of frame. NO body below chin.',
+      closeup: 'CLOSE-UP: Head and shoulders ONLY. Face is primary focus. NO waist or below visible.',
+      medium_closeup: 'MEDIUM CLOSE-UP: Chest and up. Upper body focus. NO legs visible.',
+      medium: 'MEDIUM SHOT: Waist and up. Hands may be visible. NO knees or below.',
+      medium_full: 'MEDIUM FULL: Knees and up. Most of body visible. Feet may be cropped.',
+      full: 'FULL SHOT: ENTIRE body from head to feet. All limbs visible.',
+      full_body: 'FULL BODY: ENTIRE body from head to feet. All limbs visible.',
+      wide: 'WIDE SHOT: Full body PLUS significant environment context around subject.'
+    };
+    
+    const CAMERA_ANGLE_DIRECTIVES = {
+      birds_eye: 'BIRD\'S EYE VIEW: Camera DIRECTLY ABOVE subject, looking straight down. Subject appears flattened.',
+      high: 'HIGH ANGLE: Camera ABOVE eye level, looking DOWN at subject. Subject appears smaller/vulnerable.',
+      eye_level: 'EYE LEVEL: Camera at subject\'s eye height. Neutral, natural perspective.',
+      low: 'LOW ANGLE: Camera BELOW eye level, looking UP at subject. Subject appears powerful/dominant.',
+      worms_eye: 'WORM\'S EYE: Camera at GROUND level, looking UP. Extreme perspective, subject towers above.',
+      dutch: 'DUTCH ANGLE: Camera TILTED 15-30° from horizontal. Creates dynamic tension/unease.',
+      fisheye: 'FISHEYE: Extreme wide-angle with VISIBLE barrel distortion. Edges curve dramatically.'
+    };
+    
+    const shotDesc = SHOT_SIZE_DIRECTIVES[composition.shotSize] || composition.shotSize;
+    const angleDesc = CAMERA_ANGLE_DIRECTIVES[composition.cameraAngle] || composition.cameraAngle;
+    
+    let compositionBlock = `
+=== COMPOSITION (MANDATORY — NOT NEGOTIABLE) ===`;
+    
+    if (composition.shotSize && composition.shotSize !== 'default') {
+      compositionBlock += `
+
+FRAMING: ${shotDesc}`;
+    }
+    
+    if (composition.cameraAngle && composition.cameraAngle !== 'eye_level') {
+      compositionBlock += `
+
+CAMERA ANGLE: ${angleDesc}`;
+    }
+    
+    compositionBlock += `
+
+⚠️ STRICT ENFORCEMENT:
+- If CLOSE-UP specified → do NOT show full body
+- If LOW ANGLE specified → camera MUST be below eye level
+- If FISHEYE specified → edges MUST curve with visible distortion
+- These are REQUIREMENTS, not suggestions`;
+    
+    sections.push(compositionBlock);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
   // SECTION 10: EMOTION
   // ═══════════════════════════════════════════════════════════════
   

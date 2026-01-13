@@ -1377,6 +1377,36 @@ function buildDescriptiveUniverseNarrative(params) {
     lensText = lensText.replace(/\.\s*\./g, '.').replace(/\s+/g, ' ').trim();
     if (lensText) {
       lensText = lensText.charAt(0).toUpperCase() + lensText.slice(1);
+      
+      // Add strict enforcement for critical lens parameters
+      const strictDirectives = [];
+      
+      // Ultra-wide / Fisheye - MUST show distortion
+      if (params.focalRange === 'ultra_wide' || params.focalRange === 'fisheye') {
+        strictDirectives.push('⚠️ FISHEYE/ULTRA-WIDE: Visible barrel distortion REQUIRED. Edges of frame MUST curve. Exaggerated perspective mandatory.');
+      }
+      
+      // Wide open aperture - MUST show bokeh
+      if (params.apertureIntent === 'wide_open') {
+        strictDirectives.push('⚠️ SHALLOW DOF MANDATORY: Background MUST be completely blurred (bokeh). Only subject in focus. f/1.4-f/2.0 aesthetic REQUIRED.');
+      } else if (params.apertureIntent === 'shallow') {
+        strictDirectives.push('⚠️ SHALLOW DOF: Background should be soft/blurred. Subject clearly separated from environment.');
+      }
+      
+      // Intimate proximity - MUST be very close
+      if (params.cameraProximity === 'intimate') {
+        strictDirectives.push('⚠️ INTIMATE DISTANCE: Camera MUST be within arm\'s reach of subject. Subject dominates frame. Personal space invaded.');
+      }
+      
+      // Embrace distortion
+      if (params.distortionPolicy === 'embrace') {
+        strictDirectives.push('⚠️ DISTORTION: Lens distortion is INTENTIONAL. Lines should curve. Do NOT correct.');
+      }
+      
+      if (strictDirectives.length > 0) {
+        lensText += '\n\n' + strictDirectives.join('\n');
+      }
+      
       sections.push(`**LENS:**\n${lensText}`);
     }
   }
