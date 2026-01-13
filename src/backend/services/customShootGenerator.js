@@ -198,6 +198,9 @@ export function buildCustomShootPrompt({
   hasPoseSketch = false,
   poseAdherence = 2,
   
+  // Composition (shotSize + cameraAngle)
+  composition = null,
+  
   // Quality settings
   qualityMode = 'DRAFT',
   mood = 'natural'
@@ -764,6 +767,7 @@ export async function generateCustomShootFrame({
       hasLocationRef: !!locationRefImage && locks?.location?.enabled,
       hasPoseSketch: !!poseSketchImage,
       poseAdherence,
+      composition,
       qualityMode,
       mood
     });
