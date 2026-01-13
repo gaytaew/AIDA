@@ -270,17 +270,29 @@ function buildLightingNarrative(params) {
   const quality = getNarrative('lighting', 'lightQuality', params.lightQuality);
   if (quality) parts.push('. ' + quality);
   
-  // Time of day
-  const time = getNarrative('lighting', 'timeOfDay', params.timeOfDay);
-  if (time) parts.push('. ' + time);
+  // ─────────────────────────────────────────────────────────────
+  // SMART CONTEXT: Skip irrelevant params based on space/lighting
+  // ─────────────────────────────────────────────────────────────
+  const isIndoor = params.weatherLighting === 'indoor';
+  const isStudio = ['studio_soft', 'studio_hard'].includes(params.lightSource);
   
-  // Weather
-  const weather = getNarrative('lighting', 'weatherLighting', params.weatherLighting);
-  if (weather) parts.push('. ' + weather);
+  // Time of day - skip for pure studio lighting (no windows)
+  if (!isStudio) {
+    const time = getNarrative('lighting', 'timeOfDay', params.timeOfDay);
+    if (time) parts.push('. ' + time);
+  }
   
-  // Season
-  const season = getNarrative('lighting', 'season', params.season);
-  if (season) parts.push('. ' + season);
+  // Weather - skip for indoor (weatherLighting === 'indoor')
+  if (!isIndoor) {
+    const weather = getNarrative('lighting', 'weatherLighting', params.weatherLighting);
+    if (weather) parts.push('. ' + weather);
+  }
+  
+  // Season - skip for indoor/studio
+  if (!isIndoor && !isStudio) {
+    const season = getNarrative('lighting', 'season', params.season);
+    if (season) parts.push('. ' + season);
+  }
   
   let result = parts.join('');
   result = result.replace(/\.\s*\./g, '.').replace(/\s+/g, ' ').trim();
@@ -799,13 +811,23 @@ ${anchors.map(a => `• ${a}`).join('\n')}`);
   const lightQual = TECHNICAL_VALUES.lightQuality[params.lightQuality];
   if (lightQual) lightingParams.push(`Quality: ${lightQual}`);
   
-  // Time of day
-  const timeDay = TECHNICAL_VALUES.timeOfDay[params.timeOfDay];
-  if (timeDay) lightingParams.push(`Time: ${timeDay}`);
+  // ─────────────────────────────────────────────────────────────
+  // SMART CONTEXT: Skip irrelevant params for indoor/studio
+  // ─────────────────────────────────────────────────────────────
+  const isIndoor = params.weatherLighting === 'indoor';
+  const isStudio = ['studio_soft', 'studio_hard'].includes(params.lightSource);
   
-  // Weather
-  const weather = TECHNICAL_VALUES.weatherLighting[params.weatherLighting];
-  if (weather) lightingParams.push(`Weather: ${weather}`);
+  // Time of day - skip for pure studio lighting
+  if (!isStudio) {
+    const timeDay = TECHNICAL_VALUES.timeOfDay[params.timeOfDay];
+    if (timeDay) lightingParams.push(`Time: ${timeDay}`);
+  }
+  
+  // Weather - skip for indoor
+  if (!isIndoor) {
+    const weather = TECHNICAL_VALUES.weatherLighting[params.weatherLighting];
+    if (weather) lightingParams.push(`Weather: ${weather}`);
+  }
   
   if (lightingParams.length > 0) {
     sections.push(`LIGHTING (LOCKED — SAME for ALL frames, independent of pose):
@@ -1450,16 +1472,31 @@ function buildDescriptiveUniverseNarrative(params) {
   const lightQual = DESCRIPTIVE_EFFECTS.lightQuality[params.lightQuality];
   if (lightQual) lightParts.push('. ' + lightQual);
   
-  const timeDay = DESCRIPTIVE_EFFECTS.timeOfDay[params.timeOfDay];
-  if (timeDay && params.timeOfDay !== params.lightSource) {
-    lightParts.push('. Время: ' + timeDay.toLowerCase());
+  // ─────────────────────────────────────────────────────────────
+  // SMART CONTEXT: Skip irrelevant params for indoor/studio
+  // ─────────────────────────────────────────────────────────────
+  const isIndoorDesc = params.weatherLighting === 'indoor';
+  const isStudioDesc = ['studio_soft', 'studio_hard'].includes(params.lightSource);
+  
+  // Time of day - skip for pure studio lighting
+  if (!isStudioDesc) {
+    const timeDay = DESCRIPTIVE_EFFECTS.timeOfDay[params.timeOfDay];
+    if (timeDay && params.timeOfDay !== params.lightSource) {
+      lightParts.push('. Время: ' + timeDay.toLowerCase());
+    }
   }
   
-  const weather = DESCRIPTIVE_EFFECTS.weatherLighting[params.weatherLighting];
-  if (weather) lightParts.push('. Условия: ' + weather.toLowerCase());
+  // Weather - skip for indoor
+  if (!isIndoorDesc) {
+    const weather = DESCRIPTIVE_EFFECTS.weatherLighting[params.weatherLighting];
+    if (weather) lightParts.push('. Условия: ' + weather.toLowerCase());
+  }
   
-  const season = DESCRIPTIVE_EFFECTS.season?.[params.season];
-  if (season && params.season !== 'any') lightParts.push('. ' + season);
+  // Season - skip for indoor/studio
+  if (!isIndoorDesc && !isStudioDesc) {
+    const season = DESCRIPTIVE_EFFECTS.season?.[params.season];
+    if (season && params.season !== 'any') lightParts.push('. ' + season);
+  }
   
   if (lightParts.length > 0) {
     let lightText = lightParts.join('');

@@ -447,6 +447,169 @@ const CONFLICT_RULES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+// SMART PARAMETER SANITIZATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Автоматически исправляет конфликтующие параметры.
+ * Вызывается ПЕРЕД генерацией промпта.
+ * 
+ * @param {Object} params - Исходные параметры вселенной
+ * @returns {Object} - Исправленные параметры + лог изменений
+ */
+export function sanitizeUniverseParams(params) {
+  const sanitized = { ...params };
+  const corrections = [];
+  
+  // ─────────────────────────────────────────────────────────────
+  // RULE 1: Studio lighting → indoor weather
+  // Студийный свет = в помещении, погода не нужна
+  // ─────────────────────────────────────────────────────────────
+  const studioSources = ['studio_soft', 'studio_hard'];
+  if (studioSources.includes(sanitized.lightSource)) {
+    if (sanitized.weatherLighting && sanitized.weatherLighting !== 'indoor') {
+      corrections.push({
+        param: 'weatherLighting',
+        from: sanitized.weatherLighting,
+        to: 'indoor',
+        reason: `Студийный свет (${sanitized.lightSource}) подразумевает помещение`
+      });
+      sanitized.weatherLighting = 'indoor';
+    }
+    // Для студии сезон тоже не имеет смысла
+    if (sanitized.season && sanitized.season !== 'any') {
+      corrections.push({
+        param: 'season',
+        from: sanitized.season,
+        to: null,
+        reason: 'Сезон не влияет на студийную съёмку'
+      });
+      sanitized.season = null;
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // RULE 2: Indoor weather → remove outdoor-only params
+  // В помещении нет солнца, погоды, сезона
+  // ─────────────────────────────────────────────────────────────
+  if (sanitized.weatherLighting === 'indoor') {
+    // Прямое солнце невозможно в помещении (если нет окна)
+    const outdoorOnlySources = ['direct_sun', 'golden_hour', 'overcast'];
+    if (outdoorOnlySources.includes(sanitized.lightSource)) {
+      const fallback = sanitized.lightSource === 'golden_hour' ? 'practicals' : 'window';
+      corrections.push({
+        param: 'lightSource',
+        from: sanitized.lightSource,
+        to: fallback,
+        reason: `${sanitized.lightSource} невозможен в помещении без окон`
+      });
+      sanitized.lightSource = fallback;
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // RULE 3: Night → no sun
+  // Ночью нет солнечного света
+  // ─────────────────────────────────────────────────────────────
+  if (sanitized.timeOfDay === 'night') {
+    const sunSources = ['direct_sun', 'golden_hour'];
+    if (sunSources.includes(sanitized.lightSource)) {
+      corrections.push({
+        param: 'lightSource',
+        from: sanitized.lightSource,
+        to: 'practicals',
+        reason: 'Ночью нет солнечного света'
+      });
+      sanitized.lightSource = 'practicals';
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // RULE 4: Overcast weather → no direct sun / golden hour
+  // Пасмурно = нет прямого солнца
+  // ─────────────────────────────────────────────────────────────
+  if (sanitized.weatherLighting === 'overcast' || sanitized.weatherLighting === 'foggy') {
+    if (sanitized.lightSource === 'direct_sun') {
+      corrections.push({
+        param: 'lightSource',
+        from: 'direct_sun',
+        to: 'overcast',
+        reason: 'При пасмурной погоде нет прямого солнца'
+      });
+      sanitized.lightSource = 'overcast';
+    }
+    if (sanitized.lightSource === 'golden_hour') {
+      corrections.push({
+        param: 'lightSource',
+        from: 'golden_hour',
+        to: 'overcast',
+        reason: 'Golden hour невозможен при облачности'
+      });
+      sanitized.lightSource = 'overcast';
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // RULE 5: Rainy weather → soft light only
+  // Дождь = мягкий рассеянный свет
+  // ─────────────────────────────────────────────────────────────
+  if (sanitized.weatherLighting === 'rainy' || sanitized.weatherLighting === 'stormy') {
+    if (sanitized.lightQuality === 'hard') {
+      corrections.push({
+        param: 'lightQuality',
+        from: 'hard',
+        to: 'soft',
+        reason: 'Дождь даёт только мягкий рассеянный свет'
+      });
+      sanitized.lightQuality = 'soft';
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // RULE 6: Midday → no golden hour light
+  // В полдень солнце не золотое
+  // ─────────────────────────────────────────────────────────────
+  if (sanitized.timeOfDay === 'midday' && sanitized.lightSource === 'golden_hour') {
+    corrections.push({
+      param: 'lightSource',
+      from: 'golden_hour',
+      to: 'direct_sun',
+      reason: 'В полдень нет золотого света'
+    });
+    sanitized.lightSource = 'direct_sun';
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // RULE 7: Snow → winter/autumn only
+  // Снег бывает только зимой/осенью
+  // ─────────────────────────────────────────────────────────────
+  if (sanitized.weatherLighting === 'snowy') {
+    if (sanitized.season === 'summer' || sanitized.season === 'spring') {
+      corrections.push({
+        param: 'season',
+        from: sanitized.season,
+        to: 'winter',
+        reason: 'Снег возможен только зимой/осенью'
+      });
+      sanitized.season = 'winter';
+    }
+  }
+  
+  // Log corrections if any
+  if (corrections.length > 0) {
+    console.log('[UniverseConflicts] Auto-corrected parameters:', 
+      corrections.map(c => `${c.param}: ${c.from} → ${c.to} (${c.reason})`).join('; ')
+    );
+  }
+  
+  return {
+    params: sanitized,
+    corrections,
+    wasModified: corrections.length > 0
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ПРОВЕРКА КОНФЛИКТОВ
 // ═══════════════════════════════════════════════════════════════
 
@@ -542,6 +705,7 @@ export {
 };
 
 export default {
+  sanitizeUniverseParams,
   checkUniverseConflicts,
   getConflicts,
   getWarnings,

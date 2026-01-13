@@ -398,3 +398,4 @@ export function estimateBase64Size(originalBytes) {
   return Math.ceil(originalBytes * 1.37); // Base64 is ~37% larger
 }
 
+

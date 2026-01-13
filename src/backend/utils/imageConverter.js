@@ -58,3 +58,4 @@ export async function convertGeminiImageToJpeg(image, quality = 90) {
 export default { convertToJpeg, convertGeminiImageToJpeg };
 
 
+

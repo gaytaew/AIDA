@@ -453,3 +453,4 @@ export function getLightSourcesByCategory() {
   return grouped;
 }
 
+

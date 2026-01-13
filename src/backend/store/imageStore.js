@@ -257,3 +257,4 @@ export function getImagesDir() {
   return IMAGES_DIR;
 }
 
+

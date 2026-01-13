@@ -63,6 +63,7 @@ import {
 } from '../schema/universeNarrativeBuilder.js';
 
 import { 
+  sanitizeUniverseParams,
   checkUniverseConflicts,
   getConflicts,
   generateConflictNote 
@@ -291,12 +292,24 @@ ${reasoningSteps.join('\n')}`);
   // ═══════════════════════════════════════════════════════════════
   
   if (useUniverse && universeParams) {
+    // ═══════════════════════════════════════════════════════════════
+    // SMART SANITIZATION: Auto-fix conflicting parameters
+    // Студия → indoor погода, ночь → нет солнца, и т.д.
+    // ═══════════════════════════════════════════════════════════════
+    const { params: sanitizedParams, corrections, wasModified } = sanitizeUniverseParams(universeParams);
+    
+    if (wasModified) {
+      console.log('[CustomShootGenerator] 🔧 Auto-corrected universe params:', 
+        corrections.map(c => `${c.param}: ${c.from}→${c.to}`).join(', ')
+      );
+    }
+    
     // Определяем режим промпта: strict (новый) или soft (старый)
     // По умолчанию используем descriptive для описательного стиля арт-директора
     // Доступные режимы: 'soft', 'strict', 'descriptive'
-    const promptStyle = universeParams.promptStyle || 'descriptive';
+    const promptStyle = sanitizedParams.promptStyle || 'descriptive';
     
-    const universeNarrative = buildUniverseNarrativeByMode(universeParams, promptStyle);
+    const universeNarrative = buildUniverseNarrativeByMode(sanitizedParams, promptStyle);
     if (universeNarrative) {
       sections.push(`
 ═══════════════════════════════════════════════════════════════
@@ -306,14 +319,14 @@ UNIVERSE / VISUAL DNA (LOCKED — applies to ALL frames)
 ${universeNarrative}`);
     }
     
-    // Проверяем конфликты и добавляем предупреждения
-    const conflicts = getConflicts(universeParams);
+    // Проверяем конфликты и добавляем предупреждения (после санитизации)
+    const conflicts = getConflicts(sanitizedParams);
     if (conflicts.length > 0) {
-      const conflictNote = generateConflictNote(universeParams);
+      const conflictNote = generateConflictNote(sanitizedParams);
       if (conflictNote) {
         sections.push(conflictNote);
       }
-      console.log('[CustomShootGenerator] ⚠️ Parameter conflicts detected:', conflicts.map(c => c.id));
+      console.log('[CustomShootGenerator] ⚠️ Remaining conflicts after sanitization:', conflicts.map(c => c.id));
     }
   }
   
