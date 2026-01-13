@@ -669,6 +669,14 @@ function renderClothingSections() {
             rows="2"
             style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"
           >${escapeHtml(lookPrompt)}</textarea>
+          <div style="display: flex; justify-content: flex-end; margin-top: 6px; gap: 8px; align-items: center;">
+            <span class="look-prompt-save-status" data-model="${index}" style="font-size: 11px; color: var(--color-text-muted);"></span>
+            <button 
+              class="btn-save-look-prompt" 
+              data-model="${index}"
+              style="padding: 4px 12px; font-size: 11px; background: var(--color-primary); border: none; border-radius: 4px; color: white; cursor: pointer; transition: all 0.2s;"
+            >📌 Закрепить</button>
+          </div>
         </div>
         
         <!-- Список вещей -->
@@ -719,16 +727,59 @@ function renderClothingSections() {
     });
   });
   
-  // Event: Item prompt input
+  // Event: Item prompt input (auto-save with debounce + status indicator)
   elements.clothingSections.querySelectorAll('.item-prompt-input').forEach(textarea => {
     textarea.addEventListener('input', debounce(() => {
       const modelIdx = parseInt(textarea.dataset.model);
       const itemIdx = parseInt(textarea.dataset.item);
       if (state.clothingByModel[modelIdx]?.[itemIdx]) {
         state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
-        saveShootClothing();
+        // Mark as "unsaved" until explicit save
+        const statusEl = document.querySelector(`.prompt-save-status[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
+        if (statusEl) {
+          statusEl.textContent = '⚠️ Не сохранено';
+          statusEl.style.color = 'var(--color-accent, #f59e0b)';
+        }
       }
-    }, 500));
+    }, 300));
+  });
+  
+  // Event: Save prompt button (explicit save with confirmation)
+  elements.clothingSections.querySelectorAll('.btn-save-item-prompt').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const modelIdx = parseInt(btn.dataset.model);
+      const itemIdx = parseInt(btn.dataset.item);
+      
+      // Get the textarea value
+      const textarea = document.querySelector(`.item-prompt-input[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
+      if (textarea && state.clothingByModel[modelIdx]?.[itemIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
+      }
+      
+      // Save to backend
+      await saveShootClothing();
+      
+      // Show confirmation
+      const statusEl = document.querySelector(`.prompt-save-status[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
+      if (statusEl) {
+        statusEl.textContent = '✅ Сохранено!';
+        statusEl.style.color = 'var(--color-success, #10b981)';
+        
+        // Fade out after 2s
+        setTimeout(() => {
+          statusEl.textContent = '';
+        }, 2000);
+      }
+      
+      // Visual feedback on button
+      const originalText = btn.textContent;
+      btn.textContent = '✓ Сохранено';
+      btn.style.background = 'var(--color-success, #10b981)';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = 'var(--color-primary)';
+      }, 1500);
+    });
   });
   
   // Event: Item name input
@@ -743,14 +794,54 @@ function renderClothingSections() {
     }, 500));
   });
   
-  // Event: Look prompt input
+  // Event: Look prompt input (auto-save with debounce)
   elements.clothingSections.querySelectorAll('.look-prompt-input').forEach(textarea => {
     textarea.addEventListener('input', debounce(() => {
       const modelIdx = parseInt(textarea.dataset.model);
       if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
       state.lookPrompts[modelIdx] = textarea.value;
-      saveShootClothing();
-    }, 500));
+      
+      // Mark as unsaved
+      const statusEl = document.querySelector(`.look-prompt-save-status[data-model="${modelIdx}"]`);
+      if (statusEl) {
+        statusEl.textContent = '⚠️ Не сохранено';
+        statusEl.style.color = 'var(--color-accent, #f59e0b)';
+      }
+    }, 300));
+  });
+  
+  // Event: Save look prompt button
+  elements.clothingSections.querySelectorAll('.btn-save-look-prompt').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const modelIdx = parseInt(btn.dataset.model);
+      
+      // Get the textarea value
+      const textarea = document.querySelector(`.look-prompt-input[data-model="${modelIdx}"]`);
+      if (textarea) {
+        if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
+        state.lookPrompts[modelIdx] = textarea.value;
+      }
+      
+      // Save to backend
+      await saveShootClothing();
+      
+      // Show confirmation
+      const statusEl = document.querySelector(`.look-prompt-save-status[data-model="${modelIdx}"]`);
+      if (statusEl) {
+        statusEl.textContent = '✅ Сохранено!';
+        statusEl.style.color = 'var(--color-success, #10b981)';
+        setTimeout(() => { statusEl.textContent = ''; }, 2000);
+      }
+      
+      // Visual feedback on button
+      const originalText = btn.textContent;
+      btn.textContent = '✓ Сохранено';
+      btn.style.background = 'var(--color-success, #10b981)';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = 'var(--color-primary)';
+      }, 1500);
+    });
   });
   
   // Event: Image view selector
@@ -807,6 +898,15 @@ function renderClothingItemCard(item, modelIndex, itemIndex) {
           rows="3"
           style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"
         >${escapeHtml(item.prompt || '')}</textarea>
+        <div style="display: flex; justify-content: flex-end; margin-top: 6px; gap: 8px; align-items: center;">
+          <span class="prompt-save-status" data-model="${modelIndex}" data-item="${itemIndex}" style="font-size: 11px; color: var(--color-text-muted);"></span>
+          <button 
+            class="btn-save-item-prompt" 
+            data-model="${modelIndex}" 
+            data-item="${itemIndex}"
+            style="padding: 4px 12px; font-size: 11px; background: var(--color-primary); border: none; border-radius: 4px; color: white; cursor: pointer; transition: all 0.2s;"
+          >📌 Закрепить промпт</button>
+        </div>
       </div>
       
       <!-- Images -->
