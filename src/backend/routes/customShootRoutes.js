@@ -434,7 +434,12 @@ router.post('/:id/generate', async (req, res) => {
       clothingImages: reqClothingImages,
       
       // ═══════════════════════════════════════════════════════════════
-      // NEW: Virtual Studio Parameters
+      // NEW: Universe Parameters (Custom Shoot 4 architecture)
+      // ═══════════════════════════════════════════════════════════════
+      universeParams, // Full universe configuration for Custom Shoot 4
+      
+      // ═══════════════════════════════════════════════════════════════
+      // Virtual Studio Parameters (legacy)
       // ═══════════════════════════════════════════════════════════════
       virtualCamera,  // { focalLength, aperture, shutterSpeed }
       lighting,       // { primarySource, secondarySource, modifier }
@@ -460,7 +465,9 @@ router.post('/:id/generate', async (req, res) => {
       ambient,
       frame: frame?.label || frame?.id || null,
       extraPrompt: extraPrompt?.slice(0, 50),
-      // Virtual Studio params
+      // Universe params (Custom Shoot 4)
+      universeParams: universeParams ? Object.keys(universeParams).length + ' keys' : null,
+      // Virtual Studio params (legacy)
       virtualCamera,
       lighting,
       qualityMode,
@@ -647,7 +654,12 @@ router.post('/:id/generate', async (req, res) => {
       ambient,
       
       // ═══════════════════════════════════════════════════════════════
-      // Virtual Studio Parameters (new architecture)
+      // Universe Parameters (Custom Shoot 4 architecture)
+      // ═══════════════════════════════════════════════════════════════
+      universeParams,
+      
+      // ═══════════════════════════════════════════════════════════════
+      // Virtual Studio Parameters (legacy architecture)
       // ═══════════════════════════════════════════════════════════════
       virtualCamera,
       lighting,

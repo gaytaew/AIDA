@@ -1949,6 +1949,11 @@ async function generateFrame(frameId) {
         locationId: params.locationId,
         aspectRatio: params.aspectRatio,
         imageSize: params.imageSize,
+        
+        // NEW: Universe params (Custom Shoot 4 architecture)
+        universeParams: params.universeParams,
+        
+        // Legacy presets (for backward compatibility)
         presets: params.presets,
         // Artistic controls (same as shoot-composer)
         captureStyle: params.captureStyle,
