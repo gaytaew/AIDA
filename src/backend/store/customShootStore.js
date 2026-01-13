@@ -477,19 +477,20 @@ export async function getCustomShootWithImages(id) {
     const shoot = await _readShoot(id);
     if (!shoot) return null;
     
-    // Debug: log clothing data
+    // Debug: log clothing data with full prompts
     if (shoot.clothing?.length > 0) {
-      console.log('[CustomShootStore] Loading clothing for shoot', id, ':', 
-        shoot.clothing.map(c => ({
-          forModelIndex: c.forModelIndex,
-          itemsCount: c.items?.length || 0,
-          items: c.items?.map(item => ({
-            name: item.name,
-            promptLen: item.prompt?.length || 0,
-            imagesCount: item.images?.length || 0
-          }))
-        }))
-      );
+      console.log('[CustomShootStore] Loading clothing for shoot', id);
+      shoot.clothing.forEach(c => {
+        console.log(`  Model ${c.forModelIndex}: ${c.items?.length || 0} items`);
+        c.items?.forEach((item, i) => {
+          console.log(`    [${i}] name="${item.name || ''}" prompt="${(item.prompt || '').slice(0, 80)}..." images=${item.images?.length || 0}`);
+        });
+      });
+    }
+    
+    // Debug: log lookPrompts
+    if (shoot.lookPrompts?.length > 0) {
+      console.log('[CustomShootStore] Loading lookPrompts for shoot', id, ':', shoot.lookPrompts);
     }
     
     // Resolve image paths to data URLs
@@ -622,7 +623,13 @@ export async function updateShootParams(shootId, updates) {
     }
     
     if (updates.clothing !== undefined) {
-      console.log('[CustomShootStore] Saving clothing:', JSON.stringify(updates.clothing, null, 2).slice(0, 500));
+      console.log('[CustomShootStore] Saving clothing for shoot', shootId);
+      updates.clothing.forEach(c => {
+        console.log(`  Model ${c.forModelIndex}: ${c.items?.length || 0} items`);
+        c.items?.forEach((item, i) => {
+          console.log(`    [${i}] name="${item.name || ''}" prompt="${(item.prompt || '').slice(0, 80)}..." images=${item.images?.length || 0}`);
+        });
+      });
       shoot.clothing = updates.clothing;
     }
     
