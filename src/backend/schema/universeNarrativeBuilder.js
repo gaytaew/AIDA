@@ -548,6 +548,61 @@ const TECHNICAL_VALUES = {
     retro_80s: 'Retro 80s — bold colors, geometric, synthetic',
     vintage_70s: 'Vintage 70s — warm, faded, organic',
     classic_60s: 'Classic 60s — mod, graphic, high contrast B&W option'
+  },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // LIGHTING (НЕ ЗАВИСИТ ОТ ПОЗЫ — применяется ко всем кадрам)
+  // ═══════════════════════════════════════════════════════════════
+  
+  lightSource: {
+    direct_sun: 'Direct sunlight — hard shadows, high contrast, ~5500K',
+    golden_hour: 'Golden hour — warm side light (~3500-4500K), soft long shadows, golden tones',
+    blue_hour: 'Blue hour — cool diffused light (~7000-9000K), no direct sun, blue tones',
+    overcast: 'Overcast sky — giant softbox, diffused even light, no shadows',
+    open_shade: 'Open shade — subject in shadow, lit by reflected sky',
+    window_light: 'Window light — soft directional, gradual falloff',
+    studio_soft: 'Studio softbox — controlled soft light, no harsh shadows',
+    studio_hard: 'Studio hard light — directional, sharp contrasty shadows',
+    flash_fill: 'Fill flash — reduces shadows from main source',
+    practicals: 'Practical lights in frame — lamps, neon, storefronts',
+    mixed: 'Mixed sources — multiple temperatures and qualities'
+  },
+  
+  lightDirection: {
+    front: 'Front light (from camera) — flat, minimal shadows',
+    side_front: 'Side-front 45° — classic portrait lighting',
+    side: 'Side 90° — dramatic, half face in shadow',
+    back_side: 'Back-side — rim light, edge glow',
+    backlight: 'Backlight — behind subject, halo/silhouette',
+    top: 'Top light (noon sun) — shadows under eyes/nose',
+    bottom: 'Bottom light — unnatural, ominous'
+  },
+  
+  lightQuality: {
+    hard: 'Hard light — sharp shadow edges, high contrast',
+    medium: 'Medium light — gradual shadow transition, readable contrast',
+    soft: 'Soft light — smooth transitions, wrap-around',
+    diffused: 'Diffused light — almost no shadows, flat'
+  },
+  
+  timeOfDay: {
+    sunrise: 'Sunrise — first rays, cold-to-warm transition',
+    morning: 'Morning — fresh clean light, low sun angle',
+    midday: 'Midday — harsh overhead light, short shadows',
+    afternoon: 'Afternoon — standard daylight, 45-60° sun',
+    golden_hour: 'Golden hour — 1-2 hours before sunset, warm golden',
+    sunset: 'Sunset — dramatic orange-red light, long shadows',
+    blue_hour: 'Blue hour — just after sunset, cool blue ambient',
+    night: 'Night — artificial sources only, contrast pools'
+  },
+  
+  weatherLighting: {
+    clear: 'Clear sky — direct sun, blue sky reflections',
+    partly_cloudy: 'Partly cloudy — alternating hard/soft light',
+    overcast: 'Overcast — clouds as giant softbox, even diffused',
+    foggy: 'Fog/haze — atmospheric, reduced contrast, lost depth',
+    rainy: 'Rain — wet reflective surfaces, muted colors',
+    indoor: 'Indoor — weather independent, controlled'
   }
 };
 
@@ -659,6 +714,41 @@ ${constraints.map(c => `• ${c}`).join('\n')}`);
   
   sections.push(`VISUAL ANCHORS (apply to every frame):
 ${anchors.map(a => `• ${a}`).join('\n')}`);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // LIGHTING (LOCKED — НЕ ЗАВИСИТ ОТ ПОЗЫ)
+  // Освещение остаётся ОДИНАКОВЫМ для всех кадров съёмки
+  // ═══════════════════════════════════════════════════════════════
+  
+  const lightingParams = [];
+  
+  // Light source
+  const lightSource = TECHNICAL_VALUES.lightSource[params.lightSource];
+  if (lightSource) lightingParams.push(`Source: ${lightSource}`);
+  
+  // Light direction
+  const lightDir = TECHNICAL_VALUES.lightDirection[params.lightDirection];
+  if (lightDir) lightingParams.push(`Direction: ${lightDir}`);
+  
+  // Light quality
+  const lightQual = TECHNICAL_VALUES.lightQuality[params.lightQuality];
+  if (lightQual) lightingParams.push(`Quality: ${lightQual}`);
+  
+  // Time of day
+  const timeDay = TECHNICAL_VALUES.timeOfDay[params.timeOfDay];
+  if (timeDay) lightingParams.push(`Time: ${timeDay}`);
+  
+  // Weather
+  const weather = TECHNICAL_VALUES.weatherLighting[params.weatherLighting];
+  if (weather) lightingParams.push(`Weather: ${weather}`);
+  
+  if (lightingParams.length > 0) {
+    sections.push(`LIGHTING (LOCKED — SAME for ALL frames, independent of pose):
+${lightingParams.map(l => `• ${l}`).join('\n')}
+
+⚠️ CRITICAL: Lighting MUST remain consistent across ALL frames.
+The pose/framing may change, but light source, direction, quality, and time of day MUST NOT change.`);
+  }
   
   // ═══════════════════════════════════════════════════════════════
   // FORBIDDEN (что запрещено)
@@ -832,6 +922,13 @@ function getDefaultParams() {
     energyLevel: 'high',
     spontaneity: 'semi_candid',
     primaryFocus: 'product',
+    
+    // Lighting (НЕ ЗАВИСИТ ОТ ПОЗЫ)
+    lightSource: 'golden_hour',
+    lightDirection: 'side_front',
+    lightQuality: 'medium',
+    timeOfDay: 'golden_hour',
+    weatherLighting: 'clear',
     
     // Anti-AI
     antiAiLevel: 'medium',
