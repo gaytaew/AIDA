@@ -2019,7 +2019,7 @@ function renderGeneratedHistory() {
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; gap: 8px;">
             <a href="${frame.imageUrl}" download="custom-shoot-${idx}.png" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Скачать">💾</a>
-            <button class="btn btn-secondary btn-copy-settings" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Применить настройки этого кадра">📋</button>
+            <button class="btn btn-secondary" onclick="window.copyFrameSettings(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Применить настройки этого кадра">📋</button>
             <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock">🎨</button>
             <button class="btn btn-secondary btn-set-location-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Location Lock">🏠</button>
             <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);" title="Удалить">✕</button>
@@ -2063,9 +2063,7 @@ function renderGeneratedHistory() {
     btn.addEventListener('click', () => setAsLocationRef(btn.dataset.imageId));
   });
   
-  elements.imagesGallery.querySelectorAll('.btn-copy-settings').forEach(btn => {
-    btn.addEventListener('click', () => copyFrameSettings(parseInt(btn.dataset.frameIndex)));
-  });
+  // btn-copy-settings now uses inline onclick="window.copyFrameSettings(idx)"
   
   elements.imagesGallery.querySelectorAll('[data-delete-frame]').forEach(btn => {
     btn.addEventListener('click', () => deleteFrame(parseInt(btn.dataset.deleteFrame)));
@@ -2516,3 +2514,123 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL EXPORTS (for inline onclick handlers)
+// ═══════════════════════════════════════════════════════════════
+
+window.copyFrameSettings = function(frameIndex) {
+  console.log('[CopySettings] Button clicked, frameIndex:', frameIndex);
+  
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame) {
+    console.error('[CopySettings] Frame not found at index:', frameIndex);
+    alert('Кадр не найден');
+    return;
+  }
+  
+  console.log('[CopySettings] Frame found:', frame.id);
+  console.log('[CopySettings] Frame universeParams:', frame.universeParams);
+  console.log('[CopySettings] Frame keys:', Object.keys(frame));
+  
+  let changedCount = 0;
+  
+  // 1. Apply Universe params
+  if (frame.universeParams && typeof frame.universeParams === 'object') {
+    const keys = Object.keys(frame.universeParams);
+    console.log('[CopySettings] Applying', keys.length, 'universe params:', keys);
+    
+    state.universeValues = { ...frame.universeParams };
+    
+    document.querySelectorAll('.universe-param-select').forEach(select => {
+      const paramId = select.dataset.paramId;
+      if (paramId && frame.universeParams[paramId] !== undefined) {
+        const newValue = String(frame.universeParams[paramId]);
+        if (select.value !== newValue) {
+          console.log(`[CopySettings] ${paramId}: "${select.value}" → "${newValue}"`);
+          select.value = newValue;
+          changedCount++;
+          // Highlight
+          select.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.5)';
+          select.style.borderColor = '#22c55e';
+          setTimeout(() => {
+            select.style.boxShadow = '';
+            select.style.borderColor = '';
+          }, 2000);
+        }
+      }
+    });
+    
+    // Update narrative preview
+    if (typeof updateNarrativePreview === 'function') {
+      updateNarrativePreview();
+    }
+  } else {
+    console.log('[CopySettings] No universeParams in frame');
+  }
+  
+  // 2. Location
+  if (frame.locationId && elements.genLocation) {
+    if (elements.genLocation.value !== frame.locationId) {
+      elements.genLocation.value = frame.locationId;
+      changedCount++;
+      console.log('[CopySettings] Location:', frame.locationId);
+    }
+  }
+  
+  // 3. Emotion
+  if (frame.emotionId && elements.genEmotion) {
+    if (elements.genEmotion.value !== frame.emotionId) {
+      elements.genEmotion.value = frame.emotionId;
+      changedCount++;
+      console.log('[CopySettings] Emotion:', frame.emotionId);
+    }
+  }
+  
+  // 4. Aspect ratio
+  if (frame.aspectRatio && elements.genAspectRatio) {
+    if (elements.genAspectRatio.value !== frame.aspectRatio) {
+      elements.genAspectRatio.value = frame.aspectRatio;
+      changedCount++;
+      console.log('[CopySettings] AspectRatio:', frame.aspectRatio);
+    }
+  }
+  
+  // 5. Image size
+  if (frame.imageSize && elements.genImageSize) {
+    if (elements.genImageSize.value !== frame.imageSize) {
+      elements.genImageSize.value = frame.imageSize;
+      changedCount++;
+      console.log('[CopySettings] ImageSize:', frame.imageSize);
+    }
+  }
+  
+  // 6. Pose adherence
+  if (frame.poseAdherence && elements.genPoseAdherence) {
+    const strVal = String(frame.poseAdherence);
+    if (elements.genPoseAdherence.value !== strVal) {
+      elements.genPoseAdherence.value = strVal;
+      changedCount++;
+      console.log('[CopySettings] PoseAdherence:', frame.poseAdherence);
+    }
+  }
+  
+  // 7. Extra prompt
+  if (frame.extraPrompt && elements.genExtraPrompt) {
+    elements.genExtraPrompt.value = frame.extraPrompt;
+    console.log('[CopySettings] ExtraPrompt: set');
+  }
+  
+  // Save
+  saveGenerationSettings();
+  
+  // Scroll to universe params
+  const container = document.getElementById('universe-params-container');
+  if (container) {
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  
+  // Toast
+  console.log('[CopySettings] DONE. Changed:', changedCount);
+  showToast(`✅ Применено ${changedCount} настроек`);
+};
