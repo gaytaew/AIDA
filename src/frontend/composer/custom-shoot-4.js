@@ -2044,6 +2044,8 @@ function copyFrameSettings(frameIndex) {
   
   console.log('[CopySettings] Copying settings from frame:', frame);
   
+  const changedElements = []; // Track changed elements for highlighting
+  
   // 1. Apply Universe params (all visual settings)
   if (frame.universeParams) {
     state.universeValues = { ...frame.universeParams };
@@ -2052,7 +2054,11 @@ function copyFrameSettings(frameIndex) {
     document.querySelectorAll('.universe-param-select').forEach(select => {
       const paramId = select.dataset.paramId;
       if (paramId && frame.universeParams[paramId] !== undefined) {
+        const oldValue = select.value;
         select.value = frame.universeParams[paramId];
+        if (oldValue !== select.value) {
+          changedElements.push(select);
+        }
       }
     });
     
@@ -2064,14 +2070,17 @@ function copyFrameSettings(frameIndex) {
   
   // Location
   if (frame.locationId && elements.genLocation) {
-    // Find option by ID or label
     const options = Array.from(elements.genLocation.options);
     const match = options.find(opt => 
       opt.value === frame.locationId || 
       opt.textContent.includes(frame.locationLabel || '')
     );
     if (match) {
+      const oldValue = elements.genLocation.value;
       elements.genLocation.value = match.value;
+      if (oldValue !== elements.genLocation.value) {
+        changedElements.push(elements.genLocation);
+      }
     }
   }
   
@@ -2080,45 +2089,89 @@ function copyFrameSettings(frameIndex) {
     const options = Array.from(elements.genEmotion.options);
     const match = options.find(opt => opt.value === frame.emotionId);
     if (match) {
+      const oldValue = elements.genEmotion.value;
       elements.genEmotion.value = match.value;
+      if (oldValue !== elements.genEmotion.value) {
+        changedElements.push(elements.genEmotion);
+      }
     }
   }
   
   // Aspect ratio
   if (frame.aspectRatio && elements.genAspectRatio) {
+    const oldValue = elements.genAspectRatio.value;
     elements.genAspectRatio.value = frame.aspectRatio;
+    if (oldValue !== elements.genAspectRatio.value) {
+      changedElements.push(elements.genAspectRatio);
+    }
   }
   
   // Image size
   if (frame.imageSize && elements.genImageSize) {
+    const oldValue = elements.genImageSize.value;
     elements.genImageSize.value = frame.imageSize;
+    if (oldValue !== elements.genImageSize.value) {
+      changedElements.push(elements.genImageSize);
+    }
   }
   
   // Pose adherence
   if (frame.poseAdherence && elements.genPoseAdherence) {
+    const oldValue = elements.genPoseAdherence.value;
     elements.genPoseAdherence.value = String(frame.poseAdherence);
+    if (oldValue !== elements.genPoseAdherence.value) {
+      changedElements.push(elements.genPoseAdherence);
+    }
   }
   
   // Composition (shot size, camera angle)
   if (frame.composition) {
     if (frame.composition.shotSize && elements.genShotSize) {
+      const oldValue = elements.genShotSize.value;
       elements.genShotSize.value = frame.composition.shotSize;
+      if (oldValue !== elements.genShotSize.value) {
+        changedElements.push(elements.genShotSize);
+      }
     }
     if (frame.composition.cameraAngle && elements.genCameraAngle) {
+      const oldValue = elements.genCameraAngle.value;
       elements.genCameraAngle.value = frame.composition.cameraAngle;
+      if (oldValue !== elements.genCameraAngle.value) {
+        changedElements.push(elements.genCameraAngle);
+      }
     }
   }
   
   // Extra prompt
   if (frame.extraPrompt && elements.genExtraPrompt) {
     elements.genExtraPrompt.value = frame.extraPrompt;
+    changedElements.push(elements.genExtraPrompt);
   }
   
   // Save updated settings
   saveGenerationSettings();
   
-  // Show confirmation
-  showToast('✅ Настройки применены! Выберите эскиз позы и нажмите «Генерировать»');
+  // Highlight changed elements with animation
+  changedElements.forEach(el => {
+    if (!el) return;
+    el.style.transition = 'box-shadow 0.3s, border-color 0.3s';
+    el.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.5)';
+    el.style.borderColor = '#22c55e';
+    
+    setTimeout(() => {
+      el.style.boxShadow = '';
+      el.style.borderColor = '';
+    }, 2000);
+  });
+  
+  // Scroll to Universe params section
+  const universeContainer = document.getElementById('universe-params-container');
+  if (universeContainer) {
+    universeContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  
+  // Show confirmation with count
+  showToast(`✅ Применено ${changedElements.length} настроек! Выберите эскиз позы и нажмите «Генерировать»`);
 }
 
 async function deleteFrame(index) {
