@@ -477,6 +477,21 @@ export async function getCustomShootWithImages(id) {
     const shoot = await _readShoot(id);
     if (!shoot) return null;
     
+    // Debug: log clothing data
+    if (shoot.clothing?.length > 0) {
+      console.log('[CustomShootStore] Loading clothing for shoot', id, ':', 
+        shoot.clothing.map(c => ({
+          forModelIndex: c.forModelIndex,
+          itemsCount: c.items?.length || 0,
+          items: c.items?.map(item => ({
+            name: item.name,
+            promptLen: item.prompt?.length || 0,
+            imagesCount: item.images?.length || 0
+          }))
+        }))
+      );
+    }
+    
     // Resolve image paths to data URLs
     if (shoot.generatedImages?.length > 0) {
       const resolvedImages = await Promise.all(
@@ -587,11 +602,13 @@ export async function updateShootParams(shootId, updates) {
     }
     
     if (updates.clothing !== undefined) {
+      console.log('[CustomShootStore] Saving clothing:', JSON.stringify(updates.clothing, null, 2).slice(0, 500));
       shoot.clothing = updates.clothing;
     }
     
     // Update look prompts (overall outfit style per model)
     if (updates.lookPrompts !== undefined) {
+      console.log('[CustomShootStore] Saving lookPrompts:', updates.lookPrompts);
       shoot.lookPrompts = updates.lookPrompts;
     }
     

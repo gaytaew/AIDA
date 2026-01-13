@@ -394,15 +394,22 @@ function loadShootState() {
   state.clothingByModel = [[], [], []];
   state.lookPrompts = ['', '', ''];
   
+  console.log('[LoadClothing] Raw clothing from shoot:', state.currentShoot.clothing);
+  console.log('[LoadClothing] Raw lookPrompts from shoot:', state.currentShoot.lookPrompts);
+  
   if (state.currentShoot.clothing) {
     state.currentShoot.clothing.forEach(c => {
       if (c.forModelIndex >= 0 && c.forModelIndex < 3) {
         // Check if it's new format (items) or old format (refs)
         if (c.items) {
           // New format
+          console.log('[LoadClothing] Loading items for model', c.forModelIndex, ':', 
+            c.items.map(item => ({ name: item.name, promptLen: item.prompt?.length, imagesCount: item.images?.length }))
+          );
           state.clothingByModel[c.forModelIndex] = c.items;
         } else if (c.refs) {
           // Old format - migrate to new
+          console.log('[LoadClothing] Migrating old refs for model', c.forModelIndex);
           state.clothingByModel[c.forModelIndex] = migrateOldClothingRefs(c.refs);
         }
       }
@@ -1023,12 +1030,28 @@ async function saveShootClothing() {
     prompt: prompt
   })).filter(p => p.prompt.trim() !== '');
   
+  console.log('[SaveClothing] Saving:', {
+    clothingCount: clothing.length,
+    clothing: clothing.map(c => ({
+      forModelIndex: c.forModelIndex,
+      itemsCount: c.items.length,
+      items: c.items.map(item => ({
+        name: item.name,
+        promptLen: item.prompt?.length || 0,
+        imagesCount: item.images?.length || 0
+      }))
+    })),
+    lookPrompts
+  });
+  
   try {
-    await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clothing, lookPrompts })
     });
+    const data = await res.json();
+    console.log('[SaveClothing] Response:', data.ok ? 'OK' : 'Error', data);
   } catch (e) {
     console.error('Error saving clothing:', e);
   }
