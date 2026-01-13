@@ -1138,16 +1138,30 @@ async function loadEmotions() {
   try {
     const res = await fetch('/api/emotions/options');
     const data = await res.json();
+    console.log('[LoadEmotions] Response:', data);
+    
     if (data.ok && data.data) {
       state.emotionCategories = data.data.categories || [];
       const grouped = data.data.emotions || {};
       state.emotions = [];
+      
+      // New format: categories are objects { id, label, description }
+      // grouped is { categoryId: { label, description, emotions: [...] } }
       for (const category of state.emotionCategories) {
-        const categoryEmotions = grouped[category] || [];
+        const categoryId = typeof category === 'string' ? category : category.id;
+        const categoryData = grouped[categoryId];
+        
+        // Handle both old format (array) and new format ({ emotions: [...] })
+        const categoryEmotions = Array.isArray(categoryData) 
+          ? categoryData 
+          : (categoryData?.emotions || []);
+        
         categoryEmotions.forEach(e => {
-          state.emotions.push({ ...e, category });
+          state.emotions.push({ ...e, category: categoryId });
         });
       }
+      
+      console.log('[LoadEmotions] Loaded', state.emotions.length, 'emotions');
     }
   } catch (e) {
     console.error('Error loading emotions:', e);
