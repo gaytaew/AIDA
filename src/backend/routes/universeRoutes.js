@@ -17,6 +17,7 @@ import { createEmptyLocation, generateLocationId } from '../schema/location.js';
 import { analyzeReferencesAndGenerateUniverse, validateImageData } from '../services/universeAnalyzer.js';
 import { UNIVERSE_PARAMS, getAllParamsFlat, getBlocksStructure } from '../schema/universeParams.js';
 import { buildUniverseNarrative, buildUniverseText, buildUniverseForPrompt, getDefaultParams } from '../schema/universeNarrativeBuilder.js';
+import { checkUniverseConflicts, getConflicts, getWarnings, getHints, formatIssuesForUI, hasConflicts } from '../schema/universeConflicts.js';
 
 const router = express.Router();
 
@@ -111,6 +112,60 @@ router.post('/params/build', (req, res) => {
     });
   } catch (err) {
     console.error('[Universe] Params build error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CONFLICTS & HINTS API
+// ═══════════════════════════════════════════════════════════════
+
+// POST /api/universes/params/check — Check parameters for conflicts
+router.post('/params/check', (req, res) => {
+  try {
+    const params = req.body.params || {};
+    
+    const allIssues = checkUniverseConflicts(params);
+    const conflicts = getConflicts(params);
+    const warnings = getWarnings(params);
+    const hints = getHints(params);
+    
+    res.json({
+      ok: true,
+      data: {
+        hasConflicts: conflicts.length > 0,
+        hasWarnings: warnings.length > 0,
+        hasHints: hints.length > 0,
+        total: allIssues.length,
+        conflicts: formatIssuesForUI(conflicts),
+        warnings: formatIssuesForUI(warnings),
+        hints: formatIssuesForUI(hints),
+        all: formatIssuesForUI(allIssues)
+      }
+    });
+  } catch (err) {
+    console.error('[Universe] Conflict check error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/universes/params/rules — Get all conflict rules (for documentation)
+router.get('/params/rules', (req, res) => {
+  try {
+    const { CONFLICT_RULES } = require('../schema/universeConflicts.js');
+    
+    res.json({
+      ok: true,
+      data: CONFLICT_RULES.map(rule => ({
+        id: rule.id,
+        type: rule.type,
+        title: rule.title,
+        message: rule.message,
+        suggestion: rule.suggestion
+      }))
+    });
+  } catch (err) {
+    console.error('[Universe] Rules error:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

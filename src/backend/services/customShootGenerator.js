@@ -61,6 +61,12 @@ import {
   buildUniverseNarrativeByMode 
 } from '../schema/universeNarrativeBuilder.js';
 
+import { 
+  checkUniverseConflicts,
+  getConflicts,
+  generateConflictNote 
+} from '../schema/universeConflicts.js';
+
 // ═══════════════════════════════════════════════════════════════
 // RE-EXPORTS for backward compatibility
 // ═══════════════════════════════════════════════════════════════
@@ -291,6 +297,16 @@ UNIVERSE / VISUAL DNA (LOCKED — applies to ALL frames)
 ═══════════════════════════════════════════════════════════════
 
 ${universeNarrative}`);
+    }
+    
+    // Проверяем конфликты и добавляем предупреждения
+    const conflicts = getConflicts(universeParams);
+    if (conflicts.length > 0) {
+      const conflictNote = generateConflictNote(universeParams);
+      if (conflictNote) {
+        sections.push(conflictNote);
+      }
+      console.log('[CustomShootGenerator] ⚠️ Parameter conflicts detected:', conflicts.map(c => c.id));
     }
   }
   
