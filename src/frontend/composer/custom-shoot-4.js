@@ -767,18 +767,27 @@ function renderClothingSections() {
   });
   
   // Event: Save prompt button (explicit save with confirmation)
-  elements.clothingSections.querySelectorAll('.btn-save-item-prompt').forEach(btn => {
+  const saveButtons = elements.clothingSections.querySelectorAll('.btn-save-item-prompt');
+  console.log('[RenderClothing] Found save buttons:', saveButtons.length);
+  
+  saveButtons.forEach(btn => {
     btn.addEventListener('click', async () => {
       const modelIdx = parseInt(btn.dataset.model);
       const itemIdx = parseInt(btn.dataset.item);
       
+      console.log('[SavePrompt] Button clicked:', { modelIdx, itemIdx });
+      
       // Get the textarea value
       const textarea = document.querySelector(`.item-prompt-input[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
+      console.log('[SavePrompt] Textarea found:', !!textarea, 'value:', textarea?.value?.slice(0, 50));
+      
       if (textarea && state.clothingByModel[modelIdx]?.[itemIdx]) {
         state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
+        console.log('[SavePrompt] Updated state.clothingByModel[', modelIdx, '][', itemIdx, '].prompt =', textarea.value.slice(0, 50));
       }
       
       // Save to backend
+      console.log('[SavePrompt] Calling saveShootClothing...');
       await saveShootClothing();
       
       // Show confirmation
