@@ -457,6 +457,97 @@ const TECHNICAL_VALUES = {
     warm_cream: 'warm cream (#FFF5E6)',
     cool_blue: 'cool blue (#E6F0FF)',
     vintage_yellow: 'vintage yellow (#FFF8DC)'
+  },
+  
+  // Shutter / Motion
+  shutterIntent: {
+    freeze_all: '1/1000+ — freeze all motion, everything sharp',
+    subject_sharp_bg_motion: 'Panning — subject sharp, background motion blur',
+    micro_motion: 'Allow slight motion blur on hair/hands/fabric, product stays sharp',
+    motion_blur_artistic: 'Long exposure as artistic choice — motion conveys energy',
+    mixed: 'Mixed: flash freezes subject, ambient creates motion trails'
+  },
+  
+  // Processing style
+  processingStyle: {
+    punchy_contrasty: 'Punchy, high micro-contrast, vibrant colors',
+    matte_editorial: 'Matte editorial — lifted shadows, soft contrast, magazine look',
+    film_scan_vibe: 'Film scan aesthetic — 35mm grain, dust/scratches, organic',
+    clean_digital: 'Clean digital — minimal stylization, technically perfect',
+    cross_process: 'Cross-process — shifted colors, unexpected hues',
+    vintage_fade: 'Vintage fade — muted colors, low contrast, nostalgic',
+    hdr_aggressive: 'HDR aggressive — details everywhere, unnatural flatness'
+  },
+  
+  // Focal length
+  focalRange: {
+    ultra_wide: '14-20mm ultra-wide — extreme distortion, dramatic perspective',
+    wide: '24-35mm wide — environmental, some barrel distortion',
+    standard: '40-60mm standard — natural perspective, neutral',
+    short_tele: '85-105mm portrait — flattering compression, shallow DOF possible',
+    telephoto: '135-200mm telephoto — strong compression, voyeuristic distance',
+    super_tele: '300mm+ — extreme compression, surveillance/sports look'
+  },
+  
+  // Camera proximity
+  cameraProximity: {
+    intimate: 'Intimate — within arm reach, personal space invaded',
+    close: 'Close — conversational distance, 1-2 meters',
+    medium: 'Medium — full body easily visible, 2-4 meters',
+    distant: 'Distant — environmental context, 5+ meters',
+    voyeur: 'Voyeuristic — far away, telephoto compression, observed from distance'
+  },
+  
+  // Distortion policy
+  distortionPolicy: {
+    embrace: 'Embrace distortion — wide-angle stretching is intentional',
+    control: 'Control distortion — minimize but some is acceptable',
+    correct: 'Correct distortion — no visible barrel/pincushion distortion',
+    neutral: 'Neutral — use lens appropriate for shot, no forced correction'
+  },
+  
+  // Emotional vector
+  emotionalVector: {
+    playful_summer: 'Playful summer energy — light, fun, carefree',
+    moody_introspective: 'Moody introspective — contemplative, quiet intensity',
+    confident_powerful: 'Confident powerful — strong, commanding, bold',
+    vulnerable_intimate: 'Vulnerable intimate — raw, exposed, tender',
+    rebellious_edgy: 'Rebellious edgy — anti-establishment, attitude, tension',
+    serene_calm: 'Serene calm — peaceful, balanced, zen',
+    glamorous_luxe: 'Glamorous luxury — opulent, aspirational, refined',
+    raw_authentic: 'Raw authentic — unpolished, real, documentary feel'
+  },
+  
+  // Primary focus
+  primaryFocus: {
+    product: 'Product is hero — MUST be sharp, well-lit, readable',
+    model: 'Model is hero — product is context/accessory',
+    balanced: 'Balanced — model and product share equal importance',
+    environment: 'Environment is hero — location/atmosphere dominant',
+    emotion: 'Emotion is hero — feeling over technical perfection'
+  },
+  
+  // Cultural context
+  culturalContext: {
+    ad_campaign: 'High-end advertising campaign — polished, aspirational',
+    editorial_magazine: 'Editorial magazine — artistic, storytelling, conceptual',
+    social_media: 'Social media native — authentic, relatable, scroll-stopping',
+    lookbook: 'Lookbook/catalog — clean, product-focused, informative',
+    street_documentary: 'Street documentary — raw, candid, journalistic',
+    fine_art: 'Fine art photography — conceptual, gallery-worthy, deliberate'
+  },
+  
+  // Decade/era
+  decade: {
+    contemporary: 'Contemporary 2020s — current visual language',
+    early_2020s: 'Early 2020s — Instagram aesthetic, clean digital',
+    late_2010s: 'Late 2010s — matte tones, muted palette',
+    early_2010s: 'Early 2010s — high contrast, saturated',
+    y2k_2000s: 'Y2K 2000s — flash photography, digital artifacts',
+    film_90s: 'Film 90s — grainy, authentic, analog',
+    retro_80s: 'Retro 80s — bold colors, geometric, synthetic',
+    vintage_70s: 'Vintage 70s — warm, faded, organic',
+    classic_60s: 'Classic 60s — mod, graphic, high contrast B&W option'
   }
 };
 
@@ -508,6 +599,22 @@ function buildStrictUniverseNarrative(params) {
   const skinRender = skinMap[params.retouchLevel] || skinMap.minimal;
   constraints.push(`Skin rendering: ${skinRender}`);
   
+  // Focal length
+  const focalRange = TECHNICAL_VALUES.focalRange[params.focalRange] || '50mm standard';
+  constraints.push(`Focal length: ${focalRange}`);
+  
+  // Camera proximity
+  const proximity = TECHNICAL_VALUES.cameraProximity[params.cameraProximity] || 'medium distance';
+  constraints.push(`Camera distance: ${proximity}`);
+  
+  // Shutter / Motion
+  const shutter = TECHNICAL_VALUES.shutterIntent[params.shutterIntent] || 'freeze all motion';
+  constraints.push(`Motion handling: ${shutter}`);
+  
+  // Distortion
+  const distortion = TECHNICAL_VALUES.distortionPolicy[params.distortionPolicy] || 'control distortion';
+  constraints.push(`Distortion: ${distortion}`);
+  
   sections.push(`ABSOLUTE CONSTRAINTS (DO NOT DEVIATE):
 ${constraints.map(c => `• ${c}`).join('\n')}`);
   
@@ -537,6 +644,18 @@ ${constraints.map(c => `• ${c}`).join('\n')}`);
   };
   const camera = cameraRender[params.cameraClass] || cameraRender.high_dr_professional;
   anchors.push(`Camera rendering: ${camera}`);
+  
+  // Processing style
+  const processing = TECHNICAL_VALUES.processingStyle[params.processingStyle] || 'clean digital';
+  anchors.push(`Processing style: ${processing}`);
+  
+  // Era / Decade
+  const era = TECHNICAL_VALUES.decade[params.decade] || 'contemporary';
+  anchors.push(`Era/aesthetic: ${era}`);
+  
+  // Cultural context
+  const context = TECHNICAL_VALUES.culturalContext[params.culturalContext] || 'editorial magazine';
+  anchors.push(`Context: ${context}`);
   
   sections.push(`VISUAL ANCHORS (apply to every frame):
 ${anchors.map(a => `• ${a}`).join('\n')}`);
@@ -618,6 +737,14 @@ ${forbidden.map(f => `✗ ${f}`).join('\n')}`);
   };
   const product = productMap[params.productDiscipline] || '';
   if (product) approachParts.push(product);
+  
+  // Emotional vector
+  const emotionVec = TECHNICAL_VALUES.emotionalVector[params.emotionalVector] || '';
+  if (emotionVec) approachParts.push(`Emotional tone: ${emotionVec}`);
+  
+  // Primary focus
+  const primaryFocus = TECHNICAL_VALUES.primaryFocus[params.primaryFocus] || '';
+  if (primaryFocus) approachParts.push(primaryFocus);
   
   sections.push(`APPROACH & ENERGY:
 ${approachParts.join('. ')}.`);
