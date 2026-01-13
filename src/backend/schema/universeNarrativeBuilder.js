@@ -278,6 +278,10 @@ function buildLightingNarrative(params) {
   const weather = getNarrative('lighting', 'weatherLighting', params.weatherLighting);
   if (weather) parts.push('. ' + weather);
   
+  // Season
+  const season = getNarrative('lighting', 'season', params.season);
+  if (season) parts.push('. ' + season);
+  
   let result = parts.join('');
   result = result.replace(/\.\s*\./g, '.').replace(/\s+/g, ' ').trim();
   
@@ -647,7 +651,21 @@ const TECHNICAL_VALUES = {
     overcast: 'Overcast — clouds as giant softbox, even diffused',
     foggy: 'Fog/haze — atmospheric, reduced contrast, lost depth',
     rainy: 'Rain — wet reflective surfaces, muted colors',
+    snowy: 'Snowy — falling snow, white surfaces, cold diffused light',
+    stormy: 'Stormy — dramatic dark sky, high contrast',
+    windy: 'Windy — hair and fabric movement, dynamic',
+    hazy: 'Hazy/smog — reduced visibility, soft light',
     indoor: 'Indoor — weather independent, controlled'
+  },
+  
+  season: {
+    spring: 'Spring — fresh green foliage, blossoms, clean light',
+    summer: 'Summer — bright high sun, saturated colors, lush greens',
+    autumn: 'Autumn — golden/red foliage, low warm sun, melancholic',
+    winter: 'Winter — cold blue light, minimalist landscape, snow or bare trees',
+    late_autumn: 'Late autumn — bare trees, grey sky, fallen leaves',
+    early_spring: 'Early spring — melting snow, first buds, transitional light',
+    any: 'Any season'
   }
 };
 
@@ -1199,7 +1217,21 @@ const DESCRIPTIVE_EFFECTS = {
     overcast: 'Пасмурно — облака работают как гигантский софтбокс, ровный рассеянный свет',
     foggy: 'Туман/дымка — атмосферно, сниженный контраст, потерянная глубина',
     rainy: 'Дождь — мокрые отражающие поверхности, приглушённые цвета',
+    snowy: 'Снег — падающие снежинки, белые заснеженные поверхности, холодный рассеянный свет',
+    stormy: 'Гроза/шторм — драматичное тёмное небо, резкие контрасты',
+    windy: 'Ветрено — движение волос и тканей, динамика',
+    hazy: 'Дымка/смог — приглушённая видимость, мягкий свет',
     indoor: 'В помещении — независимо от погоды, контролируемый свет'
+  },
+  
+  season: {
+    spring: 'Весенняя атмосфера — свежая молодая зелень, цветение, мягкий чистый свет, пастельные природные тона',
+    summer: 'Летняя атмосфера — яркое высокое солнце, насыщенные цвета, густая зелень, жаркая атмосфера',
+    autumn: 'Осенняя атмосфера — золотая и красная листва, низкое тёплое солнце, меланхоличные тона',
+    winter: 'Зимняя атмосфера — холодный голубоватый свет, минималистичный пейзаж, снег или голые деревья',
+    late_autumn: 'Поздняя осень — голые деревья, серое небо, опавшая листва, холодная сырость',
+    early_spring: 'Ранняя весна — тающий снег, первые ростки, переходный холодно-тёплый свет',
+    any: ''
   }
 };
 
@@ -1392,6 +1424,9 @@ function buildDescriptiveUniverseNarrative(params) {
   const weather = DESCRIPTIVE_EFFECTS.weatherLighting[params.weatherLighting];
   if (weather) lightParts.push('. Условия: ' + weather.toLowerCase());
   
+  const season = DESCRIPTIVE_EFFECTS.season?.[params.season];
+  if (season && params.season !== 'any') lightParts.push('. ' + season);
+  
   if (lightParts.length > 0) {
     let lightText = lightParts.join('');
     lightText = lightText.replace(/\.\s*\./g, '.').replace(/\s+/g, ' ').trim();
@@ -1503,6 +1538,7 @@ function getDefaultParams() {
     lightQuality: 'medium',
     timeOfDay: 'golden_hour',
     weatherLighting: 'clear',
+    season: 'summer',
     
     // Anti-AI
     antiAiLevel: 'medium',

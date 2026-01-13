@@ -374,6 +374,75 @@ const CONFLICT_RULES = [
     title: 'Тёплая температура + пасмурный день',
     message: 'Пасмурное небо = 6500-7500K (холодный). Тёплый WB может выглядеть неестественно.',
     suggestion: 'Для overcast обычно используют cool_daylight или neutral_daylight.'
+  },
+  
+  // ───────────────────────────────────────────────────────────────
+  // СЕЗОН + ПОГОДА (физические ограничения)
+  // ───────────────────────────────────────────────────────────────
+  {
+    id: 'snow_summer',
+    check: (p) => p.weatherLighting === 'snowy' && p.season === 'summer',
+    type: 'conflict',
+    title: 'Снег + лето',
+    message: 'Снег летом невозможен (кроме высокогорья).',
+    suggestion: 'Для снега выберите зиму или позднюю осень. Для лета — clear, partly_cloudy или rainy.'
+  },
+  {
+    id: 'snow_spring_late',
+    check: (p) => p.weatherLighting === 'snowy' && p.season === 'spring',
+    type: 'warning',
+    title: 'Снег + весна',
+    message: 'Снег весной возможен только ранней весной. Обычно весна — это таяние.',
+    suggestion: 'Рассмотрите early_spring для сезона или измените погоду.'
+  },
+  {
+    id: 'snow_golden_hour',
+    check: (p) => p.weatherLighting === 'snowy' && p.lightSource === 'golden_hour',
+    type: 'warning',
+    title: 'Снег + Golden Hour',
+    message: 'При снегопаде небо обычно затянуто. Golden hour возможен только при лёгком снеге и ясном небе.',
+    suggestion: 'Для снегопада используйте overcast или diffused источник.'
+  },
+  {
+    id: 'snow_direct_sun',
+    check: (p) => p.weatherLighting === 'snowy' && p.lightSource === 'direct_sun',
+    type: 'warning',
+    title: 'Снег + прямое солнце',
+    message: 'При снегопаде прямое солнце редко. Возможно при лёгком снеге.',
+    suggestion: 'Для активного снегопада используйте overcast источник.'
+  },
+  {
+    id: 'winter_warm_wb',
+    check: (p) => p.season === 'winter' && p.whiteBalance === 'warm_tungsten',
+    type: 'hint',
+    title: 'Зима + очень тёплый WB',
+    message: 'Зимний свет обычно холодный (5500-7000K). Тёплый WB (3200K) может выглядеть искусственно.',
+    suggestion: 'Для зимы обычно используют cool_daylight или neutral. Тёплый WB — только для интерьеров.'
+  },
+  {
+    id: 'summer_cool_wb',
+    check: (p) => p.season === 'summer' && p.whiteBalance === 'cool_daylight' && p.lightSource === 'golden_hour',
+    type: 'conflict',
+    title: 'Лето + холодный WB + golden hour',
+    message: 'Летний golden hour = тёплый свет. Холодный WB несовместим.',
+    suggestion: 'Для golden hour летом используйте warm_golden температуру.'
+  },
+  {
+    id: 'autumn_no_foliage_hint',
+    check: (p) => (p.season === 'autumn' || p.season === 'late_autumn') && 
+                  p.weatherLighting === 'indoor',
+    type: 'hint',
+    title: 'Осень в помещении',
+    message: 'Осенняя атмосфера лучше видна на улице (листва, свет). В помещении сезон менее заметен.',
+    suggestion: 'Для осенней атмосферы рассмотрите экстерьерную съёмку или добавьте осенние элементы в интерьер.'
+  },
+  {
+    id: 'stormy_golden_hour',
+    check: (p) => p.weatherLighting === 'stormy' && p.lightSource === 'golden_hour',
+    type: 'conflict',
+    title: 'Гроза + Golden Hour',
+    message: 'Во время грозы небо тёмное, солнце закрыто тучами.',
+    suggestion: 'Для грозы используйте overcast или mixed (молнии) источник.'
   }
 ];
 
