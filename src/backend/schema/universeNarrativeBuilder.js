@@ -8,6 +8,186 @@
 import { UNIVERSE_PARAMS, ANTIAI_FLAGS } from './universeParams.js';
 
 // ═══════════════════════════════════════════════════════════════
+// LIGHTING TECHNICAL ANCHORS
+// Жёсткие технические спецификации для консистентного освещения
+// Не зависят от позы, крупности или эмоции
+// ═══════════════════════════════════════════════════════════════
+
+const LIGHTING_TECHNICAL_ANCHORS = {
+  // Студийный жёсткий свет
+  studio_hard: {
+    setup: `
+PHYSICAL SETUP:
+• Key light: Bare strobe/fresnel, 45° camera-left, 2m from subject
+• Fill: Negative fill (black V-flat) camera-right
+• Background: 1 stop under key light`,
+    
+    metrics: `
+MEASURABLE METRICS (NON-NEGOTIABLE):
+• Contrast ratio: 4:1 (lit side to shadow side on face)
+• Shadow edge: HARD (transition width < 5% of face width)
+• Specular highlights: VISIBLE on skin, cheekbones, nose bridge
+• Shadow color: Neutral gray (#505050), NOT warm, NOT lifted
+• Catchlights: Single, sharp-edged, positioned upper-left of iris`,
+    
+    anchor: `
+VISUAL ANCHOR (same in EVERY frame):
+• Shadow on RIGHT side of face: clearly defined edge, not gradient
+• Approximately 40% of face in shadow
+• Shadow darkness: identical regardless of pose
+• Background shadow: visible, sharp, ~45° angle from subject`
+  },
+  
+  // Студийный мягкий свет
+  studio_soft: {
+    setup: `
+PHYSICAL SETUP:
+• Key light: Large softbox (120cm+) or octabox, 30° camera-left
+• Fill: White V-flat or reflector camera-right
+• Background: Even, no visible shadow`,
+    
+    metrics: `
+MEASURABLE METRICS (NON-NEGOTIABLE):
+• Contrast ratio: 2:1 (subtle shadow transition)
+• Shadow edge: SOFT (gradient transition across 15-20% of face)
+• Specular highlights: Gentle, spread across larger area
+• Shadow color: Lifted gray (#707070), slightly warm OK
+• Catchlights: Large, soft-edged, may be multiple`,
+    
+    anchor: `
+VISUAL ANCHOR (same in EVERY frame):
+• Shadows wrap around face gently
+• No hard shadow edges anywhere
+• Even illumination across outfit
+• Background: clean, shadowless or very soft shadow`
+  },
+  
+  // Оконный свет
+  window: {
+    setup: `
+PHYSICAL SETUP:
+• Key light: Large window, 60-90° from camera axis
+• Fill: Room ambient + optional reflector
+• Falloff: Natural gradient away from window`,
+    
+    metrics: `
+MEASURABLE METRICS (NON-NEGOTIABLE):
+• Contrast ratio: 3:1 (moderate, natural)
+• Shadow edge: MEDIUM (5-15% transition)
+• Direction: Consistent from ONE side
+• Color temperature: Daylight (~5500K) on lit side`,
+    
+    anchor: `
+VISUAL ANCHOR (same in EVERY frame):
+• Light ALWAYS comes from same direction (window side)
+• Gradual falloff toward shadow side
+• Same shadow density regardless of pose`
+  },
+  
+  // Прямое солнце
+  direct_sun: {
+    setup: `
+PHYSICAL SETUP:
+• Key light: Direct sun, specific angle locked
+• Fill: Bounce from environment or reflector
+• Shadows: Long, sharp, consistent direction`,
+    
+    metrics: `
+MEASURABLE METRICS (NON-NEGOTIABLE):
+• Contrast ratio: 5:1+ (very high)
+• Shadow edge: RAZOR SHARP
+• Specular highlights: Bright, potentially clipped on skin
+• Shadow color: Cool/blue from sky fill`,
+    
+    anchor: `
+VISUAL ANCHOR (same in EVERY frame):
+• Sun direction: LOCKED (e.g., 45° camera-right, 30° elevation)
+• Shadow length and angle: IDENTICAL in all frames
+• Same squint/facial response to bright light`
+  },
+  
+  // Golden hour
+  golden_hour: {
+    setup: `
+PHYSICAL SETUP:
+• Key light: Low sun, warm directional
+• Fill: Sky ambient (cooler)
+• Color: Strong warm/cool separation`,
+    
+    metrics: `
+MEASURABLE METRICS (NON-NEGOTIABLE):
+• Contrast ratio: 3:1 (medium)
+• Shadow edge: MEDIUM-SOFT (atmospheric diffusion)
+• Color temperature: 3200K on lit side, 6500K in shadows
+• Rim/backlight: Visible warm glow on hair/shoulders`,
+    
+    anchor: `
+VISUAL ANCHOR (same in EVERY frame):
+• Warm highlights on same side of face
+• Cool shadows on opposite side
+• Same rim light intensity and position`
+  },
+  
+  // Пасмурное небо
+  overcast: {
+    setup: `
+PHYSICAL SETUP:
+• Key light: Entire sky (giant softbox)
+• Fill: Ground bounce
+• Direction: Top-down with slight angle`,
+    
+    metrics: `
+MEASURABLE METRICS (NON-NEGOTIABLE):
+• Contrast ratio: 1.5:1 (very low)
+• Shadow edge: VERY SOFT (almost shadowless)
+• Color: Neutral to slightly cool
+• Even wrap around entire subject`,
+    
+    anchor: `
+VISUAL ANCHOR (same in EVERY frame):
+• No visible directional shadows
+• Even, flat lighting on face
+• Slight shadow under chin/nose only`
+  },
+  
+  // Практические источники (лампы, свечи)
+  practicals: {
+    setup: `
+PHYSICAL SETUP:
+• Key light: Visible practical sources in scene
+• Fill: Ambient room light
+• Color: Warm tungsten (2700-3200K)`,
+    
+    metrics: `
+MEASURABLE METRICS (NON-NEGOTIABLE):
+• Contrast ratio: Variable by source distance
+• Shadow edge: MEDIUM (practical modifiers)
+• Color: Warm dominant, may have mixed temps
+• Falloff: Realistic inverse-square`,
+    
+    anchor: `
+VISUAL ANCHOR (same in EVERY frame):
+• Same practical sources visible or implied
+• Consistent warm color cast
+• Same shadow directions from fixed sources`
+  }
+};
+
+// Блок независимости освещения от позы
+const LIGHTING_INDEPENDENCE_BLOCK = `
+⛔ LIGHTING IS PHYSICALLY FIXED — NOT INFLUENCED BY:
+• Pose (standing, sitting, crouching, lying)
+• Shot size (full body, medium, close-up)
+• Emotion (confident, vulnerable, playful)
+• Camera angle (high, low, dutch)
+• Model position in frame
+
+The lighting rig is LOCKED. The model moves WITHIN the same light.
+If model crouches, shadows stay the same direction/hardness.
+If camera moves to close-up, contrast ratio stays the same.
+`;
+
+// ═══════════════════════════════════════════════════════════════
 // HELPER: Получить narrative для значения параметра
 // ═══════════════════════════════════════════════════════════════
 
@@ -252,6 +432,89 @@ function buildAntiAiNarrative(params) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// БЛОК: LIGHTING TECHNICAL ANCHOR
+// Технический якорь для консистентного освещения между кадрами
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Строит технический блок освещения с числовыми метриками.
+ * Используется для обеспечения консистентности между кадрами.
+ * 
+ * @param {Object} params - Параметры вселенной
+ * @returns {string} - Технический блок освещения
+ */
+function buildLightingTechnicalAnchor(params) {
+  const lightSource = params.lightSource || 'studio_soft';
+  const anchor = LIGHTING_TECHNICAL_ANCHORS[lightSource];
+  
+  if (!anchor) {
+    // Fallback для неизвестных источников
+    return '';
+  }
+  
+  // Собираем технический блок
+  const sections = [];
+  
+  sections.push(`
+=== LIGHTING TECHNICAL SPECIFICATION ===
+(LOCKED — physically fixed, NOT influenced by pose/framing)
+`);
+  
+  // Setup
+  if (anchor.setup) {
+    sections.push(anchor.setup.trim());
+  }
+  
+  // Metrics
+  if (anchor.metrics) {
+    sections.push(anchor.metrics.trim());
+  }
+  
+  // Visual anchor
+  if (anchor.anchor) {
+    sections.push(anchor.anchor.trim());
+  }
+  
+  // Light direction from params
+  const direction = params.lightDirection;
+  if (direction) {
+    const directionLabels = {
+      front: 'FRONT (0° from camera axis)',
+      side_front: 'SIDE-FRONT (45° from camera, classic portrait)',
+      side: 'SIDE (90° from camera, split lighting)',
+      side_back: 'SIDE-BACK (135° from camera, rim emphasis)',
+      back: 'BACK (180° from camera, silhouette/rim only)',
+      top: 'TOP (90° overhead, beauty/editorial)',
+      bottom: 'BOTTOM (under face, dramatic/horror)'
+    };
+    sections.push(`
+LIGHT DIRECTION (LOCKED):
+• Primary key: ${directionLabels[direction] || direction}
+• This direction MUST NOT change between frames`);
+  }
+  
+  // Light quality override
+  const quality = params.lightQuality;
+  if (quality) {
+    const qualityMetrics = {
+      soft: 'Shadow edge: SOFT (gradient >15% of face), Contrast: LOW (2:1)',
+      medium: 'Shadow edge: MEDIUM (gradient 5-15%), Contrast: MEDIUM (3:1)',
+      hard: 'Shadow edge: HARD (gradient <5% of face), Contrast: HIGH (4:1+)'
+    };
+    if (qualityMetrics[quality]) {
+      sections.push(`
+QUALITY OVERRIDE:
+• ${qualityMetrics[quality]}`);
+    }
+  }
+  
+  // Independence block
+  sections.push(LIGHTING_INDEPENDENCE_BLOCK);
+  
+  return sections.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // БЛОК: LIGHTING (Освещение) — НЕ ЗАВИСИТ ОТ ПОЗЫ
 // ═══════════════════════════════════════════════════════════════
 
@@ -323,6 +586,7 @@ function buildUniverseNarrative(params) {
     lens: buildLensNarrative(params),
     mood: buildMoodNarrative(params),
     lighting: buildLightingNarrative(params),
+    lightingTechnical: buildLightingTechnicalAnchor(params), // NEW: Technical anchor
     antiAi: buildAntiAiNarrative(params)
   };
 }
@@ -355,6 +619,15 @@ function buildUniverseText(params) {
   
   if (blocks.mood) {
     sections.push(`**Настроение:** ${blocks.mood}`);
+  }
+  
+  if (blocks.lighting) {
+    sections.push(`**Освещение:** ${blocks.lighting}`);
+  }
+  
+  // NEW: Technical lighting anchor for consistency
+  if (blocks.lightingTechnical) {
+    sections.push(blocks.lightingTechnical);
   }
   
   if (blocks.antiAi) {
@@ -835,6 +1108,15 @@ ${lightingParams.map(l => `• ${l}`).join('\n')}
 
 ⚠️ CRITICAL: Lighting MUST remain consistent across ALL frames.
 The pose/framing may change, but light source, direction, quality, and time of day MUST NOT change.`);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // LIGHTING TECHNICAL ANCHOR (NEW: measurable metrics for consistency)
+  // ═══════════════════════════════════════════════════════════════
+  
+  const lightingTechnical = buildLightingTechnicalAnchor(params);
+  if (lightingTechnical) {
+    sections.push(lightingTechnical);
   }
   
   // ═══════════════════════════════════════════════════════════════
@@ -1504,6 +1786,12 @@ function buildDescriptiveUniverseNarrative(params) {
     if (lightText) {
       lightText = lightText.charAt(0).toUpperCase() + lightText.slice(1);
       sections.push(`**LIGHTING (LOCKED — SAME for ALL frames):**\n${lightText}\n\n⚠️ CRITICAL: Освещение НЕ МЕНЯЕТСЯ между кадрами. Поза может меняться, свет — нет.`);
+    }
+    
+    // NEW: Add technical lighting anchor for consistency
+    const lightingTechnicalDesc = buildLightingTechnicalAnchor(params);
+    if (lightingTechnicalDesc) {
+      sections.push(lightingTechnicalDesc);
     }
   }
   
