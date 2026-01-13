@@ -55,7 +55,11 @@ import {
 } from './virtualStudioGenerator.js';
 
 // Universe params (Custom Shoot 4)
-import { buildUnifiedUniverseNarrative } from '../schema/universeNarrativeBuilder.js';
+import { 
+  buildUnifiedUniverseNarrative,
+  buildStrictUniverseNarrative,
+  buildUniverseNarrativeByMode 
+} from '../schema/universeNarrativeBuilder.js';
 
 // ═══════════════════════════════════════════════════════════════
 // RE-EXPORTS for backward compatibility
@@ -271,15 +275,20 @@ ${reasoningSteps.join('\n')}`);
   // ═══════════════════════════════════════════════════════════════
   // SECTION 4: UNIVERSE / VISUAL DNA (Custom Shoot 4)
   // Один монолитный блок с полным описанием визуальной вселенной
+  // Режим: 'strict' (жёсткие директивы) или 'soft' (нарративный)
   // ═══════════════════════════════════════════════════════════════
   
   if (useUniverse && universeParams) {
-    const universeNarrative = buildUnifiedUniverseNarrative(universeParams);
+    // Определяем режим промпта: strict (новый) или soft (старый)
+    // По умолчанию используем strict для лучшей консистентности
+    const promptStyle = universeParams.promptStyle || 'strict';
+    
+    const universeNarrative = buildUniverseNarrativeByMode(universeParams, promptStyle);
     if (universeNarrative) {
       sections.push(`
-─────────────────────────────────────────────────────────
-UNIVERSE / VISUAL DNA (применяется ко ВСЕМ кадрам)
-─────────────────────────────────────────────────────────
+═══════════════════════════════════════════════════════════════
+UNIVERSE / VISUAL DNA (LOCKED — applies to ALL frames)
+═══════════════════════════════════════════════════════════════
 
 ${universeNarrative}`);
     }

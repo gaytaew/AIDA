@@ -380,6 +380,292 @@ function buildUnifiedUniverseNarrative(params) {
   return paragraphs.join('\n\n');
 }
 
+// ═══════════════════════════════════════════════════════════════
+// STRICT MODE: Директивный промпт с жёсткими constraint'ами
+// Для лучшей консистентности между кадрами
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Маппинг параметров в технические значения
+ */
+const TECHNICAL_VALUES = {
+  // White Balance → Kelvin
+  whiteBalance: {
+    cool_daylight: '6500-7500K',
+    neutral_daylight: '5500-6000K',
+    warm_tungsten: '3200-3500K',
+    warm_golden: '4500-5000K',
+    mixed_sources: 'mixed (varies by source)'
+  },
+  
+  // WB Shift → Color description
+  wbShift: {
+    teal: 'teal bias (-10 magenta axis)',
+    green: 'green bias (-5 magenta axis)',
+    neutral: 'neutral (no shift)',
+    magenta: 'magenta bias (+5 magenta axis)',
+    amber: 'amber/orange bias (+10 yellow axis)'
+  },
+  
+  // Aperture → f-stop range
+  apertureIntent: {
+    wide_open: 'f/1.4-f/2.0 (extreme shallow DOF)',
+    shallow: 'f/2.8-f/4 (moderate shallow DOF)',
+    balanced: 'f/5.6-f/8 (balanced DOF)',
+    closed: 'f/8-f/16 (deep DOF, everything sharp)',
+    hyperfocal: 'f/11-f/16 (maximum sharpness)'
+  },
+  
+  // Exposure → EV
+  exposureIntent: {
+    overexposed_dreamy: '+1 to +2 EV (airy, dreamy)',
+    overexposed_slight: '+0.3 to +0.7 EV (bright, open)',
+    neutral: '0 EV (balanced)',
+    underexposed_slight: '-0.3 to -0.7 EV (preserve highlights)',
+    underexposed_moody: '-1 to -2 EV (dark, moody)'
+  },
+  
+  // Saturation → %
+  saturation: {
+    desaturated: '-30% saturation (muted)',
+    reduced: '-15% saturation (subtle)',
+    neutral: '0% (as-shot)',
+    punchy_high: '+15-20% saturation (vibrant)',
+    hyper_saturated: '+30% saturation (bold)'
+  },
+  
+  // Contrast → description
+  contrastCurve: {
+    flat_log: 'Flat/Log curve (minimal contrast)',
+    s_curve_light: 'Light S-curve (+10% contrast)',
+    s_curve_moderate: 'Moderate S-curve (+20% contrast)',
+    s_curve_heavy: 'Heavy S-curve (+35% contrast)',
+    crushed_blacks: 'Crushed blacks (blocked shadows)'
+  },
+  
+  // Shadow/Highlight tones → hex approximations
+  shadowTone: {
+    neutral: 'neutral gray (#404040)',
+    cool_teal: 'cool blue-teal (#3A5F6F)',
+    cool_blue: 'cool blue (#3A4F6F)',
+    warm_brown: 'warm brown (#5F4A3A)',
+    warm_orange: 'warm orange (#6F5A3A)'
+  },
+  
+  highlightTone: {
+    clean: 'clean neutral (#FAFAFA)',
+    warm_cream: 'warm cream (#FFF5E6)',
+    cool_blue: 'cool blue (#E6F0FF)',
+    vintage_yellow: 'vintage yellow (#FFF8DC)'
+  }
+};
+
+/**
+ * Собрать STRICT промпт с жёсткими constraint'ами
+ * Для максимальной консистентности между кадрами
+ * 
+ * @param {Object} params - Объект с параметрами вселенной
+ * @returns {string} - Директивный промпт с техническими значениями
+ */
+function buildStrictUniverseNarrative(params) {
+  const sections = [];
+  
+  // ═══════════════════════════════════════════════════════════════
+  // ABSOLUTE CONSTRAINTS (не менять между кадрами)
+  // ═══════════════════════════════════════════════════════════════
+  
+  const constraints = [];
+  
+  // Color temperature
+  const wb = TECHNICAL_VALUES.whiteBalance[params.whiteBalance] || '5500K';
+  const wbShift = TECHNICAL_VALUES.wbShift[params.wbShift] || 'neutral';
+  constraints.push(`Color temperature: ${wb}, ${wbShift}`);
+  
+  // Exposure
+  const exposure = TECHNICAL_VALUES.exposureIntent[params.exposureIntent] || '0 EV';
+  constraints.push(`Exposure: ${exposure}`);
+  
+  // Contrast
+  const contrast = TECHNICAL_VALUES.contrastCurve[params.contrastCurve] || 'moderate S-curve';
+  constraints.push(`Contrast: ${contrast}`);
+  
+  // Aperture / DOF
+  const aperture = TECHNICAL_VALUES.apertureIntent[params.apertureIntent] || 'f/5.6-f/8';
+  constraints.push(`Depth of field: ${aperture}`);
+  
+  // Saturation
+  const saturation = TECHNICAL_VALUES.saturation[params.saturation] || 'neutral';
+  constraints.push(`Saturation: ${saturation}`);
+  
+  // Skin rendering based on retouchLevel
+  const skinMap = {
+    none: 'RAW skin — all texture, pores, blemishes visible',
+    minimal: 'Natural skin — visible pores, subtle texture, NO airbrushing',
+    moderate: 'Light retouch — smooth but textured, pores visible on closeup',
+    heavy: 'Heavy retouch — smooth skin, minimal texture',
+    beauty: 'Beauty retouch — porcelain skin, maximum smoothness'
+  };
+  const skinRender = skinMap[params.retouchLevel] || skinMap.minimal;
+  constraints.push(`Skin rendering: ${skinRender}`);
+  
+  sections.push(`ABSOLUTE CONSTRAINTS (DO NOT DEVIATE):
+${constraints.map(c => `• ${c}`).join('\n')}`);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // VISUAL ANCHORS (конкретные цвета)
+  // ═══════════════════════════════════════════════════════════════
+  
+  const anchors = [];
+  
+  // Shadow tone
+  const shadowTone = TECHNICAL_VALUES.shadowTone[params.shadowTone] || 'neutral gray';
+  anchors.push(`Shadow tone: ${shadowTone}`);
+  
+  // Highlight tone
+  const highlightTone = TECHNICAL_VALUES.highlightTone[params.highlightTone] || 'clean neutral';
+  anchors.push(`Highlight tone: ${highlightTone}`);
+  
+  // Camera class → rendering style
+  const cameraRender = {
+    high_dr_professional: 'Clean digital rendering, wide dynamic range, no clipping',
+    prosumer_balanced: 'Balanced digital rendering',
+    consumer_limited: 'Limited DR — expect blown highlights or blocked shadows',
+    film_professional: 'Film grain (fine), organic color rolloff, halation in highlights',
+    film_consumer: 'Soft film grain, warm cast, slight vignetting',
+    phone_computational: 'Computational HDR, oversharpened edges, small sensor look',
+    toy_lofi: 'Heavy vignette, soft focus, light leaks allowed'
+  };
+  const camera = cameraRender[params.cameraClass] || cameraRender.high_dr_professional;
+  anchors.push(`Camera rendering: ${camera}`);
+  
+  sections.push(`VISUAL ANCHORS (apply to every frame):
+${anchors.map(a => `• ${a}`).join('\n')}`);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // FORBIDDEN (что запрещено)
+  // ═══════════════════════════════════════════════════════════════
+  
+  const forbidden = [
+    'HDR look or tone mapping artifacts',
+    'Perfectly centered subject (use asymmetric composition)',
+    'Pure white (#FFFFFF) or pure black (#000000)',
+    'Plastic, airbrushed, "beauty filter" skin',
+    'Empty, lifeless, soulless eyes',
+    'Perfect bilateral face symmetry'
+  ];
+  
+  // Add context-specific forbidden based on antiAiLevel
+  if (params.antiAiLevel === 'high' || params.antiAiLevel === 'medium') {
+    forbidden.push('Perfect focus across entire frame');
+    forbidden.push('Clinically clean, dust-free surfaces');
+    forbidden.push('Mathematically perfect compositions');
+  }
+  
+  // Add forbidden based on era
+  if (params.decade === 'contemporary' || params.decade === 'early_2020s') {
+    forbidden.push('Heavy film grain (this is digital era)');
+    forbidden.push('Faded, washed-out colors (unless specified)');
+  }
+  
+  sections.push(`FORBIDDEN (NEVER include):
+${forbidden.map(f => `✗ ${f}`).join('\n')}`);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // APPROACH & ENERGY (короткое директивное описание)
+  // ═══════════════════════════════════════════════════════════════
+  
+  const approachParts = [];
+  
+  // Shooting approach
+  const approachMap = {
+    friend_casual: 'Casual, intimate — like a friend with a camera at a party',
+    professional_controlled: 'Professional, controlled — clear artistic direction',
+    paparazzi_voyeur: 'Voyeuristic, stolen moment — telephoto distance',
+    self_portrait: 'Self-portrait/selfie — intimate eye contact with lens',
+    documentary: 'Documentary — observe without interfering',
+    art_conceptual: 'Conceptual art — fully staged, artistic intent'
+  };
+  const approach = approachMap[params.shootingApproach] || approachMap.professional_controlled;
+  approachParts.push(approach);
+  
+  // Energy level
+  const energyMap = {
+    low: 'Low energy — calm, still, contemplative',
+    medium: 'Medium energy — relaxed but present',
+    high: 'High energy — dynamic, alive, vibrant',
+    manic: 'Manic energy — explosive, chaotic, intense'
+  };
+  const energy = energyMap[params.energyLevel] || energyMap.medium;
+  approachParts.push(energy);
+  
+  // Spontaneity
+  const spontMap = {
+    fully_posed: 'Fully posed and directed',
+    semi_candid: 'Semi-candid — posed setup with spontaneous moments',
+    candid_aware: 'Candid-aware — subject knows camera but acts natural',
+    candid_unaware: 'Candid-unaware — caught in the moment'
+  };
+  const spont = spontMap[params.spontaneity] || spontMap.semi_candid;
+  approachParts.push(spont);
+  
+  // Product discipline
+  const productMap = {
+    product_absolute: 'Product MUST be sharp, readable, properly lit in EVERY frame',
+    product_primary: 'Product should be visible and recognizable',
+    balanced: 'Balance between model and product',
+    atmosphere_first: 'Atmosphere over product clarity',
+    model_first: 'Model is focus, product is context'
+  };
+  const product = productMap[params.productDiscipline] || '';
+  if (product) approachParts.push(product);
+  
+  sections.push(`APPROACH & ENERGY:
+${approachParts.join('. ')}.`);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // REALISM / ANTI-AI (если включено)
+  // ═══════════════════════════════════════════════════════════════
+  
+  if (params.antiAiLevel && params.antiAiLevel !== 'off') {
+    const realismRules = [];
+    
+    if (params.antiAiLevel === 'high') {
+      realismRules.push('CRITICAL: Image must look captured by camera, NOT generated');
+    }
+    
+    // Check flags
+    const flags = params.antiAiFlags || {};
+    if (flags.allowExposureErrors) realismRules.push('Subtle exposure variations allowed');
+    if (flags.allowMixedWhiteBalance) realismRules.push('Mixed color temperatures from multiple light sources OK');
+    if (flags.requireMicroDefects) realismRules.push('Include micro-defects: dust, fabric lint, subtle skin texture');
+    if (flags.candidComposition) realismRules.push('Slightly imperfect composition (not mathematically centered)');
+    if (flags.allowImperfectFocus) realismRules.push('Focus can be slightly off on non-critical areas');
+    if (flags.allowFlaresReflections) realismRules.push('Lens flares, reflections, and optical artifacts welcome');
+    if (flags.preferMicroMotion) realismRules.push('Subtle motion blur on extremities (fingers, hair) acceptable');
+    if (flags.filmScanTexture) realismRules.push('Fine grain or sensor noise texture');
+    
+    if (realismRules.length > 0) {
+      sections.push(`REALISM (Anti-AI):
+${realismRules.map(r => `• ${r}`).join('\n')}`);
+    }
+  }
+  
+  return sections.join('\n\n');
+}
+
+/**
+ * Универсальная функция — выбирает режим на основе параметра
+ * @param {Object} params - Параметры вселенной
+ * @param {string} mode - 'soft' (старый нарративный) или 'strict' (новый директивный)
+ * @returns {string}
+ */
+function buildUniverseNarrativeByMode(params, mode = 'strict') {
+  if (mode === 'soft') {
+    return buildUnifiedUniverseNarrative(params);
+  }
+  return buildStrictUniverseNarrative(params);
+}
+
 /**
  * Пример: параметры по умолчанию
  */
@@ -449,7 +735,9 @@ export {
   buildUniverseNarrative,
   buildUniverseText,
   buildUniverseForPrompt,
-  buildUnifiedUniverseNarrative,
+  buildUnifiedUniverseNarrative,  // Soft mode (старый нарративный стиль)
+  buildStrictUniverseNarrative,   // Strict mode (новый директивный стиль)
+  buildUniverseNarrativeByMode,   // Универсальная функция с выбором режима
   getDefaultParams
 };
 
