@@ -516,6 +516,26 @@ export async function getCustomShootWithImages(id) {
       shoot.generatedImages = resolvedImages;
     }
     
+    // Resolve clothing images (new format with items)
+    if (shoot.clothing?.length > 0) {
+      for (const clothingEntry of shoot.clothing) {
+        if (clothingEntry.items?.length > 0) {
+          for (const item of clothingEntry.items) {
+            if (item.images?.length > 0) {
+              for (const img of item.images) {
+                if (img.url && isStoredImagePath(img.url)) {
+                  const result = await loadImage(img.url);
+                  if (result.ok) {
+                    img.url = result.dataUrl;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
     // Also resolve style/location lock source images
     if (shoot.locks?.style?.sourceImageUrl && isStoredImagePath(shoot.locks.style.sourceImageUrl)) {
       const result = await loadImage(shoot.locks.style.sourceImageUrl);
