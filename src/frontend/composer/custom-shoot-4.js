@@ -248,9 +248,12 @@ function updateStepStatuses() {
   elements.stepModelsStatus.textContent = `${modelCount} / 3`;
   elements.stepModelsStatus.className = modelCount > 0 ? 'step-status ready' : 'step-status pending';
   
-  // Check if any model has clothing items with at least one image
+  // Check if any model has clothing items (with images OR prompts)
   const hasClothing = state.clothingByModel.some(items => 
-    items.length > 0 && items.some(item => item.images && item.images.length > 0)
+    items.length > 0 && items.some(item => 
+      (item.images && item.images.length > 0) || 
+      (item.prompt && item.prompt.trim())
+    )
   );
   elements.stepClothingStatus.textContent = hasClothing ? 'Загружено' : 'Опционально';
   elements.stepClothingStatus.className = hasClothing ? 'step-status ready' : 'step-status pending';
@@ -1019,9 +1022,14 @@ async function saveShootClothing() {
   if (!state.currentShoot) return;
   
   // Save clothing items (new format with grouped images)
+  // Keep items that have at least images OR a prompt (even without images)
   const clothing = state.clothingByModel.map((items, index) => ({
     forModelIndex: index,
-    items: items // New format: array of ClothingItem
+    items: items.filter(item => 
+      (item.images && item.images.length > 0) || 
+      (item.prompt && item.prompt.trim()) ||
+      (item.name && item.name.trim())
+    )
   })).filter(c => c.items.length > 0);
   
   // Save look prompts
