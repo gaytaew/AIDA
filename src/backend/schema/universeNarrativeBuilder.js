@@ -252,6 +252,45 @@ function buildAntiAiNarrative(params) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// БЛОК: LIGHTING (Освещение) — НЕ ЗАВИСИТ ОТ ПОЗЫ
+// ═══════════════════════════════════════════════════════════════
+
+function buildLightingNarrative(params) {
+  const parts = [];
+  
+  // Light source
+  const source = getNarrative('lighting', 'lightSource', params.lightSource);
+  if (source) parts.push(source);
+  
+  // Light direction
+  const direction = getNarrative('lighting', 'lightDirection', params.lightDirection);
+  if (direction) parts.push('. ' + direction);
+  
+  // Light quality
+  const quality = getNarrative('lighting', 'lightQuality', params.lightQuality);
+  if (quality) parts.push('. ' + quality);
+  
+  // Time of day
+  const time = getNarrative('lighting', 'timeOfDay', params.timeOfDay);
+  if (time) parts.push('. ' + time);
+  
+  // Weather
+  const weather = getNarrative('lighting', 'weatherLighting', params.weatherLighting);
+  if (weather) parts.push('. ' + weather);
+  
+  let result = parts.join('');
+  result = result.replace(/\.\s*\./g, '.').replace(/\s+/g, ' ').trim();
+  
+  if (result.length > 0) {
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+    // Добавить предупреждение о независимости от позы
+    result += ' [LIGHTING НЕ ЗАВИСИТ ОТ ПОЗЫ — одинаково для всех кадров]';
+  }
+  
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ГЛАВНАЯ ФУНКЦИЯ: Собрать всю вселенную
 // ═══════════════════════════════════════════════════════════════
 
@@ -267,6 +306,7 @@ function buildUniverseNarrative(params) {
     color: buildColorNarrative(params),
     lens: buildLensNarrative(params),
     mood: buildMoodNarrative(params),
+    lighting: buildLightingNarrative(params),
     antiAi: buildAntiAiNarrative(params)
   };
 }
@@ -371,7 +411,12 @@ function buildUnifiedUniverseNarrative(params) {
     paragraphs.push(blocks.mood);
   }
   
-  // 6. Anti-AI / Реализм
+  // 6. Освещение (НЕ ЗАВИСИТ ОТ ПОЗЫ)
+  if (blocks.lighting) {
+    paragraphs.push(blocks.lighting);
+  }
+  
+  // 7. Anti-AI / Реализм
   if (blocks.antiAi) {
     paragraphs.push(blocks.antiAi);
   }
@@ -955,6 +1000,7 @@ export {
   buildColorNarrative,
   buildLensNarrative,
   buildMoodNarrative,
+  buildLightingNarrative,         // Освещение (НЕ зависит от позы)
   buildAntiAiNarrative,
   buildUniverseNarrative,
   buildUniverseText,

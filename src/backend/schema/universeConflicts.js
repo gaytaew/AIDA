@@ -212,6 +212,76 @@ const CONFLICT_RULES = [
     title: 'HDR обработка + Anti-AI',
     message: 'Агрессивный HDR запрещён в Anti-AI правилах.',
     suggestion: 'Отключите Anti-AI или выберите другую обработку.'
+  },
+  
+  // ───────────────────────────────────────────────────────────────
+  // LIGHTING конфликты
+  // ───────────────────────────────────────────────────────────────
+  {
+    id: 'golden_hour_overcast',
+    check: (p) => p.lightSource === 'golden_hour' && p.weatherLighting === 'overcast',
+    type: 'conflict',
+    title: 'Golden hour + пасмурно',
+    message: 'Golden hour невозможен при пасмурной погоде — нет прямого солнца.',
+    suggestion: 'Выберите clear или partly_cloudy погоду, или другой источник света.'
+  },
+  {
+    id: 'direct_sun_overcast',
+    check: (p) => p.lightSource === 'direct_sun' && p.weatherLighting === 'overcast',
+    type: 'conflict',
+    title: 'Прямое солнце + пасмурно',
+    message: 'Прямое солнце невозможно при пасмурной погоде.',
+    suggestion: 'Выберите overcast как источник света или clear погоду.'
+  },
+  {
+    id: 'studio_outdoor_weather',
+    check: (p) => (p.lightSource === 'studio_soft' || p.lightSource === 'studio_hard') && 
+                  p.weatherLighting !== 'indoor',
+    type: 'warning',
+    title: 'Студийный свет на улице',
+    message: 'Студийный свет обычно используется в помещении.',
+    suggestion: 'Для улицы выберите natural источники или измените weatherLighting на indoor.'
+  },
+  {
+    id: 'night_direct_sun',
+    check: (p) => p.timeOfDay === 'night' && 
+                  (p.lightSource === 'direct_sun' || p.lightSource === 'golden_hour'),
+    type: 'conflict',
+    title: 'Ночь + солнечный свет',
+    message: 'Ночью нет солнечного света.',
+    suggestion: 'Для ночи используйте practicals, mixed или studio источники.'
+  },
+  {
+    id: 'midday_golden_hour',
+    check: (p) => p.timeOfDay === 'midday' && p.lightSource === 'golden_hour',
+    type: 'conflict',
+    title: 'Полдень + golden hour',
+    message: 'Golden hour — это время за 1-2 часа до заката, не полдень.',
+    suggestion: 'Выберите timeOfDay: golden_hour или измените lightSource.'
+  },
+  {
+    id: 'hard_light_overcast',
+    check: (p) => p.lightQuality === 'hard' && p.weatherLighting === 'overcast',
+    type: 'conflict',
+    title: 'Жёсткий свет + пасмурно',
+    message: 'Пасмурное небо даёт только мягкий рассеянный свет.',
+    suggestion: 'При overcast используйте soft или diffused качество света.'
+  },
+  {
+    id: 'backlight_front_direction',
+    check: (p) => p.lightSource === 'backlight' && p.lightDirection === 'front',
+    type: 'conflict',
+    title: 'Контровой свет + фронтальное направление',
+    message: 'Контровой свет по определению идёт сзади, а не спереди.',
+    suggestion: 'Для backlight используйте направление backlight или back_side.'
+  },
+  {
+    id: 'fog_hard_shadows',
+    check: (p) => p.weatherLighting === 'foggy' && p.lightQuality === 'hard',
+    type: 'conflict',
+    title: 'Туман + жёсткие тени',
+    message: 'В тумане свет рассеивается, жёсткие тени невозможны.',
+    suggestion: 'При тумане используйте soft или diffused качество.'
   }
 ];
 
