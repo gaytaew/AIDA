@@ -88,49 +88,26 @@ function initElements() {
   elements.framesToGenerate = document.getElementById('frames-to-generate');
   elements.stepGenerateStatus = document.getElementById('step-generate-status');
   
-  // Generation controls
+  // Generation controls (per-frame only)
   elements.genLocation = document.getElementById('gen-location');
   elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
-  elements.genCaptureStyle = document.getElementById('gen-capture-style');
-  elements.genColor = document.getElementById('gen-color');
-  elements.genSkinTexture = document.getElementById('gen-skin-texture');
-  elements.genEra = document.getElementById('gen-era');
   elements.genAspectRatio = document.getElementById('gen-aspect-ratio');
   elements.genImageSize = document.getElementById('gen-image-size');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
   
-  // NEW: 6-layer architecture controls
-  elements.genShootType = document.getElementById('gen-shoot-type');
-  elements.genCameraAesthetic = document.getElementById('gen-camera-aesthetic');
-  elements.genLightingSource = document.getElementById('gen-lighting-source');
-  elements.genLightingQuality = document.getElementById('gen-lighting-quality');
-  elements.shootTypeHint = document.getElementById('shoot-type-hint');
-  elements.conflictWarnings = document.getElementById('conflict-warnings');
-  
-  // Legacy hidden fields (for compatibility)
-  elements.genCameraSignature = document.getElementById('gen-camera-signature');
-  elements.genLight = document.getElementById('gen-light');
-  
-  // Composition controls
+  // Composition controls (per-frame: shot size and camera angle)
   elements.genShotSize = document.getElementById('gen-shot-size');
   elements.genCameraAngle = document.getElementById('gen-camera-angle');
-  elements.genFocusMode = document.getElementById('gen-focus-mode');
-  elements.genLensFocal = document.getElementById('gen-lens-focal');
   
-  // Anti-AI
-  elements.genAntiAiLevel = document.getElementById('gen-antiai-level');
-  
-  // Model Behavior (Layer 7)
-  elements.genModelBehavior = document.getElementById('gen-model-behavior');
-  elements.modelBehaviorHint = document.getElementById('model-behavior-hint');
-  
-  // Ambient controls (situational: weather, season, atmosphere)
-  elements.ambientSection = document.getElementById('ambient-section');
-  elements.genWeather = document.getElementById('gen-weather');
-  elements.genTimeOfDay = document.getElementById('gen-time-of-day');
-  elements.genSeason = document.getElementById('gen-season');
-  elements.genAtmosphere = document.getElementById('gen-atmosphere');
+  // NOTE: Legacy controls removed - now controlled via Universe params:
+  // - genCaptureStyle, genColor, genSkinTexture, genEra
+  // - genShootType, genCameraAesthetic, genLightingSource, genLightingQuality
+  // - genCameraSignature, genLight
+  // - genAntiAiLevel
+  // - genFocusMode, genLensFocal
+  // - genModelBehavior
+  // - genWeather, genTimeOfDay, genSeason, genAtmosphere
   
   // Lock controls
   elements.styleLockOff = document.getElementById('style-lock-off');
@@ -965,98 +942,37 @@ function collectUniverseParams() {
 
 /**
  * Collect all current generation settings from UI
+ * NOTE: Most settings now come from Universe params, only per-frame settings here
  */
 function collectGenerationSettings() {
   return {
-    // NEW: 6-layer architecture
-    shootType: elements.genShootType?.value || 'editorial',
-    cameraAesthetic: elements.genCameraAesthetic?.value || 'contax_t2',
-    lightingSource: elements.genLightingSource?.value || 'natural_daylight',
-    lightingQuality: elements.genLightingQuality?.value || 'soft_diffused',
-    
-    // Legacy (still collected for compatibility)
-    cameraSignature: elements.genCameraSignature?.value || 'contax_t2',
-    light: elements.genLight?.value || 'natural_soft',
-    
-    // Visual style
-    captureStyle: elements.genCaptureStyle?.value || 'candid_aware',
-    color: elements.genColor?.value || 'film_warm',
-    skinTexture: elements.genSkinTexture?.value || 'natural_film',
-    era: elements.genEra?.value || 'contemporary',
-    
-    // Frame parameters
+    // Per-frame parameters
     locationId: elements.genLocation?.value || '',
     emotionId: elements.genEmotion?.value || '',
     aspectRatio: elements.genAspectRatio?.value || '3:4',
     imageSize: elements.genImageSize?.value || '2K',
     poseAdherence: elements.genPoseAdherence?.value || '2',
     
-    // Composition
+    // Per-frame composition (shot size and camera angle can vary per frame)
     shotSize: elements.genShotSize?.value || 'default',
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
-    focusMode: elements.genFocusMode?.value || 'shallow',
-    lensFocalLength: elements.genLensFocal?.value || 'auto',
-    
-    // Anti-AI
-    antiAiLevel: elements.genAntiAiLevel?.value || 'medium',
-    
-    // Model Behavior (Layer 7)
-    modelBehavior: elements.genModelBehavior?.value || 'engaged',
-    
-    // Ambient
-    weather: elements.genWeather?.value || 'clear',
-    timeOfDay: elements.genTimeOfDay?.value || 'any',
-    season: elements.genSeason?.value || 'summer',
-    atmosphere: elements.genAtmosphere?.value || 'neutral',
     
     // Extra prompt
     extraPrompt: elements.genExtraPrompt?.value || ''
+    
+    // NOTE: All other settings (camera, lighting, color, anti-ai, mood, etc.)
+    // are now controlled via Universe params and not collected here
   };
 }
 
 /**
  * Apply loaded generation settings to UI
+ * NOTE: Only per-frame settings are applied here
  */
 function applyGenerationSettings(settings) {
   if (!settings) return;
   
-  // NEW: 6-layer architecture settings
-  if (settings.shootType && elements.genShootType) {
-    elements.genShootType.value = settings.shootType;
-  }
-  if (settings.cameraAesthetic && elements.genCameraAesthetic) {
-    elements.genCameraAesthetic.value = settings.cameraAesthetic;
-  }
-  if (settings.lightingSource && elements.genLightingSource) {
-    elements.genLightingSource.value = settings.lightingSource;
-  }
-  if (settings.lightingQuality && elements.genLightingQuality) {
-    elements.genLightingQuality.value = settings.lightingQuality;
-  }
-  
-  // Legacy (hidden fields)
-  if (settings.cameraSignature && elements.genCameraSignature) {
-    elements.genCameraSignature.value = settings.cameraSignature;
-  }
-  if (settings.light && elements.genLight) {
-    elements.genLight.value = settings.light;
-  }
-  
-  // Visual style
-  if (settings.captureStyle && elements.genCaptureStyle) {
-    elements.genCaptureStyle.value = settings.captureStyle;
-  }
-  if (settings.color && elements.genColor) {
-    elements.genColor.value = settings.color;
-  }
-  if (settings.skinTexture && elements.genSkinTexture) {
-    elements.genSkinTexture.value = settings.skinTexture;
-  }
-  if (settings.era && elements.genEra) {
-    elements.genEra.value = settings.era;
-  }
-  
-  // Frame parameters
+  // Per-frame parameters
   if (settings.locationId !== undefined && elements.genLocation) {
     elements.genLocation.value = settings.locationId;
   }
@@ -1073,54 +989,18 @@ function applyGenerationSettings(settings) {
     elements.genPoseAdherence.value = settings.poseAdherence;
   }
   
-  // Composition
+  // Per-frame composition
   if (settings.shotSize && elements.genShotSize) {
     elements.genShotSize.value = settings.shotSize;
   }
   if (settings.cameraAngle && elements.genCameraAngle) {
     elements.genCameraAngle.value = settings.cameraAngle;
   }
-  if (settings.focusMode && elements.genFocusMode) {
-    elements.genFocusMode.value = settings.focusMode;
-  }
-  if (settings.lensFocalLength && elements.genLensFocal) {
-    elements.genLensFocal.value = settings.lensFocalLength;
-  }
-  
-  // Anti-AI
-  if (settings.antiAiLevel && elements.genAntiAiLevel) {
-    elements.genAntiAiLevel.value = settings.antiAiLevel;
-  }
-  
-  // Model Behavior
-  if (settings.modelBehavior && elements.genModelBehavior) {
-    elements.genModelBehavior.value = settings.modelBehavior;
-  }
-  
-  // Ambient
-  if (settings.weather && elements.genWeather) {
-    elements.genWeather.value = settings.weather;
-  }
-  if (settings.timeOfDay && elements.genTimeOfDay) {
-    elements.genTimeOfDay.value = settings.timeOfDay;
-  }
-  if (settings.season && elements.genSeason) {
-    elements.genSeason.value = settings.season;
-  }
-  if (settings.atmosphere && elements.genAtmosphere) {
-    elements.genAtmosphere.value = settings.atmosphere;
-  }
   
   // Extra prompt
   if (settings.extraPrompt !== undefined && elements.genExtraPrompt) {
     elements.genExtraPrompt.value = settings.extraPrompt;
   }
-  
-  // Update ambient section visibility
-  updateAmbientSectionVisibility();
-  
-  // Check and display conflicts
-  checkAndDisplayConflicts();
 }
 
 /**
@@ -1154,48 +1034,25 @@ async function saveGenerationSettings() {
 
 /**
  * Initialize event listeners for auto-saving generation settings
+ * NOTE: Only per-frame settings are tracked here
  */
 function initSettingsAutoSave() {
   const settingsElements = [
-    // NEW: 6-layer architecture
-    elements.genShootType,
-    elements.genCameraAesthetic,
-    elements.genLightingSource,
-    elements.genLightingQuality,
-    // Visual style
-    elements.genCaptureStyle,
-    elements.genColor,
-    elements.genSkinTexture,
-    elements.genEra,
-    // Frame parameters
+    // Per-frame parameters
     elements.genLocation,
     elements.genEmotion,
     elements.genAspectRatio,
     elements.genImageSize,
     elements.genPoseAdherence,
-    // Composition
+    // Per-frame composition
     elements.genShotSize,
-    elements.genCameraAngle,
-    elements.genFocusMode,
-    elements.genLensFocal,
-    // Anti-AI
-    elements.genAntiAiLevel,
-    // Model Behavior
-    elements.genModelBehavior,
-    // Ambient
-    elements.genWeather,
-    elements.genTimeOfDay,
-    elements.genSeason,
-    elements.genAtmosphere
+    elements.genCameraAngle
   ];
   
   // Add change listeners to all select elements
   settingsElements.forEach(el => {
     if (el) {
-      el.addEventListener('change', () => {
-        saveGenerationSettings();
-        checkAndDisplayConflicts();
-      });
+      el.addEventListener('change', saveGenerationSettings);
     }
   });
   
@@ -1203,277 +1060,10 @@ function initSettingsAutoSave() {
   if (elements.genExtraPrompt) {
     elements.genExtraPrompt.addEventListener('input', saveGenerationSettings);
   }
-  
-  // Add special listener for poseAdherence to update composition controls
-  if (elements.genPoseAdherence) {
-    elements.genPoseAdherence.addEventListener('change', updateCompositionControlsState);
-  }
-  
-  // Add special listener for shootType to apply defaults
-  if (elements.genShootType) {
-    elements.genShootType.addEventListener('change', handleShootTypeChange);
-  }
-  
-  // Add special listener for lightingSource to auto-set lightingQuality
-  if (elements.genLightingSource) {
-    elements.genLightingSource.addEventListener('change', handleLightingSourceChange);
-  }
 }
 
-/**
- * Handle Shoot Type change - apply defaults and check conflicts
- */
-async function handleShootTypeChange() {
-  const shootType = elements.genShootType?.value;
-  if (!shootType) return;
-  
-  try {
-    const res = await fetch(`/api/custom-shoots/shoot-type-defaults/${shootType}`);
-    const data = await res.json();
-    
-    if (data.ok && data.defaults) {
-      const defaults = data.defaults;
-      
-      // Apply defaults (but don't override if user already set something different)
-      if (defaults.captureStyle && elements.genCaptureStyle) {
-        elements.genCaptureStyle.value = defaults.captureStyle;
-      }
-      if (defaults.lightingSource && elements.genLightingSource) {
-        elements.genLightingSource.value = defaults.lightingSource;
-      }
-      if (defaults.lightingQuality && elements.genLightingQuality) {
-        elements.genLightingQuality.value = defaults.lightingQuality;
-      }
-      if (defaults.antiAi && elements.genAntiAiLevel) {
-        elements.genAntiAiLevel.value = defaults.antiAi;
-      }
-      
-      // Show hint
-      if (elements.shootTypeHint) {
-        elements.shootTypeHint.innerHTML = `💡 Применены рекомендуемые настройки для типа "${getShootTypeLabel(shootType)}"`;
-        elements.shootTypeHint.style.background = 'rgba(16, 185, 129, 0.1)';
-        elements.shootTypeHint.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-        
-        // Reset after 3 seconds
-        setTimeout(() => {
-          elements.shootTypeHint.innerHTML = '💡 Тип съёмки определяет допустимые комбинации параметров.';
-          elements.shootTypeHint.style.background = '';
-          elements.shootTypeHint.style.borderColor = '';
-        }, 3000);
-      }
-      
-      saveGenerationSettings();
-      checkAndDisplayConflicts();
-    }
-  } catch (e) {
-    console.error('[CustomShoot] Error loading shoot type defaults:', e);
-  }
-}
-
-/**
- * Handle Lighting Source change - auto-set Lighting Quality if implied
- */
-function handleLightingSourceChange() {
-  const source = elements.genLightingSource?.value;
-  
-  // On-camera flash implies harsh direct lighting
-  if (source === 'on_camera_flash' && elements.genLightingQuality) {
-    elements.genLightingQuality.value = 'harsh_direct';
-    elements.genLightingQuality.disabled = true;
-    elements.genLightingQuality.title = 'Заблокировано: накамерная вспышка = жёсткий свет';
-  } else if (elements.genLightingQuality) {
-    elements.genLightingQuality.disabled = false;
-    elements.genLightingQuality.title = '';
-  }
-  
-  checkAndDisplayConflicts();
-}
-
-/**
- * Check for conflicts and display warnings using new 6-layer validation
- */
-async function checkAndDisplayConflicts() {
-  if (!elements.conflictWarnings) return;
-  
-  // Gather all current parameters for validation
-  const params = {
-    shootType: elements.genShootType?.value || 'editorial',
-    cameraAesthetic: elements.genCameraAesthetic?.value || 'none',
-    lightingSource: elements.genLightingSource?.value || 'natural_daylight',
-    lightingQuality: elements.genLightingQuality?.value || 'soft_diffused',
-    focusMode: elements.genFocusMode?.value || 'default',
-    shotSize: elements.genShotSize?.value || 'medium_shot',
-    timeOfDay: elements.genTimeOfDay?.value || 'any',
-    weather: elements.genWeather?.value || 'clear',
-    spaceType: state.currentShoot?.location?.spaceType || 'mixed',
-    captureStyle: elements.genCaptureStyle?.value || 'none'
-  };
-  
-  try {
-    const res = await fetch('/api/custom-shoots/validate-params', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ params })
-    });
-    const data = await res.json();
-    
-    if (data.ok) {
-      const { conflicts, warnings, autoCorrections } = data;
-      
-      // Build display content
-      const sections = [];
-      
-      // Critical conflicts (blocking)
-      if (conflicts && conflicts.length > 0) {
-        sections.push(`
-          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
-            <div style="font-weight: 600; color: #EF4444; margin-bottom: 6px;">🚫 Конфликты параметров:</div>
-            <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--color-text-muted);">
-              ${conflicts.map(c => `<li>${c}</li>`).join('')}
-            </ul>
-          </div>
-        `);
-      }
-      
-      // Auto-corrections (informational)
-      if (autoCorrections && Object.keys(autoCorrections).length > 0) {
-        const paramLabels = {
-          lightingQuality: 'Качество света',
-          focusMode: 'Режим фокуса',
-          lightingSource: 'Источник света',
-          cameraAesthetic: 'Эстетика камеры',
-          shootType: 'Тип съёмки'
-        };
-        const valueLabels = {
-          // Lighting Quality
-          'harsh_direct': 'Жёсткий свет',
-          'soft_diffused': 'Мягкий свет',
-          'contrasty': 'Контрастный',
-          'flat': 'Плоский',
-          'backlit': 'Контровой',
-          'moody_lowkey': 'Атмосферный',
-          // Focus Mode
-          'shallow_dof': 'Размытый фон',
-          'deep_focus': 'Всё в резкости',
-          'moderate_dof': 'Умеренная глубина',
-          // Lighting Source
-          'natural_daylight': 'Дневной свет',
-          'window_light': 'Свет из окна',
-          'studio_strobe': 'Студийный свет'
-        };
-        const correctionsList = Object.entries(autoCorrections).map(([param, value]) => {
-          const paramName = paramLabels[param] || param;
-          const valueName = valueLabels[value] || value;
-          return `<li>${paramName} → <strong>${valueName}</strong></li>`;
-        }).join('');
-        
-        sections.push(`
-          <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
-            <div style="font-weight: 600; color: #3B82F6; margin-bottom: 6px;">🔄 Авто-коррекции (будут применены):</div>
-            <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--color-text-muted);">
-              ${correctionsList}
-            </ul>
-          </div>
-        `);
-      }
-      
-      // Warnings (non-blocking recommendations)
-      if (warnings && warnings.length > 0) {
-        sections.push(`
-          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px;">
-            <div style="font-weight: 600; color: #F59E0B; margin-bottom: 6px;">💡 Рекомендации:</div>
-            <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--color-text-muted);">
-              ${warnings.map(w => `<li>${w}</li>`).join('')}
-            </ul>
-          </div>
-        `);
-      }
-      
-      if (sections.length > 0) {
-        elements.conflictWarnings.style.display = 'block';
-        elements.conflictWarnings.innerHTML = sections.join('');
-      } else {
-        elements.conflictWarnings.style.display = 'none';
-      }
-    }
-  } catch (e) {
-    console.error('[CustomShoot] Error checking conflicts:', e);
-    elements.conflictWarnings.style.display = 'none';
-  }
-}
-
-/**
- * Get human-readable label for shoot type
- */
-function getShootTypeLabel(shootType) {
-  const labels = {
-    catalog: 'Каталог',
-    editorial: 'Editorial',
-    street: 'Street',
-    lookbook: 'Lookbook',
-    campaign: 'Campaign',
-    portrait: 'Портрет',
-    beauty: 'Beauty',
-    sport: 'Спорт'
-  };
-  return labels[shootType] || shootType;
-}
-
-/**
- * Update composition controls state based on poseAdherence level
- * When poseAdherence = 4 (exact), composition is locked by the sketch
- */
-function updateCompositionControlsState() {
-  const adherence = parseInt(elements.genPoseAdherence?.value || '2');
-  const isExact = adherence === 4;
-  
-  // Get composition controls
-  const compositionControls = [
-    elements.genShotSize,
-    elements.genCameraAngle,
-    elements.genFocusMode
-  ];
-  
-  // Find or create the warning message
-  let warningEl = document.getElementById('composition-locked-warning');
-  
-  if (isExact) {
-    // Disable composition controls
-    compositionControls.forEach(el => {
-      if (el) {
-        el.disabled = true;
-        el.style.opacity = '0.5';
-        el.title = 'Заблокировано: точное следование эскизу (4) определяет кадрирование';
-      }
-    });
-    
-    // Show warning
-    if (!warningEl) {
-      const compositionSection = elements.genShotSize?.closest('.form-group')?.parentElement;
-      if (compositionSection) {
-        warningEl = document.createElement('div');
-        warningEl.id = 'composition-locked-warning';
-        warningEl.style.cssText = 'background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #F59E0B; display: flex; align-items: center; gap: 8px;';
-        warningEl.innerHTML = '⚠️ <span>Композиция определяется эскизом (Точное следование = 4)</span>';
-        compositionSection.insertBefore(warningEl, compositionSection.firstChild);
-      }
-    }
-    if (warningEl) warningEl.style.display = 'flex';
-    
-  } else {
-    // Enable composition controls
-    compositionControls.forEach(el => {
-      if (el) {
-        el.disabled = false;
-        el.style.opacity = '1';
-        el.title = '';
-      }
-    });
-    
-    // Hide warning
-    if (warningEl) warningEl.style.display = 'none';
-  }
-}
+// NOTE: Legacy conflict checking and shoot type handling removed
+// All visual settings are now controlled via Universe params
 
 // ═══════════════════════════════════════════════════════════════
 // STEP 4: GENERATE (frames are selected directly here)
@@ -1486,14 +1076,8 @@ function renderGeneratePage() {
   // Populate location dropdown
   elements.genLocation.innerHTML = '<option value="">Без конкретной</option>';
   state.locations.forEach(loc => {
-    // Include spaceType for ambient section visibility
-    const spaceType = loc.spaceType || 'studio';
-    elements.genLocation.innerHTML += `<option value="${loc.id}" data-space-type="${spaceType}">${escapeHtml(loc.label)}</option>`;
+    elements.genLocation.innerHTML += `<option value="${loc.id}">${escapeHtml(loc.label)}</option>`;
   });
-  
-  // Add location change listener for ambient section visibility
-  elements.genLocation.removeEventListener('change', handleLocationChange);
-  elements.genLocation.addEventListener('change', handleLocationChange);
   
   // Populate emotion dropdown
   elements.genEmotion.innerHTML = '<option value="">Нейтральная</option>';
@@ -1503,18 +1087,6 @@ function renderGeneratePage() {
   
   // Apply saved generation settings AFTER populating dropdowns
   applyGenerationSettings(state.generationSettings);
-  
-  // Update ambient section visibility (after settings applied)
-  updateAmbientSectionVisibility();
-  
-  // Update composition controls state based on poseAdherence
-  updateCompositionControlsState();
-  
-  // Check lighting source implications
-  handleLightingSourceChange();
-  
-  // Check and display conflicts
-  checkAndDisplayConflicts();
   
   // Update lock UI
   updateLockUI();
@@ -1526,32 +1098,7 @@ function renderGeneratePage() {
   renderGeneratedHistory();
 }
 
-/**
- * Handle location change to show/hide ambient section
- */
-function handleLocationChange() {
-  updateAmbientSectionVisibility();
-}
-
-/**
- * Show/hide ambient section based on selected location's spaceType
- */
-function updateAmbientSectionVisibility() {
-  if (!elements.ambientSection) return;
-  
-  const selectedOption = elements.genLocation?.selectedOptions[0];
-  const spaceType = selectedOption?.dataset?.spaceType || '';
-  const locationId = elements.genLocation?.value;
-  
-  // Find location in state to check spaceType
-  const location = state.locations.find(l => l.id === locationId);
-  const effectiveSpaceType = location?.spaceType || spaceType || 'studio';
-  
-  // Show ambient section for outdoor locations
-  const isOutdoor = ['exterior_urban', 'exterior_nature', 'rooftop_terrace'].includes(effectiveSpaceType);
-  
-  elements.ambientSection.style.display = isOutdoor ? 'block' : 'none';
-}
+// NOTE: Ambient section removed - weather/time now in Universe params
 
 function updateLockUI() {
   // Style Lock
@@ -1702,34 +1249,15 @@ function applySettingsFromFrame(frame, type) {
   console.log(`[CustomShoot] Applying ${type} settings from frame:`, frame.frameLabel);
   
   if (type === 'style') {
-    // Apply visual style settings (these define the "look")
-    if (frame.captureStyle && elements.genCaptureStyle) {
-      elements.genCaptureStyle.value = frame.captureStyle;
+    // Style lock now uses Universe params which are locked for the whole shoot
+    // The reference frame's universeParams can be used for the next generations
+    if (frame.universeParams) {
+      // Apply universe params to state
+      state.universeValues = { ...frame.universeParams };
+      // Re-render universe params UI to reflect the values
+      renderUniverseParamsUI();
+      console.log('[CustomShoot] Universe params applied from style reference');
     }
-    if (frame.cameraSignature && elements.genCameraSignature) {
-      elements.genCameraSignature.value = frame.cameraSignature;
-    }
-    if (frame.skinTexture && elements.genSkinTexture) {
-      elements.genSkinTexture.value = frame.skinTexture;
-    }
-    
-    // Apply presets (light, color, era)
-    if (frame.presets) {
-      if (frame.presets.light && elements.genLight) {
-        elements.genLight.value = frame.presets.light;
-      }
-      if (frame.presets.color && elements.genColor) {
-        elements.genColor.value = frame.presets.color;
-      }
-      if (frame.presets.era && elements.genEra) {
-        elements.genEra.value = frame.presets.era;
-      }
-    }
-    
-    // Note: aspectRatio, imageSize, emotion, location are NOT copied
-    // They can be different for each frame within the same style
-    
-    console.log('[CustomShoot] Style settings applied from reference');
   }
   
   if (type === 'location') {
@@ -1866,68 +1394,22 @@ async function generateFrame(frameId) {
     emotionId: elements.genEmotion.value || null,
     extraPrompt: elements.genExtraPrompt.value.trim(),
     
-    // NEW: Universe params (Custom Shoot 4)
+    // Universe params (Custom Shoot 4) - all visual settings
     universeParams: universeParams,
     
-    // Legacy presets (for compatibility with existing generation pipeline)
-    presets: {
-      // Map from universeParams to legacy format
-      shootType: universeParams.culturalContext || 'editorial',
-      cameraAesthetic: universeParams.cameraClass || 'contax_t2',
-      lightingSource: 'natural_daylight',
-      lightingQuality: 'soft_diffused',
-      capture: universeParams.spontaneity || 'candid_aware',
-      color: universeParams.saturation || 'film_warm',
-      texture: universeParams.retouchLevel || 'natural_film',
-      era: universeParams.decade || 'contemporary',
-      // Legacy
-      camera: universeParams.cameraClass || 'contax_t2',
-      light: 'natural_soft'
-    },
-    
-    // Image format
+    // Per-frame parameters
     aspectRatio: elements.genAspectRatio?.value || '3:4',
     imageSize: elements.genImageSize?.value || '2K',
-    
-    // Artistic controls
-    captureStyle: elements.genCaptureStyle?.value || 'candid_aware',
-    cameraSignature: elements.genCameraAesthetic?.value || 'contax_t2',
-    skinTexture: elements.genSkinTexture?.value || 'natural_film',
     poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2,
     
-    // Composition
+    // Per-frame composition (can vary per frame)
     composition: {
       shotSize: elements.genShotSize?.value || 'default',
-      cameraAngle: elements.genCameraAngle?.value || 'eye_level',
-      focusMode: elements.genFocusMode?.value || 'shallow'
-    },
-    
-    // Lens Focal Length
-    lensFocalLength: elements.genLensFocal?.value || 'auto',
-    
-    // Anti-AI
-    antiAi: {
-      level: elements.genAntiAiLevel?.value || 'medium'
-    },
-    
-    // Model Behavior (Layer 7) - how model interacts with camera
-    modelBehavior: elements.genModelBehavior?.value || 'engaged',
-    
-    // Ambient (situational conditions: weather, season, atmosphere)
-    ambient: {
-      weather: elements.genWeather?.value || 'clear',
-      timeOfDay: elements.genTimeOfDay?.value || 'any',
-      season: elements.genSeason?.value || 'summer',
-      atmosphere: elements.genAtmosphere?.value || 'neutral'
+      cameraAngle: elements.genCameraAngle?.value || 'eye_level'
     }
   };
   
-  // Update shoot with current presets first
-  await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ presets: params.presets })
-  });
+  // Universe params are sent with each generation request, no need to save presets separately
   
   // Add placeholder
   const placeholderId = `pending_${Date.now()}`;
@@ -1949,23 +1431,13 @@ async function generateFrame(frameId) {
         locationId: params.locationId,
         aspectRatio: params.aspectRatio,
         imageSize: params.imageSize,
+        poseAdherence: params.poseAdherence,
         
-        // NEW: Universe params (Custom Shoot 4 architecture)
+        // Universe params (Custom Shoot 4 architecture) - all visual settings
         universeParams: params.universeParams,
         
-        // Legacy presets (for backward compatibility)
-        presets: params.presets,
-        // Artistic controls (same as shoot-composer)
-        captureStyle: params.captureStyle,
-        cameraSignature: params.cameraSignature,
-        skinTexture: params.skinTexture,
-        poseAdherence: params.poseAdherence,
-        // Composition
-        composition: params.composition,
-        // Anti-AI
-        antiAi: params.antiAi,
-        // Ambient (situational conditions)
-        ambient: params.ambient
+        // Per-frame composition
+        composition: params.composition
       })
     });
     
@@ -1983,24 +1455,20 @@ async function generateFrame(frameId) {
           isLocationReference: false,
           status: 'ready',
           timestamp: new Date().toISOString(),
-          // Full frame data (same as shoot-composer)
+          // Frame data
           frameLabel: data.image.frameLabel || 'По умолчанию',
           locationLabel: data.image.locationLabel || null,
           emotionId: data.image.emotionId || null,
           aspectRatio: data.image.aspectRatio || '3:4',
           imageSize: data.image.imageSize || '2K',
-          // Artistic controls (same as shoot-composer)
-          captureStyle: data.image.captureStyle || 'none',
-          cameraSignature: data.image.cameraSignature || 'none',
-          skinTexture: data.image.skinTexture || 'none',
           poseAdherence: data.image.poseAdherence || 2,
           composition: data.image.composition || null,
-          antiAi: data.image.antiAi || null,
           extraPrompt: data.image.extraPrompt || '',
-          presets: data.image.presets || null,
           prompt: data.prompt || null,
           refs: data.refs || [],
-          generationTime: data.image.generationTime || null
+          generationTime: data.image.generationTime || null,
+          // Universe params snapshot
+          universeParams: data.image.universeParams || null
         };
       }
       
@@ -2279,7 +1747,7 @@ function fileToDataUrl(file) {
   });
 }
 
-// Labels for settings display (same as shoot-composer)
+// Labels for settings display
 const ASPECT_RATIO_LABELS = {
   '3:4': '📱 3:4 (Портрет)',
   '4:3': '🖼️ 4:3 (Пейзаж)',
@@ -2292,51 +1760,6 @@ const IMAGE_SIZE_LABELS = {
   '1K': '1K (быстро)',
   '2K': '2K (стандарт)',
   '4K': '4K (качество)'
-};
-
-const CAPTURE_STYLE_LABELS = {
-  'none': 'Из вселенной',
-  'editorial_posed': 'Editorial постановка',
-  'editorial_relaxed': 'Editorial расслабленный',
-  'candid_aware': 'Естественный, в курсе камеры',
-  'candid_unaware': 'Candid — не видит камеру',
-  'caught_mid_blink': 'На полузакрытых глазах',
-  'paparazzi_telephoto': 'Папарацци / телефото',
-  'harsh_flash_snapshot': 'Жёсткая вспышка',
-  'motion_blur_action': 'Размытие движения',
-  'through_window': 'Через стекло',
-  'mirror_reflection': 'Отражение в зеркале',
-  'dutch_angle_tension': 'Голландский угол',
-  'worms_eye_power': 'Ракурс снизу',
-  'overhead_graphic': 'Вид сверху'
-};
-
-const CAMERA_SIGNATURE_LABELS = {
-  'none': 'Из вселенной',
-  'polaroid_sx70': 'Polaroid SX-70',
-  'contax_t2': 'Contax T2',
-  'hasselblad_500cm': 'Hasselblad 500C/M',
-  'canon_ae1': 'Canon AE-1',
-  'leica_m6': 'Leica M6',
-  'mamiya_rz67': 'Mamiya RZ67',
-  'yashica_t4': 'Yashica T4',
-  'disposable_flash': 'Одноразовая камера',
-  'holga_120': 'Holga 120',
-  'iphone_flash': 'iPhone со вспышкой',
-  'powershot_vlog': 'Canon PowerShot',
-  'ricoh_gr': 'Ricoh GR'
-};
-
-const SKIN_TEXTURE_LABELS = {
-  'none': 'Из вселенной',
-  'hyper_real': 'Гипер-реалистичная',
-  'natural_film': 'Естественная плёночная',
-  'flash_specular': 'Вспышка (блики)',
-  'matte_editorial': 'Матовая editorial',
-  'raw_unretouched': 'Сырая, без ретуши',
-  'sweaty_athletic': 'Спортивная / с испариной',
-  'golden_hour_glow': 'Золотой час',
-  'pale_porcelain': 'Фарфоровая бледность'
 };
 
 const POSE_ADHERENCE_LABELS = {
@@ -2359,22 +1782,7 @@ function buildFrameSettingsHtml(frame) {
     items.push(`<div><strong>⏱️ Время:</strong> ${frame.generationTime}s</div>`);
   }
   
-  // Capture style (same as shoot-composer)
-  if (frame.captureStyle && frame.captureStyle !== 'none') {
-    items.push(`<div><strong>📷 Захват:</strong> ${CAPTURE_STYLE_LABELS[frame.captureStyle] || frame.captureStyle}</div>`);
-  }
-  
-  // Camera signature (same as shoot-composer)
-  if (frame.cameraSignature && frame.cameraSignature !== 'none') {
-    items.push(`<div><strong>📸 Камера:</strong> ${CAMERA_SIGNATURE_LABELS[frame.cameraSignature] || frame.cameraSignature}</div>`);
-  }
-  
-  // Skin texture (same as shoot-composer)
-  if (frame.skinTexture && frame.skinTexture !== 'none') {
-    items.push(`<div><strong>✨ Кожа:</strong> ${SKIN_TEXTURE_LABELS[frame.skinTexture] || frame.skinTexture}</div>`);
-  }
-  
-  // Pose adherence (same as shoot-composer)
+  // Pose adherence
   if (frame.poseAdherence) {
     items.push(`<div><strong>🎯 Поза:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}</div>`);
   }
@@ -2385,27 +1793,9 @@ function buildFrameSettingsHtml(frame) {
     const itemsComp = [];
     if (comp.shotSize && comp.shotSize !== 'default') itemsComp.push(`План: ${comp.shotSize}`);
     if (comp.cameraAngle && comp.cameraAngle !== 'eye_level') itemsComp.push(`Ракурс: ${comp.cameraAngle}`);
-    if (comp.focusMode) itemsComp.push(`Фокус: ${comp.focusMode}`);
     
     if (itemsComp.length > 0) {
       items.push(`<div><strong>🎥 Композиция:</strong> <span style="font-size:10px;">${itemsComp.join(', ')}</span></div>`);
-    }
-  }
-  
-  // Anti-AI
-  if (frame.antiAi?.level && frame.antiAi.level !== 'off') {
-    const labels = { low: 'Низкий', medium: 'Средний', high: 'Высокий' };
-    items.push(`<div><strong>🤖 Anti-AI:</strong> ${labels[frame.antiAi.level] || frame.antiAi.level}</div>`);
-  }
-  
-  // Presets (universe settings - unique to custom shoot)
-  if (frame.presets) {
-    const presetItems = [];
-    if (frame.presets.light) presetItems.push(`Свет: ${frame.presets.light}`);
-    if (frame.presets.color) presetItems.push(`Цвет: ${frame.presets.color}`);
-    if (frame.presets.era) presetItems.push(`Эра: ${frame.presets.era}`);
-    if (presetItems.length > 0) {
-      items.push(`<div><strong>🎨 Стиль:</strong> <span style="font-size:10px;">${presetItems.join(', ')}</span></div>`);
     }
   }
   
@@ -2423,6 +1813,11 @@ function buildFrameSettingsHtml(frame) {
   // Extra prompt
   if (frame.extraPrompt) {
     items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em>${escapeHtml(frame.extraPrompt)}</em></div>`);
+  }
+  
+  // Universe params summary (if available)
+  if (frame.universeParams) {
+    items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>🧬 Universe:</strong> <span style="font-size:10px; color: var(--color-primary);">Параметры сохранены</span></div>`);
   }
   
   return items.join('');

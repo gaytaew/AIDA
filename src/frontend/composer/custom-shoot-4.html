@@ -540,17 +540,7 @@
                 </div>
               </div>
               
-              <!-- Hidden legacy fields for compatibility -->
-              <input type="hidden" id="gen-camera-signature" value="contax_t2">
-              <input type="hidden" id="gen-light" value="natural_soft">
-              <input type="hidden" id="gen-shoot-type" value="editorial">
-              <input type="hidden" id="gen-camera-aesthetic" value="contax_t2">
-              <input type="hidden" id="gen-lighting-source" value="natural_daylight">
-              <input type="hidden" id="gen-lighting-quality" value="soft_diffused">
-              <input type="hidden" id="gen-capture-style" value="candid_aware">
-              <input type="hidden" id="gen-color" value="film_warm">
-              <input type="hidden" id="gen-skin-texture" value="natural_film">
-              <input type="hidden" id="gen-era" value="contemporary">
+              <!-- Legacy fields removed - all settings now in Universe params -->
               
               <!-- Standard generation controls -->
               <div class="generation-controls" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
@@ -606,26 +596,7 @@
                   </div>
                 </div>
                 
-                <!-- Model Behavior Section (CRITICAL for professional posing) -->
-                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
-                  <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🎭 Поведение модели <span style="color: var(--color-primary);">(как модель работает с камерой)</span></h4>
-                  
-                  <div class="form-group" style="margin: 0;">
-                    <select id="gen-model-behavior" style="width: 100%; padding: 10px 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 13px;">
-                      <option value="natural">🙂 Естественное — модель не позирует, candid момент</option>
-                      <option value="aware_relaxed">😊 Расслабленный контакт — знает о камере, но комфортно</option>
-                      <option value="engaged" selected>💫 Взаимодействие — активно работает с камерой</option>
-                      <option value="flirty">😏 Игривый / Заигрывание — флирт с камерой, соблазнительно</option>
-                      <option value="editorial_dramatic">🎭 Editorial драматичный — сильные позы, модель как скульптура</option>
-                      <option value="dynamic">⚡ Динамичный — в движении, action, энергия</option>
-                      <option value="vulnerable">💔 Открытый / Уязвимый — искренность, без защит</option>
-                      <option value="powerful">💪 Мощный / Уверенный — сила, доминирование пространства</option>
-                    </select>
-                  </div>
-                  <div id="model-behavior-hint" style="margin-top: 8px; font-size: 11px; color: var(--color-text-muted); padding: 8px; background: var(--color-bg); border-radius: 6px;">
-                    💡 Этот параметр определяет, как модель взаимодействует с камерой — от "естественного" candid момента до профессионального "заигрывания" с объективом.
-                  </div>
-                </div>
+                <!-- Model behavior now in Universe params (emotionalVector, spontaneity, energyLevel) -->
                 
                 <!-- Camera & Composition Controls -->
                 <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
@@ -661,117 +632,16 @@
                       </select>
                     </div>
 
-                    <!-- Depth of Field (Фокус) -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-focus-mode">🎯 Фокус</label>
-                      <select id="gen-focus-mode" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="shallow" selected>Размытый фон (Боке)</option>
-                        <option value="deep">Всё в резкости (f/8+)</option>
-                        <option value="focus_face">Фокус на лице</option>
-                        <option value="soft_focus">Мягкий фокус (Dreamy)</option>
-                      </select>
-                    </div>
+                    <!-- DOF/focus now in Universe params (apertureIntent) -->
                     
-                    <!-- Lens Focal Length (угол объектива) -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-lens-focal">🔭 Угол объектива</label>
-                      <select id="gen-lens-focal" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="auto" selected>Авто</option>
-                        <option value="fisheye">🐟 Фишай (8-16mm) — экстремальное искажение</option>
-                        <option value="ultra_wide">🌐 Сверхширокий (16-24mm)</option>
-                        <option value="wide">📷 Широкий (24-35mm)</option>
-                        <option value="standard">👁️ Стандартный (35-50mm) — как глаз</option>
-                        <option value="portrait">👤 Портретный (85-105mm) — сжатие</option>
-                        <option value="telephoto">🔭 Телефото (135-200mm)</option>
-                        <option value="super_telephoto">📡 Супер-телефото (300mm+)</option>
-                      </select>
-                    </div>
+                    <!-- Lens focal length now in Universe params (focalRange) -->
 
                   </div>
                 </div>
 
-                <!-- Anti-AI / Realism Controls -->
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border);">
-                  <h4 style="margin-bottom: 8px; font-size: 11px; text-transform: uppercase; color: var(--color-text-muted);">🤖 Реализм (Anti-AI)</h4>
-                  
-                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                    <!-- Anti-AI Level -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-antiai-level">Уровень реализма</label>
-                      <select id="gen-antiai-level" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="off">Выкл (AI стиль)</option>
-                        <option value="low">Низкий (Чисто)</option>
-                        <option value="medium" selected>Средний (Естественно)</option>
-                        <option value="high">Высокий (Сыро/Raw)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                <!-- Anti-AI now controlled via Universe params -->
 
-                <!-- AMBIENT: Situational conditions (weather, season, time) -->
-                <div id="ambient-section" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); display: none;">
-                  <h4 style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">🌤️ Условия съёмки</h4>
-                  <p style="font-size: 11px; color: var(--color-text-muted); margin-bottom: 12px;">Эти параметры применяются для экстерьерных локаций</p>
-                  
-                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                    <!-- Weather -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-weather">☀️ Погода</label>
-                      <select id="gen-weather" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="clear">Ясно</option>
-                        <option value="partly_cloudy">Переменная облачность</option>
-                        <option value="overcast">Пасмурно</option>
-                        <option value="light_rain">Лёгкий дождь</option>
-                        <option value="heavy_rain">Сильный дождь</option>
-                        <option value="fog">Туман</option>
-                        <option value="mist">Дымка</option>
-                        <option value="snow">Снег</option>
-                        <option value="storm">Гроза</option>
-                        <option value="wind">Ветрено</option>
-                      </select>
-                    </div>
-                    
-                    <!-- Time of Day -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-time-of-day">🕒 Время суток</label>
-                      <select id="gen-time-of-day" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="any">Любое</option>
-                        <option value="sunrise">Рассвет</option>
-                        <option value="golden_hour">Золотой час</option>
-                        <option value="midday">Полдень (яркое солнце)</option>
-                        <option value="afternoon">День</option>
-                        <option value="sunset">Закат</option>
-                        <option value="blue_hour">Синий час</option>
-                        <option value="night">Ночь</option>
-                      </select>
-                    </div>
-                    
-                    <!-- Season -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-season">🍂 Сезон</label>
-                      <select id="gen-season" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="spring">Весна</option>
-                        <option value="summer" selected>Лето</option>
-                        <option value="autumn">Осень</option>
-                        <option value="winter">Зима</option>
-                      </select>
-                    </div>
-                    
-                    <!-- Atmosphere -->
-                    <div class="form-group" style="margin: 0;">
-                      <label for="gen-atmosphere">🌫️ Атмосфера</label>
-                      <select id="gen-atmosphere" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                        <option value="neutral" selected>Нейтральная</option>
-                        <option value="dusty">Пыльная</option>
-                        <option value="humid">Влажная</option>
-                        <option value="crisp">Свежая/Морозная</option>
-                        <option value="smoky">Дымная</option>
-                        <option value="hazy">Туманная</option>
-                        <option value="steamy">Парящая</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                <!-- Ambient (weather, time, season) now controlled via Universe params -->
                 
                 <!-- Extra prompt -->
                 <div class="form-group" style="margin-top: 12px;">
