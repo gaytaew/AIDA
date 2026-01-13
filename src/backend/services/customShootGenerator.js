@@ -54,6 +54,9 @@ import {
   validateVirtualStudioConfig
 } from './virtualStudioGenerator.js';
 
+// Universe params (Custom Shoot 4)
+import { buildUnifiedUniverseNarrative } from '../schema/universeNarrativeBuilder.js';
+
 // ═══════════════════════════════════════════════════════════════
 // RE-EXPORTS for backward compatibility
 // ═══════════════════════════════════════════════════════════════
@@ -163,6 +166,9 @@ export function buildCustomShootPrompt({
   virtualCamera = null,
   lighting = null,
   
+  // Universe parameters (Custom Shoot 4)
+  universeParams = null,
+  
   // Legacy parameters (supported for backward compatibility)
   customUniverse = null,
   locks = null,
@@ -186,6 +192,9 @@ export function buildCustomShootPrompt({
   
   // Use Virtual Studio if virtualCamera is provided, otherwise use legacy
   const useVirtualStudio = virtualCamera != null;
+  
+  // Use Universe system (Custom Shoot 4) if universeParams provided
+  const useUniverse = universeParams != null;
   
   const sections = [];
   
@@ -260,20 +269,39 @@ ${reasoningSteps.join('\n')}`);
   }
   
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 4: VIRTUAL CAMERA (if using new system)
+  // SECTION 4: UNIVERSE / VISUAL DNA (Custom Shoot 4)
+  // Один монолитный блок с полным описанием визуальной вселенной
   // ═══════════════════════════════════════════════════════════════
   
-  if (useVirtualStudio && virtualCamera) {
+  if (useUniverse && universeParams) {
+    const universeNarrative = buildUnifiedUniverseNarrative(universeParams);
+    if (universeNarrative) {
+      sections.push(`
+─────────────────────────────────────────────────────────
+UNIVERSE / VISUAL DNA (применяется ко ВСЕМ кадрам)
+─────────────────────────────────────────────────────────
+
+${universeNarrative}`);
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 4B: VIRTUAL CAMERA (legacy Virtual Studio system)
+  // Используется если universeParams НЕ переданы
+  // ═══════════════════════════════════════════════════════════════
+  
+  if (!useUniverse && useVirtualStudio && virtualCamera) {
     const cameraPrompt = buildVirtualCameraPrompt(virtualCamera);
     sections.push(`
 ${cameraPrompt}`);
   }
   
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 5: LIGHTING (if using new system)
+  // SECTION 5: LIGHTING (legacy Virtual Studio system)
+  // Используется если universeParams НЕ переданы
   // ═══════════════════════════════════════════════════════════════
   
-  if (useVirtualStudio && lighting) {
+  if (!useUniverse && useVirtualStudio && lighting) {
     const lightingPrompt = buildLightingPrompt(lighting);
     sections.push(`
 ${lightingPrompt}`);
@@ -404,10 +432,12 @@ ${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}` : ''}`);
   }
   
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 13: ANTI-AI AUTHENTICITY
+  // SECTION 13: ANTI-AI AUTHENTICITY (только для legacy mode)
+  // При использовании universeParams — anti-ai уже включён в нарратив
   // ═══════════════════════════════════════════════════════════════
   
-  sections.push(`
+  if (!useUniverse) {
+    sections.push(`
 === AUTHENTICITY (Anti-AI) ===
 
 The image should feel captured by a skilled photographer, not generated.
@@ -423,6 +453,7 @@ AVOID:
 - Perfect symmetry
 - Empty, lifeless eyes
 - HDR or hyper-processed look`);
+  }
   
   // ═══════════════════════════════════════════════════════════════
   // SECTION 14: EXTRA INSTRUCTIONS
@@ -440,11 +471,13 @@ ${extraPrompt}`);
   
   // Build JSON representation
   const promptJson = {
-    format: 'custom_shoot_virtual_studio_v1',
+    format: useUniverse ? 'custom_shoot_universe_v1' : 'custom_shoot_virtual_studio_v1',
     generatedAt: new Date().toISOString(),
     useVirtualStudio,
-    virtualCamera: useVirtualStudio ? virtualCamera : null,
-    lighting: useVirtualStudio ? lighting : null,
+    useUniverse,
+    virtualCamera: useVirtualStudio && !useUniverse ? virtualCamera : null,
+    lighting: useVirtualStudio && !useUniverse ? lighting : null,
+    universeParams: useUniverse ? universeParams : null,
     qualityMode,
     mood,
     hasIdentityRefs,
@@ -490,6 +523,9 @@ export async function generateCustomShootFrame({
   qualityMode = 'DRAFT',
   mood = 'natural',
   
+  // Universe parameters (Custom Shoot 4)
+  universeParams = null,
+  
   // Legacy parameters (kept for compatibility)
   captureStyle = null,
   cameraSignature = null,
@@ -502,12 +538,14 @@ export async function generateCustomShootFrame({
   lensFocalLength = null
 }) {
   try {
-    console.log('[CustomShootGenerator] Starting frame generation (Virtual Studio mode)...');
+    const useUniverse = universeParams != null;
+    const useVirtualStudio = virtualCamera != null;
+    
+    console.log('[CustomShootGenerator] Starting frame generation...', {
+      mode: useUniverse ? 'Universe (CS4)' : useVirtualStudio ? 'Virtual Studio' : 'Legacy'
+    });
     
     const { locks, globalSettings } = shoot;
-    
-    // Determine if using new Virtual Studio or legacy mode
-    const useVirtualStudio = virtualCamera != null;
     
     // Build reference collection with proper slot assignments
     const references = [];
@@ -595,6 +633,7 @@ export async function generateCustomShootFrame({
     const { prompt, promptJson } = buildCustomShootPrompt({
       virtualCamera: useVirtualStudio ? virtualCamera : null,
       lighting: useVirtualStudio ? lighting : null,
+      universeParams,
       customUniverse: shoot.customUniverse,
       locks,
       frame,
@@ -668,8 +707,10 @@ export async function generateCustomShootFrame({
       generationTime,
       paramsSnapshot: {
         useVirtualStudio,
+        useUniverse: !!universeParams,
         virtualCamera,
         lighting,
+        universeParams,
         qualityMode,
         aspectRatio: effectiveAspectRatio,
         poseAdherence,

@@ -333,6 +333,54 @@ function buildUniverseForPrompt(params) {
 }
 
 /**
+ * Собрать ЕДИНЫЙ ТЕКСТ вселенной для промпта
+ * Все параметры объединяются в связный нарратив — один блок текста.
+ * БЕЗ подзаголовков типа "Техника:", "Эпоха:" и т.д.
+ * 
+ * @param {Object} params - Объект с параметрами вселенной
+ * @returns {string} - Единый связный текст описания вселенной
+ */
+function buildUnifiedUniverseNarrative(params) {
+  const blocks = buildUniverseNarrative(params);
+  
+  // Собираем абзацы (только непустые)
+  const paragraphs = [];
+  
+  // 1. Техника и подача (основной абзац)
+  if (blocks.tech) {
+    paragraphs.push(blocks.tech);
+  }
+  
+  // 2. Эпоха и контекст
+  if (blocks.era) {
+    paragraphs.push(blocks.era);
+  }
+  
+  // 3. Цветовое решение
+  if (blocks.color) {
+    paragraphs.push(blocks.color);
+  }
+  
+  // 4. Оптика
+  if (blocks.lens) {
+    paragraphs.push(blocks.lens);
+  }
+  
+  // 5. Настроение
+  if (blocks.mood) {
+    paragraphs.push(blocks.mood);
+  }
+  
+  // 6. Anti-AI / Реализм
+  if (blocks.antiAi) {
+    paragraphs.push(blocks.antiAi);
+  }
+  
+  // Объединяем абзацы через двойной перенос строки
+  return paragraphs.join('\n\n');
+}
+
+/**
  * Пример: параметры по умолчанию
  */
 function getDefaultParams() {
@@ -401,6 +449,7 @@ export {
   buildUniverseNarrative,
   buildUniverseText,
   buildUniverseForPrompt,
+  buildUnifiedUniverseNarrative,
   getDefaultParams
 };
 
