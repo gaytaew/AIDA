@@ -2360,6 +2360,10 @@ const POSE_ADHERENCE_LABELS = {
 function buildFrameSettingsHtml(frame) {
   const items = [];
   
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 1: Basic frame info
+  // ═══════════════════════════════════════════════════════════════
+  
   // Image format (aspect ratio + size)
   const aspectLabel = ASPECT_RATIO_LABELS[frame.aspectRatio] || frame.aspectRatio || '3:4';
   const sizeLabel = IMAGE_SIZE_LABELS[frame.imageSize] || frame.imageSize || '2K';
@@ -2372,19 +2376,7 @@ function buildFrameSettingsHtml(frame) {
   
   // Pose adherence
   if (frame.poseAdherence) {
-    items.push(`<div><strong>🎯 Поза:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}</div>`);
-  }
-  
-  // Composition
-  if (frame.composition) {
-    const comp = frame.composition;
-    const itemsComp = [];
-    if (comp.shotSize && comp.shotSize !== 'default') itemsComp.push(`План: ${comp.shotSize}`);
-    if (comp.cameraAngle && comp.cameraAngle !== 'eye_level') itemsComp.push(`Ракурс: ${comp.cameraAngle}`);
-    
-    if (itemsComp.length > 0) {
-      items.push(`<div><strong>🎥 Композиция:</strong> <span style="font-size:10px;">${itemsComp.join(', ')}</span></div>`);
-    }
+    items.push(`<div><strong>🎯 Следование эскизу:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}/4</div>`);
   }
   
   // Emotion
@@ -2398,17 +2390,114 @@ function buildFrameSettingsHtml(frame) {
     items.push(`<div><strong>📍 Локация:</strong> ${escapeHtml(frame.locationLabel)}</div>`);
   }
   
-  // Extra prompt
-  if (frame.extraPrompt) {
-    items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em>${escapeHtml(frame.extraPrompt)}</em></div>`);
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 2: Universe Params (ALL of them)
+  // ═══════════════════════════════════════════════════════════════
+  
+  if (frame.universeParams && typeof frame.universeParams === 'object') {
+    const up = frame.universeParams;
+    
+    items.push(`<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);"><strong>🧬 Universe настройки:</strong></div>`);
+    
+    // Human-readable labels for universe params
+    const paramLabels = {
+      // Approach
+      shootingApproach: '📷 Подход',
+      productDiscipline: '👗 Приоритет продукта',
+      
+      // Tech
+      cameraClass: '📸 Камера',
+      exposureIntent: '💡 Экспозиция',
+      shutterIntent: '⏱️ Затвор',
+      processingStyle: '🎨 Обработка',
+      retouchLevel: '✨ Ретушь',
+      
+      // Era
+      decade: '📅 Эпоха',
+      culturalContext: '🎭 Контекст',
+      
+      // Color
+      whiteBalance: '🌡️ Баланс белого',
+      wbShift: '↔️ Сдвиг WB',
+      saturation: '🎨 Насыщенность',
+      contrastCurve: '📈 Контраст',
+      shadowTone: '🌑 Тени',
+      highlightTone: '☀️ Света',
+      
+      // Lens
+      focalRange: '🔭 Фокусное',
+      apertureIntent: '📷 Диафрагма',
+      distortionPolicy: '🔍 Дисторсия',
+      cameraProximity: '📏 Дистанция',
+      
+      // Mood
+      visualMood: '💫 Атмосфера',
+      energyLevel: '⚡ Энергия',
+      spontaneity: '🎲 Спонтанность',
+      primaryFocus: '🎯 Фокус',
+      
+      // Lighting
+      lightSource: '💡 Источник света',
+      lightDirection: '➡️ Направление',
+      lightQuality: '✨ Качество света',
+      timeOfDay: '🕐 Время суток',
+      weatherLighting: '🌤️ Погода',
+      season: '🍂 Сезон',
+      
+      // Anti-AI
+      antiAiLevel: '🤖 Anti-AI'
+    };
+    
+    // Group params by category for display
+    const categories = {
+      'Подход': ['shootingApproach', 'productDiscipline'],
+      'Техника': ['cameraClass', 'exposureIntent', 'shutterIntent', 'processingStyle', 'retouchLevel'],
+      'Эпоха': ['decade', 'culturalContext'],
+      'Цвет': ['whiteBalance', 'wbShift', 'saturation', 'contrastCurve', 'shadowTone', 'highlightTone'],
+      'Оптика': ['focalRange', 'apertureIntent', 'distortionPolicy', 'cameraProximity'],
+      'Атмосфера': ['visualMood', 'energyLevel', 'spontaneity', 'primaryFocus'],
+      'Освещение': ['lightSource', 'lightDirection', 'lightQuality', 'timeOfDay', 'weatherLighting', 'season'],
+      'Реализм': ['antiAiLevel']
+    };
+    
+    for (const [catName, paramKeys] of Object.entries(categories)) {
+      const catItems = [];
+      for (const key of paramKeys) {
+        if (up[key] !== undefined && up[key] !== null && up[key] !== '') {
+          const label = paramLabels[key] || key;
+          const value = formatUniverseValue(key, up[key]);
+          catItems.push(`${label}: <span style="color: var(--color-primary);">${value}</span>`);
+        }
+      }
+      if (catItems.length > 0) {
+        items.push(`<div style="font-size: 10px; margin-top: 4px;"><strong>${catName}:</strong> ${catItems.join(' · ')}</div>`);
+      }
+    }
   }
   
-  // Universe params summary (if available)
-  if (frame.universeParams) {
-    items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>🧬 Universe:</strong> <span style="font-size:10px; color: var(--color-primary);">Параметры сохранены</span></div>`);
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 3: Extra prompt
+  // ═══════════════════════════════════════════════════════════════
+  
+  if (frame.extraPrompt) {
+    items.push(`<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em style="font-size: 10px;">${escapeHtml(frame.extraPrompt)}</em></div>`);
   }
   
   return items.join('');
+}
+
+/**
+ * Format universe param value for display
+ */
+function formatUniverseValue(key, value) {
+  if (value === null || value === undefined) return '—';
+  
+  // Convert snake_case to readable
+  const readable = String(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase());
+  
+  return readable;
 }
 
 /**
