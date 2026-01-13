@@ -590,6 +590,11 @@ export async function updateShootParams(shootId, updates) {
       shoot.clothing = updates.clothing;
     }
     
+    // Update look prompts (overall outfit style per model)
+    if (updates.lookPrompts !== undefined) {
+      shoot.lookPrompts = updates.lookPrompts;
+    }
+    
     // Update generation settings (all UI settings for the generate step)
     if (updates.generationSettings !== undefined) {
       shoot.generationSettings = {

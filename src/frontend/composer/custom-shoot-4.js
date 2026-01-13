@@ -24,7 +24,8 @@ const state = {
   
   // Selected for current shoot
   selectedModels: [null, null, null],
-  clothingByModel: [[], [], []],
+  clothingByModel: [[], [], []], // Array of ClothingItem[] for each model
+  lookPrompts: ['', '', ''], // General look prompt for each model
   
   // Generated frames history
   generatedFrames: [],
@@ -247,7 +248,10 @@ function updateStepStatuses() {
   elements.stepModelsStatus.textContent = `${modelCount} / 3`;
   elements.stepModelsStatus.className = modelCount > 0 ? 'step-status ready' : 'step-status pending';
   
-  const hasClothing = state.clothingByModel.some(c => c.length > 0);
+  // Check if any model has clothing items with at least one image
+  const hasClothing = state.clothingByModel.some(items => 
+    items.length > 0 && items.some(item => item.images && item.images.length > 0)
+  );
   elements.stepClothingStatus.textContent = hasClothing ? 'Загружено' : 'Опционально';
   elements.stepClothingStatus.className = hasClothing ? 'step-status ready' : 'step-status pending';
   
@@ -386,12 +390,30 @@ function loadShootState() {
     });
   }
   
-  // Load clothing
+  // Load clothing (new format with grouped items)
   state.clothingByModel = [[], [], []];
+  state.lookPrompts = ['', '', ''];
+  
   if (state.currentShoot.clothing) {
     state.currentShoot.clothing.forEach(c => {
       if (c.forModelIndex >= 0 && c.forModelIndex < 3) {
-        state.clothingByModel[c.forModelIndex] = c.refs || [];
+        // Check if it's new format (items) or old format (refs)
+        if (c.items) {
+          // New format
+          state.clothingByModel[c.forModelIndex] = c.items;
+        } else if (c.refs) {
+          // Old format - migrate to new
+          state.clothingByModel[c.forModelIndex] = migrateOldClothingRefs(c.refs);
+        }
+      }
+    });
+  }
+  
+  // Load look prompts
+  if (state.currentShoot.lookPrompts) {
+    state.currentShoot.lookPrompts.forEach(lp => {
+      if (lp.forModelIndex >= 0 && lp.forModelIndex < 3) {
+        state.lookPrompts[lp.forModelIndex] = lp.prompt || '';
       }
     });
   }
@@ -623,7 +645,8 @@ function renderClothingSections() {
   elements.clothingSections.innerHTML = state.selectedModels.map((model, index) => {
     if (!model) return '';
     
-    const clothing = state.clothingByModel[index] || [];
+    const items = state.clothingByModel[index] || [];
+    const lookPrompt = state.lookPrompts?.[index] || '';
     
     return `
       <div class="clothing-section" data-model-index="${index}">
@@ -634,66 +657,221 @@ function renderClothingSections() {
           <div class="clothing-section-title">${escapeHtml(model.name)}</div>
         </div>
         
-        <label class="upload-zone" style="margin-bottom: 0;">
-          <input type="file" multiple accept="image/*" class="clothing-input" data-index="${index}" style="display: none;">
-          <div class="upload-zone-icon">👗</div>
-          <div class="upload-zone-text">Загрузи референсы одежды</div>
-        </label>
+        <!-- Общий промпт лука -->
+        <div class="look-prompt-section" style="margin-bottom: 16px;">
+          <label style="font-size: 11px; color: var(--color-text-muted); display: block; margin-bottom: 4px;">
+            ✨ Общий стиль образа (опционально)
+          </label>
+          <textarea 
+            class="look-prompt-input" 
+            data-model="${index}"
+            placeholder="Например: 90s casual street style, relaxed silhouette, layered look..."
+            rows="2"
+            style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"
+          >${escapeHtml(lookPrompt)}</textarea>
+        </div>
         
-        ${clothing.length > 0 ? `
-          <div class="clothing-items" style="margin-top: 16px;">
-            ${clothing.map((c, ci) => `
-              <div class="clothing-item" data-model="${index}" data-idx="${ci}">
-                <div class="clothing-item-preview">
-                  <img src="${c.url}" alt="Clothing ${ci + 1}">
-                  <button class="image-thumb-remove" data-model="${index}" data-clothing="${ci}">✕</button>
-                </div>
-                <textarea 
-                  class="clothing-description" 
-                  data-model="${index}" 
-                  data-idx="${ci}"
-                  placeholder="Опишите фасон: длина, ширина, посадка, как сидит..."
-                  rows="2"
-                >${escapeHtml(c.description || '')}</textarea>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
+        <!-- Список вещей -->
+        <div class="clothing-items-list">
+          ${items.map((item, itemIdx) => renderClothingItemCard(item, index, itemIdx)).join('')}
+        </div>
+        
+        <!-- Кнопка добавить вещь -->
+        <button class="add-clothing-item-btn" data-model="${index}" style="width: 100%; padding: 12px; background: var(--color-surface); border: 2px dashed var(--color-border); border-radius: 8px; color: var(--color-text-muted); font-size: 13px; cursor: pointer; transition: all 0.2s;">
+          ➕ Добавить предмет одежды
+        </button>
       </div>
     `;
   }).join('');
   
-  // Add event listeners
-  elements.clothingSections.querySelectorAll('.clothing-input').forEach(input => {
-    input.addEventListener('change', (e) => handleClothingUpload(e, parseInt(input.dataset.index)));
+  // Event: Add new clothing item
+  elements.clothingSections.querySelectorAll('.add-clothing-item-btn').forEach(btn => {
+    btn.addEventListener('click', () => addNewClothingItem(parseInt(btn.dataset.model)));
   });
   
-  elements.clothingSections.querySelectorAll('.image-thumb-remove').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeClothingItem(parseInt(btn.dataset.model), parseInt(btn.dataset.clothing));
+  // Event: Add image to item
+  elements.clothingSections.querySelectorAll('.add-image-to-item-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const modelIdx = parseInt(input.dataset.model);
+      const itemIdx = parseInt(input.dataset.item);
+      handleAddImageToItem(e, modelIdx, itemIdx);
     });
   });
   
-  // Description input handlers
-  elements.clothingSections.querySelectorAll('.clothing-description').forEach(textarea => {
+  // Event: Remove image from item
+  elements.clothingSections.querySelectorAll('.remove-item-image-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const modelIdx = parseInt(btn.dataset.model);
+      const itemIdx = parseInt(btn.dataset.item);
+      const imgIdx = parseInt(btn.dataset.img);
+      removeImageFromClothingItem(modelIdx, itemIdx, imgIdx);
+    });
+  });
+  
+  // Event: Remove entire item
+  elements.clothingSections.querySelectorAll('.remove-item-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const modelIdx = parseInt(btn.dataset.model);
+      const itemIdx = parseInt(btn.dataset.item);
+      removeClothingItem(modelIdx, itemIdx);
+    });
+  });
+  
+  // Event: Item prompt input
+  elements.clothingSections.querySelectorAll('.item-prompt-input').forEach(textarea => {
     textarea.addEventListener('input', debounce(() => {
       const modelIdx = parseInt(textarea.dataset.model);
-      const clothingIdx = parseInt(textarea.dataset.idx);
-      if (state.clothingByModel[modelIdx] && state.clothingByModel[modelIdx][clothingIdx]) {
-        state.clothingByModel[modelIdx][clothingIdx].description = textarea.value;
+      const itemIdx = parseInt(textarea.dataset.item);
+      if (state.clothingByModel[modelIdx]?.[itemIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
         saveShootClothing();
       }
     }, 500));
   });
+  
+  // Event: Item name input
+  elements.clothingSections.querySelectorAll('.item-name-input').forEach(input => {
+    input.addEventListener('input', debounce(() => {
+      const modelIdx = parseInt(input.dataset.model);
+      const itemIdx = parseInt(input.dataset.item);
+      if (state.clothingByModel[modelIdx]?.[itemIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].name = input.value;
+        saveShootClothing();
+      }
+    }, 500));
+  });
+  
+  // Event: Look prompt input
+  elements.clothingSections.querySelectorAll('.look-prompt-input').forEach(textarea => {
+    textarea.addEventListener('input', debounce(() => {
+      const modelIdx = parseInt(textarea.dataset.model);
+      if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
+      state.lookPrompts[modelIdx] = textarea.value;
+      saveShootClothing();
+    }, 500));
+  });
+  
+  // Event: Image view selector
+  elements.clothingSections.querySelectorAll('.image-view-select').forEach(select => {
+    select.addEventListener('change', () => {
+      const modelIdx = parseInt(select.dataset.model);
+      const itemIdx = parseInt(select.dataset.item);
+      const imgIdx = parseInt(select.dataset.img);
+      if (state.clothingByModel[modelIdx]?.[itemIdx]?.images?.[imgIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].images[imgIdx].view = select.value;
+        saveShootClothing();
+      }
+    });
+  });
 }
 
-async function handleClothingUpload(event, modelIndex) {
+/**
+ * Render a single clothing item card
+ */
+function renderClothingItemCard(item, modelIndex, itemIndex) {
+  const images = item.images || [];
+  const viewOptions = [
+    { id: 'front', label: 'Спереди' },
+    { id: 'back', label: 'Сзади' },
+    { id: 'side', label: 'Сбоку' },
+    { id: 'detail', label: 'Деталь' },
+    { id: 'flat_lay', label: 'Flat lay' },
+    { id: 'other', label: 'Другое' }
+  ];
+  
+  return `
+    <div class="clothing-item-card" data-model="${modelIndex}" data-item="${itemIndex}" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+      <!-- Header: Name + Remove button -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <input 
+          type="text" 
+          class="item-name-input" 
+          data-model="${modelIndex}" 
+          data-item="${itemIndex}"
+          value="${escapeHtml(item.name || '')}"
+          placeholder="Название (напр. Denim Jacket)"
+          style="flex: 1; padding: 6px 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text); font-size: 13px; font-weight: 500;"
+        >
+        <button class="remove-item-btn" data-model="${modelIndex}" data-item="${itemIndex}" style="margin-left: 8px; background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px; font-size: 16px;" title="Удалить вещь">🗑️</button>
+      </div>
+      
+      <!-- Prompt -->
+      <div style="margin-bottom: 10px;">
+        <textarea 
+          class="item-prompt-input" 
+          data-model="${modelIndex}" 
+          data-item="${itemIndex}"
+          placeholder="Опишите вещь: материал, цвет, фасон, детали, как сидит на модели..."
+          rows="3"
+          style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"
+        >${escapeHtml(item.prompt || '')}</textarea>
+      </div>
+      
+      <!-- Images -->
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+        ${images.map((img, imgIdx) => `
+          <div class="item-image-thumb" style="position: relative; width: 70px;">
+            <img src="${img.url}" alt="" style="width: 70px; height: 70px; object-fit: cover; border-radius: 4px; border: 1px solid var(--color-border);">
+            <button class="remove-item-image-btn" data-model="${modelIndex}" data-item="${itemIndex}" data-img="${imgIdx}" style="position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; background: var(--color-error, #e74c3c); border: none; border-radius: 50%; color: white; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+            <select class="image-view-select" data-model="${modelIndex}" data-item="${itemIndex}" data-img="${imgIdx}" style="width: 100%; margin-top: 4px; padding: 2px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 3px; color: var(--color-text); font-size: 10px;">
+              ${viewOptions.map(v => `<option value="${v.id}" ${img.view === v.id ? 'selected' : ''}>${v.label}</option>`).join('')}
+            </select>
+          </div>
+        `).join('')}
+        
+        <!-- Add image button -->
+        <label style="width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--color-border); border-radius: 4px; cursor: pointer; color: var(--color-text-muted); font-size: 20px; transition: border-color 0.2s;">
+          <input type="file" multiple accept="image/*" class="add-image-to-item-input" data-model="${modelIndex}" data-item="${itemIndex}" style="display: none;">
+          +
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Add new clothing item for a model
+ */
+function addNewClothingItem(modelIndex) {
+  const newItem = {
+    id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: '',
+    prompt: '',
+    images: [],
+    createdAt: new Date().toISOString()
+  };
+  
+  if (!state.clothingByModel[modelIndex]) {
+    state.clothingByModel[modelIndex] = [];
+  }
+  
+  state.clothingByModel[modelIndex].push(newItem);
+  
+  saveShootClothing();
+  renderClothingSections();
+  updateStepStatuses();
+}
+
+/**
+ * Add image(s) to an existing clothing item
+ */
+async function handleAddImageToItem(event, modelIndex, itemIndex) {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('image/'));
+  
+  const item = state.clothingByModel[modelIndex]?.[itemIndex];
+  if (!item) return;
   
   for (const file of files) {
     const dataUrl = await fileToDataUrl(file);
-    state.clothingByModel[modelIndex].push({ url: dataUrl });
+    if (!item.images) item.images = [];
+    item.images.push({
+      id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      url: dataUrl,
+      view: 'front', // default
+      uploadedAt: new Date().toISOString()
+    });
   }
   
   await saveShootClothing();
@@ -703,26 +881,53 @@ async function handleClothingUpload(event, modelIndex) {
   event.target.value = '';
 }
 
-function removeClothingItem(modelIndex, clothingIndex) {
-  state.clothingByModel[modelIndex].splice(clothingIndex, 1);
+/**
+ * Remove a single image from a clothing item
+ */
+function removeImageFromClothingItem(modelIndex, itemIndex, imageIndex) {
+  const item = state.clothingByModel[modelIndex]?.[itemIndex];
+  if (!item?.images) return;
+  
+  item.images.splice(imageIndex, 1);
+  
   saveShootClothing();
   renderClothingSections();
   updateStepStatuses();
 }
 
+/**
+ * Remove an entire clothing item
+ */
+function removeClothingItem(modelIndex, itemIndex) {
+  state.clothingByModel[modelIndex].splice(itemIndex, 1);
+  saveShootClothing();
+  renderClothingSections();
+  updateStepStatuses();
+}
+
+/**
+ * Save clothing data to backend
+ */
 async function saveShootClothing() {
   if (!state.currentShoot) return;
   
-  const clothing = state.clothingByModel.map((refs, index) => ({
+  // Save clothing items (new format with grouped images)
+  const clothing = state.clothingByModel.map((items, index) => ({
     forModelIndex: index,
-    refs: refs
-  })).filter(c => c.refs.length > 0);
+    items: items // New format: array of ClothingItem
+  })).filter(c => c.items.length > 0);
+  
+  // Save look prompts
+  const lookPrompts = state.lookPrompts.map((prompt, index) => ({
+    forModelIndex: index,
+    prompt: prompt
+  })).filter(p => p.prompt.trim() !== '');
   
   try {
     await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clothing })
+      body: JSON.stringify({ clothing, lookPrompts })
     });
   } catch (e) {
     console.error('Error saving clothing:', e);
@@ -1821,6 +2026,33 @@ function buildFrameSettingsHtml(frame) {
   }
   
   return items.join('');
+}
+
+/**
+ * Migrate old clothing refs format to new ClothingItem format
+ * Old: [{ url, description }, ...]
+ * New: [{ id, name, prompt, images: [{ id, url, view }] }, ...]
+ */
+function migrateOldClothingRefs(oldRefs) {
+  if (!Array.isArray(oldRefs)) return [];
+  
+  // Check if already new format
+  if (oldRefs.length > 0 && oldRefs[0].images) {
+    return oldRefs;
+  }
+  
+  // Migrate: each old ref becomes a separate ClothingItem with one image
+  return oldRefs.map((ref, index) => ({
+    id: `migrated_${Date.now()}_${index}`,
+    name: ref.description || `Предмет ${index + 1}`,
+    prompt: ref.description || '',
+    images: [{
+      id: `img_migrated_${index}`,
+      url: ref.url,
+      view: 'front'
+    }],
+    createdAt: new Date().toISOString()
+  }));
 }
 
 function escapeHtml(str) {

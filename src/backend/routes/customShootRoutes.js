@@ -504,25 +504,62 @@ router.post('/:id/generate', async (req, res) => {
       }
     }
     
-    // Prepare clothing images and descriptions
+    // Prepare clothing images and descriptions (supports both old and new formats)
     let clothingImages = [];
     let clothingDescriptions = [];
+    let clothingItemPrompts = []; // NEW: prompts per clothing item
+    let lookPrompt = ''; // NEW: overall look prompt
+    
     if (reqClothingImages && Array.isArray(reqClothingImages)) {
       clothingImages = reqClothingImages;
     } else if (shoot.clothing?.length > 0) {
       for (const clothing of shoot.clothing) {
-        if (clothing.refs) {
+        // NEW FORMAT: clothing.items (array of ClothingItem with grouped images)
+        if (clothing.items && Array.isArray(clothing.items)) {
+          for (const item of clothing.items) {
+            // Collect prompt for this item
+            if (item.prompt && item.prompt.trim()) {
+              clothingItemPrompts.push({
+                name: item.name || '',
+                prompt: item.prompt.trim()
+              });
+            }
+            // Collect all images from this item
+            if (item.images && Array.isArray(item.images)) {
+              for (const imgRef of item.images) {
+                const img = await prepareImageFromUrl(imgRef.url);
+                if (img) {
+                  clothingImages.push(img);
+                  // Use item prompt for all images of this item
+                  if (item.prompt && item.prompt.trim()) {
+                    clothingDescriptions.push(item.prompt.trim());
+                  }
+                }
+              }
+            }
+          }
+        }
+        // OLD FORMAT: clothing.refs (flat array of images)
+        else if (clothing.refs && Array.isArray(clothing.refs)) {
           for (const ref of clothing.refs) {
             const img = await prepareImageFromUrl(ref.url);
             if (img) {
               clothingImages.push(img);
-              // Collect description if provided
               if (ref.description && ref.description.trim()) {
                 clothingDescriptions.push(ref.description.trim());
               }
             }
           }
         }
+      }
+    }
+    
+    // Collect look prompt (overall outfit style)
+    if (shoot.lookPrompts && Array.isArray(shoot.lookPrompts)) {
+      // Use first non-empty look prompt (for primary model)
+      const firstLookPrompt = shoot.lookPrompts.find(lp => lp.prompt && lp.prompt.trim());
+      if (firstLookPrompt) {
+        lookPrompt = firstLookPrompt.prompt.trim();
       }
     }
     
@@ -625,7 +662,9 @@ router.post('/:id/generate', async (req, res) => {
       shoot,
       identityImages,
       clothingImages,
-      clothingDescriptions, // NEW: detailed clothing descriptions
+      clothingDescriptions, // detailed clothing descriptions per image
+      clothingItemPrompts,  // NEW: prompts grouped by clothing item
+      lookPrompt,           // NEW: overall outfit style prompt
       styleRefImage,
       locationRefImage,
       locationSketchImage,

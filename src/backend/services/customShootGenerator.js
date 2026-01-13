@@ -188,6 +188,8 @@ export function buildCustomShootPrompt({
   extraPrompt = '',
   modelDescription = '',
   clothingDescriptions = [],
+  clothingItemPrompts = [], // NEW: structured prompts per clothing item [{ name, prompt }]
+  lookPrompt = '',          // NEW: overall outfit style prompt
   hasIdentityRefs = false,
   hasClothingRefs = false,
   hasStyleRef = false,
@@ -440,7 +442,8 @@ ${modelDescription ? `Additional notes: ${modelDescription}` : ''}`);
   // ═══════════════════════════════════════════════════════════════
   
   if (hasClothingRefs) {
-    sections.push(`
+    // Build clothing description section
+    let clothingSection = `
 === CLOTHING ACCURACY (CRITICAL — [$3], [$4]) ===
 
 Recreate garments from reference images with MAXIMUM accuracy:
@@ -450,11 +453,36 @@ MUST MATCH:
 - Exact proportions and lengths
 - Exact colors and patterns
 - Construction details (seams, buttons, pockets)
-- Fabric behavior (structured vs flowing)
+- Fabric behavior (structured vs flowing)`;
 
-${clothingDescriptions.length > 0 ? 
-`USER DESCRIPTIONS:
-${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}` : ''}`);
+    // Add overall look/outfit style if provided
+    if (lookPrompt && lookPrompt.trim()) {
+      clothingSection += `
+
+OUTFIT STYLE:
+${lookPrompt.trim()}`;
+    }
+    
+    // Add structured clothing item prompts (NEW format)
+    if (clothingItemPrompts && clothingItemPrompts.length > 0) {
+      clothingSection += `
+
+CLOTHING ITEMS:`;
+      clothingItemPrompts.forEach((item, i) => {
+        const name = item.name ? `${item.name}: ` : `Item ${i + 1}: `;
+        clothingSection += `
+• ${name}${item.prompt}`;
+      });
+    }
+    // Fallback to old format (simple descriptions per image)
+    else if (clothingDescriptions.length > 0) {
+      clothingSection += `
+
+USER DESCRIPTIONS:
+${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`;
+    }
+    
+    sections.push(clothingSection);
   }
   
   // ═══════════════════════════════════════════════════════════════
@@ -531,6 +559,8 @@ export async function generateCustomShootFrame({
   identityImages = [],
   clothingImages = [],
   clothingDescriptions = [],
+  clothingItemPrompts = [], // NEW: prompts grouped by clothing item [{ name, prompt }]
+  lookPrompt = '',          // NEW: overall outfit style prompt
   styleRefImage = null,
   locationRefImage = null,
   locationSketchImage = null,
@@ -668,6 +698,8 @@ export async function generateCustomShootFrame({
       extraPrompt,
       modelDescription: '',
       clothingDescriptions,
+      clothingItemPrompts,  // NEW: structured prompts per clothing item
+      lookPrompt,           // NEW: overall outfit style
       hasIdentityRefs: identityImages.length > 0,
       hasClothingRefs: clothingImages.length > 0,
       hasStyleRef: !!styleRefImage && locks?.style?.enabled,
