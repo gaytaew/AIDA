@@ -714,179 +714,199 @@ function renderClothingSections() {
     `;
   }).join('');
   
-  // Event: Add new clothing item
-  elements.clothingSections.querySelectorAll('.add-clothing-item-btn').forEach(btn => {
-    btn.addEventListener('click', () => addNewClothingItem(parseInt(btn.dataset.model)));
-  });
+  // Используем делегирование событий — один listener на весь контейнер
+  // Это работает надёжно даже после перерисовки HTML
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLOTHING EVENT DELEGATION (надёжная обработка событий)
+// ═══════════════════════════════════════════════════════════════
+
+let clothingEventsInitialized = false;
+
+function initClothingEventDelegation() {
+  if (clothingEventsInitialized) return;
+  clothingEventsInitialized = true;
   
-  // Event: Add image to item
-  elements.clothingSections.querySelectorAll('.add-image-to-item-input').forEach(input => {
-    input.addEventListener('change', (e) => {
-      const modelIdx = parseInt(input.dataset.model);
-      const itemIdx = parseInt(input.dataset.item);
-      handleAddImageToItem(e, modelIdx, itemIdx);
-    });
-  });
+  const container = document.getElementById('clothing-sections');
+  if (!container) return;
   
-  // Event: Remove image from item
-  elements.clothingSections.querySelectorAll('.remove-item-image-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  // CLICK events
+  container.addEventListener('click', async (e) => {
+    const target = e.target;
+    
+    // Add new clothing item
+    if (target.classList.contains('add-clothing-item-btn')) {
+      const modelIdx = parseInt(target.dataset.model);
+      addNewClothingItem(modelIdx);
+      return;
+    }
+    
+    // Remove item image
+    if (target.classList.contains('remove-item-image-btn')) {
       e.stopPropagation();
-      const modelIdx = parseInt(btn.dataset.model);
-      const itemIdx = parseInt(btn.dataset.item);
-      const imgIdx = parseInt(btn.dataset.img);
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      const imgIdx = parseInt(target.dataset.img);
       removeImageFromClothingItem(modelIdx, itemIdx, imgIdx);
-    });
-  });
-  
-  // Event: Remove entire item
-  elements.clothingSections.querySelectorAll('.remove-item-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+      return;
+    }
+    
+    // Remove entire item
+    if (target.classList.contains('remove-item-btn')) {
       e.stopPropagation();
-      const modelIdx = parseInt(btn.dataset.model);
-      const itemIdx = parseInt(btn.dataset.item);
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
       removeClothingItem(modelIdx, itemIdx);
-    });
+      return;
+    }
+    
+    // Save item prompt button
+    if (target.classList.contains('btn-save-item-prompt')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      await saveItemPrompt(modelIdx, itemIdx, target);
+      return;
+    }
+    
+    // Save look prompt button
+    if (target.classList.contains('btn-save-look-prompt')) {
+      const modelIdx = parseInt(target.dataset.model);
+      await saveLookPrompt(modelIdx, target);
+      return;
+    }
   });
   
-  // Event: Item prompt input (auto-save with debounce + status indicator)
-  elements.clothingSections.querySelectorAll('.item-prompt-input').forEach(textarea => {
-    textarea.addEventListener('input', debounce(() => {
-      const modelIdx = parseInt(textarea.dataset.model);
-      const itemIdx = parseInt(textarea.dataset.item);
-      if (state.clothingByModel[modelIdx]?.[itemIdx]) {
-        state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
-        // Mark as "unsaved" until explicit save
-        const statusEl = document.querySelector(`.prompt-save-status[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
-        if (statusEl) {
-          statusEl.textContent = '⚠️ Не сохранено';
-          statusEl.style.color = 'var(--color-accent, #f59e0b)';
-        }
-      }
-    }, 300));
-  });
-  
-  // Event: Save prompt button (explicit save with confirmation)
-  const saveButtons = elements.clothingSections.querySelectorAll('.btn-save-item-prompt');
-  console.log('[RenderClothing] Found save buttons:', saveButtons.length);
-  
-  saveButtons.forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const modelIdx = parseInt(btn.dataset.model);
-      const itemIdx = parseInt(btn.dataset.item);
-      
-      console.log('[SavePrompt] Button clicked:', { modelIdx, itemIdx });
-      
-      // Get the textarea value
-      const textarea = document.querySelector(`.item-prompt-input[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
-      console.log('[SavePrompt] Textarea found:', !!textarea, 'value:', textarea?.value?.slice(0, 50));
-      
-      if (textarea && state.clothingByModel[modelIdx]?.[itemIdx]) {
-        state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
-        console.log('[SavePrompt] Updated state.clothingByModel[', modelIdx, '][', itemIdx, '].prompt =', textarea.value.slice(0, 50));
-      }
-      
-      // Save to backend
-      console.log('[SavePrompt] Calling saveShootClothing...');
-      await saveShootClothing();
-      
-      // Show confirmation
-      const statusEl = document.querySelector(`.prompt-save-status[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
-      if (statusEl) {
-        statusEl.textContent = '✅ Сохранено!';
-        statusEl.style.color = 'var(--color-success, #10b981)';
-        
-        // Fade out after 2s
-        setTimeout(() => {
-          statusEl.textContent = '';
-        }, 2000);
-      }
-      
-      // Visual feedback on button
-      const originalText = btn.textContent;
-      btn.textContent = '✓ Сохранено';
-      btn.style.background = 'var(--color-success, #10b981)';
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.style.background = 'var(--color-primary)';
-      }, 1500);
-    });
-  });
-  
-  // Event: Item name input
-  elements.clothingSections.querySelectorAll('.item-name-input').forEach(input => {
-    input.addEventListener('input', debounce(() => {
-      const modelIdx = parseInt(input.dataset.model);
-      const itemIdx = parseInt(input.dataset.item);
-      if (state.clothingByModel[modelIdx]?.[itemIdx]) {
-        state.clothingByModel[modelIdx][itemIdx].name = input.value;
-        saveShootClothing();
-      }
-    }, 500));
-  });
-  
-  // Event: Look prompt input (auto-save with debounce)
-  elements.clothingSections.querySelectorAll('.look-prompt-input').forEach(textarea => {
-    textarea.addEventListener('input', debounce(() => {
-      const modelIdx = parseInt(textarea.dataset.model);
-      if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
-      state.lookPrompts[modelIdx] = textarea.value;
-      
-      // Mark as unsaved
-      const statusEl = document.querySelector(`.look-prompt-save-status[data-model="${modelIdx}"]`);
-      if (statusEl) {
-        statusEl.textContent = '⚠️ Не сохранено';
-        statusEl.style.color = 'var(--color-accent, #f59e0b)';
-      }
-    }, 300));
-  });
-  
-  // Event: Save look prompt button
-  elements.clothingSections.querySelectorAll('.btn-save-look-prompt').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const modelIdx = parseInt(btn.dataset.model);
-      
-      // Get the textarea value
-      const textarea = document.querySelector(`.look-prompt-input[data-model="${modelIdx}"]`);
-      if (textarea) {
-        if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
-        state.lookPrompts[modelIdx] = textarea.value;
-      }
-      
-      // Save to backend
-      await saveShootClothing();
-      
-      // Show confirmation
-      const statusEl = document.querySelector(`.look-prompt-save-status[data-model="${modelIdx}"]`);
-      if (statusEl) {
-        statusEl.textContent = '✅ Сохранено!';
-        statusEl.style.color = 'var(--color-success, #10b981)';
-        setTimeout(() => { statusEl.textContent = ''; }, 2000);
-      }
-      
-      // Visual feedback on button
-      const originalText = btn.textContent;
-      btn.textContent = '✓ Сохранено';
-      btn.style.background = 'var(--color-success, #10b981)';
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.style.background = 'var(--color-primary)';
-      }, 1500);
-    });
-  });
-  
-  // Event: Image view selector
-  elements.clothingSections.querySelectorAll('.image-view-select').forEach(select => {
-    select.addEventListener('change', () => {
-      const modelIdx = parseInt(select.dataset.model);
-      const itemIdx = parseInt(select.dataset.item);
-      const imgIdx = parseInt(select.dataset.img);
+  // CHANGE events (для file inputs и selects)
+  container.addEventListener('change', (e) => {
+    const target = e.target;
+    
+    // Add image to item
+    if (target.classList.contains('add-image-to-item-input')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      handleAddImageToItem(e, modelIdx, itemIdx);
+      return;
+    }
+    
+    // Image view selector
+    if (target.classList.contains('image-view-select')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      const imgIdx = parseInt(target.dataset.img);
       if (state.clothingByModel[modelIdx]?.[itemIdx]?.images?.[imgIdx]) {
-        state.clothingByModel[modelIdx][itemIdx].images[imgIdx].view = select.value;
+        state.clothingByModel[modelIdx][itemIdx].images[imgIdx].view = target.value;
         saveShootClothing();
       }
-    });
+      return;
+    }
   });
+  
+  // BLUR events (сохраняем при потере фокуса — надёжнее чем debounce)
+  container.addEventListener('blur', async (e) => {
+    const target = e.target;
+    
+    // Item prompt — save on blur
+    if (target.classList.contains('item-prompt-input')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      if (state.clothingByModel[modelIdx]?.[itemIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].prompt = target.value;
+        await saveShootClothing();
+        showSaveStatus(modelIdx, itemIdx, 'item');
+      }
+      return;
+    }
+    
+    // Item name — save on blur
+    if (target.classList.contains('item-name-input')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      if (state.clothingByModel[modelIdx]?.[itemIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].name = target.value;
+        await saveShootClothing();
+      }
+      return;
+    }
+    
+    // Look prompt — save on blur
+    if (target.classList.contains('look-prompt-input')) {
+      const modelIdx = parseInt(target.dataset.model);
+      if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
+      state.lookPrompts[modelIdx] = target.value;
+      await saveShootClothing();
+      showSaveStatus(modelIdx, null, 'look');
+      return;
+    }
+  }, true); // capture phase для blur
+}
+
+async function saveItemPrompt(modelIdx, itemIdx, btn) {
+  // Get textarea value
+  const textarea = document.querySelector(`.item-prompt-input[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
+  if (!textarea) return;
+  
+  // Update state
+  if (state.clothingByModel[modelIdx]?.[itemIdx]) {
+    state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
+  }
+  
+  // Save to backend
+  await saveShootClothing();
+  
+  // Visual feedback
+  showSaveStatus(modelIdx, itemIdx, 'item');
+  
+  if (btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Сохранено';
+    btn.style.background = 'var(--color-success, #10b981)';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = 'var(--color-primary)';
+    }, 1500);
+  }
+}
+
+async function saveLookPrompt(modelIdx, btn) {
+  // Get textarea value
+  const textarea = document.querySelector(`.look-prompt-input[data-model="${modelIdx}"]`);
+  if (!textarea) return;
+  
+  // Update state
+  if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
+  state.lookPrompts[modelIdx] = textarea.value;
+  
+  // Save to backend
+  await saveShootClothing();
+  
+  // Visual feedback
+  showSaveStatus(modelIdx, null, 'look');
+  
+  if (btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Сохранено';
+    btn.style.background = 'var(--color-success, #10b981)';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = 'var(--color-primary)';
+    }, 1500);
+  }
+}
+
+function showSaveStatus(modelIdx, itemIdx, type) {
+  let statusEl;
+  if (type === 'item') {
+    statusEl = document.querySelector(`.prompt-save-status[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
+  } else {
+    statusEl = document.querySelector(`.look-prompt-save-status[data-model="${modelIdx}"]`);
+  }
+  
+  if (statusEl) {
+    statusEl.textContent = '✅ Сохранено!';
+    statusEl.style.color = 'var(--color-success, #10b981)';
+    setTimeout(() => { statusEl.textContent = ''; }, 2000);
+  }
 }
 
 /**
@@ -2366,6 +2386,7 @@ async function init() {
   initEventListeners();
   initLightbox();
   initSettingsAutoSave();
+  initClothingEventDelegation(); // Надёжная обработка событий одежды
   
   await checkServerStatus();
   
