@@ -1804,10 +1804,11 @@ function renderGeneratedHistory() {
         <!-- Actions -->
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; gap: 8px;">
-            <a href="${frame.imageUrl}" download="custom-shoot-${idx}.png" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾</a>
+            <a href="${frame.imageUrl}" download="custom-shoot-${idx}.png" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Скачать">💾</a>
+            <button class="btn btn-secondary btn-copy-settings" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Применить настройки этого кадра">📋</button>
             <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock">🎨</button>
             <button class="btn btn-secondary btn-set-location-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Location Lock">🏠</button>
-            <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>
+            <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);" title="Удалить">✕</button>
           </div>
         </div>
         
@@ -1848,9 +1849,104 @@ function renderGeneratedHistory() {
     btn.addEventListener('click', () => setAsLocationRef(btn.dataset.imageId));
   });
   
+  elements.imagesGallery.querySelectorAll('.btn-copy-settings').forEach(btn => {
+    btn.addEventListener('click', () => copyFrameSettings(parseInt(btn.dataset.frameIndex)));
+  });
+  
   elements.imagesGallery.querySelectorAll('[data-delete-frame]').forEach(btn => {
     btn.addEventListener('click', () => deleteFrame(parseInt(btn.dataset.deleteFrame)));
   });
+}
+
+/**
+ * Copy settings from a generated frame to current settings
+ * Applies: Universe params, location, emotion, aspect ratio, image size, pose adherence, composition
+ * Does NOT apply: Frame/pose sketch (user chooses their own)
+ */
+function copyFrameSettings(frameIndex) {
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame) {
+    console.warn('Frame not found:', frameIndex);
+    return;
+  }
+  
+  console.log('[CopySettings] Copying settings from frame:', frame);
+  
+  // 1. Apply Universe params (all visual settings)
+  if (frame.universeParams) {
+    state.universeValues = { ...frame.universeParams };
+    
+    // Update all universe select elements
+    document.querySelectorAll('.universe-param-select').forEach(select => {
+      const paramId = select.dataset.paramId;
+      if (paramId && frame.universeParams[paramId] !== undefined) {
+        select.value = frame.universeParams[paramId];
+      }
+    });
+    
+    // Update narrative preview
+    updateNarrativePreview();
+  }
+  
+  // 2. Apply per-frame settings (location, emotion, aspect ratio, etc.)
+  
+  // Location
+  if (frame.locationId && elements.genLocation) {
+    // Find option by ID or label
+    const options = Array.from(elements.genLocation.options);
+    const match = options.find(opt => 
+      opt.value === frame.locationId || 
+      opt.textContent.includes(frame.locationLabel || '')
+    );
+    if (match) {
+      elements.genLocation.value = match.value;
+    }
+  }
+  
+  // Emotion
+  if (frame.emotionId && elements.genEmotion) {
+    const options = Array.from(elements.genEmotion.options);
+    const match = options.find(opt => opt.value === frame.emotionId);
+    if (match) {
+      elements.genEmotion.value = match.value;
+    }
+  }
+  
+  // Aspect ratio
+  if (frame.aspectRatio && elements.genAspectRatio) {
+    elements.genAspectRatio.value = frame.aspectRatio;
+  }
+  
+  // Image size
+  if (frame.imageSize && elements.genImageSize) {
+    elements.genImageSize.value = frame.imageSize;
+  }
+  
+  // Pose adherence
+  if (frame.poseAdherence && elements.genPoseAdherence) {
+    elements.genPoseAdherence.value = String(frame.poseAdherence);
+  }
+  
+  // Composition (shot size, camera angle)
+  if (frame.composition) {
+    if (frame.composition.shotSize && elements.genShotSize) {
+      elements.genShotSize.value = frame.composition.shotSize;
+    }
+    if (frame.composition.cameraAngle && elements.genCameraAngle) {
+      elements.genCameraAngle.value = frame.composition.cameraAngle;
+    }
+  }
+  
+  // Extra prompt
+  if (frame.extraPrompt && elements.genExtraPrompt) {
+    elements.genExtraPrompt.value = frame.extraPrompt;
+  }
+  
+  // Save updated settings
+  saveGenerationSettings();
+  
+  // Show confirmation
+  showToast('✅ Настройки применены! Выберите эскиз позы и нажмите «Генерировать»');
 }
 
 async function deleteFrame(index) {
@@ -2062,6 +2158,41 @@ function escapeHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * Show a toast notification
+ */
+function showToast(message, duration = 3000) {
+  // Remove existing toast
+  const existingToast = document.querySelector('.toast-notification');
+  if (existingToast) existingToast.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-surface-elevated, #1a1a1a);
+    color: var(--color-text, #fff);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 1px solid var(--color-border, #333);
+    z-index: 10000;
+    animation: toast-slide-up 0.3s ease;
+  `;
+  toast.textContent = message;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'toast-slide-down 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 }
 
 async function checkServerStatus() {

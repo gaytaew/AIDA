@@ -293,6 +293,34 @@
       outline: none;
       border-color: var(--color-primary);
     }
+    
+    /* Toast animations */
+    @keyframes toast-slide-up {
+      from {
+        transform: translateX(-50%) translateY(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes toast-slide-down {
+      from {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(-50%) translateY(100%);
+        opacity: 0;
+      }
+    }
+    
+    /* Spinner for generation placeholder */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
