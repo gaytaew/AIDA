@@ -286,8 +286,9 @@ ${reasoningSteps.join('\n')}`);
   
   if (useUniverse && universeParams) {
     // Определяем режим промпта: strict (новый) или soft (старый)
-    // По умолчанию используем strict для лучшей консистентности
-    const promptStyle = universeParams.promptStyle || 'strict';
+    // По умолчанию используем descriptive для описательного стиля арт-директора
+    // Доступные режимы: 'soft', 'strict', 'descriptive'
+    const promptStyle = universeParams.promptStyle || 'descriptive';
     
     const universeNarrative = buildUniverseNarrativeByMode(universeParams, promptStyle);
     if (universeNarrative) {
