@@ -182,7 +182,7 @@ function buildMoodNarrative(params) {
   const parts = [];
   
   // Emotional Vector
-  const emotion = getNarrative('mood', 'emotionalVector', params.emotionalVector);
+  const emotion = getNarrative('mood', 'visualMood', params.visualMood);
   if (emotion) parts.push(emotion);
   
   // Energy Level
@@ -555,16 +555,18 @@ const TECHNICAL_VALUES = {
     neutral: 'Neutral — use lens appropriate for shot, no forced correction'
   },
   
-  // Emotional vector
-  emotionalVector: {
-    playful_summer: 'Playful summer energy — light, fun, carefree',
-    moody_introspective: 'Moody introspective — contemplative, quiet intensity',
-    confident_powerful: 'Confident powerful — strong, commanding, bold',
-    vulnerable_intimate: 'Vulnerable intimate — raw, exposed, tender',
-    rebellious_edgy: 'Rebellious edgy — anti-establishment, attitude, tension',
-    serene_calm: 'Serene calm — peaceful, balanced, zen',
-    glamorous_luxe: 'Glamorous luxury — opulent, aspirational, refined',
-    raw_authentic: 'Raw authentic — unpolished, real, documentary feel'
+  // Visual Mood — VISUAL atmosphere, NOT model emotion
+  visualMood: {
+    playful_summer: 'Visual atmosphere: bright saturated colors, warm golden light, feeling of heat and summer joy',
+    confident_bold: 'Visual atmosphere: high contrast, strong shadows, bold composition, commanding presence in frame',
+    melancholic_romantic: 'Visual atmosphere: soft diffused light, muted pastel tones, slight haze, dreamy quality',
+    edgy_raw: 'Visual atmosphere: harsh contrasty shadows, gritty textures, visible imperfections, unpolished feel',
+    serene_calm: 'Visual atmosphere: soft even light, low contrast, muted colors, minimalist, peaceful',
+    energetic_dynamic: 'Visual atmosphere: dynamic camera angles, possible motion blur, vibrant color accents',
+    sensual: 'Visual atmosphere: warm skin tones, soft focus, intimate lighting, golden/amber palette',
+    mysterious: 'Visual atmosphere: deep shadows, parts hidden in darkness, dramatic chiaroscuro lighting',
+    fresh_clean: 'Visual atmosphere: high key, lots of white space, airy, minimal shadows, crisp',
+    gritty_urban: 'Visual atmosphere: urban textures, concrete, neon accents, night or twilight, street feel'
   },
   
   // Primary focus
@@ -892,7 +894,7 @@ ${forbidden.map(f => `✗ ${f}`).join('\n')}`);
   if (product) approachParts.push(product);
   
   // Emotional vector
-  const emotionVec = TECHNICAL_VALUES.emotionalVector[params.emotionalVector] || '';
+  const emotionVec = TECHNICAL_VALUES.visualMood[params.visualMood] || '';
   if (emotionVec) approachParts.push(`Emotional tone: ${emotionVec}`);
   
   // Primary focus
@@ -1142,17 +1144,19 @@ const DESCRIPTIVE_EFFECTS = {
   },
   
   // ───────────────────────────────────────────────────────────────
-  // EMOTIONAL VECTOR — эмоциональное направление
+  // VISUAL MOOD — визуальная атмосфера (НЕ эмоция модели!)
   // ───────────────────────────────────────────────────────────────
-  emotionalVector: {
-    playful_summer: 'Лето, дерзость и игра: ощущение жара от поверхности, коротких резких теней, смеха и спонтанности — «мы на площадке, нам весело, мы немного позируем, но не слишком стараемся»',
-    moody_introspective: 'Задумчивая интроспекция — тихая интенсивность, взгляд внутрь себя, меланхолия без депрессии',
-    confident_powerful: 'Уверенность и сила — командное присутствие, взгляд «я знаю себе цену»',
-    vulnerable_intimate: 'Уязвимость и интимность — открытость, нежность, незащищённость как сила',
-    rebellious_edgy: 'Бунт и edge — антисистемная энергия, attitude, внутреннее напряжение',
-    serene_calm: 'Безмятежность — мир, баланс, zen-состояние',
-    glamorous_luxe: 'Гламур и роскошь — opulent, aspirational, утончённая элегантность',
-    raw_authentic: 'Raw authenticity — без полировки, честность момента, документальное ощущение'
+  visualMood: {
+    playful_summer: 'Визуальная атмосфера летняя и игривая: яркие насыщенные цвета, тёплый золотистый свет, ощущение жары — короткие резкие тени, блики на коже, эффект «залитости солнцем»',
+    confident_bold: 'Визуальная атмосфера уверенная и дерзкая: высокий контраст, глубокие чёрные тени, сильные геометрические формы в композиции, доминирующие линии',
+    melancholic_romantic: 'Визуальная атмосфера меланхоличная: мягкий рассеянный свет, приглушённые пастельные тона, лёгкая дымка в воздухе, мечтательное качество изображения',
+    edgy_raw: 'Визуальная атмосфера острая и raw: жёсткие контрастные тени, грязные текстуры видны, зерно плёнки или цифровой шум, несовершенства как часть эстетики',
+    serene_calm: 'Визуальная атмосфера спокойная: мягкий ровный свет, низкий контраст, приглушённые нежные цвета, минималистичная композиция, много воздуха в кадре',
+    energetic_dynamic: 'Визуальная атмосфера энергичная: динамичные ракурсы камеры, возможен motion blur, яркие цветовые акценты, диагональные линии, ощущение движения',
+    sensual: 'Визуальная атмосфера чувственная: тёплые телесные тона (персиковый, золотистый), мягкий фокус, интимное боковое освещение, shallow DOF',
+    mysterious: 'Визуальная атмосфера загадочная: глубокие тени скрывают части кадра, chiaroscuro, драматичный направленный свет, недосказанность',
+    fresh_clean: 'Визуальная атмосфера свежая и чистая: high-key освещение, много белого пространства, воздушность, минимум теней, crisp резкость',
+    gritty_urban: 'Визуальная атмосфера гритти/урбан: городские текстуры (бетон, металл), неоновые цветовые акценты, ночь или сумерки, уличное ощущение'
   },
   
   // ───────────────────────────────────────────────────────────────
@@ -1383,7 +1387,7 @@ function buildDescriptiveUniverseNarrative(params) {
   
   const moodParts = [];
   
-  const emotion = DESCRIPTIVE_EFFECTS.emotionalVector[params.emotionalVector];
+  const emotion = DESCRIPTIVE_EFFECTS.visualMood[params.visualMood];
   if (emotion) moodParts.push(emotion);
   
   const energy = DESCRIPTIVE_EFFECTS.energyLevel[params.energyLevel];
@@ -1527,7 +1531,7 @@ function getDefaultParams() {
     cameraProximity: 'close',
     
     // Mood
-    emotionalVector: 'playful_summer',
+    visualMood: 'playful_summer',
     energyLevel: 'high',
     spontaneity: 'semi_candid',
     primaryFocus: 'product',

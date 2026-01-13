@@ -10,11 +10,13 @@ import {
   EMOTION_PRESETS,
   INTENSITY_LEVELS,
   GLOBAL_EMOTION_RULES,
+  MOOD_EMOTION_COMPATIBILITY,
   getEmotionsByCategory,
   getEmotionById,
   getAllEmotions,
   getEmotionOptions,
-  buildEmotionPrompt
+  buildEmotionPrompt,
+  checkMoodEmotionCompatibility
 } from '../schema/emotion.js';
 
 const router = express.Router();
@@ -98,10 +100,11 @@ router.get('/category/:category', (req, res) => {
   try {
     const { category } = req.params;
     
-    if (!EMOTION_CATEGORIES.includes(category)) {
+    const validCategoryIds = EMOTION_CATEGORIES.map(c => c.id);
+    if (!validCategoryIds.includes(category)) {
       return res.status(400).json({
         ok: false,
-        error: `Invalid category. Valid: ${EMOTION_CATEGORIES.join(', ')}`
+        error: `Invalid category. Valid: ${validCategoryIds.join(', ')}`
       });
     }
     
@@ -113,6 +116,48 @@ router.get('/category/:category', (req, res) => {
     });
   } catch (err) {
     console.error('[Emotion] Category error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/emotions/check-compatibility — Check mood/emotion compatibility
+ * Body: { visualMood: string, emotionId: string }
+ */
+router.post('/check-compatibility', (req, res) => {
+  try {
+    const { visualMood, emotionId } = req.body;
+    
+    if (!visualMood || !emotionId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Both visualMood and emotionId are required'
+      });
+    }
+    
+    const result = checkMoodEmotionCompatibility(visualMood, emotionId);
+    
+    res.json({
+      ok: true,
+      data: result
+    });
+  } catch (err) {
+    console.error('[Emotion] Compatibility check error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/emotions/compatibility — Get all mood/emotion compatibility rules
+ */
+router.get('/compatibility', (req, res) => {
+  try {
+    res.json({
+      ok: true,
+      data: MOOD_EMOTION_COMPATIBILITY
+    });
+  } catch (err) {
+    console.error('[Emotion] Compatibility data error:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

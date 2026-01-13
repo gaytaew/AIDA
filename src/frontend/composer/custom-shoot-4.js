@@ -1456,11 +1456,42 @@ function renderGeneratePage() {
     elements.genLocation.innerHTML += `<option value="${loc.id}">${escapeHtml(loc.label)}</option>`;
   });
   
-  // Populate emotion dropdown
-  elements.genEmotion.innerHTML = '<option value="">Нейтральная</option>';
+  // Populate emotion dropdown (grouped by energy category)
+  elements.genEmotion.innerHTML = '<option value="">Нейтральная (без эмоции)</option>';
+  
+  // Group emotions by category
+  const emotionsByCategory = {};
   state.emotions.forEach(e => {
-    elements.genEmotion.innerHTML += `<option value="${e.id}">${e.label}</option>`;
+    if (!emotionsByCategory[e.category]) {
+      emotionsByCategory[e.category] = [];
+    }
+    emotionsByCategory[e.category].push(e);
   });
+  
+  // Category labels
+  const categoryLabels = {
+    'energy_low': '🌙 Тихие',
+    'energy_medium': '⚡ Активные',
+    'energy_high': '🔥 Яркие',
+    'camera_aware': '📷 С камерой',
+    'transitional': '✨ Переходные'
+  };
+  
+  // Render grouped options
+  for (const [catId, emotions] of Object.entries(emotionsByCategory)) {
+    if (emotions.length > 0) {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = categoryLabels[catId] || catId;
+      emotions.forEach(e => {
+        const option = document.createElement('option');
+        option.value = e.id;
+        option.textContent = e.label;
+        option.title = e.shortDescription || '';
+        optgroup.appendChild(option);
+      });
+      elements.genEmotion.appendChild(optgroup);
+    }
+  }
   
   // Apply saved generation settings AFTER populating dropdowns
   applyGenerationSettings(state.generationSettings);
