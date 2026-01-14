@@ -748,14 +748,25 @@ export async function getCustomShootWithImages(id, options = {}) {
     // Convert stored image paths to API URLs (FAST — no file reading)
     if (shoot.generatedImages?.length > 0) {
       shoot.generatedImages = shoot.generatedImages.map((img) => {
-        if (img.imageUrl && isStoredImagePath(img.imageUrl)) {
-          return { 
-            ...img, 
-            imageUrl: `/api/custom-shoots/${id}/images/${img.id}`,
-            _storedPath: img.imageUrl
-          };
+        const result = { ...img };
+        
+        // Convert main image path to URL
+        if (result.imageUrl && isStoredImagePath(result.imageUrl)) {
+          result.imageUrl = `/api/custom-shoots/${id}/images/${result.id}`;
+          result._storedPath = img.imageUrl;
         }
-        return img;
+        
+        // SLIM MODE: Strip refs base64 (model/clothing previews saved with each frame)
+        if (slim && result.refs?.length > 0) {
+          result.refs = result.refs.map(ref => {
+            if (ref.previewUrl && ref.previewUrl.startsWith('data:image')) {
+              return { ...ref, previewUrl: null, _stripped: true };
+            }
+            return ref;
+          });
+        }
+        
+        return result;
       });
       
       // Sort by createdAt descending (newest first)
@@ -802,7 +813,18 @@ export async function getCustomShootWithImages(id, options = {}) {
           }
         }
       }
-      console.log(`[CustomShootStore] Slim mode: stripped ${strippedCount} base64 images from clothing`);
+      if (strippedCount > 0) {
+        console.log(`[CustomShootStore] Slim: stripped ${strippedCount} clothing images`);
+      }
+    }
+    
+    if (slim) {
+      // Count refs stripped
+      const refsStripped = shoot.generatedImages?.reduce((sum, img) => 
+        sum + (img.refs?.filter(r => r._stripped)?.length || 0), 0) || 0;
+      if (refsStripped > 0) {
+        console.log(`[CustomShootStore] Slim: stripped ${refsStripped} ref previews`);
+      }
     }
     
     return shoot;
