@@ -17,7 +17,7 @@
 async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  
+
   try {
     const response = await fetch(url, {
       ...options,
@@ -41,7 +41,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
 const state = {
   currentStep: 'shoot',
   currentShoot: null,
-  
+
   // Available entities (loaded from API)
   shoots: [],
   models: [],
@@ -49,31 +49,31 @@ const state = {
   locations: [],
   emotions: [],
   emotionCategories: [],
-  
+
   // Selected for current shoot
   selectedModels: [null, null, null],
   clothingByModel: [[], [], []], // Array of ClothingItem[] for each model
   lookPrompts: ['', '', ''], // General look prompt for each model
-  
+
   // Generated frames history
   generatedFrames: [],
-  
+
   // GLOBAL generation lock - prevents multiple simultaneous generations
   isGenerating: false,
-  
+
   // Reference Locks state (Location Lock removed - location is implied in Style Lock)
   styleLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
-  
+
   // Generation settings (persisted per shoot)
   generationSettings: {},
-  
+
   // Universe params (Custom Shoot 5 - V5 Smart System)
   universeParams: null,       // Schema from API (for compatibility)
   universeBlocks: [],         // Block structure for UI
   universeDefaults: {},       // Default values
   universeValues: {},         // Current selected values (for compatibility)
   narrativePreview: null,     // Generated narrative preview
-  
+
   // V5 Smart System
   v5Schema: null,             // V5 schema (technical, artistic, context)
   v5Values: {},               // V5 current values
@@ -91,17 +91,17 @@ const elements = {};
 
 function initElements() {
   elements.serverStatus = document.getElementById('server-status');
-  
+
   // Step navigation
   elements.stepItems = document.querySelectorAll('.step-item');
   elements.stepPanels = document.querySelectorAll('.step-panel');
-  
+
   // Step 1: Shoot
   elements.shootsList = document.getElementById('shoots-list');
   elements.btnNewShoot = document.getElementById('btn-new-shoot');
   elements.btnNextToModels = document.getElementById('btn-next-to-models');
   elements.stepShootStatus = document.getElementById('step-shoot-status');
-  
+
   // Step 2: Models
   elements.modelSlots = document.getElementById('model-slots');
   elements.modelsGrid = document.getElementById('models-grid');
@@ -109,13 +109,13 @@ function initElements() {
   elements.btnBackToShoot = document.getElementById('btn-back-to-shoot');
   elements.btnNextToClothing = document.getElementById('btn-next-to-clothing');
   elements.stepModelsStatus = document.getElementById('step-models-status');
-  
+
   // Step 3: Clothing
   elements.clothingSections = document.getElementById('clothing-sections');
   elements.btnBackToModels = document.getElementById('btn-back-to-models');
   elements.btnNextToFrames = document.getElementById('btn-next-to-frames');
   elements.stepClothingStatus = document.getElementById('step-clothing-status');
-  
+
   // Step 4: Generate (frames are selected directly here)
   elements.btnBackToFrames = document.getElementById('btn-back-to-frames');
   elements.btnClearHistory = document.getElementById('btn-clear-history');
@@ -123,7 +123,7 @@ function initElements() {
   elements.generationCount = document.getElementById('generation-count');
   elements.framesToGenerate = document.getElementById('frames-to-generate');
   elements.stepGenerateStatus = document.getElementById('step-generate-status');
-  
+
   // Generation controls (per-frame only)
   elements.genLocation = document.getElementById('gen-location');
   elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
@@ -131,11 +131,11 @@ function initElements() {
   elements.genImageSize = document.getElementById('gen-image-size');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
-  
+
   // Composition controls (per-frame: shot size and camera angle)
   elements.genShotSize = document.getElementById('gen-shot-size');
   elements.genCameraAngle = document.getElementById('gen-camera-angle');
-  
+
   // NOTE: Legacy controls removed - now controlled via Universe params:
   // - genCaptureStyle, genColor, genSkinTexture, genEra
   // - genShootType, genCameraAesthetic, genLightingSource, genLightingQuality
@@ -144,7 +144,7 @@ function initElements() {
   // - genFocusMode, genLensFocal
   // - genModelBehavior
   // - genWeather, genTimeOfDay, genSeason, genAtmosphere
-  
+
   // Lock controls (Location Lock removed - location is implied in Style Lock)
   elements.styleLockOff = document.getElementById('style-lock-off');
   elements.styleLockStrict = document.getElementById('style-lock-strict');
@@ -166,32 +166,32 @@ function initEventListeners() {
       }
     });
   });
-  
+
   // Step 1: Shoot
   elements.btnNewShoot.addEventListener('click', createNewShoot);
   elements.btnNextToModels.addEventListener('click', () => goToStep('models'));
-  
+
   // Step 2: Models
   elements.btnBackToShoot.addEventListener('click', () => goToStep('shoot'));
   elements.btnNextToClothing.addEventListener('click', () => goToStep('clothing'));
-  
+
   // Step 3: Clothing (now goes directly to generate, skipping frames step)
   elements.btnBackToModels.addEventListener('click', () => goToStep('models'));
   elements.btnNextToFrames.addEventListener('click', () => goToStep('generate'));
-  
+
   // Step 4: Frames (kept for backward compatibility but not used in navigation)
   elements.btnBackToClothing?.addEventListener('click', () => goToStep('clothing'));
   elements.btnNextToGenerate?.addEventListener('click', () => goToStep('generate'));
-  
+
   // Step 5: Generate (now step 4)
   elements.btnBackToFrames.addEventListener('click', () => goToStep('clothing'));
   elements.btnClearHistory.addEventListener('click', clearGenerationHistory);
-  
+
   // Lock buttons (Location Lock removed - location is implied in Style Lock)
   elements.styleLockOff.addEventListener('click', () => setStyleLockMode('off'));
   elements.styleLockStrict.addEventListener('click', () => setStyleLockMode('strict'));
   elements.styleLockSoft.addEventListener('click', () => setStyleLockMode('soft'));
-  
+
   // DELEGATED event handler for generate buttons (won't break on DOM re-renders)
   elements.framesToGenerate.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-gen-frame');
@@ -201,7 +201,7 @@ function initEventListeners() {
       generateFrame(btn.dataset.frameId || null);
     }
   });
-  
+
   // DELEGATED event handler for gallery buttons
   elements.imagesGallery.addEventListener('click', (e) => {
     const lightboxBtn = e.target.closest('.btn-open-lightbox');
@@ -209,13 +209,13 @@ function initEventListeners() {
       openLightbox(parseInt(lightboxBtn.dataset.frameIndex));
       return;
     }
-    
+
     const styleRefBtn = e.target.closest('.btn-set-style-ref');
     if (styleRefBtn) {
       setAsStyleRef(styleRefBtn.dataset.imageId);
       return;
     }
-    
+
     const deleteBtn = e.target.closest('[data-delete-frame]');
     if (deleteBtn) {
       deleteFrame(parseInt(deleteBtn.dataset.deleteFrame));
@@ -230,7 +230,7 @@ function initEventListeners() {
 
 function goToStep(stepId) {
   state.currentStep = stepId;
-  
+
   // Update step items
   elements.stepItems.forEach(item => {
     item.classList.remove('active');
@@ -238,7 +238,7 @@ function goToStep(stepId) {
       item.classList.add('active');
     }
   });
-  
+
   // Update step panels
   elements.stepPanels.forEach(panel => {
     panel.classList.remove('active');
@@ -246,7 +246,7 @@ function goToStep(stepId) {
       panel.classList.add('active');
     }
   });
-  
+
   // Run step-specific logic
   switch (stepId) {
     case 'models':
@@ -263,7 +263,7 @@ function goToStep(stepId) {
       renderGeneratePage();
       break;
   }
-  
+
   updateStepStatuses();
 }
 
@@ -271,12 +271,12 @@ function updateStepStatuses() {
   const hasShoot = !!state.currentShoot;
   const hasModels = state.selectedModels.filter(m => m !== null).length > 0;
   const modelCount = state.selectedModels.filter(m => m !== null).length;
-  
+
   // Update step lock status
   elements.stepItems.forEach(item => {
     const step = item.dataset.step;
     let locked = false;
-    
+
     switch (step) {
       case 'shoot':
         locked = false;
@@ -291,10 +291,10 @@ function updateStepStatuses() {
         locked = !hasModels;
         break;
     }
-    
+
     item.classList.toggle('locked', locked);
   });
-  
+
   // Update status badges
   if (hasShoot) {
     elements.stepShootStatus.textContent = state.currentShoot.label;
@@ -303,25 +303,25 @@ function updateStepStatuses() {
     elements.stepShootStatus.textContent = 'Не выбрано';
     elements.stepShootStatus.className = 'step-status pending';
   }
-  
+
   elements.stepModelsStatus.textContent = `${modelCount} / 3`;
   elements.stepModelsStatus.className = modelCount > 0 ? 'step-status ready' : 'step-status pending';
-  
+
   // Check if any model has clothing items (with images OR prompts)
-  const hasClothing = state.clothingByModel.some(items => 
-    items.length > 0 && items.some(item => 
-      (item.images && item.images.length > 0) || 
+  const hasClothing = state.clothingByModel.some(items =>
+    items.length > 0 && items.some(item =>
+      (item.images && item.images.length > 0) ||
       (item.prompt && item.prompt.trim())
     )
   );
   elements.stepClothingStatus.textContent = hasClothing ? 'Загружено' : 'Опционально';
   elements.stepClothingStatus.className = hasClothing ? 'step-status ready' : 'step-status pending';
-  
+
   // Generate step status - show frame count from catalog
   const frameCount = state.frames.length;
   elements.stepGenerateStatus.textContent = frameCount > 0 ? `${frameCount} кадров` : '—';
   elements.stepGenerateStatus.className = frameCount > 0 ? 'step-status ready' : 'step-status pending';
-  
+
   // Update navigation buttons
   elements.btnNextToModels.disabled = !hasShoot;
   elements.btnNextToClothing.disabled = !hasModels;
@@ -356,7 +356,7 @@ function renderShootsList() {
     `;
     return;
   }
-  
+
   elements.shootsList.innerHTML = state.shoots.map(shoot => `
     <div class="shoot-card ${state.currentShoot?.id === shoot.id ? 'selected' : ''}" 
          data-shoot-id="${shoot.id}">
@@ -375,7 +375,7 @@ function renderShootsList() {
       </button>
     </div>
   `).join('');
-  
+
   // Add click handlers
   elements.shootsList.querySelectorAll('.shoot-card').forEach(card => {
     card.addEventListener('click', (e) => {
@@ -383,7 +383,7 @@ function renderShootsList() {
       selectShoot(card.dataset.shootId);
     });
   });
-  
+
   // Add delete handlers
   elements.shootsList.querySelectorAll('.btn-delete-shoot').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -396,7 +396,7 @@ function renderShootsList() {
 async function createNewShoot() {
   const label = prompt('Название съёмки:', 'Custom Shoot');
   if (!label) return;
-  
+
   try {
     const res = await fetchWithTimeout('/api/custom-shoots', {
       method: 'POST',
@@ -441,7 +441,7 @@ async function selectShoot(shootId) {
 
 function loadShootState() {
   if (!state.currentShoot) return;
-  
+
   // Load models
   state.selectedModels = [null, null, null];
   if (state.currentShoot.models) {
@@ -451,21 +451,21 @@ function loadShootState() {
       }
     });
   }
-  
+
   // Load clothing (new format with grouped items)
   state.clothingByModel = [[], [], []];
   state.lookPrompts = ['', '', ''];
-  
+
   console.log('[LoadClothing] Raw clothing from shoot:', state.currentShoot.clothing);
   console.log('[LoadClothing] Raw lookPrompts from shoot:', state.currentShoot.lookPrompts);
-  
+
   if (state.currentShoot.clothing) {
     state.currentShoot.clothing.forEach(c => {
       if (c.forModelIndex >= 0 && c.forModelIndex < 3) {
         // Check if it's new format (items) or old format (refs)
         if (c.items) {
           // New format
-          console.log('[LoadClothing] Loading items for model', c.forModelIndex, ':', 
+          console.log('[LoadClothing] Loading items for model', c.forModelIndex, ':',
             c.items.map(item => ({ name: item.name, promptLen: item.prompt?.length, imagesCount: item.images?.length }))
           );
           state.clothingByModel[c.forModelIndex] = c.items;
@@ -477,7 +477,7 @@ function loadShootState() {
       }
     });
   }
-  
+
   // Load look prompts
   if (state.currentShoot.lookPrompts) {
     state.currentShoot.lookPrompts.forEach(lp => {
@@ -486,7 +486,7 @@ function loadShootState() {
       }
     });
   }
-  
+
   // Load generated images (isLocationReference removed - location implied in style)
   state.generatedFrames = (state.currentShoot.generatedImages || []).map(img => ({
     ...img, // Load ALL saved properties (prompt, refs, composition, settings, etc.)
@@ -495,10 +495,10 @@ function loadShootState() {
     // Ensure booleans
     isStyleReference: !!img.isStyleReference
   }));
-  
+
   // Load locks (Location Lock removed - location is implied in Style Lock)
   state.styleLock = state.currentShoot.locks?.style || { enabled: false, mode: null, imageId: null, imageUrl: null };
-  
+
   // Load generation settings
   state.generationSettings = state.currentShoot.generationSettings || {};
 }
@@ -509,34 +509,34 @@ function loadShootState() {
  */
 async function loadClothingImagesIfNeeded() {
   if (!state.currentShoot) return;
-  
+
   // Check if any clothing images have _placeholder flag (were stripped in slim mode)
   const hasPlaceholders = state.clothingByModel.some(items =>
-    items.some(item => 
+    items.some(item =>
       item.images?.some(img => img._placeholder)
     )
   );
-  
+
   if (!hasPlaceholders) {
     console.log('[LoadClothing] No placeholders found, images already loaded');
     return;
   }
-  
+
   console.log('[LoadClothing] Detected placeholders, reloading full clothing data...');
-  
+
   try {
     // Reload shoot WITHOUT slim mode to get full clothing images
     const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {}, 10000);
     const data = await res.json();
-    
+
     if (data.ok && data.shoot.clothing) {
       // Update only clothing data (preserve other state)
       state.clothingByModel = [[], [], []];
-      
+
       data.shoot.clothing.forEach(c => {
         if (c.forModelIndex >= 0 && c.forModelIndex < 3) {
           if (c.items) {
-            console.log('[LoadClothing] Reloaded items for model', c.forModelIndex, ':', 
+            console.log('[LoadClothing] Reloaded items for model', c.forModelIndex, ':',
               c.items.map(item => ({ name: item.name, imagesCount: item.images?.length }))
             );
             state.clothingByModel[c.forModelIndex] = c.items;
@@ -546,7 +546,7 @@ async function loadClothingImagesIfNeeded() {
           }
         }
       });
-      
+
       console.log('[LoadClothing] Full clothing data reloaded successfully');
     }
   } catch (e) {
@@ -556,11 +556,11 @@ async function loadClothingImagesIfNeeded() {
 
 async function deleteShoot(shootId) {
   if (!confirm('Удалить этот Custom Shoot?')) return;
-  
+
   try {
     const res = await fetchWithTimeout(`/api/custom-shoots/${shootId}`, { method: 'DELETE' }, 5000);
     const data = await res.json();
-    
+
     if (data.ok) {
       state.shoots = state.shoots.filter(s => s.id !== shootId);
       if (state.currentShoot?.id === shootId) {
@@ -595,10 +595,10 @@ async function loadModels() {
 
 function renderModelSlots() {
   const slots = elements.modelSlots.querySelectorAll('.model-slot');
-  
+
   slots.forEach((slot, index) => {
     const model = state.selectedModels[index];
-    
+
     if (model) {
       slot.classList.add('filled');
       slot.innerHTML = `
@@ -615,14 +615,14 @@ function renderModelSlots() {
         <div class="model-slot-label">Модель ${index + 1}${index > 0 ? ' (опц.)' : ''}</div>
       `;
     }
-    
+
     slot.onclick = () => {
       if (!state.selectedModels[index]) {
         showModelPicker(index);
       }
     };
   });
-  
+
   elements.modelSlots.querySelectorAll('.model-slot-remove').forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
@@ -645,12 +645,12 @@ function renderAvailableModels() {
     `;
     return;
   }
-  
+
   elements.availableModels.style.display = 'block';
-  
+
   const selectedIds = state.selectedModels.filter(m => m).map(m => m.id);
   const availableModels = state.models.filter(m => !selectedIds.includes(m.id));
-  
+
   if (availableModels.length === 0) {
     elements.modelsGrid.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 30px;">
@@ -659,7 +659,7 @@ function renderAvailableModels() {
     `;
     return;
   }
-  
+
   elements.modelsGrid.innerHTML = availableModels.map(m => `
     <div class="selection-card" data-model-id="${m.id}">
       ${m.previewSrc ? `
@@ -670,7 +670,7 @@ function renderAvailableModels() {
       <div class="selection-card-title">${escapeHtml(m.name)}</div>
     </div>
   `).join('');
-  
+
   elements.modelsGrid.querySelectorAll('.selection-card').forEach(card => {
     card.addEventListener('click', () => {
       const model = state.models.find(m => m.id === card.dataset.modelId);
@@ -682,12 +682,12 @@ function renderAvailableModels() {
 function showModelPicker(slotIndex) {
   const selectedIds = state.selectedModels.filter(m => m).map(m => m.id);
   const availableModels = state.models.filter(m => !selectedIds.includes(m.id));
-  
+
   if (availableModels.length === 0) {
     alert('Нет доступных моделей.');
     return;
   }
-  
+
   addModel(slotIndex, availableModels[0]);
 }
 
@@ -702,13 +702,13 @@ function addModelToFirstEmptySlot(model) {
 
 async function addModel(slotIndex, model) {
   if (!state.currentShoot) return;
-  
+
   // Update local state
   state.selectedModels[slotIndex] = model;
-  
+
   // Update on server
   await saveShootModels();
-  
+
   renderModelSlots();
   renderAvailableModels();
   updateStepStatuses();
@@ -717,9 +717,9 @@ async function addModel(slotIndex, model) {
 async function removeModel(slotIndex) {
   state.selectedModels[slotIndex] = null;
   state.clothingByModel[slotIndex] = [];
-  
+
   await saveShootModels();
-  
+
   renderModelSlots();
   renderAvailableModels();
   updateStepStatuses();
@@ -727,11 +727,11 @@ async function removeModel(slotIndex) {
 
 async function saveShootModels() {
   if (!state.currentShoot) return;
-  
+
   const models = state.selectedModels
     .filter(m => m !== null)
     .map(m => ({ modelId: m.id }));
-  
+
   try {
     await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
       method: 'PUT',
@@ -759,9 +759,9 @@ function renderClothingSections() {
     }))
   })));
   console.log('[RenderClothing] state.lookPrompts:', state.lookPrompts);
-  
+
   const activeModels = state.selectedModels.filter(m => m !== null);
-  
+
   if (activeModels.length === 0) {
     elements.clothingSections.innerHTML = `
       <div class="empty-state">
@@ -771,13 +771,13 @@ function renderClothingSections() {
     `;
     return;
   }
-  
+
   elements.clothingSections.innerHTML = state.selectedModels.map((model, index) => {
     if (!model) return '';
-    
+
     const items = state.clothingByModel[index] || [];
     const lookPrompt = state.lookPrompts?.[index] || '';
-    
+
     return `
       <div class="clothing-section" data-model-index="${index}">
         <div class="clothing-section-header">
@@ -821,7 +821,7 @@ function renderClothingSections() {
       </div>
     `;
   }).join('');
-  
+
   // Используем делегирование событий — один listener на весь контейнер
   // Это работает надёжно даже после перерисовки HTML
 }
@@ -835,21 +835,21 @@ let clothingEventsInitialized = false;
 function initClothingEventDelegation() {
   if (clothingEventsInitialized) return;
   clothingEventsInitialized = true;
-  
+
   const container = document.getElementById('clothing-sections');
   if (!container) return;
-  
+
   // CLICK events
   container.addEventListener('click', async (e) => {
     const target = e.target;
-    
+
     // Add new clothing item
     if (target.classList.contains('add-clothing-item-btn')) {
       const modelIdx = parseInt(target.dataset.model);
       addNewClothingItem(modelIdx);
       return;
     }
-    
+
     // Remove item image
     if (target.classList.contains('remove-item-image-btn')) {
       e.stopPropagation();
@@ -859,7 +859,7 @@ function initClothingEventDelegation() {
       removeImageFromClothingItem(modelIdx, itemIdx, imgIdx);
       return;
     }
-    
+
     // Remove entire item
     if (target.classList.contains('remove-item-btn')) {
       e.stopPropagation();
@@ -868,7 +868,7 @@ function initClothingEventDelegation() {
       removeClothingItem(modelIdx, itemIdx);
       return;
     }
-    
+
     // Save item prompt button
     if (target.classList.contains('btn-save-item-prompt')) {
       const modelIdx = parseInt(target.dataset.model);
@@ -876,7 +876,7 @@ function initClothingEventDelegation() {
       await saveItemPrompt(modelIdx, itemIdx, target);
       return;
     }
-    
+
     // Save look prompt button
     if (target.classList.contains('btn-save-look-prompt')) {
       const modelIdx = parseInt(target.dataset.model);
@@ -884,11 +884,11 @@ function initClothingEventDelegation() {
       return;
     }
   });
-  
+
   // CHANGE events (для file inputs и selects)
   container.addEventListener('change', (e) => {
     const target = e.target;
-    
+
     // Add image to item
     if (target.classList.contains('add-image-to-item-input')) {
       const modelIdx = parseInt(target.dataset.model);
@@ -896,7 +896,7 @@ function initClothingEventDelegation() {
       handleAddImageToItem(e, modelIdx, itemIdx);
       return;
     }
-    
+
     // Image view selector
     if (target.classList.contains('image-view-select')) {
       const modelIdx = parseInt(target.dataset.model);
@@ -909,11 +909,11 @@ function initClothingEventDelegation() {
       return;
     }
   });
-  
+
   // BLUR events (сохраняем при потере фокуса — надёжнее чем debounce)
   container.addEventListener('blur', async (e) => {
     const target = e.target;
-    
+
     // Item prompt — save on blur
     if (target.classList.contains('item-prompt-input')) {
       const modelIdx = parseInt(target.dataset.model);
@@ -925,7 +925,7 @@ function initClothingEventDelegation() {
       }
       return;
     }
-    
+
     // Item name — save on blur
     if (target.classList.contains('item-name-input')) {
       const modelIdx = parseInt(target.dataset.model);
@@ -936,7 +936,7 @@ function initClothingEventDelegation() {
       }
       return;
     }
-    
+
     // Look prompt — save on blur
     if (target.classList.contains('look-prompt-input')) {
       const modelIdx = parseInt(target.dataset.model);
@@ -953,18 +953,18 @@ async function saveItemPrompt(modelIdx, itemIdx, btn) {
   // Get textarea value
   const textarea = document.querySelector(`.item-prompt-input[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
   if (!textarea) return;
-  
+
   // Update state
   if (state.clothingByModel[modelIdx]?.[itemIdx]) {
     state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
   }
-  
+
   // Save to backend
   await saveShootClothing();
-  
+
   // Visual feedback
   showSaveStatus(modelIdx, itemIdx, 'item');
-  
+
   if (btn) {
     const originalText = btn.textContent;
     btn.textContent = '✓ Сохранено';
@@ -980,17 +980,17 @@ async function saveLookPrompt(modelIdx, btn) {
   // Get textarea value
   const textarea = document.querySelector(`.look-prompt-input[data-model="${modelIdx}"]`);
   if (!textarea) return;
-  
+
   // Update state
   if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
   state.lookPrompts[modelIdx] = textarea.value;
-  
+
   // Save to backend
   await saveShootClothing();
-  
+
   // Visual feedback
   showSaveStatus(modelIdx, null, 'look');
-  
+
   if (btn) {
     const originalText = btn.textContent;
     btn.textContent = '✓ Сохранено';
@@ -1009,7 +1009,7 @@ function showSaveStatus(modelIdx, itemIdx, type) {
   } else {
     statusEl = document.querySelector(`.look-prompt-save-status[data-model="${modelIdx}"]`);
   }
-  
+
   if (statusEl) {
     statusEl.textContent = '✅ Сохранено!';
     statusEl.style.color = 'var(--color-success, #10b981)';
@@ -1030,7 +1030,7 @@ function renderClothingItemCard(item, modelIndex, itemIndex) {
     { id: 'flat_lay', label: 'Flat lay' },
     { id: 'other', label: 'Другое' }
   ];
-  
+
   return `
     <div class="clothing-item-card" data-model="${modelIndex}" data-item="${itemIndex}" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
       <!-- Header: Name + Remove button -->
@@ -1101,13 +1101,13 @@ function addNewClothingItem(modelIndex) {
     images: [],
     createdAt: new Date().toISOString()
   };
-  
+
   if (!state.clothingByModel[modelIndex]) {
     state.clothingByModel[modelIndex] = [];
   }
-  
+
   state.clothingByModel[modelIndex].push(newItem);
-  
+
   saveShootClothing();
   renderClothingSections();
   updateStepStatuses();
@@ -1118,10 +1118,10 @@ function addNewClothingItem(modelIndex) {
  */
 async function handleAddImageToItem(event, modelIndex, itemIndex) {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('image/'));
-  
+
   const item = state.clothingByModel[modelIndex]?.[itemIndex];
   if (!item) return;
-  
+
   for (const file of files) {
     const dataUrl = await fileToDataUrl(file);
     if (!item.images) item.images = [];
@@ -1132,11 +1132,11 @@ async function handleAddImageToItem(event, modelIndex, itemIndex) {
       uploadedAt: new Date().toISOString()
     });
   }
-  
+
   await saveShootClothing();
   renderClothingSections();
   updateStepStatuses();
-  
+
   event.target.value = '';
 }
 
@@ -1146,9 +1146,9 @@ async function handleAddImageToItem(event, modelIndex, itemIndex) {
 function removeImageFromClothingItem(modelIndex, itemIndex, imageIndex) {
   const item = state.clothingByModel[modelIndex]?.[itemIndex];
   if (!item?.images) return;
-  
+
   item.images.splice(imageIndex, 1);
-  
+
   saveShootClothing();
   renderClothingSections();
   updateStepStatuses();
@@ -1169,24 +1169,24 @@ function removeClothingItem(modelIndex, itemIndex) {
  */
 async function saveShootClothing() {
   if (!state.currentShoot) return;
-  
+
   // Save clothing items (new format with grouped images)
   // Keep items that have at least images OR a prompt (even without images)
   const clothing = state.clothingByModel.map((items, index) => ({
     forModelIndex: index,
-    items: items.filter(item => 
-      (item.images && item.images.length > 0) || 
+    items: items.filter(item =>
+      (item.images && item.images.length > 0) ||
       (item.prompt && item.prompt.trim()) ||
       (item.name && item.name.trim())
     )
   })).filter(c => c.items.length > 0);
-  
+
   // Save look prompts
   const lookPrompts = state.lookPrompts.map((prompt, index) => ({
     forModelIndex: index,
     prompt: prompt
   })).filter(p => p.prompt.trim() !== '');
-  
+
   console.log('[SaveClothing] Saving:', {
     clothingCount: clothing.length,
     clothing: clothing.map(c => ({
@@ -1200,7 +1200,7 @@ async function saveShootClothing() {
     })),
     lookPrompts
   });
-  
+
   try {
     const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
       method: 'PUT',
@@ -1247,28 +1247,28 @@ async function loadEmotions() {
     const res = await fetchWithTimeout('/api/emotions/options', {}, 10000);
     const data = await res.json();
     console.log('[LoadEmotions] Response:', data);
-    
+
     if (data.ok && data.data) {
       state.emotionCategories = data.data.categories || [];
       const grouped = data.data.emotions || {};
       state.emotions = [];
-      
+
       // New format: categories are objects { id, label, description }
       // grouped is { categoryId: { label, description, emotions: [...] } }
       for (const category of state.emotionCategories) {
         const categoryId = typeof category === 'string' ? category : category.id;
         const categoryData = grouped[categoryId];
-        
+
         // Handle both old format (array) and new format ({ emotions: [...] })
-        const categoryEmotions = Array.isArray(categoryData) 
-          ? categoryData 
+        const categoryEmotions = Array.isArray(categoryData)
+          ? categoryData
           : (categoryData?.emotions || []);
-        
+
         categoryEmotions.forEach(e => {
           state.emotions.push({ ...e, category: categoryId });
         });
       }
-      
+
       console.log('[LoadEmotions] Loaded', state.emotions.length, 'emotions');
     }
   } catch (e) {
@@ -1288,35 +1288,97 @@ async function loadUniverseParams() {
     // Load V5 schema
     const res = await fetchWithTimeout('/api/universes/v5/params', {}, 10000);
     const data = await res.json();
-    
+
     if (data.ok && data.data) {
       state.v5Schema = data.data;
       state.universeParams = data.data; // For compatibility
-      
+
       // Build blocks from V5 categories
       state.universeBlocks = [
         { id: 'technical', label: '📷 Технические параметры', description: 'Камера и свет' },
         { id: 'artistic', label: '🎨 Художественные параметры', description: 'Настроение и стиль' },
         { id: 'context', label: '🌍 Контекст', description: 'Время и окружение' }
       ];
-      
+
       console.log('[CustomShoot5] Loaded V5 schema:', Object.keys(data.data).join(', '));
     }
-    
+
     // Load V5 defaults
     const defaultsRes = await fetchWithTimeout('/api/universes/v5/defaults', {}, 5000);
     const defaultsData = await defaultsRes.json();
-    
+
     if (defaultsData.ok && defaultsData.data) {
       state.universeDefaults = defaultsData.data;
       state.universeValues = { ...defaultsData.data };
       state.v5Values = { ...defaultsData.data }; // V5-specific state
       console.log('[CustomShoot5] Loaded V5 defaults');
     }
-    
+
   } catch (e) {
     console.error('[CustomShoot5] Error loading V5 params:', e);
   }
+}
+
+/**
+ * Render emotion options into the dropdown
+ * Uses state.emotions
+ */
+function renderEmotionOptions() {
+  const select = document.getElementById('gen-emotion');
+  if (!select) return;
+
+  // Store current value to restore it (or use state value)
+  const currentValue = state.generationSettings?.emotionId || select.value;
+
+  select.innerHTML = '<option value="">Нейтральная (без эмоции)</option>';
+
+  if (!state.emotions || state.emotions.length === 0) return;
+
+  // Group emotions by category
+  const emotionsByCategory = {};
+  state.emotions.forEach(e => {
+    const cat = e.category || 'other';
+    if (!emotionsByCategory[cat]) {
+      emotionsByCategory[cat] = [];
+    }
+    emotionsByCategory[cat].push(e);
+  });
+
+  // Render groups
+  Object.keys(emotionsByCategory).forEach(catId => {
+    // Find category label
+    let catLabel = catId;
+    if (state.emotionCategories) {
+      const catObj = state.emotionCategories.find(c => (typeof c === 'object' ? c.id === catId : c === catId));
+      if (catObj) catLabel = typeof catObj === 'object' ? catObj.label : catObj;
+    }
+
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = catLabel;
+
+    emotionsByCategory[catId].forEach(e => {
+      const option = document.createElement('option');
+      option.value = e.id;
+      option.textContent = e.label;
+      option.title = e.shortDescription || '';
+      optgroup.appendChild(option);
+    });
+
+    select.appendChild(optgroup);
+  });
+
+  // Restore value if possible
+  if (currentValue) {
+    select.value = currentValue;
+  }
+
+  // Update global elements ref
+  elements.genEmotion = select;
+
+  // Add change listener
+  select.addEventListener('change', () => {
+    saveGenerationSettings();
+  });
 }
 
 /**
@@ -1327,20 +1389,20 @@ function renderUniverseParamsUI() {
   if (!container || !state.v5Schema) {
     return;
   }
-  
+
   const schema = state.v5Schema;
-  
+
   // Helper to render a single param select
   const renderParamSelect = (paramId, paramDef, category) => {
     if (!paramDef || !paramDef.options) return '';
-    
+
     // Options can be array or object
-    const optionsArray = Array.isArray(paramDef.options) 
-      ? paramDef.options 
+    const optionsArray = Array.isArray(paramDef.options)
+      ? paramDef.options
       : Object.entries(paramDef.options).map(([key, opt]) => ({ value: key, ...opt }));
-    
+
     const currentValue = state.v5Values?.[paramId] || optionsArray[0]?.value;
-    
+
     const optionsHtml = optionsArray.map(opt => {
       const value = opt.value;
       const selected = value === currentValue ? 'selected' : '';
@@ -1348,7 +1410,7 @@ function renderUniverseParamsUI() {
       const desc = opt.spec || opt.narrative || opt.description || '';
       return `<option value="${value}" ${selected} title="${escapeHtml(desc)}">${escapeHtml(label)}</option>`;
     }).join('');
-    
+
     return `
       <div class="form-group" style="margin: 0;">
         <label for="v5-${paramId}" style="font-size: 12px; margin-bottom: 4px; display: block;">
@@ -1365,28 +1427,28 @@ function renderUniverseParamsUI() {
       </div>
     `;
   };
-  
+
   // Build Technical params (camera, focalLength, aperture, shutterSpeed, lightSource, lightDirection, lightQuality, whiteBalance, exposure, contrastCurve)
   const technicalKeys = ['camera', 'focalLength', 'aperture', 'shutterSpeed', 'lightSource', 'lightDirection', 'lightQuality', 'whiteBalance', 'exposure', 'contrastCurve'];
   const technicalParams = technicalKeys
     .filter(id => schema.technical?.[id])
     .map(id => renderParamSelect(id, schema.technical[id], 'technical'))
     .join('');
-  
+
   // Build Artistic params (visualMood, decade, culturalContext, processingStyle, energyLevel, spontaneity)
   const artisticKeys = ['visualMood', 'decade', 'culturalContext', 'processingStyle', 'energyLevel', 'spontaneity'];
   const artisticParams = artisticKeys
     .filter(id => schema.artistic?.[id])
     .map(id => renderParamSelect(id, schema.artistic[id], 'artistic'))
     .join('');
-  
+
   // Build Context params (timeOfDay, weather, season)
   const contextKeys = ['timeOfDay', 'weather', 'season'];
   const contextParams = contextKeys
     .filter(id => schema.context?.[id])
     .map(id => renderParamSelect(id, schema.context[id], 'context'))
     .join('');
-  
+
   container.innerHTML = `
     <!-- Technical Parameters -->
     <div class="universe-settings universe-block" data-block-id="technical">
@@ -1408,6 +1470,17 @@ function renderUniverseParamsUI() {
       <div class="universe-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
         ${artisticParams}
       </div>
+      
+      <!-- Emotion Dropdown (Injected) -->
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border);">
+        <div class="form-group" style="margin: 0;">
+          <label for="gen-emotion" style="font-size: 12px; margin-bottom: 4px; display: block;">😊 Эмоция</label>
+          <select id="gen-emotion" style="width: 100%; padding: 8px 10px; font-size: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text);">
+            <option value="">Нейтральная (без эмоции)</option>
+          </select>
+          <div style="font-size: 10px; color: var(--color-text-muted); margin-top: 2px;">Эмоциональное состояние модели</div>
+        </div>
+      </div>
     </div>
     
     <!-- Context Parameters -->
@@ -1427,35 +1500,36 @@ function renderUniverseParamsUI() {
       <div id="v5-corrections-list"></div>
     </div>
   `;
-  
+
   // Add change listeners for V5 params
   container.querySelectorAll('.v5-param-select').forEach(select => {
     select.addEventListener('change', async (e) => {
       const paramId = e.target.dataset.v5Param;
       const oldValue = state.v5Values[paramId];
       state.v5Values[paramId] = e.target.value;
-      
+
       // Also update universeValues for compatibility
       state.universeValues[paramId] = e.target.value;
-      
+
       console.log(`[V5] Changed ${paramId}: "${oldValue}" → "${e.target.value}"`);
-      
+
       // Apply dependencies and check for conflicts
       await applyV5Dependencies();
-      
+
       updateNarrativePreview();
       saveGenerationSettings();
     });
   });
-  
+
   // Show narrative preview panel
   const previewPanel = document.getElementById('narrative-preview-panel');
   if (previewPanel) {
     previewPanel.style.display = 'block';
   }
-  
+
   // Initial dependency check and preview
   applyV5Dependencies();
+  renderEmotionOptions(); // Populate the injected Emotion dropdown
   updateNarrativePreview();
 }
 
@@ -1469,16 +1543,16 @@ async function applyV5Dependencies() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ params: state.v5Values })
     }, 5000);
-    
+
     const data = await res.json();
-    
+
     if (data.ok && data.data) {
       const { resolvedParams, corrections } = data.data;
-      
+
       // Update state with resolved params
       state.v5Values = { ...resolvedParams };
       state.universeValues = { ...resolvedParams };
-      
+
       // Update UI selects if values changed
       Object.entries(resolvedParams).forEach(([paramId, value]) => {
         const select = document.querySelector(`[data-v5-param="${paramId}"]`);
@@ -1486,11 +1560,11 @@ async function applyV5Dependencies() {
           select.value = value;
         }
       });
-      
+
       // Show corrections panel if any
       const panel = document.getElementById('v5-corrections-panel');
       const list = document.getElementById('v5-corrections-list');
-      
+
       if (corrections && corrections.length > 0 && panel && list) {
         panel.style.display = 'block';
         list.innerHTML = corrections.map(c => `
@@ -1499,7 +1573,7 @@ async function applyV5Dependencies() {
             <div style="font-size: 11px; color: var(--color-text-muted);">${c.reason || 'Конфликт параметров'}</div>
           </div>
         `).join('');
-        
+
         console.log('[V5] Applied corrections:', corrections);
       } else if (panel) {
         panel.style.display = 'none';
@@ -1521,9 +1595,9 @@ async function updateNarrativePreview() {
   const previewContent = document.getElementById('narrative-preview-content');
   const anchorsContent = document.getElementById('visual-anchors-content');
   const anchorsPanel = document.getElementById('visual-anchors-panel');
-  
+
   if (!previewContent) return;
-  
+
   // Cancel any pending request
   if (narrativePreviewTimeout) {
     clearTimeout(narrativePreviewTimeout);
@@ -1532,11 +1606,11 @@ async function updateNarrativePreview() {
     narrativePreviewController.abort();
     narrativePreviewController = null;
   }
-  
+
   // Debounce: wait 150ms before making request
   narrativePreviewTimeout = setTimeout(async () => {
     narrativePreviewController = new AbortController();
-    
+
     try {
       // Collect current params from UI (same logic as collectUniverseParams)
       const currentParams = { ...state.v5Values };
@@ -1546,36 +1620,36 @@ async function updateNarrativePreview() {
           currentParams[paramId] = select.value;
         }
       });
-      
+
       console.log('[V5 Preview] Sending params:', Object.keys(currentParams).length, 'keys');
-      
+
       // Use V5 preview endpoint
       const res = await fetchWithTimeout('/api/universes/v5/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           params: currentParams,
           scene: {} // Empty scene for preview
         }),
         signal: narrativePreviewController.signal
       }, 5000);
-      
+
       const data = await res.json();
-      
+
       if (data.ok && data.data) {
         state.narrativePreview = data.data;
-        
+
         // Hide anchors panel for V5 (we use corrections panel instead)
         if (anchorsPanel) {
           anchorsPanel.style.display = 'none';
         }
-        
+
         // ═══════════════════════════════════════════════════════════════
         // RENDER V5 PROMPT PREVIEW
         // ═══════════════════════════════════════════════════════════════
-        
+
         const prompt = data.data.prompt || '';
-        
+
         // Format prompt for display
         const formattedPrompt = prompt
           .replace(/\[TECHNICAL SPECS\]/g, '<strong style="color: var(--color-primary);">📷 TECHNICAL SPECS</strong>')
@@ -1583,13 +1657,13 @@ async function updateNarrativePreview() {
           .replace(/\[CONTEXT\]/g, '<strong style="color: #10b981;">🌍 CONTEXT</strong>')
           .replace(/\[SCENE\]/g, '<strong style="color: #8b5cf6;">🎬 SCENE</strong>')
           .replace(/\n/g, '<br>');
-        
+
         previewContent.innerHTML = `
           <div style="font-family: monospace; font-size: 11px; line-height: 1.6; white-space: pre-wrap;">
             ${formattedPrompt || '<span style="color: var(--color-text-muted);">Выбери параметры для превью...</span>'}
           </div>
         `;
-        
+
         console.log('[V5 Preview] Prompt length:', prompt.length);
       }
     } catch (e) {
@@ -1609,7 +1683,7 @@ async function updateNarrativePreview() {
  */
 function collectUniverseParams() {
   const params = { ...state.v5Values };
-  
+
   // Also read current values from UI selects as fallback/override
   document.querySelectorAll('.v5-param-select').forEach(select => {
     const paramId = select.dataset.v5Param;
@@ -1617,12 +1691,12 @@ function collectUniverseParams() {
       params[paramId] = select.value;
     }
   });
-  
+
   // Ensure we have the version marker
   params.version = 'v5';
-  
+
   console.log('[CollectUniverseParams] V5 params:', Object.keys(params).length, 'keys', params);
-  
+
   return params;
 }
 
@@ -1642,14 +1716,14 @@ function collectGenerationSettings() {
     aspectRatio: elements.genAspectRatio?.value || '3:4',
     imageSize: elements.genImageSize?.value || '2K',
     poseAdherence: elements.genPoseAdherence?.value || '2',
-    
+
     // Per-frame composition (shot size and camera angle can vary per frame)
     shotSize: elements.genShotSize?.value || 'default',
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
-    
+
     // Extra prompt
     extraPrompt: elements.genExtraPrompt?.value || ''
-    
+
     // NOTE: All other settings (camera, lighting, color, anti-ai, mood, etc.)
     // are now controlled via Universe params and not collected here
   };
@@ -1661,7 +1735,7 @@ function collectGenerationSettings() {
  */
 function applyGenerationSettings(settings) {
   if (!settings) return;
-  
+
   // Per-frame parameters
   if (settings.locationId !== undefined && elements.genLocation) {
     elements.genLocation.value = settings.locationId;
@@ -1678,7 +1752,7 @@ function applyGenerationSettings(settings) {
   if (settings.poseAdherence && elements.genPoseAdherence) {
     elements.genPoseAdherence.value = settings.poseAdherence;
   }
-  
+
   // Per-frame composition
   if (settings.shotSize && elements.genShotSize) {
     elements.genShotSize.value = settings.shotSize;
@@ -1686,7 +1760,7 @@ function applyGenerationSettings(settings) {
   if (settings.cameraAngle && elements.genCameraAngle) {
     elements.genCameraAngle.value = settings.cameraAngle;
   }
-  
+
   // Extra prompt
   if (settings.extraPrompt !== undefined && elements.genExtraPrompt) {
     elements.genExtraPrompt.value = settings.extraPrompt;
@@ -1701,26 +1775,26 @@ let saveSettingsController = null; // AbortController for previous save request
 
 async function saveGenerationSettings() {
   if (!state.currentShoot) return;
-  
+
   // Debounce to avoid too many requests
   if (saveSettingsTimeout) {
     clearTimeout(saveSettingsTimeout);
   }
-  
+
   // Abort any previous pending save request
   if (saveSettingsController) {
     saveSettingsController.abort();
     saveSettingsController = null;
   }
-  
+
   saveSettingsTimeout = setTimeout(async () => {
     const settings = collectGenerationSettings();
     state.generationSettings = settings;
-    
+
     // Create new AbortController for this request
     saveSettingsController = new AbortController();
     const signal = saveSettingsController.signal;
-    
+
     try {
       await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
         method: 'PUT',
@@ -1728,7 +1802,7 @@ async function saveGenerationSettings() {
         body: JSON.stringify({ generationSettings: settings }),
         signal
       }, 15000); // 15 second timeout
-      
+
       console.log('[CustomShoot] Settings saved');
     } catch (e) {
       if (e.name === 'AbortError') {
@@ -1756,14 +1830,14 @@ function initSettingsAutoSave() {
     elements.genShotSize,
     elements.genCameraAngle
   ];
-  
+
   // Add change listeners to all select elements
   settingsElements.forEach(el => {
     if (el) {
       el.addEventListener('change', saveGenerationSettings);
     }
   });
-  
+
   // Add input listener to extra prompt (with debounce already in saveGenerationSettings)
   if (elements.genExtraPrompt) {
     elements.genExtraPrompt.addEventListener('input', saveGenerationSettings);
@@ -1780,16 +1854,16 @@ function initSettingsAutoSave() {
 function renderGeneratePage() {
   // Render universe params blocks (Custom Shoot 4 - new architecture)
   renderUniverseParamsUI();
-  
+
   // Populate location dropdown
   elements.genLocation.innerHTML = '<option value="">Без конкретной</option>';
   state.locations.forEach(loc => {
     elements.genLocation.innerHTML += `<option value="${loc.id}">${escapeHtml(loc.label)}</option>`;
   });
-  
+
   // Populate emotion dropdown (grouped by energy category)
   elements.genEmotion.innerHTML = '<option value="">Нейтральная (без эмоции)</option>';
-  
+
   // Group emotions by category
   const emotionsByCategory = {};
   state.emotions.forEach(e => {
@@ -1798,7 +1872,7 @@ function renderGeneratePage() {
     }
     emotionsByCategory[e.category].push(e);
   });
-  
+
   // Category labels
   const categoryLabels = {
     'energy_low': '🌙 Тихие',
@@ -1807,7 +1881,7 @@ function renderGeneratePage() {
     'camera_aware': '📷 С камерой',
     'transitional': '✨ Переходные'
   };
-  
+
   // Render grouped options
   for (const [catId, emotions] of Object.entries(emotionsByCategory)) {
     if (emotions.length > 0) {
@@ -1823,16 +1897,16 @@ function renderGeneratePage() {
       elements.genEmotion.appendChild(optgroup);
     }
   }
-  
+
   // Apply saved generation settings AFTER populating dropdowns
   applyGenerationSettings(state.generationSettings);
-  
+
   // Update lock UI
   updateLockUI();
-  
+
   // Render frames to generate
   renderFramesToGenerate();
-  
+
   // Render history
   renderGeneratedHistory();
 }
@@ -1844,7 +1918,7 @@ function updateLockUI() {
   elements.styleLockOff.classList.toggle('active', !state.styleLock.enabled);
   elements.styleLockStrict.classList.toggle('active', state.styleLock.enabled && state.styleLock.mode === 'strict');
   elements.styleLockSoft.classList.toggle('active-soft', state.styleLock.enabled && state.styleLock.mode === 'soft');
-  
+
   if (state.styleLock.imageUrl) {
     elements.styleLockImg.src = state.styleLock.imageUrl;
     elements.styleLockPreview.classList.add('active');
@@ -1871,7 +1945,7 @@ async function setStyleLockMode(mode) {
       const lastImage = state.generatedFrames[0];
       await setAsStyleRef(lastImage.id);
     }
-    
+
     if (state.styleLock.imageId) {
       // Update mode
       try {
@@ -1899,9 +1973,9 @@ async function setStyleLockMode(mode) {
 async function setAsStyleRef(imageId) {
   const image = state.generatedFrames.find(f => f.id === imageId);
   if (!image) return;
-  
+
   const mode = state.styleLock.mode || 'strict';
-  
+
   try {
     const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, {
       method: 'POST',
@@ -1909,7 +1983,7 @@ async function setAsStyleRef(imageId) {
       body: JSON.stringify({ imageId, mode })
     }, 5000);
     const data = await res.json();
-    
+
     if (data.ok) {
       state.styleLock = {
         enabled: true,
@@ -1917,15 +1991,15 @@ async function setAsStyleRef(imageId) {
         imageId,
         imageUrl: image.imageUrl
       };
-      
+
       // Update isStyleReference flags
       state.generatedFrames.forEach(f => {
         f.isStyleReference = f.id === imageId;
       });
-      
+
       // Apply style settings from reference frame to UI
       applySettingsFromFrame(image, 'style');
-      
+
       updateLockUI();
       renderGeneratedHistory();
     }
@@ -1941,9 +2015,9 @@ async function setAsStyleRef(imageId) {
  */
 function applySettingsFromFrame(frame, type) {
   if (!frame) return;
-  
+
   console.log(`[CustomShoot] Applying ${type} settings from frame:`, frame.frameLabel);
-  
+
   if (type === 'style') {
     // Style lock now uses Universe params which are locked for the whole shoot
     // The reference frame's universeParams can be used for the next generations
@@ -1983,10 +2057,10 @@ function renderFramesToGenerate() {
   } else {
     // Show all frames from catalog
     const frameCards = state.frames.map((frame, idx) => {
-      const sketchImg = frame.sketchUrl 
+      const sketchImg = frame.sketchUrl
         ? `<img src="${frame.sketchUrl}" alt="sketch" style="width: 100%; height: 100%; object-fit: contain;">`
         : '<span style="font-size: 24px;">🖼️</span>';
-      
+
       return `
         <div class="frame-gen-card" data-frame-id="${frame.id}" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 8px;">
           <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden;">${sketchImg}</div>
@@ -1998,7 +2072,7 @@ function renderFramesToGenerate() {
         </div>
       `;
     }).join('');
-    
+
     elements.framesToGenerate.innerHTML = `
       <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
         <h4 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации (${state.frames.length})</h4>
@@ -2014,7 +2088,7 @@ function renderFramesToGenerate() {
       </div>
     `;
   }
-  
+
   // Click handlers are now delegated in initEventListeners()
 }
 
@@ -2024,9 +2098,9 @@ function renderFramesToGenerate() {
 async function generateFrame(frameId) {
   const genId = `gen_${Date.now() % 100000}`;
   const log = (msg, data) => console.log(`[Generate] [${genId}] ${msg}`, data || '');
-  
+
   log('START', { frameId, shootId: state.currentShoot?.id });
-  
+
   // ═══════════════════════════════════════════════════════════════
   // GLOBAL LOCK: Only one generation at a time
   // This prevents queue buildup on the server which causes timeouts
@@ -2036,19 +2110,19 @@ async function generateFrame(frameId) {
     showToast('⏳ Подождите, генерация уже идёт...');
     return;
   }
-  
+
   if (!state.currentShoot) {
     log('ERROR: No current shoot');
     return;
   }
-  
+
   const modelCount = state.selectedModels.filter(m => m !== null).length;
   if (modelCount === 0) {
     log('ERROR: No models selected');
     alert('Сначала добавьте модель');
     return;
   }
-  
+
   // Get button and show loading - with null check
   const btn = elements.framesToGenerate.querySelector(`.btn-gen-frame[data-frame-id="${frameId || ''}"]`);
   if (!btn) {
@@ -2056,23 +2130,23 @@ async function generateFrame(frameId) {
     alert('Ошибка: кнопка генерации не найдена. Обновите страницу.');
     return;
   }
-  
+
   // Set global lock BEFORE any async operations
   state.isGenerating = true;
   log('LOCK_ACQUIRED');
-  
+
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ Генерация...';
-  
+
   // Disable ALL generate buttons to prevent accidental clicks
   const allGenButtons = elements.framesToGenerate.querySelectorAll('.btn-gen-frame');
   allGenButtons.forEach(b => b.disabled = true);
-  
+
   // Get settings (Custom Shoot 4 - new universe params architecture)
   const universeParams = collectUniverseParams();
   log('Collected universe params', { keys: Object.keys(universeParams) });
-  
+
   const params = {
     frameId,
     locationId: elements.genLocation.value || null,
@@ -2087,7 +2161,7 @@ async function generateFrame(frameId) {
       cameraAngle: elements.genCameraAngle?.value || 'eye_level'
     }
   };
-  
+
   // Add placeholder
   const placeholderId = `pending_${Date.now()}`;
   state.generatedFrames.unshift({
@@ -2096,7 +2170,7 @@ async function generateFrame(frameId) {
     timestamp: new Date().toISOString()
   });
   renderGeneratedHistory();
-  
+
   // Create AbortController with 3 minute timeout
   const controller = new AbortController();
   const TIMEOUT_MS = 180000; // 3 minutes
@@ -2104,12 +2178,12 @@ async function generateFrame(frameId) {
     log('TIMEOUT: Aborting after 3 minutes');
     controller.abort();
   }, TIMEOUT_MS);
-  
+
   const startTime = Date.now();
-  
+
   try {
     log('FETCH_START', { url: `/api/custom-shoots/${state.currentShoot.id}/generate` });
-    
+
     const requestBody = {
       frame: frameId ? state.frames.find(f => f.id === frameId) : null,
       emotionId: params.emotionId,
@@ -2121,35 +2195,35 @@ async function generateFrame(frameId) {
       universeParams: params.universeParams,
       composition: params.composition
     };
-    
+
     const bodySize = JSON.stringify(requestBody).length;
     log('REQUEST_BODY_SIZE', { sizeKB: Math.round(bodySize / 1024) });
-    
+
     const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
       signal: controller.signal
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     const fetchDuration = ((Date.now() - startTime) / 1000).toFixed(1);
     log('FETCH_COMPLETE', { status: res.status, duration: fetchDuration + 's' });
-    
+
     if (!res.ok) {
       const errorText = await res.text();
       log('HTTP_ERROR', { status: res.status, body: errorText.slice(0, 200) });
       throw new Error(`HTTP ${res.status}: ${errorText.slice(0, 100)}`);
     }
-    
+
     log('PARSING_RESPONSE');
     const data = await res.json();
     log('RESPONSE_PARSED', { ok: data.ok, hasImage: !!data.image });
-    
+
     // Find and update placeholder
     const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
-    
+
     if (data.ok && data.image) {
       if (placeholderIndex >= 0) {
         state.generatedFrames[placeholderIndex] = {
@@ -2173,10 +2247,10 @@ async function generateFrame(frameId) {
           generationTime: data.image.generationTime || null,
           universeParams: data.image.universeParams || null
         };
-        
+
         log('SUCCESS', { imageId: data.image.id, generationTime: data.image.generationTime });
       }
-      
+
       elements.genExtraPrompt.value = '';
       renderGeneratedHistory();
       showToast('✅ Изображение сгенерировано!');
@@ -2191,9 +2265,9 @@ async function generateFrame(frameId) {
     }
   } catch (e) {
     clearTimeout(timeoutId);
-    
+
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    
+
     if (e.name === 'AbortError') {
       log('ABORTED', { duration: duration + 's', reason: 'timeout or manual abort' });
       const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
@@ -2206,7 +2280,7 @@ async function generateFrame(frameId) {
     } else {
       log('EXCEPTION', { name: e.name, message: e.message, duration: duration + 's' });
       console.error('[Generate] Full error:', e);
-      
+
       const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
       if (placeholderIndex >= 0) {
         state.generatedFrames[placeholderIndex].status = 'error';
@@ -2217,15 +2291,15 @@ async function generateFrame(frameId) {
     }
   } finally {
     log('CLEANUP');
-    
+
     // Release global lock
     state.isGenerating = false;
     log('LOCK_RELEASED');
-    
+
     // Re-enable ALL generate buttons
     const allGenButtons = elements.framesToGenerate.querySelectorAll('.btn-gen-frame');
     allGenButtons.forEach(b => b.disabled = false);
-    
+
     btn.textContent = originalText;
   }
 }
@@ -2233,7 +2307,7 @@ async function generateFrame(frameId) {
 function renderGeneratedHistory() {
   const readyCount = state.generatedFrames.filter(f => f.status !== 'generating' && f.status !== 'error').length;
   elements.generationCount.textContent = `${readyCount} изображений`;
-  
+
   if (state.generatedFrames.length === 0) {
     elements.imagesGallery.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
@@ -2244,10 +2318,10 @@ function renderGeneratedHistory() {
     `;
     return;
   }
-  
+
   elements.imagesGallery.innerHTML = state.generatedFrames.map((frame, idx) => {
     const timestamp = frame.timestamp ? new Date(frame.timestamp).toLocaleTimeString() : '';
-    
+
     // Generating placeholder
     if (frame.status === 'generating') {
       return `
@@ -2261,7 +2335,7 @@ function renderGeneratedHistory() {
         </div>
       `;
     }
-    
+
     // Error
     if (frame.status === 'error') {
       return `
@@ -2276,35 +2350,35 @@ function renderGeneratedHistory() {
         </div>
       `;
     }
-    
+
     // Ready frame
     const isStyleRef = frame.isStyleReference;
-    
+
     let borderColor = 'var(--color-border)';
     if (isStyleRef) borderColor = '#F59E0B';
-    
+
     // Build refs HTML with images (same as shoot-composer)
     const refs = frame.refs || [];
     const refsHtml = refs.length > 0
       ? `<div style="display:grid; grid-template-columns: repeat(${Math.min(refs.length, 3)}, 1fr); gap:8px; margin-top:8px;">
           ${refs.map(r => {
-            const url = r.previewUrl || '';
-            const label = r.label || r.kind || 'ref';
-            if (!url) return '';
-            return `
+        const url = r.previewUrl || '';
+        const label = r.label || r.kind || 'ref';
+        if (!url) return '';
+        return `
               <div style="text-align: center;">
                 <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${escapeHtml(label)}</div>
                 <img src="${url}" alt="${escapeHtml(label)}" 
                      style="width:100%; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--color-border);">
               </div>
             `;
-          }).join('')}
+      }).join('')}
         </div>`
       : '<div style="font-size:11px; color:var(--color-text-muted);">Нет референсов</div>';
-    
+
     // Build settings HTML (same as shoot-composer)
     const settingsHtml = buildFrameSettingsHtml(frame);
-    
+
     return `
       <div class="selection-card generated-frame-card" style="cursor: default; position: relative; border-color: ${borderColor};">
         <!-- Lock badges -->
@@ -2356,7 +2430,7 @@ function renderGeneratedHistory() {
       </div>
     `;
   }).join('');
-  
+
   // Click handlers are delegated in initEventListeners() - no need to re-attach
 }
 
@@ -2372,14 +2446,14 @@ function copyFrameSettings(frameIndex) {
     showToast('❌ Кадр не найден');
     return;
   }
-  
+
   console.log('[CopySettings] === STARTING COPY ===');
   console.log('[CopySettings] Frame data:', JSON.stringify(frame, null, 2).slice(0, 1000));
   console.log('[CopySettings] universeParams:', frame.universeParams);
-  
+
   const changedElements = []; // Track changed elements for highlighting
   let changeLog = [];
-  
+
   // Helper function to safely set select value
   function setSelectValue(selectEl, value, label) {
     if (!selectEl) {
@@ -2390,19 +2464,19 @@ function copyFrameSettings(frameIndex) {
       console.log(`[CopySettings] ${label}: no value to set`);
       return false;
     }
-    
+
     const oldValue = selectEl.value;
     const strValue = String(value);
-    
+
     // Check if option exists
     const optionExists = Array.from(selectEl.options).some(opt => opt.value === strValue);
     if (!optionExists) {
       console.log(`[CopySettings] ${label}: option "${strValue}" not found in select`);
       return false;
     }
-    
+
     selectEl.value = strValue;
-    
+
     if (oldValue !== selectEl.value) {
       changedElements.push(selectEl);
       changeLog.push(`${label}: ${oldValue} → ${selectEl.value}`);
@@ -2413,23 +2487,23 @@ function copyFrameSettings(frameIndex) {
       return false;
     }
   }
-  
+
   // 1. Apply Universe params (all visual settings)
   if (frame.universeParams && typeof frame.universeParams === 'object') {
     console.log('[CopySettings] Applying universe params:', Object.keys(frame.universeParams));
     state.universeValues = { ...frame.universeParams };
-    
+
     // Update all universe select elements
     const universeSelects = document.querySelectorAll('.universe-param-select');
     console.log(`[CopySettings] Found ${universeSelects.length} universe selects`);
-    
+
     universeSelects.forEach(select => {
       const paramId = select.dataset.paramId;
       if (paramId && frame.universeParams[paramId] !== undefined) {
         setSelectValue(select, frame.universeParams[paramId], `Universe.${paramId}`);
       }
     });
-    
+
     // Update narrative preview
     if (typeof updateNarrativePreview === 'function') {
       updateNarrativePreview();
@@ -2437,34 +2511,34 @@ function copyFrameSettings(frameIndex) {
   } else {
     console.log('[CopySettings] No universeParams in frame');
   }
-  
+
   // 2. Apply per-frame settings
-  
+
   // Location
   if (frame.locationId) {
     setSelectValue(elements.genLocation, frame.locationId, 'Location');
   }
-  
+
   // Emotion
   if (frame.emotionId) {
     setSelectValue(elements.genEmotion, frame.emotionId, 'Emotion');
   }
-  
+
   // Aspect ratio
   if (frame.aspectRatio) {
     setSelectValue(elements.genAspectRatio, frame.aspectRatio, 'AspectRatio');
   }
-  
+
   // Image size
   if (frame.imageSize) {
     setSelectValue(elements.genImageSize, frame.imageSize, 'ImageSize');
   }
-  
+
   // Pose adherence
   if (frame.poseAdherence) {
     setSelectValue(elements.genPoseAdherence, frame.poseAdherence, 'PoseAdherence');
   }
-  
+
   // Composition (shot size, camera angle)
   if (frame.composition) {
     if (frame.composition.shotSize) {
@@ -2474,40 +2548,40 @@ function copyFrameSettings(frameIndex) {
       setSelectValue(elements.genCameraAngle, frame.composition.cameraAngle, 'CameraAngle');
     }
   }
-  
+
   // Extra prompt
   if (frame.extraPrompt && elements.genExtraPrompt) {
     elements.genExtraPrompt.value = frame.extraPrompt;
     changedElements.push(elements.genExtraPrompt);
     changeLog.push(`ExtraPrompt: set`);
   }
-  
+
   // Save updated settings
   saveGenerationSettings();
-  
+
   console.log('[CopySettings] === COPY COMPLETE ===');
   console.log('[CopySettings] Changed elements:', changedElements.length);
   console.log('[CopySettings] Change log:', changeLog);
-  
+
   // Highlight changed elements with animation
   changedElements.forEach(el => {
     if (!el) return;
     el.style.transition = 'box-shadow 0.3s, border-color 0.3s';
     el.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.5)';
     el.style.borderColor = '#22c55e';
-    
+
     setTimeout(() => {
       el.style.boxShadow = '';
       el.style.borderColor = '';
     }, 2000);
   });
-  
+
   // Scroll to Universe params section
   const universeContainer = document.getElementById('universe-params-container');
   if (universeContainer) {
     universeContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  
+
   // Show confirmation with count
   showToast(`✅ Применено ${changedElements.length} настроек! Выберите эскиз позы и нажмите «Генерировать»`);
 }
@@ -2515,7 +2589,7 @@ function copyFrameSettings(frameIndex) {
 async function deleteFrame(index) {
   const frame = state.generatedFrames[index];
   if (!frame) return;
-  
+
   // Delete from server if has ID
   if (frame.id && !frame.id.startsWith('pending_')) {
     try {
@@ -2524,7 +2598,7 @@ async function deleteFrame(index) {
       console.error('Error deleting from server:', e);
     }
   }
-  
+
   state.generatedFrames.splice(index, 1);
   renderGeneratedHistory();
 }
@@ -2549,17 +2623,17 @@ const lightbox = {
 function initLightbox() {
   lightbox.overlay = document.getElementById('lightbox');
   lightbox.image = document.getElementById('lightbox-image');
-  
+
   if (!lightbox.overlay) return;
-  
+
   document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
   document.getElementById('lightbox-prev').addEventListener('click', () => navigateLightbox(-1));
   document.getElementById('lightbox-next').addEventListener('click', () => navigateLightbox(1));
-  
+
   lightbox.overlay.addEventListener('click', (e) => {
     if (e.target === lightbox.overlay) closeLightbox();
   });
-  
+
   document.addEventListener('keydown', (e) => {
     if (!lightbox.overlay.classList.contains('active')) return;
     if (e.key === 'Escape') closeLightbox();
@@ -2572,9 +2646,9 @@ function openLightbox(index) {
   lightbox.images = state.generatedFrames
     .filter(f => f.imageUrl && f.status !== 'generating' && f.status !== 'error')
     .map(f => f.imageUrl);
-  
+
   if (lightbox.images.length === 0) return;
-  
+
   lightbox.currentIndex = index;
   updateLightboxImage();
   lightbox.overlay.classList.add('active');
@@ -2635,63 +2709,63 @@ const POSE_ADHERENCE_LABELS = {
 
 function buildFrameSettingsHtml(frame) {
   const items = [];
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 1: Basic frame info
   // ═══════════════════════════════════════════════════════════════
-  
+
   // Image format (aspect ratio + size)
   const aspectLabel = ASPECT_RATIO_LABELS[frame.aspectRatio] || frame.aspectRatio || '3:4';
   const sizeLabel = IMAGE_SIZE_LABELS[frame.imageSize] || frame.imageSize || '2K';
   items.push(`<div><strong>📐 Формат:</strong> ${aspectLabel}, ${sizeLabel}</div>`);
-  
+
   // Generation time
   if (frame.generationTime) {
     items.push(`<div><strong>⏱️ Время:</strong> ${frame.generationTime}s</div>`);
   }
-  
+
   // Pose adherence
   if (frame.poseAdherence) {
     items.push(`<div><strong>🎯 Следование эскизу:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}/4</div>`);
   }
-  
+
   // Emotion
   if (frame.emotionId) {
     const emotion = state.emotions.find(e => e.id === frame.emotionId);
     items.push(`<div><strong>😊 Эмоция:</strong> ${emotion?.label || frame.emotionId}</div>`);
   }
-  
+
   // Location
   if (frame.locationLabel) {
     items.push(`<div><strong>📍 Локация:</strong> ${escapeHtml(frame.locationLabel)}</div>`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 2: Universe Params (ALL of them)
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (frame.universeParams && typeof frame.universeParams === 'object') {
     const up = frame.universeParams;
-    
+
     items.push(`<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);"><strong>🧬 Universe настройки:</strong></div>`);
-    
+
     // Human-readable labels for universe params
     const paramLabels = {
       // Approach
       shootingApproach: '📷 Подход',
       productDiscipline: '👗 Приоритет продукта',
-      
+
       // Tech
       cameraClass: '📸 Камера',
       exposureIntent: '💡 Экспозиция',
       shutterIntent: '⏱️ Затвор',
       processingStyle: '🎨 Обработка',
       retouchLevel: '✨ Ретушь',
-      
+
       // Era
       decade: '📅 Эпоха',
       culturalContext: '🎭 Контекст',
-      
+
       // Color
       whiteBalance: '🌡️ Баланс белого',
       wbShift: '↔️ Сдвиг WB',
@@ -2699,19 +2773,19 @@ function buildFrameSettingsHtml(frame) {
       contrastCurve: '📈 Контраст',
       shadowTone: '🌑 Тени',
       highlightTone: '☀️ Света',
-      
+
       // Lens
       focalRange: '🔭 Фокусное',
       apertureIntent: '📷 Диафрагма',
       distortionPolicy: '🔍 Дисторсия',
       cameraProximity: '📏 Дистанция',
-      
+
       // Mood
       visualMood: '💫 Атмосфера',
       energyLevel: '⚡ Энергия',
       spontaneity: '🎲 Спонтанность',
       primaryFocus: '🎯 Фокус',
-      
+
       // Lighting
       lightSource: '💡 Источник света',
       lightDirection: '➡️ Направление',
@@ -2719,11 +2793,11 @@ function buildFrameSettingsHtml(frame) {
       timeOfDay: '🕐 Время суток',
       weatherLighting: '🌤️ Погода',
       season: '🍂 Сезон',
-      
+
       // Anti-AI
       antiAiLevel: '🤖 Anti-AI'
     };
-    
+
     // Group params by category for display
     const categories = {
       'Подход': ['shootingApproach', 'productDiscipline'],
@@ -2735,7 +2809,7 @@ function buildFrameSettingsHtml(frame) {
       'Освещение': ['lightSource', 'lightDirection', 'lightQuality', 'timeOfDay', 'weatherLighting', 'season'],
       'Реализм': ['antiAiLevel']
     };
-    
+
     for (const [catName, paramKeys] of Object.entries(categories)) {
       const catItems = [];
       for (const key of paramKeys) {
@@ -2750,15 +2824,15 @@ function buildFrameSettingsHtml(frame) {
       }
     }
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 3: Extra prompt
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (frame.extraPrompt) {
     items.push(`<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em style="font-size: 10px;">${escapeHtml(frame.extraPrompt)}</em></div>`);
   }
-  
+
   return items.join('');
 }
 
@@ -2767,12 +2841,12 @@ function buildFrameSettingsHtml(frame) {
  */
 function formatUniverseValue(key, value) {
   if (value === null || value === undefined) return '—';
-  
+
   // Convert snake_case to readable
   const readable = String(value)
     .replace(/_/g, ' ')
     .replace(/\b\w/g, l => l.toUpperCase());
-  
+
   return readable;
 }
 
@@ -2783,12 +2857,12 @@ function formatUniverseValue(key, value) {
  */
 function migrateOldClothingRefs(oldRefs) {
   if (!Array.isArray(oldRefs)) return [];
-  
+
   // Check if already new format
   if (oldRefs.length > 0 && oldRefs[0].images) {
     return oldRefs;
   }
-  
+
   // Migrate: each old ref becomes a separate ClothingItem with one image
   return oldRefs.map((ref, index) => ({
     id: `migrated_${Date.now()}_${index}`,
@@ -2819,7 +2893,7 @@ function showToast(message, duration = 3000) {
   // Remove existing toast
   const existingToast = document.querySelector('.toast-notification');
   if (existingToast) existingToast.remove();
-  
+
   const toast = document.createElement('div');
   toast.className = 'toast-notification';
   toast.style.cssText = `
@@ -2838,9 +2912,9 @@ function showToast(message, duration = 3000) {
     animation: toast-slide-up 0.3s ease;
   `;
   toast.textContent = message;
-  
+
   document.body.appendChild(toast);
-  
+
   setTimeout(() => {
     toast.style.animation = 'toast-slide-down 0.3s ease forwards';
     setTimeout(() => toast.remove(), 300);
@@ -2864,22 +2938,22 @@ async function checkServerStatus() {
 
 async function init() {
   console.log('[Init] Starting...');
-  
+
   try {
     initElements();
     console.log('[Init] Elements OK');
-    
+
     initEventListeners();
     console.log('[Init] EventListeners OK');
-    
+
     initLightbox();
     initSettingsAutoSave();
     initClothingEventDelegation();
     console.log('[Init] Components OK');
-    
+
     await checkServerStatus();
     console.log('[Init] Server check OK');
-    
+
     console.log('[Init] Loading data...');
     await Promise.all([
       loadShoots(),
@@ -2890,7 +2964,7 @@ async function init() {
       loadUniverseParams()
     ]);
     console.log('[Init] Data loaded OK');
-    
+
     updateStepStatuses();
     console.log('[Init] Complete!');
   } catch (e) {
@@ -2915,29 +2989,29 @@ document.head.appendChild(style);
 // GLOBAL EXPORTS (for inline onclick handlers)
 // ═══════════════════════════════════════════════════════════════
 
-window.copyFrameSettings = function(frameIndex) {
+window.copyFrameSettings = function (frameIndex) {
   console.log('[CopySettings] Button clicked, frameIndex:', frameIndex);
-  
+
   const frame = state.generatedFrames[frameIndex];
   if (!frame) {
     console.error('[CopySettings] Frame not found at index:', frameIndex);
     alert('Кадр не найден');
     return;
   }
-  
+
   console.log('[CopySettings] Frame found:', frame.id);
   console.log('[CopySettings] Frame universeParams:', frame.universeParams);
   console.log('[CopySettings] Frame keys:', Object.keys(frame));
-  
+
   let changedCount = 0;
-  
+
   // 1. Apply Universe params
   if (frame.universeParams && typeof frame.universeParams === 'object') {
     const keys = Object.keys(frame.universeParams);
     console.log('[CopySettings] Applying', keys.length, 'universe params:', keys);
-    
+
     state.universeValues = { ...frame.universeParams };
-    
+
     document.querySelectorAll('.universe-param-select').forEach(select => {
       const paramId = select.dataset.paramId;
       if (paramId && frame.universeParams[paramId] !== undefined) {
@@ -2956,7 +3030,7 @@ window.copyFrameSettings = function(frameIndex) {
         }
       }
     });
-    
+
     // Update narrative preview
     if (typeof updateNarrativePreview === 'function') {
       updateNarrativePreview();
@@ -2964,7 +3038,7 @@ window.copyFrameSettings = function(frameIndex) {
   } else {
     console.log('[CopySettings] No universeParams in frame');
   }
-  
+
   // 2. Location
   if (frame.locationId && elements.genLocation) {
     if (elements.genLocation.value !== frame.locationId) {
@@ -2973,7 +3047,7 @@ window.copyFrameSettings = function(frameIndex) {
       console.log('[CopySettings] Location:', frame.locationId);
     }
   }
-  
+
   // 3. Emotion
   if (frame.emotionId && elements.genEmotion) {
     if (elements.genEmotion.value !== frame.emotionId) {
@@ -2982,7 +3056,7 @@ window.copyFrameSettings = function(frameIndex) {
       console.log('[CopySettings] Emotion:', frame.emotionId);
     }
   }
-  
+
   // 4. Aspect ratio
   if (frame.aspectRatio && elements.genAspectRatio) {
     if (elements.genAspectRatio.value !== frame.aspectRatio) {
@@ -2991,7 +3065,7 @@ window.copyFrameSettings = function(frameIndex) {
       console.log('[CopySettings] AspectRatio:', frame.aspectRatio);
     }
   }
-  
+
   // 5. Image size
   if (frame.imageSize && elements.genImageSize) {
     if (elements.genImageSize.value !== frame.imageSize) {
@@ -3000,7 +3074,7 @@ window.copyFrameSettings = function(frameIndex) {
       console.log('[CopySettings] ImageSize:', frame.imageSize);
     }
   }
-  
+
   // 6. Pose adherence
   if (frame.poseAdherence && elements.genPoseAdherence) {
     const strVal = String(frame.poseAdherence);
@@ -3010,22 +3084,22 @@ window.copyFrameSettings = function(frameIndex) {
       console.log('[CopySettings] PoseAdherence:', frame.poseAdherence);
     }
   }
-  
+
   // 7. Extra prompt
   if (frame.extraPrompt && elements.genExtraPrompt) {
     elements.genExtraPrompt.value = frame.extraPrompt;
     console.log('[CopySettings] ExtraPrompt: set');
   }
-  
+
   // Save
   saveGenerationSettings();
-  
+
   // Scroll to universe params
   const container = document.getElementById('universe-params-container');
   if (container) {
     container.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  
+
   // Toast
   console.log('[CopySettings] DONE. Changed:', changedCount);
   showToast(`✅ Применено ${changedCount} настроек`);
