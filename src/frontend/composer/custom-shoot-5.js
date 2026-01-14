@@ -900,16 +900,15 @@ function renderAvailableModels() {
     const thumb = model.identityImages?.[0] || model.avatarUrl || '';
     
     return `
-      <div class="model-selection-card ${isSelected ? 'selected' : ''}" data-model-id="${model.id}">
-        <div class="model-selection-thumb" style="background-image: url('${thumb}')"></div>
-        <div class="model-selection-info">
-          <div class="model-selection-name">${escapeHtml(model.label)}</div>
-        </div>
+      <div class="selection-card ${isSelected ? 'selected' : ''}" data-model-id="${model.id}">
+        <div class="selection-card-preview" style="background-image: url('${thumb}'); background-size: cover; background-position: center;"></div>
+        <div class="selection-card-title">${escapeHtml(model.name || model.label)}</div>
+        <div class="selection-card-desc">${escapeHtml(model.label || '')}</div>
       </div>
     `;
   }).join('');
   
-  elements.modelsGrid.querySelectorAll('.model-selection-card').forEach(card => {
+  elements.modelsGrid.querySelectorAll('.selection-card').forEach(card => {
     card.addEventListener('click', () => toggleModel(card.dataset.modelId));
   });
 }
