@@ -185,9 +185,7 @@
       background: #F59E0B;
     }
     
-    .history-lock-badge.location {
-      background: #10B981;
-    }
+    /* .history-lock-badge.location removed - Location Lock removed */
     
     /* Lock selection hint on hover */
     .generated-frame-card .lock-actions {
@@ -352,7 +350,7 @@
       <header class="page-header">
         <h1 class="page-title">🧬 Custom Shoot v4.0 (Test Lab 4)</h1>
         <p class="page-subtitle">
-          Съёмка без готовой вселенной. Настрой все параметры вручную, используй Style Lock и Location Lock для консистентности.
+          Съёмка без готовой вселенной. Настрой все параметры вручную, используй Style Lock для консистентности стиля между кадрами.
         </p>
       </header>
 
@@ -498,13 +496,13 @@
               <div class="step-panel-header">
                 <h2 class="step-panel-title">Генерация с ручными настройками</h2>
                 <p class="step-panel-desc">
-                  Настрой визуальный стиль вручную. Используй Style Lock и Location Lock для консистентности между кадрами.
+                  Настрой визуальный стиль вручную. Используй Style Lock для консистентности между кадрами (если стиль закреплён — локация берётся из него).
                 </p>
               </div>
 
               <!-- Reference Locks -->
               <div class="locks-panel">
-                <h4>🔒 Reference Locks (консистентность)</h4>
+                <h4>🔒 Style Lock (консистентность)</h4>
                 
                 <div class="lock-row" id="style-lock-row">
                   <div class="lock-icon">🎨</div>
@@ -522,24 +520,8 @@
                   </div>
                 </div>
                 
-                <div class="lock-row" id="location-lock-row">
-                  <div class="lock-icon">🏠</div>
-                  <div class="lock-info">
-                    <div class="lock-title">Location Lock</div>
-                    <div class="lock-desc">Фиксирует фон / место съёмки</div>
-                  </div>
-                  <div class="lock-preview-thumb" id="location-lock-preview">
-                    <img src="" alt="Location ref" id="location-lock-img">
-                  </div>
-                  <div class="lock-controls">
-                    <button class="lock-btn active" id="location-lock-off" data-mode="off">Off</button>
-                    <button class="lock-btn" id="location-lock-strict" data-mode="strict">Strict</button>
-                    <button class="lock-btn" id="location-lock-soft" data-mode="soft">Soft</button>
-                  </div>
-                </div>
-                
                 <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px; padding: 8px; background: var(--color-bg); border-radius: 6px;">
-                  💡 Сгенерируй первый кадр, затем кликни на него в истории, чтобы установить как референс для Style Lock или Location Lock.
+                  💡 Сгенерируй первый кадр, затем кликни на него в истории, чтобы установить как референс для Style Lock. Если стиль закреплён — референс локации из каталога не передаётся (локация уже задана в стиле).
                 </div>
               </div>
 

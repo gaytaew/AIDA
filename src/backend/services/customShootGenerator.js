@@ -131,6 +131,8 @@ Pose and composition: Follow the PROMPT instructions, not [$2].`;
 
 /**
  * Build Location Lock prompt block
+ * @deprecated Location Lock removed - location is now implied in Style Lock
+ * Kept for backward compatibility with old shoots that may have location lock data
  */
 function buildLocationLockPrompt(lock) {
   if (!lock || !lock.enabled) return null;
@@ -195,7 +197,8 @@ export function buildCustomShootPrompt({
   hasIdentityRefs = false,
   hasClothingRefs = false,
   hasStyleRef = false,
-  hasLocationRef = false,
+  // hasLocationRef removed - Location Lock removed, location is implied in Style Lock
+  hasLocationSketch = false, // true if location sketch is being passed (only when Style Lock is OFF)
   hasPoseSketch = false,
   poseAdherence = 2,
   
@@ -365,28 +368,28 @@ ${styleLockPrompt}`);
   }
   
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 7: LOCATION LOCK
+  // SECTION 7: LOCATION LOCK - REMOVED
+  // Location Lock functionality removed - location is now implied in Style Lock
+  // If Style Lock is active, the location from the reference image will be preserved
   // ═══════════════════════════════════════════════════════════════
   
-  if (locks?.location?.enabled && hasLocationRef) {
-    const locationLockPrompt = buildLocationLockPrompt(locks.location);
-    if (locationLockPrompt) {
-      sections.push(`
-${locationLockPrompt}`);
-    }
-  }
-  
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 8: LOCATION (if not using location lock)
+  // SECTION 8: LOCATION (only if Style Lock is NOT active)
+  // If Style Lock is enabled, location is implied in the style reference
   // ═══════════════════════════════════════════════════════════════
   
-  if (location && !hasLocationRef) {
+  if (location && !hasStyleRef) {
     const locationDesc = buildLocationPromptSnippet(location) || location.description || '';
     if (locationDesc) {
       sections.push(`
 === LOCATION ===
 ${location.label}: ${locationDesc}`);
     }
+  } else if (hasStyleRef) {
+    // Style Lock is active - location is implied in the style reference
+    sections.push(`
+=== LOCATION ===
+Use the location/background from the Style Lock reference image.`);
   }
   
   // ═══════════════════════════════════════════════════════════════
@@ -636,7 +639,7 @@ export async function generateCustomShootFrame({
   clothingItemPrompts = [], // NEW: prompts grouped by clothing item [{ name, prompt }]
   lookPrompt = '',          // NEW: overall outfit style prompt
   styleRefImage = null,
-  locationRefImage = null,
+  // locationRefImage removed - Location Lock removed, location is implied in Style Lock
   locationSketchImage = null,
   poseSketchImage = null,
   frame = null,
@@ -726,20 +729,19 @@ export async function generateCustomShootFrame({
     }
     
     // Slot 5: Location reference
-    if (locationRefImage && locks?.location?.enabled) {
-      references.push({
-        mimeType: locationRefImage.mimeType,
-        base64: locationRefImage.base64,
-        type: 'LOCATION',
-        description: 'Location lock reference'
-      });
-    } else if (locationSketchImage) {
+    // NOTE: Location Lock removed - if Style Lock is enabled, location is implied in style reference
+    // locationSketchImage will be null if Style Lock is enabled (handled in customShootRoutes.js)
+    const hasStyleLock = styleRefImage && locks?.style?.enabled;
+    
+    if (locationSketchImage && !hasStyleLock) {
       references.push({
         mimeType: locationSketchImage.mimeType,
         base64: locationSketchImage.base64,
         type: 'LOCATION',
         description: 'Location sketch'
       });
+    } else if (hasStyleLock) {
+      console.log('[CustomShootGenerator] Style Lock active - location implied in style reference, skipping location slot');
     }
     
     // Slot 6: Pose sketch
@@ -788,7 +790,8 @@ export async function generateCustomShootFrame({
       hasIdentityRefs: identityImages.length > 0,
       hasClothingRefs: clothingImages.length > 0,
       hasStyleRef: !!styleRefImage && locks?.style?.enabled,
-      hasLocationRef: !!locationRefImage && locks?.location?.enabled,
+      // hasLocationRef removed - location is implied in Style Lock
+      hasLocationSketch: !!locationSketchImage && !hasStyleLock, // only true when Style Lock is OFF
       hasPoseSketch: !!poseSketchImage,
       poseAdherence,
       composition,

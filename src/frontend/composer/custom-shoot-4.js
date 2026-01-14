@@ -3,7 +3,8 @@
  * 
  * Same workflow as Shoot Composer, but without pre-defined universe.
  * Universe settings are configured manually on the generation step.
- * Reference Locks (Style Lock, Location Lock) ensure consistency.
+ * Style Lock ensures consistency (includes location from reference image).
+ * Location Lock removed - when Style Lock is enabled, location reference is skipped.
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -30,9 +31,8 @@ const state = {
   // Generated frames history
   generatedFrames: [],
   
-  // Reference Locks state
+  // Reference Locks state (Location Lock removed - location is implied in Style Lock)
   styleLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
-  locationLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
   
   // Generation settings (persisted per shoot)
   generationSettings: {},
@@ -110,18 +110,12 @@ function initElements() {
   // - genModelBehavior
   // - genWeather, genTimeOfDay, genSeason, genAtmosphere
   
-  // Lock controls
+  // Lock controls (Location Lock removed - location is implied in Style Lock)
   elements.styleLockOff = document.getElementById('style-lock-off');
   elements.styleLockStrict = document.getElementById('style-lock-strict');
   elements.styleLockSoft = document.getElementById('style-lock-soft');
   elements.styleLockPreview = document.getElementById('style-lock-preview');
   elements.styleLockImg = document.getElementById('style-lock-img');
-  
-  elements.locationLockOff = document.getElementById('location-lock-off');
-  elements.locationLockStrict = document.getElementById('location-lock-strict');
-  elements.locationLockSoft = document.getElementById('location-lock-soft');
-  elements.locationLockPreview = document.getElementById('location-lock-preview');
-  elements.locationLockImg = document.getElementById('location-lock-img');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -158,14 +152,10 @@ function initEventListeners() {
   elements.btnBackToFrames.addEventListener('click', () => goToStep('clothing'));
   elements.btnClearHistory.addEventListener('click', clearGenerationHistory);
   
-  // Lock buttons
+  // Lock buttons (Location Lock removed - location is implied in Style Lock)
   elements.styleLockOff.addEventListener('click', () => setStyleLockMode('off'));
   elements.styleLockStrict.addEventListener('click', () => setStyleLockMode('strict'));
   elements.styleLockSoft.addEventListener('click', () => setStyleLockMode('soft'));
-  
-  elements.locationLockOff.addEventListener('click', () => setLocationLockMode('off'));
-  elements.locationLockStrict.addEventListener('click', () => setLocationLockMode('strict'));
-  elements.locationLockSoft.addEventListener('click', () => setLocationLockMode('soft'));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -306,8 +296,7 @@ function renderShootsList() {
         <div class="shoot-card-title">${escapeHtml(shoot.label)}</div>
         <div class="shoot-card-meta">
           ${shoot.imageCount || 0} кадров
-          ${shoot.hasStyleLock ? '• 🎨' : ''}
-          ${shoot.hasLocationLock ? '• 🏠' : ''}
+          ${shoot.hasStyleLock ? '• 🎨 Style Lock' : ''}
         </div>
       </div>
       <button class="btn-delete-shoot" data-shoot-id="${shoot.id}" title="Удалить съёмку" 
@@ -428,19 +417,17 @@ function loadShootState() {
     });
   }
   
-  // Load generated images
+  // Load generated images (isLocationReference removed - location implied in style)
   state.generatedFrames = (state.currentShoot.generatedImages || []).map(img => ({
     ...img, // Load ALL saved properties (prompt, refs, composition, settings, etc.)
     status: 'ready',
     timestamp: img.createdAt || img.timestamp,
     // Ensure booleans
-    isStyleReference: !!img.isStyleReference,
-    isLocationReference: !!img.isLocationReference
+    isStyleReference: !!img.isStyleReference
   }));
   
-  // Load locks
+  // Load locks (Location Lock removed - location is implied in Style Lock)
   state.styleLock = state.currentShoot.locks?.style || { enabled: false, mode: null, imageId: null, imageUrl: null };
-  state.locationLock = state.currentShoot.locks?.location || { enabled: false, mode: null, imageId: null, imageUrl: null };
   
   // Load generation settings
   state.generationSettings = state.currentShoot.generationSettings || {};
@@ -1523,7 +1510,7 @@ function renderGeneratePage() {
 // NOTE: Ambient section removed - weather/time now in Universe params
 
 function updateLockUI() {
-  // Style Lock
+  // Style Lock (Location Lock removed - location is implied in Style Lock)
   elements.styleLockOff.classList.toggle('active', !state.styleLock.enabled);
   elements.styleLockStrict.classList.toggle('active', state.styleLock.enabled && state.styleLock.mode === 'strict');
   elements.styleLockSoft.classList.toggle('active-soft', state.styleLock.enabled && state.styleLock.mode === 'soft');
@@ -1533,18 +1520,6 @@ function updateLockUI() {
     elements.styleLockPreview.classList.add('active');
   } else {
     elements.styleLockPreview.classList.remove('active');
-  }
-  
-  // Location Lock
-  elements.locationLockOff.classList.toggle('active', !state.locationLock.enabled);
-  elements.locationLockStrict.classList.toggle('active', state.locationLock.enabled && state.locationLock.mode === 'strict');
-  elements.locationLockSoft.classList.toggle('active-soft', state.locationLock.enabled && state.locationLock.mode === 'soft');
-  
-  if (state.locationLock.imageUrl) {
-    elements.locationLockImg.src = state.locationLock.imageUrl;
-    elements.locationLockPreview.classList.add('active');
-  } else {
-    elements.locationLockPreview.classList.remove('active');
   }
 }
 
@@ -1587,40 +1562,9 @@ async function setStyleLockMode(mode) {
   }
 }
 
-async function setLocationLockMode(mode) {
-  if (mode === 'off') {
-    try {
-      await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-location`, { method: 'DELETE' });
-      state.locationLock = { enabled: false, mode: null, imageId: null, imageUrl: null };
-      updateLockUI();
-      renderGeneratedHistory();
-    } catch (e) {
-      console.error('Error clearing location lock:', e);
-    }
-  } else {
-    if (!state.locationLock.imageId && state.generatedFrames.length > 0) {
-      const lastImage = state.generatedFrames[0];
-      await setAsLocationRef(lastImage.id);
-    }
-    
-    if (state.locationLock.imageId) {
-      try {
-        await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-location`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageId: state.locationLock.imageId, mode })
-        });
-        state.locationLock.mode = mode;
-        state.locationLock.enabled = true;
-        updateLockUI();
-      } catch (e) {
-        console.error('Error setting location lock mode:', e);
-      }
-    } else {
-      alert('Сначала сгенерируйте кадр, затем установите его как референс.');
-    }
-  }
-}
+// Location Lock removed - location is implied in Style Lock
+// If you need a specific location, select it from the Location dropdown
+// Style Lock already includes the background/location from the reference image
 
 async function setAsStyleRef(imageId) {
   const image = state.generatedFrames.find(f => f.id === imageId);
@@ -1663,7 +1607,7 @@ async function setAsStyleRef(imageId) {
 /**
  * Apply settings from a reference frame to UI controls
  * @param {Object} frame - The reference frame
- * @param {string} type - 'style' or 'location'
+ * @param {string} type - 'style' (location type removed - implied in style)
  */
 function applySettingsFromFrame(frame, type) {
   if (!frame) return;
@@ -1673,6 +1617,7 @@ function applySettingsFromFrame(frame, type) {
   if (type === 'style') {
     // Style lock now uses Universe params which are locked for the whole shoot
     // The reference frame's universeParams can be used for the next generations
+    // Location is also implied in Style Lock - no need for separate location lock
     if (frame.universeParams) {
       // Apply universe params to state
       state.universeValues = { ...frame.universeParams };
@@ -1681,53 +1626,10 @@ function applySettingsFromFrame(frame, type) {
       console.log('[CustomShoot] Universe params applied from style reference');
     }
   }
-  
-  if (type === 'location') {
-    // For location lock, apply location-related settings
-    if (frame.locationId && elements.genLocation) {
-      elements.genLocation.value = frame.locationId;
-    }
-    
-    console.log('[CustomShoot] Location settings applied from reference');
-  }
 }
 
-async function setAsLocationRef(imageId) {
-  const image = state.generatedFrames.find(f => f.id === imageId);
-  if (!image) return;
-  
-  const mode = state.locationLock.mode || 'strict';
-  
-  try {
-    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-location`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageId, mode })
-    });
-    const data = await res.json();
-    
-    if (data.ok) {
-      state.locationLock = {
-        enabled: true,
-        mode,
-        imageId,
-        imageUrl: image.imageUrl
-      };
-      
-      state.generatedFrames.forEach(f => {
-        f.isLocationReference = f.id === imageId;
-      });
-      
-      // Apply location settings from reference frame to UI
-      applySettingsFromFrame(image, 'location');
-      
-      updateLockUI();
-      renderGeneratedHistory();
-    }
-  } catch (e) {
-    console.error('Error setting location ref:', e);
-  }
-}
+// setAsLocationRef removed - Location Lock functionality removed
+// Location is now implied in Style Lock
 
 function renderFramesToGenerate() {
   // Show ALL frames from catalog (no pre-selection required)
@@ -1871,11 +1773,10 @@ async function generateFrame(frameId) {
     if (data.ok && data.image) {
       if (placeholderIndex >= 0) {
         state.generatedFrames[placeholderIndex] = {
-          // Core identity
+          // Core identity (isLocationReference removed - location implied in style)
           id: data.image.id,
           imageUrl: data.image.imageUrl,
           isStyleReference: false,
-          isLocationReference: false,
           status: 'ready',
           timestamp: new Date().toISOString(),
           
@@ -1981,12 +1882,9 @@ function renderGeneratedHistory() {
     
     // Ready frame
     const isStyleRef = frame.isStyleReference;
-    const isLocationRef = frame.isLocationReference;
     
     let borderColor = 'var(--color-border)';
-    if (isStyleRef && isLocationRef) borderColor = '#8B5CF6';
-    else if (isStyleRef) borderColor = '#F59E0B';
-    else if (isLocationRef) borderColor = '#10B981';
+    if (isStyleRef) borderColor = '#F59E0B';
     
     // Build refs HTML with images (same as shoot-composer)
     const refs = frame.refs || [];
@@ -2015,7 +1913,6 @@ function renderGeneratedHistory() {
         <!-- Lock badges -->
         <div class="history-lock-badges">
           ${isStyleRef ? '<span class="history-lock-badge style">🎨</span>' : ''}
-          ${isLocationRef ? '<span class="history-lock-badge location">🏠</span>' : ''}
         </div>
         
         <div class="selection-card-preview btn-open-lightbox" data-frame-index="${idx}" style="aspect-ratio: 3/4; cursor: pointer;" title="Клик для просмотра">
@@ -2034,8 +1931,7 @@ function renderGeneratedHistory() {
           <div style="display: flex; gap: 8px;">
             <a href="${frame.imageUrl}" download="custom-shoot-${idx}.png" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Скачать">💾</a>
             <button class="btn btn-secondary" onclick="window.copyFrameSettings(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Применить настройки этого кадра">📋</button>
-            <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock">🎨</button>
-            <button class="btn btn-secondary btn-set-location-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Location Lock">🏠</button>
+            <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock (включает локацию)">🎨</button>
             <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);" title="Удалить">✕</button>
           </div>
         </div>
@@ -2071,10 +1967,6 @@ function renderGeneratedHistory() {
   
   elements.imagesGallery.querySelectorAll('.btn-set-style-ref').forEach(btn => {
     btn.addEventListener('click', () => setAsStyleRef(btn.dataset.imageId));
-  });
-  
-  elements.imagesGallery.querySelectorAll('.btn-set-location-ref').forEach(btn => {
-    btn.addEventListener('click', () => setAsLocationRef(btn.dataset.imageId));
   });
   
   // btn-copy-settings now uses inline onclick="window.copyFrameSettings(idx)"

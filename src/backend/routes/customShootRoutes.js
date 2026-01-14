@@ -582,17 +582,14 @@ router.post('/:id/generate', async (req, res) => {
       styleRefImage = await prepareImageFromUrl(shoot.locks.style.sourceImageUrl);
     }
     
-    // Prepare location reference image
-    let locationRefImage = null;
-    if (shoot.locks?.location?.enabled && shoot.locks.location.sourceImageUrl) {
-      locationRefImage = await prepareImageFromUrl(shoot.locks.location.sourceImageUrl);
-    }
+    // Location Lock removed - location is now implied in Style Lock
+    // If Style Lock is enabled, location from the reference image will be used
     
     console.log('[CustomShootRoutes] Prepared refs:', {
       identity: identityImages.length,
       clothing: clothingImages.length,
       styleRef: !!styleRefImage,
-      locationRef: !!locationRefImage,
+      styleLockActive: !!styleRefImage && shoot.locks?.style?.enabled,
       models: shoot.models?.map(m => m.modelId || m.id) || [],
       location: shoot.location?.label || null,
       frame: shoot.currentFrame?.label || null
@@ -608,8 +605,13 @@ router.post('/:id/generate', async (req, res) => {
     }
 
     // Prepare location sketch image
+    // IMPORTANT: If Style Lock is enabled, skip location sketch - location is already implied in style reference
+    const isStyleLockEnabled = shoot.locks?.style?.enabled && styleRefImage;
     let locationSketchImage = null;
-    if (location) {
+    
+    if (isStyleLockEnabled) {
+      console.log('[CustomShootRoutes] Style Lock is enabled - skipping location sketch (location implied in style reference)');
+    } else if (location) {
       const sketchUrl = location.sketchAsset?.url || location.sketchAsset || location.sketchUrl;
       if (sketchUrl) {
         locationSketchImage = await prepareImageFromUrl(sketchUrl);
@@ -674,7 +676,8 @@ router.post('/:id/generate', async (req, res) => {
       identityImages: identityImages.length, 
       clothingImages: clothingImages.length,
       hasStyleRef: !!styleRefImage,
-      hasLocationRef: !!locationRefImage,
+      styleLockActive: isStyleLockEnabled,
+      hasLocationSketch: !!locationSketchImage,
       hasPoseSketch: !!poseSketchImage
     });
     
@@ -687,7 +690,7 @@ router.post('/:id/generate', async (req, res) => {
       clothingItemPrompts,  // NEW: prompts grouped by clothing item
       lookPrompt,           // NEW: overall outfit style prompt
       styleRefImage,
-      locationRefImage,
+      // locationRefImage removed - Location Lock functionality removed, location implied in Style Lock
       locationSketchImage,
       poseSketchImage,
       frame: effectiveFrame,
@@ -763,18 +766,13 @@ router.post('/:id/generate', async (req, res) => {
     if (styleRefImage) {
       refs.push({
         kind: 'style_lock',
-        label: 'Style Lock',
+        label: 'Style Lock (включает локацию)',
         previewUrl: `data:${styleRefImage.mimeType};base64,${styleRefImage.base64}`
       });
     }
-    if (locationRefImage) {
-      refs.push({
-        kind: 'location_lock',
-        label: 'Location Lock',
-        previewUrl: `data:${locationRefImage.mimeType};base64,${locationRefImage.base64}`
-      });
-    }
-    if (locationSketchImage && !locationRefImage) {
+    // Location Lock removed - location is implied in Style Lock
+    // Location sketch is only added if Style Lock is NOT active
+    if (locationSketchImage && !isStyleLockEnabled) {
       refs.push({
         kind: 'location_sketch',
         label: 'Референс локации',
