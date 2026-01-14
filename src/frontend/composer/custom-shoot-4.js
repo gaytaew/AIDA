@@ -1694,46 +1694,57 @@ function renderFramesToGenerate() {
   });
 }
 
+/**
+ * Generate a frame with full error handling, timeout, and logging
+ */
 async function generateFrame(frameId) {
-  if (!state.currentShoot) return;
+  const genId = `gen_${Date.now() % 100000}`;
+  const log = (msg, data) => console.log(`[Generate] [${genId}] ${msg}`, data || '');
+  
+  log('START', { frameId, shootId: state.currentShoot?.id });
+  
+  if (!state.currentShoot) {
+    log('ERROR: No current shoot');
+    return;
+  }
   
   const modelCount = state.selectedModels.filter(m => m !== null).length;
   if (modelCount === 0) {
+    log('ERROR: No models selected');
     alert('Сначала добавьте модель');
     return;
   }
   
-  // Get button and show loading
+  // Get button and show loading - with null check
   const btn = elements.framesToGenerate.querySelector(`.btn-gen-frame[data-frame-id="${frameId || ''}"]`);
+  if (!btn) {
+    log('ERROR: Button not found', { selector: `.btn-gen-frame[data-frame-id="${frameId || ''}"]` });
+    alert('Ошибка: кнопка генерации не найдена. Обновите страницу.');
+    return;
+  }
+  
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ Генерация...';
   
   // Get settings (Custom Shoot 4 - new universe params architecture)
   const universeParams = collectUniverseParams();
+  log('Collected universe params', { keys: Object.keys(universeParams) });
   
   const params = {
     frameId,
     locationId: elements.genLocation.value || null,
     emotionId: elements.genEmotion.value || null,
     extraPrompt: elements.genExtraPrompt.value.trim(),
-    
-    // Universe params (Custom Shoot 4) - all visual settings
     universeParams: universeParams,
-    
-    // Per-frame parameters
     aspectRatio: elements.genAspectRatio?.value || '3:4',
     imageSize: elements.genImageSize?.value || '2K',
     poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2,
-    
-    // Per-frame composition (can vary per frame)
     composition: {
       shotSize: elements.genShotSize?.value || 'default',
       cameraAngle: elements.genCameraAngle?.value || 'eye_level'
     }
   };
-  
-  // Universe params are sent with each generation request, no need to save presets separately
   
   // Add placeholder
   const placeholderId = `pending_${Date.now()}`;
@@ -1744,28 +1755,55 @@ async function generateFrame(frameId) {
   });
   renderGeneratedHistory();
   
+  // Create AbortController with 3 minute timeout
+  const controller = new AbortController();
+  const TIMEOUT_MS = 180000; // 3 minutes
+  const timeoutId = setTimeout(() => {
+    log('TIMEOUT: Aborting after 3 minutes');
+    controller.abort();
+  }, TIMEOUT_MS);
+  
+  const startTime = Date.now();
+  
   try {
+    log('FETCH_START', { url: `/api/custom-shoots/${state.currentShoot.id}/generate` });
+    
+    const requestBody = {
+      frame: frameId ? state.frames.find(f => f.id === frameId) : null,
+      emotionId: params.emotionId,
+      extraPrompt: params.extraPrompt,
+      locationId: params.locationId,
+      aspectRatio: params.aspectRatio,
+      imageSize: params.imageSize,
+      poseAdherence: params.poseAdherence,
+      universeParams: params.universeParams,
+      composition: params.composition
+    };
+    
+    const bodySize = JSON.stringify(requestBody).length;
+    log('REQUEST_BODY_SIZE', { sizeKB: Math.round(bodySize / 1024) });
+    
     const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        frame: frameId ? state.frames.find(f => f.id === frameId) : null,
-        emotionId: params.emotionId,
-        extraPrompt: params.extraPrompt,
-        locationId: params.locationId,
-        aspectRatio: params.aspectRatio,
-        imageSize: params.imageSize,
-        poseAdherence: params.poseAdherence,
-        
-        // Universe params (Custom Shoot 4 architecture) - all visual settings
-        universeParams: params.universeParams,
-        
-        // Per-frame composition
-        composition: params.composition
-      })
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
+    
+    const fetchDuration = ((Date.now() - startTime) / 1000).toFixed(1);
+    log('FETCH_COMPLETE', { status: res.status, duration: fetchDuration + 's' });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      log('HTTP_ERROR', { status: res.status, body: errorText.slice(0, 200) });
+      throw new Error(`HTTP ${res.status}: ${errorText.slice(0, 100)}`);
+    }
+    
+    log('PARSING_RESPONSE');
     const data = await res.json();
+    log('RESPONSE_PARSED', { ok: data.ok, hasImage: !!data.image });
     
     // Find and update placeholder
     const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
@@ -1773,18 +1811,13 @@ async function generateFrame(frameId) {
     if (data.ok && data.image) {
       if (placeholderIndex >= 0) {
         state.generatedFrames[placeholderIndex] = {
-          // Core identity (isLocationReference removed - location implied in style)
           id: data.image.id,
           imageUrl: data.image.imageUrl,
           isStyleReference: false,
           status: 'ready',
           timestamp: new Date().toISOString(),
-          
-          // Frame metadata
           frameId: data.image.frameId || null,
           frameLabel: data.image.frameLabel || 'По умолчанию',
-          
-          // Per-frame settings (for copy feature)
           locationId: data.image.locationId || null,
           locationLabel: data.image.locationLabel || null,
           emotionId: data.image.emotionId || null,
@@ -1793,24 +1826,20 @@ async function generateFrame(frameId) {
           poseAdherence: data.image.poseAdherence || 2,
           composition: data.image.composition || null,
           extraPrompt: data.image.extraPrompt || '',
-          
-          // Debug/history
           prompt: data.prompt || null,
           refs: data.refs || [],
           generationTime: data.image.generationTime || null,
-          
-          // Universe params snapshot (CRITICAL for copy feature)
           universeParams: data.image.universeParams || null
         };
         
-        console.log('[Generate] Saved frame with universeParams:', data.image.universeParams ? Object.keys(data.image.universeParams) : 'NONE');
+        log('SUCCESS', { imageId: data.image.id, generationTime: data.image.generationTime });
       }
       
-      // Clear extra prompt
       elements.genExtraPrompt.value = '';
-      
       renderGeneratedHistory();
+      showToast('✅ Изображение сгенерировано!');
     } else {
+      log('API_ERROR', { error: data.error });
       if (placeholderIndex >= 0) {
         state.generatedFrames[placeholderIndex].status = 'error';
         state.generatedFrames[placeholderIndex].error = data.error || 'Неизвестная ошибка';
@@ -1819,15 +1848,33 @@ async function generateFrame(frameId) {
       alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
     }
   } catch (e) {
-    console.error('Error generating:', e);
-    const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
-    if (placeholderIndex >= 0) {
-      state.generatedFrames[placeholderIndex].status = 'error';
-      state.generatedFrames[placeholderIndex].error = e.message;
-      renderGeneratedHistory();
+    clearTimeout(timeoutId);
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    
+    if (e.name === 'AbortError') {
+      log('ABORTED', { duration: duration + 's', reason: 'timeout or manual abort' });
+      const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex].status = 'error';
+        state.generatedFrames[placeholderIndex].error = 'Таймаут: сервер не ответил за 3 минуты';
+        renderGeneratedHistory();
+      }
+      alert('Таймаут: сервер не ответил за 3 минуты. Попробуйте ещё раз или обновите страницу.');
+    } else {
+      log('EXCEPTION', { name: e.name, message: e.message, duration: duration + 's' });
+      console.error('[Generate] Full error:', e);
+      
+      const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex].status = 'error';
+        state.generatedFrames[placeholderIndex].error = e.message;
+        renderGeneratedHistory();
+      }
+      alert('Ошибка сети: ' + e.message);
     }
-    alert('Ошибка сети: ' + e.message);
   } finally {
+    log('CLEANUP');
     btn.disabled = false;
     btn.textContent = originalText;
   }

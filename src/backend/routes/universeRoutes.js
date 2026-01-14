@@ -149,6 +149,28 @@ router.post('/params/check', (req, res) => {
   }
 });
 
+// POST /api/universes/params/fix — Auto-fix conflicting parameters
+router.post('/params/fix', (req, res) => {
+  try {
+    const params = req.body.params || {};
+    const { sanitizeUniverseParams } = require('../schema/universeConflicts.js');
+    
+    const result = sanitizeUniverseParams(params);
+    
+    res.json({
+      ok: true,
+      data: {
+        params: result.params,
+        corrections: result.corrections,
+        wasModified: result.wasModified
+      }
+    });
+  } catch (err) {
+    console.error('[Universe] Params fix error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // GET /api/universes/params/rules — Get all conflict rules (for documentation)
 router.get('/params/rules', (req, res) => {
   try {
