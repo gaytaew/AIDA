@@ -249,7 +249,10 @@ function goToStep(stepId) {
       renderAvailableModels();
       break;
     case 'clothing':
-      renderClothingSections();
+      // Reload clothing images if they were stripped in slim mode
+      loadClothingImagesIfNeeded().then(() => {
+        renderClothingSections();
+      });
       break;
     case 'generate':
       renderGeneratePage();
@@ -493,6 +496,57 @@ function loadShootState() {
   
   // Load generation settings
   state.generationSettings = state.currentShoot.generationSettings || {};
+}
+
+/**
+ * Load full clothing images if they were stripped in slim mode
+ * Called when user navigates to clothing step (step 3)
+ */
+async function loadClothingImagesIfNeeded() {
+  if (!state.currentShoot) return;
+  
+  // Check if any clothing images have _placeholder flag (were stripped in slim mode)
+  const hasPlaceholders = state.clothingByModel.some(items =>
+    items.some(item => 
+      item.images?.some(img => img._placeholder)
+    )
+  );
+  
+  if (!hasPlaceholders) {
+    console.log('[LoadClothing] No placeholders found, images already loaded');
+    return;
+  }
+  
+  console.log('[LoadClothing] Detected placeholders, reloading full clothing data...');
+  
+  try {
+    // Reload shoot WITHOUT slim mode to get full clothing images
+    const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {}, 10000);
+    const data = await res.json();
+    
+    if (data.ok && data.shoot.clothing) {
+      // Update only clothing data (preserve other state)
+      state.clothingByModel = [[], [], []];
+      
+      data.shoot.clothing.forEach(c => {
+        if (c.forModelIndex >= 0 && c.forModelIndex < 3) {
+          if (c.items) {
+            console.log('[LoadClothing] Reloaded items for model', c.forModelIndex, ':', 
+              c.items.map(item => ({ name: item.name, imagesCount: item.images?.length }))
+            );
+            state.clothingByModel[c.forModelIndex] = c.items;
+          } else if (c.refs) {
+            // Old format - migrate
+            state.clothingByModel[c.forModelIndex] = migrateOldClothingRefs(c.refs);
+          }
+        }
+      });
+      
+      console.log('[LoadClothing] Full clothing data reloaded successfully');
+    }
+  } catch (e) {
+    console.error('[LoadClothing] Error reloading clothing data:', e);
+  }
 }
 
 async function deleteShoot(shootId) {
