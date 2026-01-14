@@ -12,6 +12,8 @@
  * - Dependency Matrix prevents physically impossible combinations
  */
 
+import { getEmotionById } from '../services/avatarEmotions.js';
+
 // ═══════════════════════════════════════════════════════════════
 // SECTION 1: TECHNICAL PARAMETERS (Camera Setup)
 // These are STRICT, DETERMINISTIC specs like a photographer would set
@@ -1373,12 +1375,21 @@ function buildArtisticBrief(params, scene) {
   if (spontaneity) lines.push(spontaneity.narrative);
 
   // Emotion (Moved from Scene Description to Artistic Brief)
-  if (scene && scene.emotionId && typeof scene.emotionId === 'object') {
-    const emo = scene.emotionId;
-    if (emo.visualPrompt) {
-      lines.push(`EMOTION & EXPRESSION: ${emo.visualPrompt}`);
-    } else if (emo.label) {
-      lines.push(`EMOTION & EXPRESSION: ${emo.label}`);
+  if (scene && scene.emotionId) {
+    // Resolve emotion object from ID if it's a string
+    let emo = scene.emotionId;
+    if (typeof emo === 'string') {
+      emo = getEmotionById(emo);
+    }
+
+    if (emo) {
+      if (emo.prompt) {
+        lines.push(`EMOTION & EXPRESSION: ${emo.prompt}`);
+      } else if (emo.visualPrompt) {
+        lines.push(`EMOTION & EXPRESSION: ${emo.visualPrompt}`);
+      } else if (emo.label) {
+        lines.push(`EMOTION & EXPRESSION: ${emo.label} expression`);
+      }
     }
   }
 
