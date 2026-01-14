@@ -1234,7 +1234,7 @@ export function buildV5Prompt(params, scene = {}) {
   const techSpecs = buildTechnicalSpecs(resolvedParams);
 
   // Build Artistic Brief block
-  const artisticBrief = buildArtisticBrief(resolvedParams);
+  const artisticBrief = buildArtisticBrief(resolvedParams, scene);
 
   // Build Scene Description
   const sceneDesc = buildSceneDescription(scene, resolvedParams);
@@ -1345,7 +1345,7 @@ function buildTechnicalSpecs(params) {
   return lines.join('\n');
 }
 
-function buildArtisticBrief(params) {
+function buildArtisticBrief(params, scene) {
   const lines = [];
 
   // Visual Mood
@@ -1371,6 +1371,16 @@ function buildArtisticBrief(params) {
   // Spontaneity
   const spontaneity = ART_SPONTANEITY.options.find(o => o.value === params.spontaneity);
   if (spontaneity) lines.push(spontaneity.narrative);
+
+  // Emotion (Moved from Scene Description to Artistic Brief)
+  if (scene && scene.emotionId && typeof scene.emotionId === 'object') {
+    const emo = scene.emotionId;
+    if (emo.visualPrompt) {
+      lines.push(`EMOTION & EXPRESSION: ${emo.visualPrompt}`);
+    } else if (emo.label) {
+      lines.push(`EMOTION & EXPRESSION: ${emo.label}`);
+    }
+  }
 
   console.log('[buildArtisticBrief] Generated', lines.length, 'lines');
   return lines.join('\n\n');
@@ -1455,17 +1465,7 @@ function buildSceneDescription(scene, params) {
     parts.push(`MODEL: ${scene.modelDescription}`);
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // EMOTION
-  // ═══════════════════════════════════════════════════════════════
-  if (scene.emotionId && typeof scene.emotionId === 'object') {
-    const emo = scene.emotionId;
-    if (emo.visualPrompt) {
-      parts.push(`EMOTION: ${emo.visualPrompt}`);
-    } else if (emo.label) {
-      parts.push(`EMOTION: ${emo.label}`);
-    }
-  }
+
 
   // ═══════════════════════════════════════════════════════════════
   // COMPOSITION (Shot Size + Camera Angle)
@@ -1580,10 +1580,10 @@ function buildSceneDescription(scene, params) {
   // FORMAT & POSE (Pose Adherence + Image Quality)
   // ═══════════════════════════════════════════════════════════════
   const poseInstructions = {
-    1: "Free/Loose pose. Create a natural, candid variation. IGNORE strict sketch alignment.",
-    2: "Relaxed pose. Follow the general gesture but prioritize comfort and natural flow.",
-    3: "Strict pose. Follow the sketch compositionally. Maintain limb positioning.",
-    4: "TECHNICAL MATCH. COPY the sketch pose EXACTLY. Do not deviate."
+    1: "CREATIVE FREEDOM (Low Adherence): DEVIATE significantly from the sketch. Use it only as a rough composition guide. The pose must feel completely organic and unposed.",
+    2: "NATURAL VARIATION (Medium Adherence): Follow the general idea but change specific limbs to look more relaxed. Avoid stiff 'copied' look.",
+    3: "STRUCTURED MATCH (High Adherence):  Match the key pose structure, but refine fingers, hands, and micro-expressions for realism.",
+    4: "STRICT TECHNICAL MATCH (Max Adherence): COPY the sketch pose EXACTLY. Do not deviate. Match every angle and position precisely."
   };
 
   const adherence = scene.poseAdherence || 2;
