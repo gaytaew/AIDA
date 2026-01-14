@@ -27,6 +27,11 @@ let indexCache = null;
 let indexCacheTime = 0;
 const INDEX_CACHE_TTL = 5000; // 5 seconds
 
+// In-memory cache for shoots (LRU-like, max 5 shoots)
+const shootCache = new Map();
+const SHOOT_CACHE_MAX = 5;
+const SHOOT_CACHE_TTL = 60000; // 1 minute
+
 // ═══════════════════════════════════════════════════════════════
 // FILE LOCK (prevent race conditions)
 // ═══════════════════════════════════════════════════════════════
@@ -341,11 +346,26 @@ export async function getAllCustomShoots() {
  * Get a custom shoot by ID (internal, without lock)
  */
 async function _readShoot(id) {
+  // Check cache first
+  const cached = shootCache.get(id);
+  if (cached && (Date.now() - cached.time) < SHOOT_CACHE_TTL) {
+    return JSON.parse(JSON.stringify(cached.data)); // Deep clone
+  }
+  
   const filePath = path.join(STORE_DIR, `${id}.json`);
   
   try {
     const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content);
+    const shoot = JSON.parse(content);
+    
+    // Add to cache (LRU eviction)
+    if (shootCache.size >= SHOOT_CACHE_MAX) {
+      const firstKey = shootCache.keys().next().value;
+      shootCache.delete(firstKey);
+    }
+    shootCache.set(id, { data: shoot, time: Date.now() });
+    
+    return JSON.parse(JSON.stringify(shoot)); // Return deep clone
   } catch (err) {
     if (err.code === 'ENOENT') {
       return null; // Not found
@@ -356,6 +376,13 @@ async function _readShoot(id) {
     }
     throw err;
   }
+}
+
+/**
+ * Invalidate shoot cache (call after write)
+ */
+function invalidateShootCache(id) {
+  shootCache.delete(id);
 }
 
 /**
@@ -379,8 +406,18 @@ async function _writeShoot(shoot) {
   
   const filePath = path.join(STORE_DIR, `${shoot.id}.json`);
   
+  // Invalidate cache before write
+  invalidateShootCache(shoot.id);
+  
   // Use atomic write to prevent corruption
   await atomicWriteFile(filePath, JSON.stringify(shoot, null, 2));
+  
+  // Update cache with new data
+  if (shootCache.size >= SHOOT_CACHE_MAX) {
+    const firstKey = shootCache.keys().next().value;
+    shootCache.delete(firstKey);
+  }
+  shootCache.set(shoot.id, { data: shoot, time: Date.now() });
   
   console.log(`[CustomShootStore] Saved shoot: ${shoot.id}`);
   return shoot;
