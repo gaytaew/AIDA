@@ -7,220 +7,9 @@
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="shoot-composer-styles.css">
   <style>
-    /* Custom Shoot 5 specific styles - Smart System */
+    /* Custom Shoot specific styles */
     
-    /* Mode Selector (Prompt Style) */
-    .mode-selector {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-    
-    .mode-selector h4 {
-      font-size: 12px;
-      text-transform: uppercase;
-      color: var(--color-text-muted);
-      margin-bottom: 12px;
-    }
-    
-    .mode-options {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .mode-option {
-      flex: 1;
-      padding: 12px 16px;
-      border: 2px solid var(--color-border);
-      border-radius: 8px;
-      background: var(--color-bg);
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }
-    
-    .mode-option:hover {
-      border-color: var(--color-text-muted);
-    }
-    
-    .mode-option.active {
-      border-color: var(--color-primary);
-      background: rgba(99, 102, 241, 0.1);
-    }
-    
-    .mode-option-icon {
-      font-size: 24px;
-      margin-bottom: 6px;
-    }
-    
-    .mode-option-label {
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 4px;
-    }
-    
-    .mode-option-desc {
-      font-size: 11px;
-      color: var(--color-text-muted);
-    }
-    
-    /* Vibe Presets */
-    .vibe-presets {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .vibe-presets h4 {
-      font-size: 12px;
-      text-transform: uppercase;
-      color: var(--color-text-muted);
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .vibe-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 12px;
-    }
-    
-    .vibe-card {
-      background: var(--color-surface);
-      border: 2px solid transparent;
-      border-radius: 12px;
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }
-    
-    .vibe-card:hover {
-      border-color: var(--color-border);
-      transform: translateY(-2px);
-    }
-    
-    .vibe-card.active {
-      border-color: var(--color-accent);
-      background: rgba(236, 72, 153, 0.1);
-    }
-    
-    .vibe-card-icon {
-      font-size: 32px;
-      margin-bottom: 8px;
-    }
-    
-    .vibe-card-name {
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 4px;
-    }
-    
-    .vibe-card-desc {
-      font-size: 11px;
-      color: var(--color-text-muted);
-    }
-    
-    /* Conflict Panel */
-    .conflicts-panel {
-      border-radius: var(--radius-md);
-      padding: 16px;
-      margin-bottom: 20px;
-      display: none;
-    }
-    
-    .conflicts-panel.visible {
-      display: block;
-    }
-    
-    .conflicts-panel.has-conflicts {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-    
-    .conflicts-panel.has-warnings {
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-    
-    .conflicts-panel.has-hints {
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-    }
-    
-    .conflicts-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    
-    .conflicts-title {
-      font-weight: 600;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .conflicts-count {
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.1);
-    }
-    
-    .conflict-item {
-      padding: 12px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 8px;
-      margin-bottom: 8px;
-    }
-    
-    .conflict-item:last-child {
-      margin-bottom: 0;
-    }
-    
-    .conflict-item-title {
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 4px;
-    }
-    
-    .conflict-item-message {
-      font-size: 12px;
-      color: var(--color-text-muted);
-      margin-bottom: 8px;
-    }
-    
-    .conflict-item-suggestion {
-      font-size: 11px;
-      color: var(--color-primary);
-      font-style: italic;
-    }
-    
-    .btn-fix-all {
-      padding: 8px 16px;
-      font-size: 12px;
-      background: var(--color-primary);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .btn-fix-all:hover {
-      opacity: 0.9;
-    }
-    
-    /* Reference Locks Panel (Smart Style Lock) */
+    /* Reference Locks Panel */
     .locks-panel {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -251,11 +40,6 @@
     
     .lock-row:last-child {
       margin-bottom: 0;
-    }
-    
-    .lock-row.locked {
-      border: 2px solid var(--color-accent);
-      background: rgba(236, 72, 153, 0.05);
     }
     
     .lock-icon {
@@ -378,38 +162,6 @@
       color: var(--color-text);
     }
     
-    .universe-grid select.conflict {
-      border-color: #ef4444;
-      background: rgba(239, 68, 68, 0.1);
-    }
-    
-    .universe-grid select.warning {
-      border-color: #f59e0b;
-      background: rgba(245, 158, 11, 0.1);
-    }
-    
-    .universe-grid select:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    /* Locked params indicator */
-    .universe-settings.locked {
-      position: relative;
-    }
-    
-    .universe-settings.locked::after {
-      content: '🔒 Style Lock активен';
-      position: absolute;
-      top: 10px;
-      right: 16px;
-      font-size: 11px;
-      color: var(--color-accent);
-      background: rgba(236, 72, 153, 0.1);
-      padding: 4px 10px;
-      border-radius: 12px;
-    }
-    
     /* History item with lock badges */
     .history-lock-badges {
       position: absolute;
@@ -431,6 +183,45 @@
     
     .history-lock-badge.style {
       background: #F59E0B;
+    }
+    
+    /* .history-lock-badge.location removed - Location Lock removed */
+    
+    /* Lock selection hint on hover */
+    .generated-frame-card .lock-actions {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      padding: 40px 10px 10px;
+      display: none;
+    }
+    
+    .generated-frame-card:hover .lock-actions {
+      display: block;
+    }
+    
+    .lock-action-btn {
+      display: block;
+      width: 100%;
+      padding: 6px 10px;
+      margin-bottom: 4px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 11px;
+      cursor: pointer;
+      text-align: left;
+    }
+    
+    .lock-action-btn:hover {
+      background: rgba(255,255,255,0.25);
+    }
+    
+    .lock-action-btn:last-child {
+      margin-bottom: 0;
     }
     
     /* Clothing Items with Descriptions */
@@ -559,7 +350,7 @@
       <header class="page-header">
         <h1 class="page-title">🧠 Custom Shoot v5.0 (Smart System)</h1>
         <p class="page-subtitle">
-          Умная съёмка с проверкой конфликтов в реальном времени, пресетами и улучшенным Style Lock.
+          Умная съёмка с проверкой конфликтов. Технические параметры (камера) + Художественные (настроение) — без противоречий.
         </p>
       </header>
 
@@ -611,7 +402,7 @@
               <div class="step-panel-header">
                 <h2 class="step-panel-title">Выбери или создай Custom Shoot</h2>
                 <p class="step-panel-desc">
-                  В Custom Shoot 5 (Smart) все визуальные параметры проверяются на конфликты в реальном времени.
+                  В Custom Shoot все визуальные параметры настраиваются вручную на этапе генерации.
                 </p>
               </div>
 
@@ -700,85 +491,44 @@
               </div>
             </div>
 
-            <!-- Step 4: Generation with Smart Settings -->
+            <!-- Step 4: Generation with Universe Settings (frames are selected here) -->
             <div class="step-panel" data-panel="generate">
               <div class="step-panel-header">
-                <h2 class="step-panel-title">Генерация с умными настройками</h2>
+                <h2 class="step-panel-title">Генерация с ручными настройками</h2>
                 <p class="step-panel-desc">
-                  Выбери пресет или настрой параметры вручную. Система проверяет конфликты в реальном времени.
+                  Настрой визуальный стиль вручную. Используй Style Lock для консистентности между кадрами (если стиль закреплён — локация берётся из него).
                 </p>
               </div>
 
-              <!-- Prompt Mode Selector -->
-              <div class="mode-selector">
-                <h4>🎯 Режим промпта</h4>
-                <div class="mode-options">
-                  <div class="mode-option active" data-mode="descriptive">
-                    <div class="mode-option-icon">📝</div>
-                    <div class="mode-option-label">Descriptive</div>
-                    <div class="mode-option-desc">Описательный стиль арт-директора. Гибко и творчески.</div>
-                  </div>
-                  <div class="mode-option" data-mode="strict">
-                    <div class="mode-option-icon">📐</div>
-                    <div class="mode-option-label">Strict</div>
-                    <div class="mode-option-desc">Жёсткие технические требования. Максимальная консистентность.</div>
-                  </div>
-                  <div class="mode-option" data-mode="soft">
-                    <div class="mode-option-icon">🎨</div>
-                    <div class="mode-option-label">Soft</div>
-                    <div class="mode-option-desc">Нарративный стиль. Больше свободы для AI.</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Vibe Presets -->
-              <div class="vibe-presets">
-                <h4>✨ Быстрые пресеты (Vibes)</h4>
-                <div class="vibe-grid" id="vibe-grid">
-                  <!-- Will be populated by JS -->
-                </div>
-              </div>
-
-              <!-- Conflict Panel -->
-              <div class="conflicts-panel" id="conflicts-panel">
-                <div class="conflicts-header">
-                  <div class="conflicts-title">
-                    <span id="conflicts-icon">⚠️</span>
-                    <span id="conflicts-title-text">Обнаружены конфликты</span>
-                    <span class="conflicts-count" id="conflicts-count">0</span>
-                  </div>
-                  <button class="btn-fix-all" id="btn-fix-all">✨ Исправить автоматически</button>
-                </div>
-                <div id="conflicts-list">
-                  <!-- Will be populated by JS -->
-                </div>
-              </div>
-
-              <!-- Reference Locks (Smart Style Lock) -->
+              <!-- Reference Locks -->
               <div class="locks-panel">
-                <h4>🔒 Smart Style Lock (параметры + референс)</h4>
+                <h4>🔒 Style Lock (консистентность)</h4>
                 
                 <div class="lock-row" id="style-lock-row">
                   <div class="lock-icon">🎨</div>
                   <div class="lock-info">
                     <div class="lock-title">Style Lock</div>
-                    <div class="lock-desc">Копирует ВСЕ параметры из референсного кадра + блокирует изменения</div>
+                    <div class="lock-desc">Фиксирует цвет, свет, текстуру</div>
                   </div>
                   <div class="lock-preview-thumb" id="style-lock-preview">
                     <img src="" alt="Style ref" id="style-lock-img">
                   </div>
                   <div class="lock-controls">
                     <button class="lock-btn active" id="style-lock-off" data-mode="off">Off</button>
-                    <button class="lock-btn" id="style-lock-strict" data-mode="strict">Lock</button>
+                    <button class="lock-btn" id="style-lock-strict" data-mode="strict">Strict</button>
+                    <button class="lock-btn" id="style-lock-soft" data-mode="soft">Soft</button>
                   </div>
                 </div>
                 
                 <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px; padding: 8px; background: var(--color-bg); border-radius: 6px;">
-                  💡 Сгенерируй первый кадр, затем кликни 🎨 на нём чтобы установить как референс. При активном Lock ВСЕ параметры будут заблокированы для консистентности.
+                  💡 Сгенерируй первый кадр, затем кликни на него в истории, чтобы установить как референс для Style Lock. Если стиль закреплён — референс локации из каталога не передаётся (локация уже задана в стиле).
                 </div>
               </div>
 
-              <!-- Universe Parameters Container -->
+              <!-- ═══════════════════════════════════════════════════════════ -->
+              <!-- UNIVERSE PARAMETERS (7 blocks - dynamically rendered) -->
+              <!-- ═══════════════════════════════════════════════════════════ -->
+              
               <div id="universe-params-container">
                 <!-- Блоки будут загружены динамически из API -->
                 <div class="universe-settings" style="text-align: center; padding: 40px;">
@@ -787,7 +537,21 @@
                 </div>
               </div>
               
-              <!-- Narrative Preview -->
+              <!-- Visual Anchors Panel (NEW: числовые якори для консистентности) -->
+              <div class="universe-settings" id="visual-anchors-panel" style="display: none;">
+                <h4 style="display: flex; align-items: center; gap: 8px;">
+                  🎯 Visual Anchors
+                  <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">Числовые якори для консистентности</span>
+                </h4>
+                <div id="visual-anchors-content" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  <!-- Anchors will be rendered here -->
+                </div>
+                <div style="margin-top: 10px; padding: 8px; background: var(--color-bg); border-radius: 6px; font-size: 11px; color: var(--color-text-muted);">
+                  💡 Эти значения ФИКСИРОВАНЫ и должны быть ОДИНАКОВЫМИ во всех кадрах. AI получит их как жёсткие требования.
+                </div>
+              </div>
+              
+              <!-- Narrative Preview (показывает как параметры превращаются в текст) -->
               <div class="universe-settings" id="narrative-preview-panel" style="display: none;">
                 <h4 style="display: flex; align-items: center; gap: 8px;">
                   📝 Превью промпта
@@ -799,6 +563,8 @@
                   <div style="color: var(--color-text-muted);">Выбери параметры для превью...</div>
                 </div>
               </div>
+              
+              <!-- Legacy fields removed - all settings now in Universe params -->
               
               <!-- Standard generation controls -->
               <div class="generation-controls" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
@@ -846,13 +612,18 @@
                   <div class="form-group" style="margin: 0;">
                     <label for="gen-pose-adherence">🎯 Следование эскизу позы</label>
                     <select id="gen-pose-adherence" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
-                      <option value="1">1 — Свободно (~15%): только тип (стоит/сидит)</option>
-                      <option value="2" selected>2 — Похоже (~35%): общее направление</option>
+                      <option value="1">1 — Свободно (~15%): только тип (стоит/сидит), руки/ноги новые</option>
+                      <option value="2" selected>2 — Похоже (~35%): общее направление, своя интерпретация</option>
                       <option value="3">3 — Близко (~75%): та же поза, мелкие вариации</option>
-                      <option value="4">4 — Точно (~95%): техническое копирование</option>
+                      <option value="4">4 — Точно (~95%): техническое копирование углов ⚠️</option>
                     </select>
+                    <small style="display: block; margin-top: 4px; color: var(--color-text-muted); font-size: 10px;">
+                      Уровень 1-2: модель создаёт свою версию. Уровень 3-4: точное повторение эскиза.
+                    </small>
                   </div>
                 </div>
+                
+                <!-- Visual atmosphere now in Universe params (visualMood, spontaneity, energyLevel) -->
                 
                 <!-- Camera & Composition Controls -->
                 <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
@@ -860,7 +631,7 @@
                   
                   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
                     
-                    <!-- Shot Size -->
+                    <!-- Shot Size (План) -->
                     <div class="form-group" style="margin: 0;">
                       <label for="gen-shot-size">📏 План</label>
                       <select id="gen-shot-size" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
@@ -875,7 +646,7 @@
                       </select>
                     </div>
 
-                    <!-- Camera Angle -->
+                    <!-- Camera Angle (Ракурс) -->
                     <div class="form-group" style="margin: 0;">
                       <label for="gen-camera-angle">📐 Ракурс</label>
                       <select id="gen-camera-angle" style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
@@ -888,9 +659,17 @@
                       </select>
                     </div>
 
+                    <!-- DOF/focus now in Universe params (apertureIntent) -->
+                    
+                    <!-- Lens focal length now in Universe params (focalRange) -->
+
                   </div>
                 </div>
 
+                <!-- Anti-AI now controlled via Universe params -->
+
+                <!-- Ambient (weather, time, season) now controlled via Universe params -->
+                
                 <!-- Extra prompt -->
                 <div class="form-group" style="margin-top: 12px;">
                   <label for="gen-extra-prompt">💬 Дополнительный промпт</label>
@@ -946,7 +725,8 @@
     <div class="lightbox-info" id="lightbox-info">1 / 1</div>
   </div>
 
-  <script type="module" src="custom-shoot-5.js"></script>
+  <script src="custom-shoot-5.js"></script>
   <script type="module" src="../shared/dev-console.js"></script>
 </body>
 </html>
+
