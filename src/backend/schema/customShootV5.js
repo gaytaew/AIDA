@@ -19,8 +19,8 @@
 
 export const TECH_CAMERA = {
   id: 'camera',
-  label: '📷 Camera System',
-  description: 'Sensor and body characteristics',
+  label: '📷 Камера',
+  description: 'Тип сенсора и характеристики корпуса',
   options: [
     {
       value: 'high_end_digital',
@@ -42,37 +42,37 @@ export const TECH_CAMERA = {
     },
     {
       value: 'medium_format_film',
-      label: 'Medium Format Film (Hasselblad/Mamiya)',
+      label: 'Средний формат (Hasselblad/Mamiya)',
       spec: 'CAMERA: Medium Format Film, 6x7 negative. Organic fine grain, rich tonal rollover, film response curve.',
       constraints: { minISO: 50, maxISO: 800, fixedAperture: false, filmGrain: true }
     },
     {
       value: '35mm_film',
-      label: '35mm Film (Canon AE-1 / Contax)',
+      label: 'Плёнка 35мм (Canon AE-1 / Contax)',
       spec: 'CAMERA: 35mm Film. Visible grain structure, organic tonality, nostalgic rendering.',
       constraints: { minISO: 100, maxISO: 3200, fixedAperture: false, filmGrain: true }
     },
     {
       value: 'smartphone',
-      label: 'Smartphone (iPhone/Pixel)',
+      label: 'Смартфон (iPhone/Pixel)',
       spec: 'CAMERA: Smartphone Sensor, computational HDR, local contrast enhancement, slight over-sharpening.',
       constraints: { minISO: 32, maxISO: 6400, fixedAperture: true, computationalHDR: true }
     },
     {
       value: 'disposable',
-      label: 'Disposable Camera',
+      label: 'Одноразовая камера',
       spec: 'CAMERA: Disposable, single-element plastic lens, fixed focus at 4m, fixed f/10, built-in flash.',
       constraints: { fixedAperture: true, fixedFocus: true, apertureValue: 'f/10', builtInFlash: true }
     },
     {
       value: 'instant_polaroid',
-      label: 'Instant (Polaroid/Instax)',
+      label: 'Polaroid / Instax',
       spec: 'CAMERA: Instant Film, low contrast, soft focus, chemical color shift, white border frame.',
       constraints: { fixedAperture: true, instantChemistry: true }
     },
     {
       value: 'toy_lomo',
-      label: 'Toy Camera (Holga/Lomo)',
+      label: 'Ломография (Holga/Lomo)',
       spec: 'CAMERA: Plastic Lens, heavy vignettes, light leaks, soft edges, unpredictable exposure.',
       constraints: { fixedAperture: true, vignette: true, lightLeaks: true }
     }
@@ -81,48 +81,48 @@ export const TECH_CAMERA = {
 
 export const TECH_FOCAL = {
   id: 'focalLength',
-  label: '🔭 Focal Length',
-  description: 'Lens focal length and perspective',
+  label: '🔭 Фокусное расстояние',
+  description: 'Фокусное расстояние объектива и перспектива',
   options: [
     {
       value: 'fisheye',
-      label: 'Fisheye (8-15mm)',
+      label: 'Рыбий глаз (8-15mm)',
       spec: 'LENS: 8-15mm Fisheye. MANDATORY: Extreme barrel distortion, curved horizon, "peeping hole" effect. Objects near edges are stretched.',
       constraints: { distortion: 'extreme_barrel', perspective: 'exaggerated', minFocusDistance: 0.15 }
     },
     {
       value: 'ultrawide',
-      label: 'Ultra-Wide (14-24mm)',
+      label: 'Ультра-широкий (14-24mm)',
       spec: 'LENS: 14-24mm Ultra-Wide. Strong perspective distortion, exaggerated foreground-to-background separation, lines converge dramatically.',
       constraints: { distortion: 'moderate_barrel', perspective: 'exaggerated', minFocusDistance: 0.2 }
     },
     {
       value: 'wide',
-      label: 'Wide (24-35mm)',
+      label: 'Широкий (24-35mm)',
       spec: 'LENS: 24-35mm Wide. Contextual view, slight perspective elongation at edges, good for environmental portraits.',
       constraints: { distortion: 'slight', perspective: 'natural_wide', minFocusDistance: 0.3 }
     },
     {
       value: 'standard',
-      label: 'Standard (35-50mm)',
+      label: 'Стандартный (35-50mm)',
       spec: 'LENS: 35-50mm Standard. Neutral human-eye perspective, zero distortion, most "honest" rendering.',
       constraints: { distortion: 'none', perspective: 'natural', minFocusDistance: 0.4 }
     },
     {
       value: 'portrait',
-      label: 'Portrait (85-105mm)',
+      label: 'Портретный (85-105mm)',
       spec: 'LENS: 85-105mm Portrait. Flattering compression, subject isolation, beautiful bokeh, no distortion.',
       constraints: { distortion: 'none', perspective: 'compressed', minFocusDistance: 0.8, idealForBokeh: true }
     },
     {
       value: 'telephoto',
-      label: 'Telephoto (135-200mm)',
+      label: 'Телеобъектив (135-200mm)',
       spec: 'LENS: 135-200mm Telephoto. Strong compression, background appears closer to subject, voyeuristic distance.',
       constraints: { distortion: 'none', perspective: 'highly_compressed', minFocusDistance: 1.2 }
     },
     {
       value: 'super_telephoto',
-      label: 'Super Telephoto (300mm+)',
+      label: 'Супер-теле (300mm+)',
       spec: 'LENS: 300mm+ Super-Tele. Extreme compression, flat stacking of planes, surveillance/paparazzi feel.',
       constraints: { distortion: 'none', perspective: 'extremely_compressed', minFocusDistance: 2.5 }
     }
@@ -131,36 +131,36 @@ export const TECH_FOCAL = {
 
 export const TECH_APERTURE = {
   id: 'aperture',
-  label: '⚫ Aperture',
-  description: 'F-stop and depth of field',
+  label: '📊 Экспокоррекция',
+  description: 'Намеренное затемнение или осветление',
   options: [
     {
       value: 'wide_open',
-      label: 'Wide Open (f/1.4-2.0)',
+      label: 'Максимально открытая (f/1.4-2.0)',
       spec: 'APERTURE: f/1.4-2.0 wide open. Razor-thin depth of field. Background completely obliterated in creamy bokeh. Only eyes/focal point sharp.',
       constraints: { dof: 'razor_thin', bokeh: 'extreme', lightGathering: 'maximum' }
     },
     {
       value: 'fast',
-      label: 'Fast (f/2.8-4)',
+      label: 'Открытая / Светосильная (f/2.8-4)',
       spec: 'APERTURE: f/2.8-4. Shallow depth of field. Subject sharp, background recognizably soft but not obliterated.',
       constraints: { dof: 'shallow', bokeh: 'moderate', lightGathering: 'good' }
     },
     {
       value: 'moderate',
-      label: 'Moderate (f/5.6-8)',
+      label: 'Средняя (f/5.6-8)',
       spec: 'APERTURE: f/5.6-8. Medium depth of field. Subject and immediate environment are sharp, distant background soft.',
       constraints: { dof: 'medium', bokeh: 'slight', lightGathering: 'moderate' }
     },
     {
       value: 'stopped_down',
-      label: 'Stopped Down (f/11-16)',
+      label: 'Закрытая (f/11-16)',
       spec: 'APERTURE: f/11-16. Deep depth of field. Everything from 1m to infinity is acceptably sharp.',
       constraints: { dof: 'deep', bokeh: 'none', lightGathering: 'limited' }
     },
     {
       value: 'hyperfocal',
-      label: 'Hyperfocal (f/16-22)',
+      label: 'Гиперфокальная (f/16-22)',
       spec: 'APERTURE: f/16-22. Maximum depth of field. Everything from foreground to infinity is sharp. Possible diffraction softening.',
       constraints: { dof: 'maximum', bokeh: 'none', lightGathering: 'minimal', diffractionRisk: true }
     }
@@ -169,42 +169,42 @@ export const TECH_APERTURE = {
 
 export const TECH_SHUTTER = {
   id: 'shutterSpeed',
-  label: '⏱️ Shutter Speed',
-  description: 'Motion handling and exposure time',
+  label: '⏱️ Выдержка',
+  description: 'Передача движения и время экспонирования',
   options: [
     {
       value: 'freeze_fast',
-      label: 'Freeze Action (1/1000+)',
+      label: 'Заморозка движения (1/1000+)',
       spec: 'SHUTTER: 1/1000s or faster. All motion frozen solid. Water droplets suspended, hair strands visible mid-air.',
       constraints: { motionBlur: 'none', lightRequired: 'high' }
     },
     {
       value: 'freeze_normal',
-      label: 'Freeze Normal (1/250-1/500)',
+      label: 'Нормальная / Четкая (1/250-1/500)',
       spec: 'SHUTTER: 1/250-1/500s. Normal motion frozen. Walking figures sharp, slight micro-blur on fastest movements.',
       constraints: { motionBlur: 'micro', lightRequired: 'moderate' }
     },
     {
       value: 'balanced',
-      label: 'Balanced (1/60-1/125)',
+      label: 'Сбалансированная (1/60-1/125)',
       spec: 'SHUTTER: 1/60-1/125s. Stationary subjects sharp. Moving elements show slight motion blur. Natural handheld.',
       constraints: { motionBlur: 'slight', lightRequired: 'normal' }
     },
     {
       value: 'slow',
-      label: 'Slow (1/15-1/30)',
+      label: 'Медленная (1/15-1/30)',
       spec: 'SHUTTER: 1/15-1/30s. Stationary subjects sharp if camera is stable. Moving elements show noticeable blur trails.',
       constraints: { motionBlur: 'noticeable', lightRequired: 'low', tripodRecommended: true }
     },
     {
       value: 'motion_blur',
-      label: 'Motion Blur (1/4-1/8)',
+      label: 'Размытие в движении (1/4-1/8)',
       spec: 'SHUTTER: 1/4-1/8s. Artistic motion blur. Moving subjects become streaks. Tripod required for sharp static elements.',
       constraints: { motionBlur: 'strong', lightRequired: 'low', tripodRequired: true }
     },
     {
       value: 'long_exposure',
-      label: 'Long Exposure (1s+)',
+      label: 'Длинная экспозиция (1s+)',
       spec: 'SHUTTER: 1 second or longer. Extreme motion blur. Light trails, silky water, ghost figures. Tripod mandatory.',
       constraints: { motionBlur: 'extreme', lightRequired: 'very_low', tripodRequired: true }
     }
@@ -213,72 +213,72 @@ export const TECH_SHUTTER = {
 
 export const TECH_LIGHT_SOURCE = {
   id: 'lightSource',
-  label: '💡 Light Source',
-  description: 'Primary illumination type',
+  label: '💡 Источник света',
+  description: 'Тип основного освещения',
   options: [
     {
       value: 'direct_sun',
-      label: 'Direct Hard Sun',
+      label: 'Прямое солнце',
       spec: 'LIGHT SOURCE: Direct sunlight (point source). Casts sharp, defined, high-contrast shadows with hard edges.',
       constraints: { shadowType: 'hard', colorTemp: 5500, outdoor: true, requiresClearSky: true }
     },
     {
       value: 'golden_hour',
-      label: 'Golden Hour Sun',
+      label: 'Золотой час (Закат/Рассвет)',
       spec: 'LIGHT SOURCE: Low-angle sun (1-2hrs before sunset). Long soft shadows, golden/orange flare potential, warm directional light.',
       constraints: { shadowType: 'soft_directional', colorTemp: 3500, outdoor: true, requiresClearSky: true, timeRestricted: true }
     },
     {
       value: 'blue_hour',
-      label: 'Blue Hour',
+      label: 'Синий час (Сумерки)',
       spec: 'LIGHT SOURCE: Skylight only (after sunset). Soft, cool, diffused light. No direct sun, shadowless or very soft shadows.',
       constraints: { shadowType: 'minimal', colorTemp: 7000, outdoor: true, timeRestricted: true }
     },
     {
       value: 'overcast',
-      label: 'Overcast Sky',
+      label: 'Облачное небо',
       spec: 'LIGHT SOURCE: Overcast sky (giant softbox). Shadowless, even, flat illumination from all directions.',
       constraints: { shadowType: 'none', colorTemp: 6500, outdoor: true, requiresOvercast: true }
     },
     {
       value: 'open_shade',
-      label: 'Open Shade',
+      label: 'Открытая тень',
       spec: 'LIGHT SOURCE: Open shade (indirect skylight). Soft directional light, cool shadows, subject protected from direct sun.',
       constraints: { shadowType: 'soft', colorTemp: 7000, outdoor: true }
     },
     {
       value: 'window',
-      label: 'Window Light',
+      label: 'Свет от окна',
       spec: 'LIGHT SOURCE: Window light. Directional soft source with rapid falloff into shadow. Natural gradient across face.',
       constraints: { shadowType: 'soft_gradient', colorTemp: 5500, indoor: true }
     },
     {
       value: 'studio_softbox',
-      label: 'Studio Softbox',
+      label: 'Студийный софтбокс',
       spec: 'LIGHT SOURCE: Large softbox/octabox (controlled diffused). Smooth gradients, no harsh shadow edges, studio environment.',
       constraints: { shadowType: 'controlled_soft', colorTemp: 5500, indoor: true, studioOnly: true }
     },
     {
       value: 'studio_hard',
-      label: 'Studio Hard Light',
+      label: 'Студийный жесткий свет',
       spec: 'LIGHT SOURCE: Fresnel/standard reflector (controlled hard). Theatrical high contrast, sharp shadow edges, dramatic.',
       constraints: { shadowType: 'controlled_hard', colorTemp: 5500, indoor: true, studioOnly: true }
     },
     {
       value: 'flash_fill',
-      label: 'Fill Flash',
+      label: 'Заполняющая вспышка',
       spec: 'LIGHT SOURCE: Mixed (sun + on-axis fill flash). Subject bright, shadows lifted, slightly artificial fill-flash look.',
       constraints: { shadowType: 'filled', colorTemp: 'mixed', flashRequired: true }
     },
     {
       value: 'practicals',
-      label: 'Practical Lights',
+      label: 'Практичный свет (лампы/неон)',
       spec: 'LIGHT SOURCE: Practical sources (neon, lamps, streetlights) visible in scene as primary illumination. Mixed colors.',
       constraints: { shadowType: 'mixed', colorTemp: 'mixed', practicals: true }
     },
     {
       value: 'mixed',
-      label: 'Mixed Sources',
+      label: 'Смешанное освещение',
       spec: 'LIGHT SOURCE: Mixed color temperatures (e.g., tungsten interior + daylight exterior). Intentional color conflict.',
       constraints: { shadowType: 'complex', colorTemp: 'mixed' }
     }
@@ -287,48 +287,48 @@ export const TECH_LIGHT_SOURCE = {
 
 export const TECH_LIGHT_DIRECTION = {
   id: 'lightDirection',
-  label: '🔦 Light Direction',
-  description: 'Angle of primary light source relative to subject',
+  label: '🔦 Направление света',
+  description: 'Угол падения основного света относительно модели',
   options: [
     {
       value: 'front',
-      label: 'Front (0°)',
+      label: 'Фронтальный (0°)',
       spec: 'LIGHT DIRECTION: Front-lit (from camera). Flat lighting, minimal shadows on face, documentary feel.',
       constraints: { shadowsOnFace: 'minimal', drama: 'low' }
     },
     {
       value: 'front_45',
-      label: 'Rembrandt (45°)',
+      label: 'Рембрандт (45°)',
       spec: 'LIGHT DIRECTION: 45° front-side (Rembrandt). Classic portrait lighting, triangle shadow under eye, sculpted.',
       constraints: { shadowsOnFace: 'triangular', drama: 'medium' }
     },
     {
       value: 'side',
-      label: 'Side (90°)',
+      label: 'Боковой (90°)',
       spec: 'LIGHT DIRECTION: Side-lit (90°). Half face in light, half in shadow. Split lighting, dramatic.',
       constraints: { shadowsOnFace: 'split', drama: 'high' }
     },
     {
       value: 'back_side',
-      label: 'Back-Side (135°)',
+      label: 'Контровой-боковой (135°)',
       spec: 'LIGHT DIRECTION: Back-side (rim light). Edge of face lit, creates glowing outline. Most of face in shadow.',
       constraints: { shadowsOnFace: 'heavy', drama: 'high', rimLight: true }
     },
     {
       value: 'backlight',
-      label: 'Backlight (180°)',
+      label: 'Контровой (180°)',
       spec: 'LIGHT DIRECTION: Backlit (contre-jour). Light directly behind subject. Silhouette potential, halo effect, lens flare risk.',
       constraints: { shadowsOnFace: 'full', drama: 'very_high', silhouetteRisk: true, flareRisk: true }
     },
     {
       value: 'top',
-      label: 'Top (Noon)',
+      label: 'Верхний (Зенит)',
       spec: 'LIGHT DIRECTION: Top-down (noon sun/overhead). Deep shadows under eyes, nose, chin. Harsh, unflattering for faces.',
       constraints: { shadowsOnFace: 'under_features', drama: 'medium', unflattering: true }
     },
     {
       value: 'bottom',
-      label: 'Bottom (Underlighting)',
+      label: 'Нижний (Хоррор)',
       spec: 'LIGHT DIRECTION: Underlighting (from below). Unnatural, eerie, horror-movie effect. Rarely used except for stylization.',
       constraints: { shadowsOnFace: 'reversed', drama: 'extreme', unnatural: true }
     }
@@ -337,12 +337,12 @@ export const TECH_LIGHT_DIRECTION = {
 
 export const TECH_LIGHT_QUALITY = {
   id: 'lightQuality',
-  label: '✨ Light Quality',
-  description: 'Hardness/softness of light',
+  label: '✨ Качество света',
+  description: 'Жесткость или мягкость теней',
   options: [
     {
       value: 'hard',
-      label: 'Hard',
+      label: 'Жесткий',
       spec: 'LIGHT QUALITY: Hard light. Sharp shadow edges, high contrast, texture emphasized, small apparent source.',
       constraints: { shadowEdge: 'sharp', contrast: 'high', textureEmphasis: true }
     },
@@ -354,13 +354,13 @@ export const TECH_LIGHT_QUALITY = {
     },
     {
       value: 'soft',
-      label: 'Soft',
+      label: 'Мягкий',
       spec: 'LIGHT QUALITY: Soft light. Diffused shadow edges, low contrast, flattering for skin, large apparent source.',
       constraints: { shadowEdge: 'diffused', contrast: 'low', flattering: true }
     },
     {
       value: 'diffused',
-      label: 'Diffused/Flat',
+      label: 'Рассеянный / Плоский',
       spec: 'LIGHT QUALITY: Fully diffused. Almost shadowless, very low contrast, flat illumination, overcast effect.',
       constraints: { shadowEdge: 'none', contrast: 'very_low', flat: true }
     }
@@ -369,42 +369,42 @@ export const TECH_LIGHT_QUALITY = {
 
 export const TECH_WHITE_BALANCE = {
   id: 'whiteBalance',
-  label: '🌡️ White Balance',
-  description: 'Color temperature in Kelvin',
+  label: '🌡️ Баланс белого',
+  description: 'Цветовая температура в Кельвинах',
   options: [
     {
       value: 'tungsten',
-      label: 'Tungsten (3200K)',
+      label: 'Лампы накаливания (3200K)',
       spec: 'WHITE BALANCE: 3200K Tungsten. Strong warm/orange cast. Indoor incandescent look.',
       constraints: { kelvin: 3200, cast: 'warm_orange' }
     },
     {
       value: 'warm',
-      label: 'Warm (4000K)',
+      label: 'Теплый (4000K)',
       spec: 'WHITE BALANCE: 4000K Warm. Golden warmth, pleasing skin tones, sunset-like.',
       constraints: { kelvin: 4000, cast: 'warm_golden' }
     },
     {
       value: 'daylight',
-      label: 'Daylight (5500K)',
+      label: 'Дневной (5500K)',
       spec: 'WHITE BALANCE: 5500K Neutral Daylight. Accurate white point, natural colors.',
       constraints: { kelvin: 5500, cast: 'neutral' }
     },
     {
       value: 'cloudy',
-      label: 'Cloudy (6500K)',
+      label: 'Облачный (6500K)',
       spec: 'WHITE BALANCE: 6500K Cloudy. Slight warm compensation for overcast sky.',
       constraints: { kelvin: 6500, cast: 'slight_warm' }
     },
     {
       value: 'shade',
-      label: 'Shade (7500K)',
+      label: 'Тень (7500K)',
       spec: 'WHITE BALANCE: 7500K Shade. Strong warm compensation for cool blue shade.',
       constraints: { kelvin: 7500, cast: 'strong_warm' }
     },
     {
       value: 'cool',
-      label: 'Cool Blue (9000K+)',
+      label: 'Холодный (9000K+)',
       spec: 'WHITE BALANCE: 9000K+ Cool. Blue/cyan cast. Night, moonlight, or clinical feel.',
       constraints: { kelvin: 9000, cast: 'cool_blue' }
     }
@@ -413,36 +413,36 @@ export const TECH_WHITE_BALANCE = {
 
 export const TECH_EXPOSURE = {
   id: 'exposure',
-  label: '📊 Exposure Compensation',
-  description: 'Intentional over/underexposure',
+  label: '📊 Экспокоррекция',
+  description: 'Намеренное затемнение или осветление',
   options: [
     {
       value: 'under_heavy',
-      label: 'Heavy Under (-1.0 to -1.5 EV)',
+      label: 'Сильное затемнение (-1.5 EV)',
       spec: 'EXPOSURE: -1.0 to -1.5 EV (Low Key). Crushed shadows, protected highlights. Moody, dramatic, noir.',
       constraints: { evComp: -1.3, mood: 'moody', shadowDetail: 'crushed' }
     },
     {
       value: 'under_slight',
-      label: 'Slight Under (-0.3 to -0.7 EV)',
+      label: 'Легкое затемнение (-0.5 EV)',
       spec: 'EXPOSURE: -0.3 to -0.7 EV. Rich color saturation preserved, deep sky, controlled highlights.',
       constraints: { evComp: -0.5, mood: 'rich', shadowDetail: 'preserved' }
     },
     {
       value: 'neutral',
-      label: 'Neutral (0 EV)',
+      label: 'Нормальная (0 EV)',
       spec: 'EXPOSURE: 0 EV Balanced. Standard metering, balanced histogram.',
       constraints: { evComp: 0, mood: 'balanced', shadowDetail: 'full' }
     },
     {
       value: 'over_slight',
-      label: 'Slight Over (+0.3 to +0.7 EV)',
+      label: 'Легкое осветление (+0.5 EV)',
       spec: 'EXPOSURE: +0.3 to +0.7 EV. Open shadows, airy feel, bright and optimistic.',
       constraints: { evComp: 0.5, mood: 'airy', highlightDetail: 'slight_loss' }
     },
     {
       value: 'over_heavy',
-      label: 'Heavy Over (+1.0 to +1.5 EV)',
+      label: 'High Key (+1.5 EV)',
       spec: 'EXPOSURE: +1.0 to +1.5 EV (High Key). Blown highlights intentional, dreamy/ethereal, bright.',
       constraints: { evComp: 1.3, mood: 'dreamy', highlightDetail: 'blown' }
     }
@@ -451,36 +451,36 @@ export const TECH_EXPOSURE = {
 
 export const TECH_CONTRAST = {
   id: 'contrastCurve',
-  label: '📈 Contrast Curve',
-  description: 'Tonal curve applied to image',
+  label: '📈 Контраст',
+  description: 'Тональная кривая',
   options: [
     {
       value: 's_curve_high',
-      label: 'High Contrast S-Curve',
+      label: 'Высокий контраст (S-Curve)',
       spec: 'CONTRAST: Strong S-Curve. Deep blacks, bright whites, punchy midtones. High visual impact.',
       constraints: { blackPoint: 'crushed', whitePoint: 'bright', midtones: 'punchy' }
     },
     {
       value: 's_curve_moderate',
-      label: 'Moderate S-Curve',
+      label: 'Средний контраст',
       spec: 'CONTRAST: Standard S-Curve. Classic film-like response, balanced contrast.',
       constraints: { blackPoint: 'deep', whitePoint: 'clean', midtones: 'balanced' }
     },
     {
       value: 'linear',
-      label: 'Linear',
+      label: 'Линейный / Нейтральный',
       spec: 'CONTRAST: Linear/Neutral. No aggressive curve, natural tonal response.',
       constraints: { blackPoint: 'natural', whitePoint: 'natural', midtones: 'neutral' }
     },
     {
       value: 'flat_lifted',
-      label: 'Flat/Lifted Blacks',
+      label: 'Матовый (Lifted Blacks)',
       spec: 'CONTRAST: Flat with lifted blacks (matte look). Reduced dynamic range, faded/matte aesthetic.',
       constraints: { blackPoint: 'lifted', whitePoint: 'soft', midtones: 'flat' }
     },
     {
       value: 'crushed',
-      label: 'Crushed Blacks',
+      label: 'Глубокие тени (Crushed)',
       spec: 'CONTRAST: Crushed blacks. Black point clipped for graphic effect, high contrast shadows.',
       constraints: { blackPoint: 'clipped', whitePoint: 'normal', midtones: 'contrasty' }
     }
@@ -494,75 +494,75 @@ export const TECH_CONTRAST = {
 
 export const ART_MOOD = {
   id: 'visualMood',
-  label: '💫 Visual Atmosphere',
-  description: 'The overall feeling and energy of the image',
+  label: '💫 Визуальная атмосфера',
+  description: 'Общее ощущение и энергия изображения',
   options: [
     {
       value: 'playful_summer',
-      label: 'Playful / Summer',
+      label: 'Игривая / Лето',
       narrative: 'ATMOSPHERE: Playful summer energy — bright saturated colors, warm golden light, sense of heat and carefree joy. The image radiates optimism and youth, like a perfect day at the beach or playground.',
       colorPalette: 'vivid, warm, saturated',
       energy: 'high'
     },
     {
       value: 'confident_bold',
-      label: 'Confident / Bold',
+      label: 'Уверенность / Смелость',
       narrative: 'ATMOSPHERE: Confident and bold — high contrast, strong graphic composition, dominant shapes and colors. The image feels assertive, powerful, commanding attention without trying too hard.',
       colorPalette: 'high contrast, primary colors',
       energy: 'high'
     },
     {
       value: 'melancholic',
-      label: 'Melancholic / Romantic',
+      label: 'Меланхолия / Романтика',
       narrative: 'ATMOSPHERE: Melancholic romance — soft diffused light, muted pastels, a gentle haze. The image feels wistful, tender, like a half-remembered dream or a moment just before parting.',
       colorPalette: 'muted, pastels, cool',
       energy: 'low'
     },
     {
       value: 'edgy_raw',
-      label: 'Edgy / Raw',
+      label: 'Дерзкий / Грубый',
       narrative: 'ATMOSPHERE: Edgy and raw — harsh contrast, gritty textures, visible imperfections. The image feels honest, unpolished, with a punk or documentary edge. Nothing is hidden.',
       colorPalette: 'desaturated, gritty',
       energy: 'medium'
     },
     {
       value: 'serene',
-      label: 'Serene / Calm',
+      label: 'Безмятежность / Спокойствие',
       narrative: 'ATMOSPHERE: Serene calm — soft even light, low contrast, minimal color palette. The image feels meditative, peaceful, like a quiet morning or zen garden.',
       colorPalette: 'minimal, monochrome-ish',
       energy: 'very_low'
     },
     {
       value: 'energetic',
-      label: 'Energetic / Dynamic',
+      label: 'Энергичный / Динамичный',
       narrative: 'ATMOSPHERE: Explosive energy — dynamic angles, motion blur allowed, bright accent colors. The image captures peak action, adrenaline, the split second of movement.',
       colorPalette: 'vivid accents, high saturation',
       energy: 'explosive'
     },
     {
       value: 'sensual',
-      label: 'Sensual / Intimate',
+      label: 'Чувственный / Интимный',
       narrative: 'ATMOSPHERE: Sensual intimacy — warm skin tones, soft focus edges, shallow depth of field. The image feels close, private, like a whispered conversation or gentle touch.',
       colorPalette: 'warm, skin-focused',
       energy: 'low'
     },
     {
       value: 'mysterious',
-      label: 'Mysterious / Noir',
+      label: 'Мистика / Нуар',
       narrative: 'ATMOSPHERE: Mysterious noir — deep shadows hiding half the scene, dramatic lighting, a sense of secrets. The image suggests more than it shows, like a still from a thriller.',
       colorPalette: 'dark, shadows dominant',
       energy: 'medium'
     },
     {
       value: 'fresh_clean',
-      label: 'Fresh / Clean',
+      label: 'Свежесть / Чистота',
       narrative: 'ATMOSPHERE: Fresh and clean — bright whites, minimal shadows, airy space. The image feels new, pure, like fresh laundry or morning light through curtains.',
       colorPalette: 'white, bright, minimal',
       energy: 'medium'
     },
     {
       value: 'gritty_urban',
-      label: 'Gritty / Urban',
+      label: 'Урбанистика / Гранж',
       narrative: 'ATMOSPHERE: Gritty urban — concrete textures, neon accents, dusk or night. The image feels streetwise, real, with the pulse of a city after dark.',
       colorPalette: 'neon + concrete gray',
       energy: 'medium'
@@ -572,8 +572,8 @@ export const ART_MOOD = {
 
 export const ART_ERA = {
   id: 'decade',
-  label: '🎬 Visual Era',
-  description: 'The decade/period the image evokes',
+  label: '🎬 Визуальная Эпоха',
+  description: 'Десятилетие или стиль, который вы хотите передать',
   options: [
     {
       value: '70s',
@@ -607,7 +607,7 @@ export const ART_ERA = {
     },
     {
       value: 'contemporary',
-      label: 'Contemporary (2020s)',
+      label: 'Современность (2020-е)',
       narrative: 'ERA: Contemporary 2020s — clean digital, intentional color grading, mix of film and digital, thoughtful compositions. Current editorial standard.',
       references: 'Current Vogue, Dazed, i-D, Studio Olafur Eliasson'
     }
@@ -616,48 +616,48 @@ export const ART_ERA = {
 
 export const ART_CONTEXT = {
   id: 'culturalContext',
-  label: '📰 Cultural Context',
-  description: 'The type of publication/media this image would appear in',
+  label: '📰 Культурный Контекст',
+  description: 'Где это изображение могло бы быть опубликовано',
   options: [
     {
       value: 'editorial',
-      label: 'Editorial Magazine',
+      label: 'Модный журнал (Editorial)',
       narrative: 'CONTEXT: High-fashion editorial magazine (i-D, Dazed, Vogue Italia). Artistic vision prioritized, storytelling through visuals, avant-garde acceptable.',
       standards: 'artistic, conceptual, storytelling'
     },
     {
       value: 'campaign',
-      label: 'Ad Campaign',
+      label: 'Рекламная кампания',
       narrative: 'CONTEXT: Commercial advertising campaign (Nike, Apple, luxury brands). Product clarity essential, brand message clear, professional polish.',
       standards: 'commercial, polished, product-focused'
     },
     {
       value: 'ugc',
-      label: 'UGC / Social Media',
+      label: 'Соцсети / UGC',
       narrative: 'CONTEXT: User-generated content, TikTok/Instagram native. Authentic, relatable, "shot by a friend" feel. Anti-polished, real.',
       standards: 'authentic, casual, relatable'
     },
     {
       value: 'street',
-      label: 'Street / Documentary',
+      label: 'Стрит / Документалистика',
       narrative: 'CONTEXT: Street photography or documentary. Observational, non-posed, capturing real moments. Journalistic integrity.',
       standards: 'observational, honest, unposed'
     },
     {
       value: 'fine_art',
-      label: 'Fine Art',
+      label: 'Арт-фотография',
       narrative: 'CONTEXT: Fine art / gallery context. Conceptual, considered, museum-quality. Each element intentional, meant to be studied.',
       standards: 'conceptual, museum-quality, intentional'
     },
     {
       value: 'ecom',
-      label: 'E-commerce',
+      label: 'E-commerce / Каталог',
       narrative: 'CONTEXT: E-commerce / catalog. Product is hero, clear visibility, consistent lighting, saleable presentation.',
       standards: 'clear, consistent, product-focused'
     },
     {
       value: 'lookbook',
-      label: 'Lookbook',
+      label: 'Лукбук',
       narrative: 'CONTEXT: Brand lookbook. Balance of product clarity and lifestyle mood. Shows how to wear it, aspirational but accessible.',
       standards: 'aspirational, wearable, styled'
     }
@@ -666,47 +666,47 @@ export const ART_CONTEXT = {
 
 export const ART_PROCESSING = {
   id: 'processingStyle',
-  label: '🎨 Processing Philosophy',
-  description: 'The approach to post-processing and color grading',
+  label: '🎨 Стиль обработки',
+  description: 'Подход к постобработке и цветокоррекции',
   options: [
     {
       value: 'punchy',
-      label: 'Punchy & Contrasty',
+      label: 'Контрастный / Яркий',
       narrative: 'PROCESSING: Punchy and contrasty — high micro-contrast, visible texture, saturated midtones, sharp. Like a perfectly calibrated magazine print.',
       texture: 'sharp, detailed',
       saturation: 'high'
     },
     {
       value: 'matte_editorial',
-      label: 'Matte Editorial',
+      label: 'Матовый глянцевый (Matte Editorial)',
       narrative: 'PROCESSING: Matte editorial — lifted blacks, soft contrast, modern magazine feel. Shadows never go to pure black, airy.',
       texture: 'soft, lifted',
       saturation: 'moderate'
     },
     {
       value: 'film_scan',
-      label: 'Film Scan Vibe',
+      label: 'Пленочный скан',
       narrative: 'PROCESSING: Film scan aesthetic — 35mm grain structure, slight dust/scratches, organic tonal rolloff. Like a high-quality film scan.',
       texture: 'grainy, organic',
       saturation: 'film-like'
     },
     {
       value: 'clean_digital',
-      label: 'Clean Digital',
+      label: 'Чистая цифра',
       narrative: 'PROCESSING: Clean digital — minimal stylization, technically perfect, neutral color, sharp details. Studio precision.',
       texture: 'sharp, clean',
       saturation: 'neutral'
     },
     {
       value: 'cross_process',
-      label: 'Cross Process',
+      label: 'Кросс-процесс',
       narrative: 'PROCESSING: Cross-processed — unexpected color shifts, cyan shadows, yellow highlights, experimental film chemistry look.',
       texture: 'experimental',
       saturation: 'shifted'
     },
     {
       value: 'vintage_fade',
-      label: 'Vintage Fade',
+      label: 'Винтажное выцветание',
       narrative: 'PROCESSING: Vintage fade — muted colors, lifted blacks, faded like an old photograph found in a drawer.',
       texture: 'soft, faded',
       saturation: 'muted'
@@ -716,40 +716,40 @@ export const ART_PROCESSING = {
 
 export const ART_ENERGY = {
   id: 'energyLevel',
-  label: '⚡ Energy Level',
-  description: 'The dynamic intensity of the scene',
+  label: '⚡ Уровень энергии',
+  description: 'Динамическая интенсивность сцены',
   options: [
     {
       value: 'explosive',
-      label: 'Explosive',
+      label: 'Взрывной',
       narrative: 'ENERGY: Explosive — peak action, maximum intensity, the decisive moment. Everything is happening NOW.',
       pose: 'dynamic action',
       motion: 'allowed'
     },
     {
       value: 'high',
-      label: 'High',
+      label: 'Высокий',
       narrative: 'ENERGY: High — active, dynamic, alive. Movement is happening, laughter is real, genuine spontaneity.',
       pose: 'active',
       motion: 'micro'
     },
     {
       value: 'medium',
-      label: 'Medium',
+      label: 'Средний',
       narrative: 'ENERGY: Medium — calm but not static. A breath between moments, relaxed but aware.',
       pose: 'relaxed',
       motion: 'none'
     },
     {
       value: 'low',
-      label: 'Low',
+      label: 'Низкий',
       narrative: 'ENERGY: Low — contemplative, quiet, still. The moment before or after, introspective calm.',
       pose: 'still',
       motion: 'none'
     },
     {
       value: 'zen',
-      label: 'Zen / Static',
+      label: 'Дзен / Статика',
       narrative: 'ENERGY: Zen — completely still, meditative, time suspended. Like a held breath or a photograph of a statue.',
       pose: 'static',
       motion: 'none'
@@ -759,36 +759,36 @@ export const ART_ENERGY = {
 
 export const ART_SPONTANEITY = {
   id: 'spontaneity',
-  label: '📸 Spontaneity',
-  description: 'How posed vs. candid the image feels',
+  label: '📸 Спонтанность',
+  description: 'Насколько постановочным или случайным выглядит кадр',
   options: [
     {
       value: 'candid',
-      label: 'Fully Candid',
+      label: 'Абсолютно случайно (Candid)',
       narrative: 'SPONTANEITY: Fully candid — subject unaware of camera or ignoring it. Caught mid-action, mid-sentence, mid-thought.',
       direction: 'observe, don\'t direct'
     },
     {
       value: 'semi_candid',
-      label: 'Semi-Candid',
+      label: 'Полу-случайно',
       narrative: 'SPONTANEITY: Semi-candid — subject knows camera is there but isn\'t "performing." Natural reactions, relaxed moments between poses.',
       direction: 'minimal direction'
     },
     {
       value: 'relaxed_posed',
-      label: 'Relaxed Pose',
+      label: 'Расслабленная поза',
       narrative: 'SPONTANEITY: Relaxed pose — subject is posing but maintaining natural body language. Guided but not stiff.',
       direction: 'gentle guidance'
     },
     {
       value: 'editorial_posed',
-      label: 'Editorial Posed',
+      label: 'Постановочный глянец',
       narrative: 'SPONTANEITY: Editorial posed — clear direction, intentional poses, magazine-ready. Subject is modeling, not just being.',
       direction: 'directed poses'
     },
     {
       value: 'conceptual',
-      label: 'Fully Conceptual',
+      label: 'Концептуальная постановка',
       narrative: 'SPONTANEITY: Fully conceptual — every element placed, every gesture designed. More sculpture than snapshot.',
       direction: 'complete control'
     }
@@ -1032,42 +1032,42 @@ export const DEPENDENCY_RULES = [
 
 export const CONTEXT_TIME = {
   id: 'timeOfDay',
-  label: '🕐 Time of Day',
+  label: '🕐 Время суток',
   options: [
-    { value: 'dawn', label: 'Dawn', constraints: { lightAvailable: ['blue_hour', 'golden_hour'] } },
-    { value: 'morning', label: 'Morning', constraints: { lightAvailable: ['direct_sun', 'overcast', 'open_shade'] } },
-    { value: 'midday', label: 'Midday', constraints: { lightAvailable: ['direct_sun', 'overcast', 'open_shade'] } },
-    { value: 'afternoon', label: 'Afternoon', constraints: { lightAvailable: ['direct_sun', 'overcast', 'open_shade'] } },
-    { value: 'golden_hour', label: 'Golden Hour', constraints: { lightAvailable: ['golden_hour'] } },
-    { value: 'blue_hour', label: 'Blue Hour', constraints: { lightAvailable: ['blue_hour'] } },
-    { value: 'night', label: 'Night', constraints: { lightAvailable: ['practicals', 'mixed', 'studio_hard', 'studio_softbox'] } }
+    { value: 'dawn', label: 'Рассвет', constraints: { lightAvailable: ['blue_hour', 'golden_hour'] } },
+    { value: 'morning', label: 'Утро', constraints: { lightAvailable: ['direct_sun', 'overcast', 'open_shade'] } },
+    { value: 'midday', label: 'Полдень', constraints: { lightAvailable: ['direct_sun', 'overcast', 'open_shade'] } },
+    { value: 'afternoon', label: 'Вторая половина дня', constraints: { lightAvailable: ['direct_sun', 'overcast', 'open_shade'] } },
+    { value: 'golden_hour', label: 'Золотой час', constraints: { lightAvailable: ['golden_hour'] } },
+    { value: 'blue_hour', label: 'Синий час / Сумерки', constraints: { lightAvailable: ['blue_hour'] } },
+    { value: 'night', label: 'Ночь', constraints: { lightAvailable: ['practicals', 'mixed', 'studio_hard', 'studio_softbox'] } }
   ]
 };
 
 export const CONTEXT_WEATHER = {
   id: 'weather',
-  label: '🌤️ Weather',
+  label: '🌤️ Погода',
   options: [
-    { value: 'clear', label: 'Clear Sky', constraints: { lightQuality: ['hard', 'medium', 'soft'] } },
-    { value: 'partly_cloudy', label: 'Partly Cloudy', constraints: { lightQuality: ['medium', 'soft'] } },
-    { value: 'overcast', label: 'Overcast', constraints: { lightQuality: ['soft', 'diffused'] } },
-    { value: 'foggy', label: 'Foggy', constraints: { lightQuality: ['diffused'] } },
-    { value: 'rainy', label: 'Rainy', constraints: { lightQuality: ['diffused'] } },
-    { value: 'snowy', label: 'Snowy', constraints: { lightQuality: ['soft', 'diffused'] } },
-    { value: 'stormy', label: 'Stormy', constraints: { lightQuality: ['diffused'] } },
-    { value: 'indoor', label: 'Indoor', constraints: { lightQuality: ['hard', 'medium', 'soft', 'diffused'] } }
+    { value: 'clear', label: 'Ясно / Чистое небо', constraints: { lightQuality: ['hard', 'medium', 'soft'] } },
+    { value: 'partly_cloudy', label: 'Переменная облачность', constraints: { lightQuality: ['medium', 'soft'] } },
+    { value: 'overcast', label: 'Пасмурно', constraints: { lightQuality: ['soft', 'diffused'] } },
+    { value: 'foggy', label: 'Туман', constraints: { lightQuality: ['diffused'] } },
+    { value: 'rainy', label: 'Дождь', constraints: { lightQuality: ['diffused'] } },
+    { value: 'snowy', label: 'Снег', constraints: { lightQuality: ['soft', 'diffused'] } },
+    { value: 'stormy', label: 'Шторм / Гроза', constraints: { lightQuality: ['diffused'] } },
+    { value: 'indoor', label: 'В помещении (Интерьер)', constraints: { lightQuality: ['hard', 'medium', 'soft', 'diffused'] } }
   ]
 };
 
 export const CONTEXT_SEASON = {
   id: 'season',
-  label: '🍂 Season',
+  label: '🍂 Время года',
   options: [
-    { value: 'spring', label: 'Spring', visual: 'Fresh green foliage, flowers blooming' },
-    { value: 'summer', label: 'Summer', visual: 'Lush green, bright light, heat haze' },
-    { value: 'autumn', label: 'Autumn', visual: 'Golden/red foliage, fallen leaves' },
-    { value: 'winter', label: 'Winter', visual: 'Bare trees, possible snow, cold light' },
-    { value: 'any', label: 'Any / Indoor', visual: 'Season not visible' }
+    { value: 'spring', label: 'Весна', visual: 'Fresh green foliage, flowers blooming' },
+    { value: 'summer', label: 'Лето', visual: 'Lush green, bright light, heat haze' },
+    { value: 'autumn', label: 'Осень', visual: 'Golden/red foliage, fallen leaves' },
+    { value: 'winter', label: 'Зима', visual: 'Bare trees, possible snow, cold light' },
+    { value: 'any', label: 'Любой / В помещении', visual: 'Season not visible' }
   ]
 };
 
