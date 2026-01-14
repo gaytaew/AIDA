@@ -387,11 +387,11 @@ async function createNewShoot() {
   if (!label) return;
   
   try {
-    const res = await fetch('/api/custom-shoots', {
+    const res = await fetchWithTimeout('/api/custom-shoots', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ label })
-    });
+    }, 5000);
     const data = await res.json();
     if (data.ok) {
       state.shoots.unshift({
@@ -414,7 +414,7 @@ async function createNewShoot() {
 
 async function selectShoot(shootId) {
   try {
-    const res = await fetch(`/api/custom-shoots/${shootId}`);
+    const res = await fetchWithTimeout(`/api/custom-shoots/${shootId}`, {}, 5000);
     const data = await res.json();
     if (data.ok) {
       state.currentShoot = data.shoot;
@@ -495,7 +495,7 @@ async function deleteShoot(shootId) {
   if (!confirm('Удалить этот Custom Shoot?')) return;
   
   try {
-    const res = await fetch(`/api/custom-shoots/${shootId}`, { method: 'DELETE' });
+    const res = await fetchWithTimeout(`/api/custom-shoots/${shootId}`, { method: 'DELETE' }, 5000);
     const data = await res.json();
     
     if (data.ok) {
@@ -670,11 +670,11 @@ async function saveShootModels() {
     .map(m => ({ modelId: m.id }));
   
   try {
-    await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+    await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ models })
-    });
+    }, 5000);
   } catch (e) {
     console.error('Error saving models:', e);
   }
@@ -1139,11 +1139,11 @@ async function saveShootClothing() {
   });
   
   try {
-    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+    const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clothing, lookPrompts })
-    });
+    }, 5000);
     const data = await res.json();
     console.log('[SaveClothing] Response:', data.ok ? 'OK' : 'Error', data);
   } catch (e) {
@@ -1320,7 +1320,11 @@ function renderUniverseParamsUI() {
 
 /**
  * Update narrative preview from current parameter values
+ * Debounced and cancellable to prevent blocking
  */
+let narrativePreviewTimeout = null;
+let narrativePreviewController = null;
+
 async function updateNarrativePreview() {
   const previewContent = document.getElementById('narrative-preview-content');
   const anchorsContent = document.getElementById('visual-anchors-content');
@@ -1328,16 +1332,30 @@ async function updateNarrativePreview() {
   
   if (!previewContent) return;
   
-  try {
-    console.log('[NarrativePreview] Sending params:', JSON.stringify(state.universeValues));
-    const res = await fetch('/api/universes/params/preview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ params: state.universeValues })
-    });
+  // Cancel any pending request
+  if (narrativePreviewTimeout) {
+    clearTimeout(narrativePreviewTimeout);
+  }
+  if (narrativePreviewController) {
+    narrativePreviewController.abort();
+    narrativePreviewController = null;
+  }
+  
+  // Debounce: wait 150ms before making request
+  narrativePreviewTimeout = setTimeout(async () => {
+    narrativePreviewController = new AbortController();
     
-    const data = await res.json();
-    console.log('[NarrativePreview] Received anchors:', data.data?.anchorsForUI?.map(a => `${a.label}: ${a.value}`));
+    try {
+      console.log('[NarrativePreview] Sending params:', JSON.stringify(state.universeValues));
+      const res = await fetchWithTimeout('/api/universes/params/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ params: state.universeValues }),
+        signal: narrativePreviewController.signal
+      }, 5000);
+      
+      const data = await res.json();
+      console.log('[NarrativePreview] Received anchors:', data.data?.anchorsForUI?.map(a => `${a.label}: ${a.value}`));
     
     if (data.ok && data.data) {
       state.narrativePreview = data.data;
@@ -1434,10 +1452,15 @@ async function updateNarrativePreview() {
       
       previewContent.innerHTML = sections.join('') || '<div style="color: var(--color-text-muted);">Выбери параметры для превью...</div>';
     }
-  } catch (e) {
-    console.error('[CustomShoot4] Error updating narrative preview:', e);
-    previewContent.innerHTML = '<div style="color: var(--color-accent);">Ошибка загрузки превью</div>';
-  }
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        // Request was cancelled by newer request, ignore
+        return;
+      }
+      console.error('[CustomShoot4] Error updating narrative preview:', e);
+      previewContent.innerHTML = '<div style="color: var(--color-accent);">Ошибка загрузки превью</div>';
+    }
+  }, 150); // 150ms debounce
 }
 
 /**
@@ -1678,7 +1701,7 @@ async function setStyleLockMode(mode) {
   if (mode === 'off') {
     // Clear style lock
     try {
-      await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, { method: 'DELETE' });
+      await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, { method: 'DELETE' }, 5000);
       state.styleLock = { enabled: false, mode: null, imageId: null, imageUrl: null };
       updateLockUI();
       renderGeneratedHistory();
@@ -1696,11 +1719,11 @@ async function setStyleLockMode(mode) {
     if (state.styleLock.imageId) {
       // Update mode
       try {
-        await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, {
+        await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageId: state.styleLock.imageId, mode })
-        });
+        }, 5000);
         state.styleLock.mode = mode;
         state.styleLock.enabled = true;
         updateLockUI();
@@ -1724,11 +1747,11 @@ async function setAsStyleRef(imageId) {
   const mode = state.styleLock.mode || 'strict';
   
   try {
-    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, {
+    const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageId, mode })
-    });
+    }, 5000);
     const data = await res.json();
     
     if (data.ok) {
@@ -2314,7 +2337,7 @@ async function deleteFrame(index) {
   // Delete from server if has ID
   if (frame.id && !frame.id.startsWith('pending_')) {
     try {
-      await fetch(`/api/custom-shoots/${state.currentShoot.id}/images/${frame.id}`, { method: 'DELETE' });
+      await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/images/${frame.id}`, { method: 'DELETE' }, 5000);
     } catch (e) {
       console.error('Error deleting from server:', e);
     }
