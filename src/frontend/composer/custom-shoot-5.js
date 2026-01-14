@@ -1538,14 +1538,23 @@ async function updateNarrativePreview() {
     narrativePreviewController = new AbortController();
     
     try {
-      console.log('[V5 Preview] Sending params:', JSON.stringify(state.v5Values));
+      // Collect current params from UI (same logic as collectUniverseParams)
+      const currentParams = { ...state.v5Values };
+      document.querySelectorAll('.v5-param-select').forEach(select => {
+        const paramId = select.dataset.v5Param;
+        if (paramId && select.value) {
+          currentParams[paramId] = select.value;
+        }
+      });
+      
+      console.log('[V5 Preview] Sending params:', Object.keys(currentParams).length, 'keys');
       
       // Use V5 preview endpoint
       const res = await fetchWithTimeout('/api/universes/v5/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          params: state.v5Values,
+          params: currentParams,
           scene: {} // Empty scene for preview
         }),
         signal: narrativePreviewController.signal

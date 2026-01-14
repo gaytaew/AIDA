@@ -302,8 +302,15 @@ router.post('/v5/disabled', (req, res) => {
 // POST /api/universes/v5/preview — Preview V5 prompt from parameters
 router.post('/v5/preview', (req, res) => {
   try {
-    const params = req.body.params || V5_DEFAULT_PARAMS;
+    // Use defaults if params is empty or missing
+    const rawParams = req.body.params;
+    const params = (rawParams && Object.keys(rawParams).length > 0) 
+      ? { ...V5_DEFAULT_PARAMS, ...rawParams }  // Merge with defaults
+      : V5_DEFAULT_PARAMS;
     const scene = req.body.scene || {};
+    
+    console.log('[V5 Preview] Params received:', Object.keys(rawParams || {}).length, 'keys');
+    console.log('[V5 Preview] Using params:', Object.keys(params).length, 'keys');
     
     const result = buildV5Prompt(params, scene);
     
