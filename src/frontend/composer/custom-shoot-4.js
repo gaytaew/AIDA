@@ -1348,6 +1348,13 @@ async function updateNarrativePreview() {
       
       if (data.data.anchorsForUI && anchorsContent && anchorsPanel) {
         const anchorsForUI = data.data.anchorsForUI;
+        console.log('[VisualAnchors] Rendering', anchorsForUI.length, 'anchors');
+        
+        // Debug: find shadow anchor specifically
+        const shadowAnchor = anchorsForUI.find(a => a.label === 'Тени');
+        if (shadowAnchor) {
+          console.log('[VisualAnchors] SHADOW ANCHOR:', shadowAnchor.value, shadowAnchor.colorPreview);
+        }
         
         if (anchorsForUI.length > 0) {
           anchorsPanel.style.display = 'block';
