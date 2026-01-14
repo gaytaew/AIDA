@@ -8,72 +8,117 @@
   <style>
     /* Frame Editor specific styles */
 
-    /* Tabs */
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 24px;
-      padding: 4px;
+    /* Main container */
+    .sketch-generator {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 16px;
+    }
+
+    /* Image containers */
+    .image-panel {
       background: var(--color-bg);
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
+      overflow: hidden;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
     }
 
-    .tab {
-      flex: 1;
-      padding: 10px 16px;
-      background: transparent;
-      border: none;
-      border-radius: var(--radius-sm);
-      color: var(--color-text-muted);
-      font-family: var(--font-main);
+    .image-panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border);
       font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .tab:hover {
-      color: var(--color-text);
-    }
-
-    .tab.active {
-      background: var(--color-accent);
-      color: white;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Form group label override for this page */
-    .form-group label {
-      font-size: 12px;
       font-weight: 600;
       color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
 
-    /* Sketch preview */
-    .sketch-preview {
-      margin-top: 16px;
+    .image-panel-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       position: relative;
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      background: var(--color-bg);
+      padding: 16px;
     }
 
-    .sketch-preview img {
-      width: 100%;
-      max-height: 300px;
+    .image-panel-content img {
+      max-width: 100%;
+      max-height: 100%;
       object-fit: contain;
+      border-radius: var(--radius-sm);
     }
 
-    .sketch-preview-remove {
+    /* Upload zone */
+    .upload-zone-large {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      transition: all 0.2s;
+      gap: 12px;
+      color: var(--color-text-muted);
+    }
+
+    .upload-zone-large:hover {
+      border-color: var(--color-accent);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .upload-zone-large.dragover {
+      border-color: var(--color-accent);
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .upload-zone-icon {
+      font-size: 48px;
+      opacity: 0.6;
+    }
+
+    .upload-zone-text {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .upload-zone-hint {
+      font-size: 12px;
+      opacity: 0.6;
+    }
+
+    /* Empty sketch placeholder */
+    .sketch-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      gap: 8px;
+    }
+
+    .sketch-placeholder-icon {
+      font-size: 40px;
+      opacity: 0.3;
+    }
+
+    .sketch-placeholder-text {
+      font-size: 13px;
+      text-align: center;
+      max-width: 200px;
+    }
+
+    /* Remove button */
+    .btn-remove {
       position: absolute;
       top: 8px;
       right: 8px;
@@ -88,17 +133,72 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 10;
+    }
+
+    .btn-remove:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    /* Actions */
+    .form-actions {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .form-actions .btn {
+      min-width: 180px;
+    }
+
+    /* Status */
+    .status-message {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .status-message.loading {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+    }
+
+    .status-message.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22C55E;
+    }
+
+    .status-message.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
     }
 
     /* Frame gallery */
+    .gallery-section {
+      margin-top: 48px;
+    }
+
+    .gallery-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .gallery-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
     .gallery-filters {
       display: flex;
       gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
     }
 
-    .gallery-filters select {
+    .gallery-filters input {
       padding: 8px 12px;
       background: var(--color-surface-elevated);
       border: 1px solid var(--color-border);
@@ -106,11 +206,12 @@
       color: var(--color-text);
       font-family: var(--font-main);
       font-size: 13px;
+      min-width: 200px;
     }
 
     .gallery-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 16px;
     }
 
@@ -129,18 +230,13 @@
       transform: translateY(-2px);
     }
 
-    .frame-card.selected {
-      border-color: var(--color-accent);
-      box-shadow: var(--shadow-glow);
-    }
-
     .frame-card-image {
       aspect-ratio: 3/4;
       background: var(--color-surface-elevated);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 40px;
+      font-size: 32px;
       opacity: 0.3;
     }
 
@@ -150,82 +246,28 @@
       object-fit: cover;
     }
 
-    .frame-card-info {
-      padding: 12px;
-    }
-
-    .frame-card-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 4px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .frame-card-meta {
-      font-size: 11px;
-      color: var(--color-text-muted);
-      display: flex;
-      gap: 8px;
-    }
-
-    .frame-card-tag {
-      display: inline-block;
-      padding: 2px 6px;
-      background: var(--color-surface-elevated);
-      border-radius: 4px;
-    }
-
-    /* Actions */
-    .form-actions {
-      margin-top: 24px;
-      display: flex;
-      gap: 12px;
-    }
-
-    /* Status */
-    .status-message {
-      margin-top: 16px;
-      padding: 12px 16px;
-      border-radius: var(--radius-md);
+    .frame-card-delete {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
       font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.2s;
     }
 
-    .status-message.loading {
-      background: rgba(59, 130, 246, 0.15);
-      color: #60A5FA;
+    .frame-card:hover .frame-card-delete {
+      opacity: 1;
     }
 
-    .status-message.success {
-      background: rgba(34, 197, 94, 0.15);
-      color: #22C55E;
-    }
-
-    .status-message.error {
-      background: rgba(239, 68, 68, 0.15);
-      color: #EF4444;
-    }
-
-    /* Prompt preview */
-    .prompt-preview {
-      margin-top: 16px;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      font-family: 'SF Mono', Monaco, Consolas, monospace;
-      font-size: 12px;
-      color: var(--color-text-muted);
-      line-height: 1.5;
-    }
-
-    .prompt-preview-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--color-accent);
-      text-transform: uppercase;
-      margin-bottom: 8px;
+    .frame-card-delete:hover {
+      background: rgba(239, 68, 68, 0.8);
     }
 
     /* Empty state */
@@ -269,199 +311,70 @@
     <!-- Main Content -->
     <main class="main">
       <header class="page-header">
-        <h1 class="page-title">Каталог кадров</h1>
+        <h1 class="page-title">Генератор эскизов</h1>
         <p class="page-subtitle">
-          Создавай эскизы кадров с техническими параметрами: план, ракурс, поза, композиция.
+          Загрузи референс позы — получи чистый эскиз в едином стиле.
         </p>
       </header>
 
       <div class="page-content">
-        <div class="editor-layout">
-          <!-- Left: Create/Edit Panel -->
-          <div class="panel">
-            <div class="panel-title">
-              <span class="panel-title-icon">✏️</span>
-              <span>Создание кадра</span>
-            </div>
-
-            <!-- Tabs -->
-            <div class="tabs">
-              <button class="tab active" data-tab="manual">Вручную</button>
-              <button class="tab" data-tab="from-sketch">Из скетча</button>
-              <button class="tab" data-tab="from-text">Из текста</button>
-            </div>
-
-            <!-- Manual Tab -->
-            <div id="tab-manual" class="tab-content active">
-              <form id="frame-form">
-                <div class="form-grid">
-                  <div class="form-group full">
-                    <label for="frame-label">Название</label>
-                    <input type="text" id="frame-label" placeholder="Например: Medium Portrait, Walking Full Body">
-                  </div>
-
-                  <div class="form-group">
-                    <label for="frame-shot-size">План</label>
-                    <select id="frame-shot-size"></select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="frame-angle">Ракурс</label>
-                    <select id="frame-camera-angle"></select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="frame-pose">Тип позы</label>
-                    <select id="frame-pose-type"></select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="frame-composition">Композиция</label>
-                    <select id="frame-composition"></select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="frame-category">Категория</label>
-                    <select id="frame-category"></select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="frame-orientation">Ориентация</label>
-                    <select id="frame-orientation"></select>
-                  </div>
-
-                  <div class="form-group full">
-                    <label for="frame-focus">Точка фокуса</label>
-                    <input type="text" id="frame-focus" placeholder="Например: face, hands, eyes, full figure">
-                  </div>
-
-                  <div class="form-group full">
-                    <label for="frame-pose-desc">Описание позы</label>
-                    <textarea id="frame-pose-desc" placeholder="Подробное описание позы модели..."></textarea>
-                  </div>
-
-                  <div class="form-group full">
-                    <label for="frame-description">Описание для промпта</label>
-                    <textarea id="frame-description" placeholder="Полное описание кадра для генерации изображений..."></textarea>
-                  </div>
-                </div>
-
-                <div id="prompt-preview" class="prompt-preview" style="display: none;">
-                  <div class="prompt-preview-label">Prompt Snippet</div>
-                  <div id="prompt-text"></div>
-                </div>
-
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary">💾 Сохранить кадр</button>
-                  <button type="button" id="btn-clear-form" class="btn btn-secondary">Очистить</button>
-                </div>
-              </form>
-            </div>
-
-            <!-- From Sketch Tab -->
-            <div id="tab-from-sketch" class="tab-content">
-              <label id="sketch-upload-zone" class="upload-zone">
-                <input type="file" id="sketch-file-input" accept="image/*" style="display: none;">
-                <div class="upload-zone-icon">🖼️</div>
-                <div class="upload-zone-text">Загрузи скетч или референс позы</div>
-              </label>
-
-              <div id="sketch-preview" class="sketch-preview" style="display: none;">
-                <img id="sketch-preview-img" src="" alt="Sketch preview">
-                <button type="button" id="sketch-remove" class="sketch-preview-remove">×</button>
-              </div>
-
-              <div class="form-actions">
-                <button type="button" id="btn-analyze-sketch" class="btn btn-primary" disabled>
-                  🔍 Анализировать скетч
-                </button>
-              </div>
-              
-              <!-- Analysis result with generated sketch preview -->
-              <div id="sketch-analysis-result" style="display: none; margin-top: 20px;">
-                <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--color-text-muted);">📋 Результат анализа</h4>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                  <div>
-                    <div style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px;">Загруженный референс</div>
-                    <img id="analysis-ref-img" src="" alt="Reference" style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border);">
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px;">Сгенерированный эскиз</div>
-                    <img id="analysis-sketch-img" src="" alt="Generated sketch" style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border); background: #fff;">
-                  </div>
-                </div>
-                
-                <div id="analysis-details" style="background: var(--color-bg); padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;">
-                  <div><strong>Название:</strong> <span id="analysis-label"></span></div>
-                  <div style="margin-top: 4px;"><strong>Описание:</strong> <span id="analysis-description"></span></div>
-                </div>
-                
-                <div class="form-actions" style="gap: 8px;">
-                  <button type="button" id="btn-save-analyzed" class="btn btn-primary">
-                    💾 Сохранить кадр
-                  </button>
-                  <button type="button" id="btn-regenerate-sketch" class="btn btn-secondary">
-                    🔄 Перегенерировать эскиз
-                  </button>
-                  <button type="button" id="btn-cancel-analysis" class="btn btn-secondary">
-                    ✕ Отмена
-                  </button>
-                </div>
+        <div class="panel">
+          <!-- Main generator -->
+          <div class="sketch-generator">
+            <!-- Left: Reference upload -->
+            <div class="image-panel">
+              <div class="image-panel-header">📸 Референс</div>
+              <div class="image-panel-content" id="reference-container">
+                <label id="upload-zone" class="upload-zone-large">
+                  <input type="file" id="file-input" accept="image/*" style="display: none;">
+                  <div class="upload-zone-icon">📷</div>
+                  <div class="upload-zone-text">Загрузи референс позы</div>
+                  <div class="upload-zone-hint">или перетащи файл сюда</div>
+                </label>
+                <img id="reference-img" src="" alt="Reference" style="display: none;">
+                <button id="btn-remove-reference" class="btn-remove" style="display: none;">×</button>
               </div>
             </div>
 
-            <!-- From Text Tab -->
-            <div id="tab-from-text" class="tab-content">
-              <div class="form-group">
-                <label for="text-description">Описание кадра</label>
-                <textarea id="text-description" rows="4" placeholder="Опиши кадр словами: позу, ракурс, композицию..."></textarea>
-              </div>
-
-              <div class="form-grid" style="margin-top: 16px;">
-                <div class="form-group">
-                  <label for="text-shot-size">План</label>
-                  <select id="text-shot-size"></select>
+            <!-- Right: Generated sketch -->
+            <div class="image-panel">
+              <div class="image-panel-header">✏️ Эскиз</div>
+              <div class="image-panel-content" id="sketch-container">
+                <div id="sketch-placeholder" class="sketch-placeholder">
+                  <div class="sketch-placeholder-icon">✏️</div>
+                  <div class="sketch-placeholder-text">Эскиз появится после генерации</div>
                 </div>
-                <div class="form-group">
-                  <label for="text-pose-type">Тип позы</label>
-                  <select id="text-pose-type"></select>
-                </div>
-              </div>
-
-              <div class="form-actions">
-                <button type="button" id="btn-generate-sketch" class="btn btn-primary">
-                  🎨 Сгенерировать скетч
-                </button>
-              </div>
-
-              <div id="generated-sketch" class="sketch-preview" style="display: none; margin-top: 16px;">
-                <img id="generated-sketch-img" src="" alt="Generated sketch">
+                <img id="sketch-img" src="" alt="Generated sketch" style="display: none;">
               </div>
             </div>
-
-            <div id="status" class="status-message" style="display: none;"></div>
           </div>
 
-          <!-- Right: Gallery Panel -->
-          <div class="panel">
-            <div class="panel-title">
-              <span class="panel-title-icon">📚</span>
-              <span>Каталог кадров</span>
-            </div>
+          <!-- Actions -->
+          <div class="form-actions">
+            <button type="button" id="btn-generate" class="btn btn-primary" disabled>
+              🎨 Сгенерировать эскиз
+            </button>
+            <button type="button" id="btn-save" class="btn btn-secondary" disabled>
+              💾 Сохранить в каталог
+            </button>
+          </div>
 
+          <div id="status" class="status-message" style="display: none;"></div>
+        </div>
+
+        <!-- Gallery section -->
+        <div class="gallery-section">
+          <div class="gallery-header">
+            <div class="gallery-title">📚 Сохранённые эскизы</div>
             <div class="gallery-filters">
-              <select id="filter-category">
-                <option value="">Все категории</option>
-              </select>
-              <input type="text" id="filter-search" placeholder="Поиск..." style="flex: 1; min-width: 150px;">
+              <input type="text" id="filter-search" placeholder="Поиск...">
             </div>
+          </div>
 
-            <div id="frames-gallery" class="gallery-grid">
-              <div class="empty-gallery">
-                <div class="empty-gallery-icon">🖼️</div>
-                <div>Пока нет сохранённых кадров</div>
-              </div>
+          <div id="frames-gallery" class="gallery-grid">
+            <div class="empty-gallery">
+              <div class="empty-gallery-icon">🖼️</div>
+              <div>Пока нет сохранённых эскизов</div>
             </div>
           </div>
         </div>
