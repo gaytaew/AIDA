@@ -69,7 +69,6 @@ import {
   generateConflictNote 
 } from '../schema/universeConflicts.js';
 
-import { buildCustomShootV5Prompt } from '../schema/customShootV5.js';
 import { buildV5Prompt, applyDependencies as applyV5Dependencies } from '../schema/customShootV5.js';
 
 // ═══════════════════════════════════════════════════════════════

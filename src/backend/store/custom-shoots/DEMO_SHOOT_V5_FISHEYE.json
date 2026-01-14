@@ -1,0 +1,58 @@
+{
+  "id": "DEMO_SHOOT_V5_FISHEYE",
+  "label": "ASH Footwear V5 Demo",
+  "mode": "fine",
+  "createdAt": "2026-01-14T21:00:00.000Z",
+  "updatedAt": "2026-01-14T21:00:00.000Z",
+  "locks": {
+    "style": { "enabled": false },
+    "location": { "enabled": false }
+  },
+  "generatedImages": [],
+  
+  "generationSettings": {
+    "version": "v5",
+    "universe": {
+      "tech": {
+        "cameraClass": "high_dr_professional",
+        "focalRange": "fisheye",
+        "apertureIntent": "closed",
+        "lightSource": "direct_sun",
+        "exposureIntent": "underexposed_slight",
+        "whiteBalance": "cool_daylight",
+        "contrastCurve": "s_curve_moderate"
+      },
+      "artistic": {
+        "visualMood": "playful_summer",
+        "energyLevel": "high",
+        "decade": "y2k",
+        "culturalContext": "ad_campaign",
+        "saturation": "punchy_high",
+        "wbShift": "teal"
+      },
+      "context": {
+        "weatherLighting": "clear",
+        "season": "summer"
+      },
+      "antiAi": {
+        "level": "medium",
+        "flags": {
+          "allowExposureErrors": true,
+          "requireMicroDefects": true,
+          "candidComposition": true,
+          "allowFlaresReflections": true
+        }
+      }
+    }
+  },
+
+  "scenes": [
+    {
+      "id": "SCENE_01",
+      "action": "Model sitting on court edge, one leg extended towards camera",
+      "pose": "Dynamic sitting pose, shoe dominates foreground",
+      "space": "Outdoor basketball court, textured ground, fence in background",
+      "compositionFocus": "shoe"
+    }
+  ]
+}
