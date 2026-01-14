@@ -32,6 +32,13 @@ const app = express();
 // Middleware
 app.use(cors());
 
+// DISABLE HTTP Keep-Alive to prevent stale connections through SSH tunnel
+// Each request will use a fresh TCP connection
+app.use((req, res, next) => {
+  res.setHeader('Connection', 'close');
+  next();
+});
+
 // DIAGNOSTIC: Log ALL requests BEFORE body parsing
 // This helps identify if requests are stuck in body parsing
 app.use((req, res, next) => {
