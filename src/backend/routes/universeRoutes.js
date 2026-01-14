@@ -20,6 +20,20 @@ import { buildUniverseNarrative, buildUniverseText, buildUniverseForPrompt, getD
 import { buildVisualAnchors, getAnchorsForUI as getAnchorsForUIFromModule } from '../schema/visualAnchors.js';
 import { checkUniverseConflicts, getConflicts, getWarnings, getHints, formatIssuesForUI, hasConflicts } from '../schema/universeConflicts.js';
 
+// V5 imports
+import { 
+  TECHNICAL_PARAMS, 
+  ARTISTIC_PARAMS, 
+  CONTEXT_PARAMS, 
+  DEFAULT_PARAMS as V5_DEFAULT_PARAMS,
+  DEPENDENCY_RULES,
+  getAllV5Params,
+  applyDependencies,
+  getDisabledOptions,
+  getLockedValue,
+  buildV5Prompt
+} from '../schema/customShootV5.js';
+
 const router = express.Router();
 
 // GET /api/universes — List all universes
@@ -195,6 +209,137 @@ router.get('/params/rules', (req, res) => {
     });
   } catch (err) {
     console.error('[Universe] Rules error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CUSTOM SHOOT V5: Smart System API
+// New architecture with Technical/Artistic split and Dependency Matrix
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/universes/v5/params — Get all V5 parameters (Technical, Artistic, Context)
+router.get('/v5/params', (req, res) => {
+  try {
+    res.json({
+      ok: true,
+      data: getAllV5Params()
+    });
+  } catch (err) {
+    console.error('[Universe V5] Params error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/universes/v5/defaults — Get V5 default values
+router.get('/v5/defaults', (req, res) => {
+  res.json({
+    ok: true,
+    data: V5_DEFAULT_PARAMS
+  });
+});
+
+// GET /api/universes/v5/dependencies — Get dependency rules
+router.get('/v5/dependencies', (req, res) => {
+  res.json({
+    ok: true,
+    data: DEPENDENCY_RULES.map(rule => ({
+      id: rule.id,
+      when: rule.when,
+      effect: rule.locks ? 'locks' : rule.disables ? 'disables' : rule.requires ? 'requires' : 'suggests',
+      target: rule.locks || rule.disables || rule.requires || rule.suggests,
+      autoFix: rule.autoFix
+    }))
+  });
+});
+
+// POST /api/universes/v5/apply — Apply dependency rules to params
+router.post('/v5/apply', (req, res) => {
+  try {
+    const params = req.body.params || V5_DEFAULT_PARAMS;
+    const result = applyDependencies(params);
+    
+    res.json({
+      ok: true,
+      data: {
+        params: result.params,
+        applied: result.applied,
+        warnings: result.warnings,
+        wasModified: result.applied.length > 0
+      }
+    });
+  } catch (err) {
+    console.error('[Universe V5] Apply error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/universes/v5/disabled — Get disabled options for a field
+router.post('/v5/disabled', (req, res) => {
+  try {
+    const { field, params } = req.body;
+    if (!field) {
+      return res.status(400).json({ ok: false, error: 'Field is required' });
+    }
+    
+    const disabled = getDisabledOptions(field, params || V5_DEFAULT_PARAMS);
+    const locked = getLockedValue(field, params || V5_DEFAULT_PARAMS);
+    
+    res.json({
+      ok: true,
+      data: {
+        field,
+        disabled: Array.from(disabled),
+        locked
+      }
+    });
+  } catch (err) {
+    console.error('[Universe V5] Disabled error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/universes/v5/preview — Preview V5 prompt from parameters
+router.post('/v5/preview', (req, res) => {
+  try {
+    const params = req.body.params || V5_DEFAULT_PARAMS;
+    const scene = req.body.scene || {};
+    
+    const result = buildV5Prompt(params, scene);
+    
+    res.json({
+      ok: true,
+      data: {
+        prompt: result.prompt,
+        resolvedParams: result.resolvedParams,
+        corrections: result.corrections
+      }
+    });
+  } catch (err) {
+    console.error('[Universe V5] Preview error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/universes/v5/build — Build V5 universe for generation
+router.post('/v5/build', (req, res) => {
+  try {
+    const params = req.body.params || V5_DEFAULT_PARAMS;
+    const scene = req.body.scene || {};
+    
+    const result = buildV5Prompt(params, scene);
+    
+    res.json({
+      ok: true,
+      data: {
+        version: 'v5',
+        params: result.resolvedParams,
+        prompt: result.prompt,
+        corrections: result.corrections
+      }
+    });
+  } catch (err) {
+    console.error('[Universe V5] Build error:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

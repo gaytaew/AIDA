@@ -69,6 +69,9 @@ import {
   generateConflictNote 
 } from '../schema/universeConflicts.js';
 
+import { buildCustomShootV5Prompt } from '../schema/customShootV5.js';
+import { buildV5Prompt, applyDependencies as applyV5Dependencies } from '../schema/customShootV5.js';
+
 // ═══════════════════════════════════════════════════════════════
 // RE-EXPORTS for backward compatibility
 // ═══════════════════════════════════════════════════════════════
@@ -215,6 +218,49 @@ export function buildCustomShootPrompt({
   
   // Use Universe system (Custom Shoot 4) if universeParams provided
   const useUniverse = universeParams != null;
+
+  // ═══════════════════════════════════════════════════════════════
+  // V5 LOGIC (Strict Technical / Narrative Artistic)
+  // New architecture with dependency matrix and smart conflict resolution
+  // ═══════════════════════════════════════════════════════════════
+  if (useUniverse && universeParams.version === 'v5') {
+    // If nested in 'universe' key (from some UI states), extract it
+    const params = universeParams.universe || universeParams;
+    
+    // Build scene from frame
+    const scene = {
+      action: frame?.description || frame?.poseDescription || '',
+      pose: frame?.poseDescription || '',
+      environment: frame?.environment || '',
+      texture: frame?.texture || '',
+      clothingFocus: frame?.clothingFocus || ''
+    };
+    
+    // Build V5 prompt with dependency resolution
+    const { prompt: v5Prompt, resolvedParams, corrections } = buildV5Prompt(params, scene);
+    
+    // Log any corrections made
+    if (corrections.length > 0) {
+      console.log('[CustomShootGenerator] V5 auto-corrections applied:', 
+        corrections.map(c => `${c.field}: ${c.from} → ${c.to}`).join(', ')
+      );
+    }
+    
+    const promptJson = {
+      format: 'custom_shoot_v5_smart',
+      generatedAt: new Date().toISOString(),
+      useUniverse: true,
+      version: 'v5',
+      originalParams: params,
+      resolvedParams,
+      corrections,
+      frame,
+      qualityMode,
+      mood
+    };
+    
+    return { prompt: v5Prompt, promptJson };
+  }
   
   const sections = [];
   
