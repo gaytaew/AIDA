@@ -58,6 +58,9 @@ const state = {
   // Generated frames history
   generatedFrames: [],
   
+  // GLOBAL generation lock - prevents multiple simultaneous generations
+  isGenerating: false,
+  
   // Reference Locks state (Location Lock removed - location is implied in Style Lock)
   styleLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
   
@@ -1872,6 +1875,16 @@ async function generateFrame(frameId) {
   
   log('START', { frameId, shootId: state.currentShoot?.id });
   
+  // ═══════════════════════════════════════════════════════════════
+  // GLOBAL LOCK: Only one generation at a time
+  // This prevents queue buildup on the server which causes timeouts
+  // ═══════════════════════════════════════════════════════════════
+  if (state.isGenerating) {
+    log('BLOCKED: Generation already in progress');
+    showToast('⏳ Подождите, генерация уже идёт...');
+    return;
+  }
+  
   if (!state.currentShoot) {
     log('ERROR: No current shoot');
     return;
@@ -1892,9 +1905,17 @@ async function generateFrame(frameId) {
     return;
   }
   
+  // Set global lock BEFORE any async operations
+  state.isGenerating = true;
+  log('LOCK_ACQUIRED');
+  
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ Генерация...';
+  
+  // Disable ALL generate buttons to prevent accidental clicks
+  const allGenButtons = elements.framesToGenerate.querySelectorAll('.btn-gen-frame');
+  allGenButtons.forEach(b => b.disabled = true);
   
   // Get settings (Custom Shoot 4 - new universe params architecture)
   const universeParams = collectUniverseParams();
@@ -2044,7 +2065,15 @@ async function generateFrame(frameId) {
     }
   } finally {
     log('CLEANUP');
-    btn.disabled = false;
+    
+    // Release global lock
+    state.isGenerating = false;
+    log('LOCK_RELEASED');
+    
+    // Re-enable ALL generate buttons
+    const allGenButtons = elements.framesToGenerate.querySelectorAll('.btn-gen-frame');
+    allGenButtons.forEach(b => b.disabled = false);
+    
     btn.textContent = originalText;
   }
 }
