@@ -426,6 +426,58 @@ const SKIN_MIDTONE_ANCHORS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// WEATHER / SKY ANCHORS — критично для консистентности!
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Маппинг weatherLighting на описание неба и атмосферы
+ */
+const WEATHER_ANCHORS = {
+  sunny: {
+    sky: 'Clear blue sky, minimal clouds (<10% coverage)',
+    skyColor: '#87CEEB to #4A90D9',
+    sunVisibility: 'Direct sun visible or implied by hard shadows',
+    atmosphere: 'High visibility, crisp air',
+    shadows: 'Well-defined, hard-edged'
+  },
+  partly_cloudy: {
+    sky: 'Blue sky with scattered white clouds (20-40% coverage)',
+    skyColor: '#87CEEB with white cloud patches',
+    sunVisibility: 'Sun occasionally obscured by clouds',
+    atmosphere: 'Good visibility',
+    shadows: 'Intermittent — hard when sun visible, soft when obscured'
+  },
+  overcast: {
+    sky: 'Solid gray/white cloud cover (90-100% coverage)',
+    skyColor: '#C0C0C0 to #E8E8E8 (no blue visible)',
+    sunVisibility: 'No direct sun, completely diffused',
+    atmosphere: 'Flat, even lighting from all directions',
+    shadows: 'Very soft, almost no shadows'
+  },
+  golden_hour: {
+    sky: 'Warm gradient sky — orange/pink near horizon, blue above',
+    skyColor: '#FFD700 to #FF8C00 near horizon, #87CEEB above',
+    sunVisibility: 'Low sun position (15-30° above horizon)',
+    atmosphere: 'Warm golden haze, long shadows',
+    shadows: 'Long, soft-edged, warm-toned'
+  },
+  blue_hour: {
+    sky: 'Deep blue to purple gradient, no sun visible',
+    skyColor: '#1E3A5F to #4B0082',
+    sunVisibility: 'Sun below horizon',
+    atmosphere: 'Cool, twilight ambiance',
+    shadows: 'Minimal, cool blue tones'
+  },
+  foggy: {
+    sky: 'Not visible — obscured by fog/mist',
+    skyColor: '#D3D3D3 (uniform gray)',
+    sunVisibility: 'Diffused glow at best',
+    atmosphere: 'Limited visibility, atmospheric depth',
+    shadows: 'None — completely diffused'
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN FUNCTION: Build Visual Anchors from params
 // ═══════════════════════════════════════════════════════════════
 
@@ -439,7 +491,8 @@ export function buildVisualAnchors(params) {
     color: {},
     lighting: {},
     lens: {},
-    skin: {}
+    skin: {},
+    weather: {}
   };
   
   // ─────────────────────────────────────────────────────────────
@@ -522,6 +575,14 @@ export function buildVisualAnchors(params) {
     } else {
       anchors.skin = SKIN_MIDTONE_ANCHORS.neutral;
     }
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // WEATHER ANCHORS (CRITICAL for sky/atmosphere consistency)
+  // ─────────────────────────────────────────────────────────────
+  
+  if (params.weatherLighting && WEATHER_ANCHORS[params.weatherLighting]) {
+    anchors.weather = WEATHER_ANCHORS[params.weatherLighting];
   }
   
   return anchors;
@@ -650,6 +711,29 @@ ${lensLines.join('\n')}
 • Skin midtone target: ${anchors.skin.hex} (${anchors.skin.description})
 │                                                             │
 │ Skin tones MUST be consistent across all frames.            │
+└─────────────────────────────────────────────────────────────┘`);
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // WEATHER / SKY SECTION (CRITICAL!)
+  // ─────────────────────────────────────────────────────────────
+  
+  if (anchors.weather?.sky) {
+    sections.push(`
+┌─── WEATHER & SKY ANCHOR (LOCKED — SAME IN ALL FRAMES) ──────┐
+│                                                             │
+│ ⛔ THE SKY AND WEATHER MUST BE IDENTICAL IN EVERY FRAME!    │
+│                                                             │
+• Sky: ${anchors.weather.sky}
+• Sky color: ${anchors.weather.skyColor}
+• Sun visibility: ${anchors.weather.sunVisibility}
+• Atmosphere: ${anchors.weather.atmosphere}
+• Shadow character: ${anchors.weather.shadows}
+│                                                             │
+│ ⚠️ DO NOT change sky between frames!                        │
+│ ⚠️ If first frame has CLEAR SKY — ALL frames have CLEAR SKY │
+│ ⚠️ If first frame has CLOUDS — ALL frames have SAME CLOUDS  │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘`);
   }
   
