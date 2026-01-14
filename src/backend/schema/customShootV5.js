@@ -1308,9 +1308,18 @@ TASK: Generate a photorealistic image based on the following Technical Specifica
 
 2. STYLE REFERENCE [$2] (if provided): Copy the overall visual style, color grading, and mood.
 
-3. IDENTITY REFERENCE [$1] (if provided): Match the person's face and body accurately.
+3. IDENTITY REFERENCE [$1] (if provided): 
+   - Use ONLY for biometrics: face shape, body structure, skin/hair PIGMENTATION and TEXTURE.
+   - IGNORE the lighting, flash reflections, shadows, and color grading of the reference.
+   - You MUST re-light this person strictly following [TECHNICAL SPECIFICATIONS].
+   - If reference has hard flash but specs say "Soft Light", render SOFT LIGHT.
 
-4. ENVIRONMENTAL VARIATION (CRITICAL): 
+4. GLOBAL VISUAL STYLE AUTHORITY:
+   - Visual Style, Lighting, Color Grading, and White Balance must come EXCLUSIVELY from [TECHNICAL SPECIFICATIONS].
+   - NEVER copy the "look" (film grain, contrast, filters) of the Location or Identity references.
+   - Reference images are for GEOMETRY/CONTENTS only.
+
+5. ENVIRONMENTAL VARIATION (CRITICAL): 
    - The scene MUST adapt to the specified Weather, Season, and Time of Day.
    - If "snow" is active: cover the location in snow, even if reference is sunny/green.
    - If "rain" is active: make surfaces wet, add reflections, change light to overcast.
@@ -1445,11 +1454,11 @@ function buildArtisticBrief(params, scene) {
 
     if (emo) {
       if (emo.prompt) {
-        lines.push(`EMOTION & EXPRESSION: ${emo.prompt}`);
+        lines.push(`EMOTION & EXPRESSION: ${emo.prompt} (PRIORITY OVER REFERENCE EXPRESSION)`);
       } else if (emo.visualPrompt) {
-        lines.push(`EMOTION & EXPRESSION: ${emo.visualPrompt}`);
+        lines.push(`EMOTION & EXPRESSION: ${emo.visualPrompt} (PRIORITY OVER REFERENCE EXPRESSION)`);
       } else if (emo.label) {
-        lines.push(`EMOTION & EXPRESSION: ${emo.label} expression`);
+        lines.push(`EMOTION & EXPRESSION: ${emo.label} expression (PRIORITY OVER REFERENCE EXPRESSION)`);
       }
     }
   }
