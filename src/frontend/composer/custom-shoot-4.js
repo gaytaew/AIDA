@@ -1518,6 +1518,8 @@ function applyGenerationSettings(settings) {
  * Save current generation settings to server (debounced)
  */
 let saveSettingsTimeout = null;
+let saveSettingsController = null; // AbortController for previous save request
+
 async function saveGenerationSettings() {
   if (!state.currentShoot) return;
   
@@ -1526,19 +1528,35 @@ async function saveGenerationSettings() {
     clearTimeout(saveSettingsTimeout);
   }
   
+  // Abort any previous pending save request
+  if (saveSettingsController) {
+    saveSettingsController.abort();
+    saveSettingsController = null;
+  }
+  
   saveSettingsTimeout = setTimeout(async () => {
     const settings = collectGenerationSettings();
     state.generationSettings = settings;
-  
-  try {
-    await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ generationSettings: settings })
-    });
+    
+    // Create new AbortController for this request
+    saveSettingsController = new AbortController();
+    const signal = saveSettingsController.signal;
+    
+    try {
+      await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generationSettings: settings }),
+        signal
+      }, 15000); // 15 second timeout
+      
       console.log('[CustomShoot] Settings saved');
-  } catch (e) {
-      console.error('Error saving generation settings:', e);
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        // Aborted by newer request, ignore
+        return;
+      }
+      console.error('[CustomShoot] Error saving settings:', e.message);
     }
   }, 500); // 500ms debounce
 }

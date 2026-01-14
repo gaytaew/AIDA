@@ -89,19 +89,64 @@ const lockManager = new FileLockManager();
 
 /**
  * Execute function with exclusive lock on shoot file
+ * 
+ * TIMEOUTS:
+ * - Lock acquisition: 30 seconds max wait
+ * - Operation execution: 60 seconds max
+ * 
+ * IMPORTANT: Previous implementation had lock leak when timeout fired
+ * but lock was later acquired. Fixed by tracking lock ownership.
  */
 async function withFileLock(shootId, fn) {
   const startWait = Date.now();
+  const LOCK_TIMEOUT_MS = 30000; // 30 seconds max wait for lock
+  const OPERATION_TIMEOUT_MS = 60000; // 60 seconds max for operation
   
-  await lockManager.acquire(shootId);
+  let lockAcquired = false;
+  let timeoutFired = false;
+  
+  // Race lock acquisition against timeout
+  const lockPromise = lockManager.acquire(shootId).then(() => {
+    lockAcquired = true;
+    if (timeoutFired) {
+      // Timeout already fired, release the lock we just got
+      console.warn(`[CustomShootStore] Lock acquired after timeout for ${shootId}, releasing`);
+      lockManager.release(shootId);
+      throw new Error('Lock acquired after timeout');
+    }
+  });
+  
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      timeoutFired = true;
+      if (!lockAcquired) {
+        reject(new Error(`Lock timeout: could not acquire lock for ${shootId} in ${LOCK_TIMEOUT_MS}ms. Status: ${JSON.stringify(lockManager.getStatus())}`));
+      }
+    }, LOCK_TIMEOUT_MS);
+  });
+  
+  try {
+    await Promise.race([lockPromise, timeoutPromise]);
+  } catch (e) {
+    console.error(`[CustomShootStore] ${e.message}`);
+    throw e;
+  }
   
   const waitTime = Date.now() - startWait;
   if (waitTime > 100) {
     console.log(`[CustomShootStore] Lock acquired for ${shootId} after ${waitTime}ms wait`);
   }
   
+  // Execute with operation timeout
   try {
-    return await fn();
+    const operationPromise = fn();
+    const opTimeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Operation timeout: ${shootId} operation took longer than ${OPERATION_TIMEOUT_MS}ms`));
+      }, OPERATION_TIMEOUT_MS);
+    });
+    
+    return await Promise.race([operationPromise, opTimeoutPromise]);
   } finally {
     lockManager.release(shootId);
   }
