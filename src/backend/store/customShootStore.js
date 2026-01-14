@@ -25,27 +25,85 @@ const STORE_DIR = path.join(__dirname, 'custom-shoots');
 // FILE LOCK (prevent race conditions)
 // ═══════════════════════════════════════════════════════════════
 
-const fileLocks = new Map(); // shootId -> Promise
+/**
+ * Mutex-like lock implementation to prevent race conditions.
+ * 
+ * FIXED: Previous implementation had race condition when multiple 
+ * waiters woke up simultaneously and could overwrite each other's locks.
+ * 
+ * New implementation uses a proper queue to serialize access.
+ */
+class FileLockManager {
+  constructor() {
+    this.locks = new Map(); // shootId -> { active: boolean, queue: Function[] }
+  }
+  
+  async acquire(shootId) {
+    if (!this.locks.has(shootId)) {
+      this.locks.set(shootId, { active: false, queue: [] });
+    }
+    
+    const lock = this.locks.get(shootId);
+    
+    if (!lock.active) {
+      // Lock is free, acquire immediately
+      lock.active = true;
+      return;
+    }
+    
+    // Lock is held, wait in queue
+    return new Promise(resolve => {
+      lock.queue.push(resolve);
+    });
+  }
+  
+  release(shootId) {
+    const lock = this.locks.get(shootId);
+    if (!lock) return;
+    
+    if (lock.queue.length > 0) {
+      // Give lock to next waiter
+      const nextResolve = lock.queue.shift();
+      // Lock stays active, next waiter will use it
+      nextResolve();
+    } else {
+      // No waiters, release lock
+      lock.active = false;
+      // Clean up if no activity
+      if (lock.queue.length === 0) {
+        this.locks.delete(shootId);
+      }
+    }
+  }
+  
+  getStatus() {
+    const status = {};
+    for (const [id, lock] of this.locks.entries()) {
+      status[id] = { active: lock.active, waiting: lock.queue.length };
+    }
+    return status;
+  }
+}
+
+const lockManager = new FileLockManager();
 
 /**
  * Execute function with exclusive lock on shoot file
  */
 async function withFileLock(shootId, fn) {
-  // Wait for existing lock to release
-  while (fileLocks.has(shootId)) {
-    await fileLocks.get(shootId);
-  }
+  const startWait = Date.now();
   
-  // Create new lock
-  let resolve;
-  const lockPromise = new Promise(r => { resolve = r; });
-  fileLocks.set(shootId, lockPromise);
+  await lockManager.acquire(shootId);
+  
+  const waitTime = Date.now() - startWait;
+  if (waitTime > 100) {
+    console.log(`[CustomShootStore] Lock acquired for ${shootId} after ${waitTime}ms wait`);
+  }
   
   try {
     return await fn();
   } finally {
-    fileLocks.delete(shootId);
-    resolve();
+    lockManager.release(shootId);
   }
 }
 

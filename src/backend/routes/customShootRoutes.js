@@ -400,8 +400,21 @@ router.delete('/:id/lock-location', async (req, res) => {
  * Generate a new frame for the shoot
  */
 router.post('/:id/generate', async (req, res) => {
+  const requestId = `gen_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const startTime = Date.now();
+  
+  const log = (step, data = {}) => {
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[CustomShootRoutes] [${requestId}] [${elapsed}s] ${step}`, 
+      Object.keys(data).length > 0 ? JSON.stringify(data) : '');
+  };
+  
+  log('REQUEST_START', { shootId: req.params.id });
+  
   try {
+    log('LOADING_SHOOT');
     const shoot = await getCustomShootById(req.params.id);
+    log('SHOOT_LOADED', { found: !!shoot });
     
     if (!shoot) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
@@ -657,6 +670,14 @@ router.post('/:id/generate', async (req, res) => {
     // Track generation time
     const genStartTime = Date.now();
     
+    log('GENERATING', { 
+      identityImages: identityImages.length, 
+      clothingImages: clothingImages.length,
+      hasStyleRef: !!styleRefImage,
+      hasLocationRef: !!locationRefImage,
+      hasPoseSketch: !!poseSketchImage
+    });
+    
     // Generate
     const result = await generateCustomShootFrame({
       shoot,
@@ -708,7 +729,10 @@ router.post('/:id/generate', async (req, res) => {
     
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);
     
+    log('GENERATION_COMPLETE', { ok: result.ok, duration: genDuration });
+    
     if (!result.ok) {
+      log('GENERATION_FAILED', { error: result.error?.slice(0, 200) });
       return res.status(500).json({ ok: false, error: result.error });
     }
     
@@ -790,7 +814,9 @@ router.post('/:id/generate', async (req, res) => {
       universeParams: universeParams || null
     };
     
+    log('SAVING_IMAGE', { imageId: imageData.id });
     const savedImage = await addImageToShoot(shoot.id, imageData);
+    log('IMAGE_SAVED', { savedId: savedImage.id });
     
     // Return the original data URL for immediate display (not the stored path)
     const responseImage = {
@@ -798,15 +824,18 @@ router.post('/:id/generate', async (req, res) => {
       imageUrl: imageData.imageUrl  // Use original data URL, not the saved path
     };
     
+    log('SENDING_RESPONSE');
     res.json({
       ok: true,
       image: responseImage,
       prompt: result.prompt,
       refs
     });
+    log('RESPONSE_SENT');
     
   } catch (err) {
-    console.error('[CustomShootRoutes] Error generating:', err);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.error(`[CustomShootRoutes] [${requestId}] [${elapsed}s] ERROR:`, err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

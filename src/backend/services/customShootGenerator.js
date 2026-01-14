@@ -667,12 +667,23 @@ export async function generateCustomShootFrame({
   modelBehavior = null,
   lensFocalLength = null
 }) {
+  const genId = `gen_${Date.now() % 100000}`;
+  const startTime = Date.now();
+  
+  const log = (step, data = {}) => {
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[CustomShootGenerator] [${genId}] [${elapsed}s] ${step}`, 
+      Object.keys(data).length > 0 ? JSON.stringify(data) : '');
+  };
+  
   try {
     const useUniverse = universeParams != null;
     const useVirtualStudio = virtualCamera != null;
     
-    console.log('[CustomShootGenerator] Starting frame generation...', {
-      mode: useUniverse ? 'Universe (CS4)' : useVirtualStudio ? 'Virtual Studio' : 'Legacy'
+    log('START', {
+      mode: useUniverse ? 'Universe (CS4)' : useVirtualStudio ? 'Virtual Studio' : 'Legacy',
+      identityImages: identityImages.length,
+      clothingImages: clothingImages.length
     });
     
     const { locks, globalSettings } = shoot;
@@ -801,13 +812,14 @@ export async function generateCustomShootFrame({
       imageSize: effectiveImageSize
     };
     
-    console.log('[CustomShootGenerator] Calling Gemini:', {
+    log('CALLING_GEMINI', {
       qualityMode,
       imageConfig,
-      referenceCount: referenceImages.length
+      referenceCount: referenceImages.length,
+      promptLength: prompt.length
     });
     
-    const startTime = Date.now();
+    const geminiStartTime = Date.now();
     
     // Call Gemini
     const result = await requestGeminiImage({
@@ -816,18 +828,21 @@ export async function generateCustomShootFrame({
       imageConfig
     });
     
-    const generationTime = ((Date.now() - startTime) / 1000).toFixed(1);
+    const generationTime = ((Date.now() - geminiStartTime) / 1000).toFixed(1);
+    
+    log('GEMINI_RESPONSE', { ok: result.ok, duration: generationTime });
     
     if (!result.ok) {
-      console.error('[CustomShootGenerator] Generation failed:', result.error);
+      log('GEMINI_ERROR', { error: result.error?.slice(0, 200) });
       return {
         ok: false,
         error: result.error
       };
     }
     
-    console.log('[CustomShootGenerator] Generation successful in', generationTime, 'seconds');
+    log('GEMINI_SUCCESS', { duration: generationTime });
     
+    log('RETURNING_RESULT');
     return {
       ok: true,
       image: {
@@ -852,7 +867,8 @@ export async function generateCustomShootFrame({
     };
     
   } catch (error) {
-    console.error('[CustomShootGenerator] Error:', error);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.error(`[CustomShootGenerator] [${genId}] [${elapsed}s] ERROR:`, error);
     return {
       ok: false,
       error: error.message

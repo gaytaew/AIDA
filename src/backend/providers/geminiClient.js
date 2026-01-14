@@ -16,9 +16,16 @@ const GEMINI_URL =
 const REQUEST_TIMEOUT_MS = 120000; // 120 секунд
 
 // Global limiter for Gemini to reduce burst/parallel overload (503).
+// FIXED: Added name and timeout for better diagnostics
 const GEMINI_CONCURRENCY = 1;
 const GEMINI_MIN_TIME_MS = 800;
-const limitGemini = createLimiter({ concurrency: GEMINI_CONCURRENCY, minTimeMs: GEMINI_MIN_TIME_MS });
+const GEMINI_TIMEOUT_MS = 180000; // 3 minutes max per request
+const limitGemini = createLimiter({ 
+  concurrency: GEMINI_CONCURRENCY, 
+  minTimeMs: GEMINI_MIN_TIME_MS,
+  timeoutMs: GEMINI_TIMEOUT_MS,
+  name: 'Gemini'
+});
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
