@@ -31,8 +31,34 @@ const app = express();
 
 // Middleware
 app.use(cors());
+
+// DIAGNOSTIC: Log ALL requests BEFORE body parsing
+// This helps identify if requests are stuck in body parsing
+app.use((req, res, next) => {
+  const url = req.originalUrl || req.url;
+  
+  // Log all POST requests to /generate immediately
+  if (req.method === 'POST' && url.includes('/generate')) {
+    const contentLength = req.headers['content-length'] || 0;
+    console.log(`[HTTP] ⚡ INCOMING: ${req.method} ${url} (content-length: ${Math.round(contentLength / 1024)}KB)`);
+  }
+  
+  next();
+});
+
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+
+// DIAGNOSTIC: Log after body parsing
+app.use((req, res, next) => {
+  const url = req.originalUrl || req.url;
+  
+  if (req.method === 'POST' && url.includes('/generate')) {
+    console.log(`[HTTP] ✓ BODY_PARSED: ${req.method} ${url}`);
+  }
+  
+  next();
+});
 
 // Request timing middleware
 app.use((req, res, next) => {
@@ -40,7 +66,7 @@ app.use((req, res, next) => {
   const method = req.method;
   const url = req.originalUrl || req.url;
   
-  // Log request start
+  // Log request start for large bodies
   const bodySize = req.headers['content-length'] || 0;
   if (bodySize > 10000) {
     console.log(`[HTTP] → ${method} ${url} (body: ${Math.round(bodySize / 1024)}KB)`);
@@ -53,6 +79,14 @@ app.use((req, res, next) => {
       console.log(`[HTTP] ← ${method} ${url} [${res.statusCode}] ${duration}ms`);
     }
   });
+  
+  // Log if response doesn't finish within 2 minutes
+  const warnTimeout = setTimeout(() => {
+    console.warn(`[HTTP] ⚠️ SLOW REQUEST: ${method} ${url} still pending after 2 minutes`);
+  }, 120000);
+  
+  res.on('finish', () => clearTimeout(warnTimeout));
+  res.on('close', () => clearTimeout(warnTimeout));
   
   next();
 });

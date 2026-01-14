@@ -7,6 +7,7 @@ import { fetch } from 'undici';
 import config from '../config.js';
 import { retry, isRetryableNetworkError } from '../utils/retry.js';
 import { createLimiter } from '../utils/limiter.js';
+import { setGeminiLimiterStatus } from '../routes/healthRoutes.js';
 
 // Nano Banana Pro - модель для генерации изображений
 const GEMINI_URL =
@@ -26,6 +27,9 @@ const limitGemini = createLimiter({
   timeoutMs: GEMINI_TIMEOUT_MS,
   name: 'Gemini'
 });
+
+// Register limiter status for health endpoint
+setGeminiLimiterStatus(() => limitGemini.getStatus());
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -241,13 +245,24 @@ async function callGeminiWithRetry(body) {
   const rounds = 6;
   const baseDelayMs = 2000;
   const maxDelayMs = 30000;
+  const retryId = `retry_${Date.now() % 100000}`;
 
   let attempt = 0;
   let lastResult = null;
 
+  console.log(`[Gemini] [${retryId}] callGeminiWithRetry started (max ${rounds} rounds)`);
+
   for (let round = 0; round < rounds; round++) {
+    console.log(`[Gemini] [${retryId}] Round ${round + 1}/${rounds} starting...`);
+    
     lastResult = await callGeminiWithRetrySingle(body);
-    if (lastResult.ok) return lastResult;
+    
+    console.log(`[Gemini] [${retryId}] Round ${round + 1} result: ok=${lastResult?.ok}, errorCode=${lastResult?.errorCode}, httpStatus=${lastResult?.httpStatus}`);
+    
+    if (lastResult.ok) {
+      console.log(`[Gemini] [${retryId}] Success on round ${round + 1}`);
+      return lastResult;
+    }
 
     const code = lastResult && lastResult.errorCode ? String(lastResult.errorCode) : '';
     const httpStatus = lastResult && lastResult.httpStatus ? Number(lastResult.httpStatus) : null;
@@ -259,15 +274,17 @@ async function callGeminiWithRetry(body) {
       const jitter = Math.floor(Math.random() * 250);
       const delay = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, Math.min(4, attempt - 1))) + jitter;
       console.warn(
-        `[Gemini] TRANSIENT (${isOverloaded ? 'api_overloaded/503' : 'internal_error/500'}) (attempt ${attempt}/${rounds}). Waiting ${delay}ms.`
+        `[Gemini] [${retryId}] TRANSIENT (${isOverloaded ? 'api_overloaded/503' : 'internal_error/500'}) (attempt ${attempt}/${rounds}). Waiting ${delay}ms.`
       );
       await sleep(delay);
       continue;
     }
 
+    console.log(`[Gemini] [${retryId}] Non-retryable error, returning`);
     return lastResult;
   }
 
+  console.log(`[Gemini] [${retryId}] All ${rounds} rounds exhausted`);
   return (
     lastResult || {
       ok: false,
@@ -415,9 +432,14 @@ export async function requestGeminiImage({ prompt, referenceImages = [], imageCo
 
   const requestStartTime = Date.now();
   
+  // DIAGNOSTIC: Log limiter status before queueing
+  const limiterStatus = limitGemini.getStatus();
+  console.log(`[Gemini] requestGeminiImage called. Limiter status:`, limiterStatus);
+  
   const body = createGeminiBody(prompt, referenceImages, imageConfig);
 
   try {
+    console.log(`[Gemini] Queueing request to limiter...`);
     const result = await limitGemini(() => callGeminiWithRetry(body));
     const duration = Date.now() - requestStartTime;
     console.log(`[Gemini] Request completed in ${(duration / 1000).toFixed(1)} sec`);
