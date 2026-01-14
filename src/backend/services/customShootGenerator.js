@@ -614,7 +614,7 @@ ${extraPrompt}`);
     hasIdentityRefs,
     hasClothingRefs,
     hasStyleRef,
-    hasLocationRef,
+    hasLocationSketch,
     hasPoseSketch,
     emotionId,
     poseAdherence
