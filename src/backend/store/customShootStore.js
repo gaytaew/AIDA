@@ -692,6 +692,10 @@ export async function clearLocationLockOnShoot(shootId) {
  * Use this when sending shoot data to the client.
  * Converts stored paths like "CSHOOT_xxx/img_xxx.jpg" back to data URLs.
  */
+/**
+ * Get custom shoot with images resolved to URLs (FAST version)
+ * No file reading — just converts paths to API URLs
+ */
 export async function getCustomShootWithImages(id) {
   await ensureStoreDir();
   
@@ -699,32 +703,13 @@ export async function getCustomShootWithImages(id) {
     const shoot = await _readShoot(id);
     if (!shoot) return null;
     
-    // Debug: log clothing data with full prompts
-    if (shoot.clothing?.length > 0) {
-      console.log('[CustomShootStore] Loading clothing for shoot', id);
-      shoot.clothing.forEach(c => {
-        console.log(`  Model ${c.forModelIndex}: ${c.items?.length || 0} items`);
-        c.items?.forEach((item, i) => {
-          console.log(`    [${i}] name="${item.name || ''}" prompt="${(item.prompt || '').slice(0, 80)}..." images=${item.images?.length || 0}`);
-        });
-      });
-    }
-    
-    // Debug: log lookPrompts
-    if (shoot.lookPrompts?.length > 0) {
-      console.log('[CustomShootStore] Loading lookPrompts for shoot', id, ':', shoot.lookPrompts);
-    }
-    
     // Convert stored image paths to API URLs (FAST — no file reading)
-    // Images will be loaded on-demand via GET /api/custom-shoots/:shootId/images/:imageId
     if (shoot.generatedImages?.length > 0) {
-      const resolvedImages = shoot.generatedImages.map((img) => {
+      shoot.generatedImages = shoot.generatedImages.map((img) => {
         if (img.imageUrl && isStoredImagePath(img.imageUrl)) {
-          // Convert path like "CSHOOT_xxx/img_xxx.jpg" to API URL
           return { 
             ...img, 
             imageUrl: `/api/custom-shoots/${id}/images/${img.id}`,
-            // Keep original path for reference
             _storedPath: img.imageUrl
           };
         }
@@ -732,48 +717,31 @@ export async function getCustomShootWithImages(id) {
       });
       
       // Sort by createdAt descending (newest first)
-      resolvedImages.sort((a, b) => {
+      shoot.generatedImages.sort((a, b) => {
         const dateA = new Date(a.createdAt || a.timestamp || 0);
         const dateB = new Date(b.createdAt || b.timestamp || 0);
         return dateB - dateA;
       });
-      
-      shoot.generatedImages = resolvedImages;
     }
     
-    // Resolve clothing images (new format with items)
-    if (shoot.clothing?.length > 0) {
-      for (const clothingEntry of shoot.clothing) {
-        if (clothingEntry.items?.length > 0) {
-          for (const item of clothingEntry.items) {
-            if (item.images?.length > 0) {
-              for (const img of item.images) {
-                if (img.url && isStoredImagePath(img.url)) {
-                  const result = await loadImage(img.url);
-                  if (result.ok) {
-                    img.url = result.dataUrl;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    // Also resolve style/location lock source images
+    // Convert style lock source image to URL
     if (shoot.locks?.style?.sourceImageUrl && isStoredImagePath(shoot.locks.style.sourceImageUrl)) {
-      const result = await loadImage(shoot.locks.style.sourceImageUrl);
-      if (result.ok) {
-        shoot.locks.style.sourceImageUrl = result.dataUrl;
+      const sourceImg = shoot.generatedImages?.find(img => img.id === shoot.locks.style.sourceImageId);
+      if (sourceImg) {
+        shoot.locks.style.sourceImageUrl = sourceImg.imageUrl;
       }
     }
+    
+    // Convert location lock source image to URL
     if (shoot.locks?.location?.sourceImageUrl && isStoredImagePath(shoot.locks.location.sourceImageUrl)) {
-      const result = await loadImage(shoot.locks.location.sourceImageUrl);
-      if (result.ok) {
-        shoot.locks.location.sourceImageUrl = result.dataUrl;
+      const sourceImg = shoot.generatedImages?.find(img => img.id === shoot.locks.location.sourceImageId);
+      if (sourceImg) {
+        shoot.locks.location.sourceImageUrl = sourceImg.imageUrl;
       }
     }
+    
+    // NOTE: Clothing images are already in the JSON as base64 (uploaded by user)
+    // They don't need conversion — they're passed through as-is
     
     return shoot;
   });
