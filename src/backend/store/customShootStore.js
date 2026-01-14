@@ -715,19 +715,21 @@ export async function getCustomShootWithImages(id) {
       console.log('[CustomShootStore] Loading lookPrompts for shoot', id, ':', shoot.lookPrompts);
     }
     
-    // Resolve image paths to data URLs
+    // Convert stored image paths to API URLs (FAST — no file reading)
+    // Images will be loaded on-demand via GET /api/custom-shoots/:shootId/images/:imageId
     if (shoot.generatedImages?.length > 0) {
-      const resolvedImages = await Promise.all(
-        shoot.generatedImages.map(async (img) => {
-          if (img.imageUrl && isStoredImagePath(img.imageUrl)) {
-            const result = await loadImage(img.imageUrl);
-            if (result.ok) {
-              return { ...img, imageUrl: result.dataUrl };
-            }
-          }
-          return img;
-        })
-      );
+      const resolvedImages = shoot.generatedImages.map((img) => {
+        if (img.imageUrl && isStoredImagePath(img.imageUrl)) {
+          // Convert path like "CSHOOT_xxx/img_xxx.jpg" to API URL
+          return { 
+            ...img, 
+            imageUrl: `/api/custom-shoots/${id}/images/${img.id}`,
+            // Keep original path for reference
+            _storedPath: img.imageUrl
+          };
+        }
+        return img;
+      });
       
       // Sort by createdAt descending (newest first)
       resolvedImages.sort((a, b) => {
