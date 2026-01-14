@@ -256,8 +256,10 @@ router.post('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    // Use getCustomShootWithImages to resolve stored image paths to data URLs
-    const shoot = await getCustomShootWithImages(req.params.id);
+    // Use slim=1 query param for faster loading (strips large base64 data)
+    const slim = req.query.slim === '1' || req.query.slim === 'true';
+    
+    const shoot = await getCustomShootWithImages(req.params.id, { slim });
     
     if (!shoot) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });

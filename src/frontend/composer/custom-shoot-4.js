@@ -414,7 +414,8 @@ async function createNewShoot() {
 
 async function selectShoot(shootId) {
   try {
-    const res = await fetchWithTimeout(`/api/custom-shoots/${shootId}`, {}, 5000);
+    // Use slim=1 for fast initial load (clothing images loaded on step 3)
+    const res = await fetchWithTimeout(`/api/custom-shoots/${shootId}?slim=1`, {}, 5000);
     const data = await res.json();
     if (data.ok) {
       state.currentShoot = data.shoot;

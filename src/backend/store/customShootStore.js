@@ -695,8 +695,13 @@ export async function clearLocationLockOnShoot(shootId) {
 /**
  * Get custom shoot with images resolved to URLs (FAST version)
  * No file reading — just converts paths to API URLs
+ * 
+ * @param {string} id - Shoot ID
+ * @param {Object} options - Options
+ * @param {boolean} options.slim - If true, strip large base64 data (faster loading)
  */
-export async function getCustomShootWithImages(id) {
+export async function getCustomShootWithImages(id, options = {}) {
+  const { slim = false } = options;
   await ensureStoreDir();
   
   return withFileLock(id, async () => {
@@ -740,8 +745,25 @@ export async function getCustomShootWithImages(id) {
       }
     }
     
-    // NOTE: Clothing images are already in the JSON as base64 (uploaded by user)
-    // They don't need conversion — they're passed through as-is
+    // OPTIMIZATION: Strip base64 from clothing images in slim mode
+    if (slim && shoot.clothing?.length > 0) {
+      for (const clothingEntry of shoot.clothing) {
+        if (clothingEntry.items?.length > 0) {
+          for (const item of clothingEntry.items) {
+            if (item.images?.length > 0) {
+              item._imageCount = item.images.length;
+              // Replace base64 with placeholder
+              item.images = item.images.map((img, idx) => {
+                if (img.url && img.url.startsWith('data:image')) {
+                  return { id: img.id || `img_${idx}`, _placeholder: true };
+                }
+                return img;
+              });
+            }
+          }
+        }
+      }
+    }
     
     return shoot;
   });
