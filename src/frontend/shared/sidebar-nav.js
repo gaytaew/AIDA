@@ -12,8 +12,7 @@ const NAV_ITEMS = [
       { href: '/', icon: '🏠', label: 'Dashboard' },
       { href: '/composer/shoot-composer.html', icon: '🎬', label: 'Конструктор съёмок' },
       { href: '/composer/custom-shoot.html', icon: '✨', label: 'Custom Shoot' },
-      { href: '/composer/custom-shoot-2.html', icon: '🧪', label: 'Custom Shoot 2', style: 'background: #fef3c7;' },
-      { href: '/composer/custom-shoot-3.html', icon: '🔬', label: 'Custom Shoot 3', style: 'background: #d1fae5;' },
+
       { href: '/composer/custom-shoot-4.html', icon: '🧬', label: 'Custom Shoot 4', style: 'background: #e0e7ff;' }
     ]
   },
