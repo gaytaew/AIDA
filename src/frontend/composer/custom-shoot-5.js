@@ -2491,18 +2491,25 @@ function copyFrameSettings(frameIndex) {
   // 1. Apply Universe params (all visual settings)
   if (frame.universeParams && typeof frame.universeParams === 'object') {
     console.log('[CopySettings] Applying universe params:', Object.keys(frame.universeParams));
+
+    // Update state
     state.universeValues = { ...frame.universeParams };
+    state.v5Values = { ...frame.universeParams }; // Also update V5 specific state
 
-    // Update all universe select elements
-    const universeSelects = document.querySelectorAll('.universe-param-select');
-    console.log(`[CopySettings] Found ${universeSelects.length} universe selects`);
+    // Completely re-render UI controls with new values
+    // This handles all dependencies and ensures UI matches state
+    renderUniverseParamsUI();
+    applyV5Dependencies();
+    renderEmotionOptions(); // Since we re-rendered the container
 
-    universeSelects.forEach(select => {
-      const paramId = select.dataset.paramId;
-      if (paramId && frame.universeParams[paramId] !== undefined) {
-        setSelectValue(select, frame.universeParams[paramId], `Universe.${paramId}`);
-      }
+    // Highlight all selectors to show update
+    const allSelects = document.querySelectorAll('.v5-param-select, .universe-param-select');
+    allSelects.forEach(el => {
+      changedElements.push(el);
+      // Animation handled below
     });
+
+    changeLog.push('Universe params applied via re-render');
 
     // Update narrative preview
     if (typeof updateNarrativePreview === 'function') {
@@ -2755,42 +2762,47 @@ function buildFrameSettingsHtml(frame) {
       shootingApproach: '📷 Подход',
       productDiscipline: '👗 Приоритет продукта',
 
-      // Tech
+      // Tech (V5)
+      camera: '📸 Камера',
       cameraClass: '📸 Камера',
-      exposureIntent: '💡 Экспозиция',
+      focalLength: '🔭 Фокусное',
+      focalRange: '🔭 Фокусное',
+      aperture: '📷 Диафрагма',
+      apertureIntent: '📷 Диафрагма',
+      shutterSpeed: '⏱️ Затвор',
       shutterIntent: '⏱️ Затвор',
+      iso: '💡 ISO',
+      exposure: '💡 Экспозиция',
+      exposureIntent: '💡 Экспозиция',
+      contrastCurve: '📈 Контраст',
+      whiteBalance: '🌡️ Баланс белого',
+      lightSource: '💡 Источник света',
+      lightDirection: '➡️ Направление',
+      lightQuality: '✨ Качество света',
       processingStyle: '🎨 Обработка',
       retouchLevel: '✨ Ретушь',
+      distortionPolicy: '🔍 Дисторсия',
+      cameraProximity: '📏 Дистанция',
 
       // Era
       decade: '📅 Эпоха',
       culturalContext: '🎭 Контекст',
 
-      // Color
-      whiteBalance: '🌡️ Баланс белого',
+      // Color (Legacy mostly)
       wbShift: '↔️ Сдвиг WB',
       saturation: '🎨 Насыщенность',
-      contrastCurve: '📈 Контраст',
       shadowTone: '🌑 Тени',
       highlightTone: '☀️ Света',
 
-      // Lens
-      focalRange: '🔭 Фокусное',
-      apertureIntent: '📷 Диафрагма',
-      distortionPolicy: '🔍 Дисторсия',
-      cameraProximity: '📏 Дистанция',
-
-      // Mood
+      // Mood (V5)
       visualMood: '💫 Атмосфера',
       energyLevel: '⚡ Энергия',
       spontaneity: '🎲 Спонтанность',
       primaryFocus: '🎯 Фокус',
 
-      // Lighting
-      lightSource: '💡 Источник света',
-      lightDirection: '➡️ Направление',
-      lightQuality: '✨ Качество света',
+      // Context (V5)
       timeOfDay: '🕐 Время суток',
+      weather: '🌤️ Погода',
       weatherLighting: '🌤️ Погода',
       season: '🍂 Сезон',
 
@@ -2801,12 +2813,12 @@ function buildFrameSettingsHtml(frame) {
     // Group params by category for display
     const categories = {
       'Подход': ['shootingApproach', 'productDiscipline'],
-      'Техника': ['cameraClass', 'exposureIntent', 'shutterIntent', 'processingStyle', 'retouchLevel'],
+      'Техника': ['camera', 'cameraClass', 'focalLength', 'focalRange', 'aperture', 'apertureIntent', 'shutterSpeed', 'shutterIntent', 'iso', 'exposure', 'exposureIntent', 'whiteBalance', 'contrastCurve', 'processingStyle', 'retouchLevel'],
+      'Освещение': ['lightSource', 'lightDirection', 'lightQuality'],
       'Эпоха': ['decade', 'culturalContext'],
-      'Цвет': ['whiteBalance', 'wbShift', 'saturation', 'contrastCurve', 'shadowTone', 'highlightTone'],
-      'Оптика': ['focalRange', 'apertureIntent', 'distortionPolicy', 'cameraProximity'],
+      'Оптика': ['distortionPolicy', 'cameraProximity'],
       'Атмосфера': ['visualMood', 'energyLevel', 'spontaneity', 'primaryFocus'],
-      'Освещение': ['lightSource', 'lightDirection', 'lightQuality', 'timeOfDay', 'weatherLighting', 'season'],
+      'Контекст': ['timeOfDay', 'weather', 'weatherLighting', 'season'],
       'Реализм': ['antiAiLevel']
     };
 
