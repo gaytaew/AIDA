@@ -1365,7 +1365,13 @@ function buildSceneDescription(scene, params) {
   }
   
   if (scene.clothingFocus) {
-    parts.push(`CLOTHING FOCUS: ${scene.clothingFocus}`);
+    // Handle both string and object formats
+    const clothingText = typeof scene.clothingFocus === 'string' 
+      ? scene.clothingFocus 
+      : (scene.clothingFocus.description || JSON.stringify(scene.clothingFocus));
+    if (clothingText && clothingText !== '{}') {
+      parts.push(`CLOTHING FOCUS: ${clothingText}`);
+    }
   }
   
   // Add context from params

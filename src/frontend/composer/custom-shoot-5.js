@@ -1596,12 +1596,25 @@ async function updateNarrativePreview() {
 
 /**
  * Collect V5 universe params for generation
+ * Reads from state.v5Values and falls back to UI selects
  */
 function collectUniverseParams() {
-  return { 
-    ...state.v5Values,
-    version: 'v5' // Mark as V5 for backend
-  };
+  const params = { ...state.v5Values };
+  
+  // Also read current values from UI selects as fallback/override
+  document.querySelectorAll('.v5-param-select').forEach(select => {
+    const paramId = select.dataset.v5Param;
+    if (paramId && select.value) {
+      params[paramId] = select.value;
+    }
+  });
+  
+  // Ensure we have the version marker
+  params.version = 'v5';
+  
+  console.log('[CollectUniverseParams] V5 params:', Object.keys(params).length, 'keys', params);
+  
+  return params;
 }
 
 // ═══════════════════════════════════════════════════════════════
