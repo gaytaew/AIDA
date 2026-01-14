@@ -20,6 +20,12 @@ const __dirname = path.dirname(__filename);
 
 // Store directory
 const STORE_DIR = path.join(__dirname, 'custom-shoots');
+const INDEX_FILE = path.join(STORE_DIR, '_index.json');
+
+// In-memory cache for index (fast reads)
+let indexCache = null;
+let indexCacheTime = 0;
+const INDEX_CACHE_TTL = 5000; // 5 seconds
 
 // ═══════════════════════════════════════════════════════════════
 // FILE LOCK (prevent race conditions)
@@ -185,51 +191,148 @@ ensureStoreDir().catch(console.error);
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * Read index from file or cache
+ */
+async function readIndex() {
+  // Check cache first
+  if (indexCache && (Date.now() - indexCacheTime) < INDEX_CACHE_TTL) {
+    return indexCache;
+  }
+  
+  try {
+    const content = await fs.readFile(INDEX_FILE, 'utf-8');
+    indexCache = JSON.parse(content);
+    indexCacheTime = Date.now();
+    return indexCache;
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      // Index doesn't exist, rebuild it
+      console.log('[CustomShootStore] Index not found, rebuilding...');
+      return await rebuildIndex();
+    }
+    throw err;
+  }
+}
+
+/**
+ * Write index to file and update cache
+ */
+async function writeIndex(index) {
+  indexCache = index;
+  indexCacheTime = Date.now();
+  await fs.writeFile(INDEX_FILE, JSON.stringify(index, null, 2));
+}
+
+/**
+ * Rebuild index by reading all shoot files (slow, but only done once)
+ */
+async function rebuildIndex() {
+  console.log('[CustomShootStore] Rebuilding index...');
+  const startTime = Date.now();
+  
+  const files = await fs.readdir(STORE_DIR);
+  const jsonFiles = files.filter(f => f.endsWith('.json') && !f.startsWith('_'));
+  
+  // Read all files in parallel
+  const shootPromises = jsonFiles.map(async (file) => {
+    try {
+      const filePath = path.join(STORE_DIR, file);
+      const content = await fs.readFile(filePath, 'utf-8');
+      const shoot = JSON.parse(content);
+      
+      return {
+        id: shoot.id,
+        label: shoot.label,
+        mode: shoot.mode,
+        createdAt: shoot.createdAt,
+        updatedAt: shoot.updatedAt,
+        imageCount: shoot.generatedImages?.length || 0,
+        hasStyleLock: shoot.locks?.style?.enabled || false,
+        hasLocationLock: shoot.locks?.location?.enabled || false,
+        previewUrl: shoot.generatedImages?.[0]?.imageUrl || null
+      };
+    } catch (err) {
+      console.error(`[CustomShootStore] Error reading ${file}:`, err.message);
+      return null;
+    }
+  });
+  
+  const results = await Promise.all(shootPromises);
+  const shoots = results.filter(s => s !== null);
+  
+  // Sort by updatedAt descending
+  shoots.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  
+  const index = { shoots, rebuiltAt: new Date().toISOString() };
+  await writeIndex(index);
+  
+  console.log(`[CustomShootStore] Index rebuilt in ${Date.now() - startTime}ms, ${shoots.length} shoots`);
+  return index;
+}
+
+/**
+ * Update a single entry in the index (fast)
+ */
+async function updateIndexEntry(shoot) {
+  try {
+    const index = await readIndex();
+    
+    const entry = {
+      id: shoot.id,
+      label: shoot.label,
+      mode: shoot.mode,
+      createdAt: shoot.createdAt,
+      updatedAt: shoot.updatedAt,
+      imageCount: shoot.generatedImages?.length || 0,
+      hasStyleLock: shoot.locks?.style?.enabled || false,
+      hasLocationLock: shoot.locks?.location?.enabled || false,
+      previewUrl: shoot.generatedImages?.[0]?.imageUrl || null
+    };
+    
+    const existingIdx = index.shoots.findIndex(s => s.id === shoot.id);
+    if (existingIdx >= 0) {
+      index.shoots[existingIdx] = entry;
+    } else {
+      index.shoots.unshift(entry);
+    }
+    
+    // Re-sort
+    index.shoots.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    
+    await writeIndex(index);
+  } catch (err) {
+    console.error('[CustomShootStore] Error updating index:', err);
+    // Invalidate cache on error
+    indexCache = null;
+  }
+}
+
+/**
+ * Remove entry from index
+ */
+async function removeFromIndex(shootId) {
+  try {
+    const index = await readIndex();
+    index.shoots = index.shoots.filter(s => s.id !== shootId);
+    await writeIndex(index);
+  } catch (err) {
+    console.error('[CustomShootStore] Error removing from index:', err);
+    indexCache = null;
+  }
+}
+
+/**
  * Get all custom shoots (list with basic info)
- * OPTIMIZED: Parallel file reading for faster loading
+ * OPTIMIZED: Uses index file for instant loading
  */
 export async function getAllCustomShoots() {
   await ensureStoreDir();
   
   try {
-    const files = await fs.readdir(STORE_DIR);
-    const jsonFiles = files.filter(f => f.endsWith('.json'));
-    
-    // Read all files in parallel
-    const shootPromises = jsonFiles.map(async (file) => {
-      try {
-        const filePath = path.join(STORE_DIR, file);
-        const content = await fs.readFile(filePath, 'utf-8');
-        const shoot = JSON.parse(content);
-        
-        // Return basic info for list
-        return {
-          id: shoot.id,
-          label: shoot.label,
-          mode: shoot.mode,
-          createdAt: shoot.createdAt,
-          updatedAt: shoot.updatedAt,
-          imageCount: shoot.generatedImages?.length || 0,
-          hasStyleLock: shoot.locks?.style?.enabled || false,
-          hasLocationLock: shoot.locks?.location?.enabled || false,
-          // Preview from first generated image
-          previewUrl: shoot.generatedImages?.[0]?.imageUrl || null
-        };
-      } catch (err) {
-        console.error(`[CustomShootStore] Error reading ${file}:`, err.message);
-        return null;
-      }
-    });
-    
-    const results = await Promise.all(shootPromises);
-    const shoots = results.filter(s => s !== null);
-    
-    // Sort by updatedAt descending (newest first)
-    shoots.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    
-    return shoots;
+    const index = await readIndex();
+    return index.shoots || [];
   } catch (err) {
-    console.error('[CustomShootStore] Error reading store:', err);
+    console.error('[CustomShootStore] Error reading index:', err);
     return [];
   }
 }
@@ -288,7 +391,12 @@ async function _writeShoot(shoot) {
  */
 export async function saveCustomShoot(shoot) {
   await ensureStoreDir();
-  return withFileLock(shoot.id, () => _writeShoot(shoot));
+  const result = await withFileLock(shoot.id, () => _writeShoot(shoot));
+  
+  // Update index asynchronously (don't block)
+  updateIndexEntry(shoot).catch(err => console.error('[CustomShootStore] Index update failed:', err));
+  
+  return result;
 }
 
 /**
@@ -308,6 +416,10 @@ export async function deleteCustomShoot(id) {
     // Delete the JSON file
     await fs.unlink(filePath);
     console.log(`[CustomShootStore] Deleted shoot: ${id}`);
+    
+    // Update index
+    await removeFromIndex(id);
+    
     return true;
   } catch (err) {
     if (err.code === 'ENOENT') {
@@ -368,6 +480,9 @@ export async function addImageToShoot(shootId, imageData) {
     shoot.generatedImages.push(image);
     
     await _writeShoot(shoot);
+    
+    // Update index (async, don't block)
+    updateIndexEntry(shoot).catch(err => console.error('[CustomShootStore] Index update failed:', err));
     
     return image;
   });

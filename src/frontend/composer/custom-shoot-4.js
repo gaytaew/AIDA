@@ -323,7 +323,7 @@ function updateStepStatuses() {
 
 async function loadShoots() {
   try {
-    const res = await fetchWithTimeout('/api/custom-shoots', {}, 5000);
+    const res = await fetchWithTimeout('/api/custom-shoots', {}, 15000);
     const data = await res.json();
     if (data.ok) {
       state.shoots = data.shoots || [];
