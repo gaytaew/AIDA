@@ -13,7 +13,8 @@ const NAV_ITEMS = [
       { href: '/composer/shoot-composer.html', icon: '🎬', label: 'Конструктор съёмок' },
       { href: '/composer/custom-shoot.html', icon: '✨', label: 'Custom Shoot' },
 
-      { href: '/composer/custom-shoot-4.html', icon: '🧬', label: 'Custom Shoot 4', style: 'background: #e0e7ff;' }
+      { href: '/composer/custom-shoot-4.html', icon: '🧬', label: 'Custom Shoot 4' },
+      { href: '/composer/custom-shoot-5.html', icon: '🏔️', label: 'Custom Shoot 5', style: 'background: #e0e7ff;' }
     ]
   },
   {
@@ -47,11 +48,11 @@ function renderSidebarNav() {
   }
 
   let html = '';
-  
+
   for (const section of NAV_ITEMS) {
     html += `<div class="nav-section">`;
     html += `<div class="nav-section-title">${section.section}</div>`;
-    
+
     for (const item of section.items) {
       const activeClass = isActive(item.href) ? ' active' : '';
       const style = item.style ? ` style="${item.style}"` : '';
@@ -62,7 +63,7 @@ function renderSidebarNav() {
         </a>
       `;
     }
-    
+
     html += `</div>`;
   }
 

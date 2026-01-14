@@ -1577,6 +1577,31 @@ function buildSceneDescription(scene, params) {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // FORMAT & POSE (Pose Adherence + Image Quality)
+  // ═══════════════════════════════════════════════════════════════
+  const poseInstructions = {
+    1: "Free/Loose pose. Create a natural, candid variation. IGNORE strict sketch alignment.",
+    2: "Relaxed pose. Follow the general gesture but prioritize comfort and natural flow.",
+    3: "Strict pose. Follow the sketch compositionally. Maintain limb positioning.",
+    4: "TECHNICAL MATCH. COPY the sketch pose EXACTLY. Do not deviate."
+  };
+
+  const adherence = scene.poseAdherence || 2;
+  parts.push(`POSE ADHERENCE (${adherence}/4): ${poseInstructions[adherence] || poseInstructions[2]}`);
+
+  // Format / Quality
+  const formatPrompts = [];
+  if (scene.imageSize === '4K') formatPrompts.push('8K Ultra-High Resolution, Detailed Texture');
+  if (scene.imageSize === '2K') formatPrompts.push('4K Standard Resolution, Clean Digital');
+
+  if (scene.aspectRatio === '16:9') formatPrompts.push('Cinematic Widescreen Composition');
+  if (scene.aspectRatio === '9:16') formatPrompts.push('Vertical Story Format');
+
+  if (formatPrompts.length > 0) {
+    parts.push(`FORMAT: ${formatPrompts.join(', ')}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // EXTRA PROMPT (user's additional instructions)
   // ═══════════════════════════════════════════════════════════════
   if (scene.extraPrompt && scene.extraPrompt.trim()) {

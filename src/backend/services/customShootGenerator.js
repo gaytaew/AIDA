@@ -19,9 +19,9 @@ import { buildLocationPromptSnippet, buildAmbientPrompt } from '../schema/locati
 import { generateImageId } from '../schema/customShoot.js';
 
 // New Virtual Studio imports
-import { 
-  buildVirtualCameraPrompt, 
-  getVirtualCameraKeywords, 
+import {
+  buildVirtualCameraPrompt,
+  getVirtualCameraKeywords,
   validateVirtualCamera,
   getDefaultVirtualCamera,
   FOCAL_LENGTH,
@@ -29,9 +29,9 @@ import {
   SHUTTER_SPEED
 } from '../schema/virtualCamera.js';
 
-import { 
-  buildLightingPrompt, 
-  getLightingKeywords, 
+import {
+  buildLightingPrompt,
+  getLightingKeywords,
   validateLighting,
   getDefaultLighting,
   detectTemperatureConflict,
@@ -39,10 +39,10 @@ import {
   LIGHT_MODIFIERS
 } from '../schema/lightingManager.js';
 
-import { 
-  createReferenceCollection, 
-  buildReferencePrompt, 
-  getImagesForApi, 
+import {
+  createReferenceCollection,
+  buildReferencePrompt,
+  getImagesForApi,
   validateCollection,
   MAX_REFERENCES
 } from '../schema/referenceHandler.js';
@@ -56,17 +56,17 @@ import {
 } from './virtualStudioGenerator.js';
 
 // Universe params (Custom Shoot 4)
-import { 
+import {
   buildUnifiedUniverseNarrative,
   buildStrictUniverseNarrative,
-  buildUniverseNarrativeByMode 
+  buildUniverseNarrativeByMode
 } from '../schema/universeNarrativeBuilder.js';
 
-import { 
+import {
   sanitizeUniverseParams,
   checkUniverseConflicts,
   getConflicts,
-  generateConflictNote 
+  generateConflictNote
 } from '../schema/universeConflicts.js';
 
 import { buildV5Prompt, applyDependencies as applyV5Dependencies } from '../schema/customShootV5.js';
@@ -75,8 +75,8 @@ import { buildV5Prompt, applyDependencies as applyV5Dependencies } from '../sche
 // RE-EXPORTS for backward compatibility
 // ═══════════════════════════════════════════════════════════════
 
-export { 
-  QUALITY_MODES, 
+export {
+  QUALITY_MODES,
   ASPECT_RATIOS,
   FOCAL_LENGTH,
   APERTURE,
@@ -95,7 +95,7 @@ export {
  */
 function buildStyleLockPrompt(lock) {
   if (!lock || !lock.enabled) return null;
-  
+
   if (lock.mode === 'strict') {
     return `STYLE REFERENCE (STRICT VISUAL MATCH) — [$2]:
 ===========================================
@@ -117,7 +117,7 @@ The reference photo [$2] defines the VISUAL STYLE. Copy these elements:
 IMPORTANT: Pose and composition are controlled by other parameters.
 Follow the prompt for pose/angle/framing, follow [$2] for visual style.`;
   }
-  
+
   if (lock.mode === 'soft') {
     return `STYLE REFERENCE (SOFT MATCH) — [$2]:
 Use [$2] for visual inspiration:
@@ -127,7 +127,7 @@ Use [$2] for visual inspiration:
 
 Pose and composition: Follow the PROMPT instructions, not [$2].`;
   }
-  
+
   return null;
 }
 
@@ -138,7 +138,7 @@ Pose and composition: Follow the PROMPT instructions, not [$2].`;
  */
 function buildLocationLockPrompt(lock) {
   if (!lock || !lock.enabled) return null;
-  
+
   if (lock.mode === 'strict') {
     return `LOCATION REFERENCE — ENVIRONMENT ONLY (CRITICAL) — [$5]:
 Use the SAME PHYSICAL SPACE from [$5]:
@@ -155,7 +155,7 @@ Use the SAME PHYSICAL SPACE from [$5]:
 
 The reference [$5] defines the SPACE, not where the model stands.`;
   }
-  
+
   if (lock.mode === 'soft') {
     return `LOCATION REFERENCE (SOFT MATCH) — [$5]:
 Use a similar type of environment to [$5]:
@@ -165,7 +165,7 @@ Use a similar type of environment to [$5]:
 
 The specific space can be different. Model position is free.`;
   }
-  
+
   return null;
 }
 
@@ -181,10 +181,10 @@ export function buildCustomShootPrompt({
   // Virtual Studio parameters (new)
   virtualCamera = null,
   lighting = null,
-  
+
   // Universe parameters (Custom Shoot 4)
   universeParams = null,
-  
+
   // Legacy parameters (supported for backward compatibility)
   customUniverse = null,
   locks = null,
@@ -203,18 +203,18 @@ export function buildCustomShootPrompt({
   hasLocationSketch = false, // true if location sketch is being passed (only when Style Lock is OFF)
   hasPoseSketch = false,
   poseAdherence = 2,
-  
+
   // Composition (shotSize + cameraAngle)
   composition = null,
-  
+
   // Quality settings
   qualityMode = 'DRAFT',
   mood = 'natural'
 }) {
-  
+
   // Use Virtual Studio if virtualCamera is provided, otherwise use legacy
   const useVirtualStudio = virtualCamera != null;
-  
+
   // Use Universe system (Custom Shoot 4) if universeParams provided
   const useUniverse = universeParams != null;
 
@@ -225,7 +225,7 @@ export function buildCustomShootPrompt({
   if (useUniverse && universeParams.version === 'v5') {
     // If nested in 'universe' key (from some UI states), extract it
     const params = universeParams.universe || universeParams;
-    
+
     // Build comprehensive scene object with ALL available data
     const scene = {
       // From frame
@@ -234,48 +234,52 @@ export function buildCustomShootPrompt({
       environment: frame?.environment || '',
       texture: frame?.texture || '',
       clothingFocus: frame?.clothingFocus || '',
-      
+
       // Location
       location: location,
-      
+
       // Emotion
       emotionId: emotionId,
-      
+
       // Model description
       modelDescription: modelDescription,
-      
+
       // Clothing
       clothingDescriptions: clothingDescriptions,
       clothingItemPrompts: clothingItemPrompts,
       lookPrompt: lookPrompt,
-      
+
       // Composition
       shotSize: composition?.shotSize || 'default',
       cameraAngle: composition?.cameraAngle || 'eye_level',
-      
+
       // Extra prompt from user
       extraPrompt: extraPrompt,
-      
+
       // Pose adherence level
       poseAdherence: poseAdherence,
-      
+
+      // Format
+      aspectRatio: universeParams.aspectRatio || '3:4', // Fallback defaults
+      imageSize: universeParams.imageSize || '2K',
+
       // Reference flags
       hasIdentityRefs: hasIdentityRefs,
       hasClothingRefs: hasClothingRefs,
       hasStyleRef: hasStyleRef,
       hasPoseSketch: hasPoseSketch
     };
-    
+
     // Build V5 prompt with dependency resolution
     const { prompt: v5Prompt, resolvedParams, corrections } = buildV5Prompt(params, scene);
-    
+
     // Log any corrections made
     if (corrections.length > 0) {
-      console.log('[CustomShootGenerator] V5 auto-corrections applied:', 
+      console.log('[CustomShootGenerator] V5 auto-corrections applied:',
         corrections.map(c => `${c.field}: ${c.from} → ${c.to}`).join(', ')
       );
     }
-    
+
     const promptJson = {
       format: 'custom_shoot_v5_smart',
       generatedAt: new Date().toISOString(),
@@ -292,106 +296,106 @@ export function buildCustomShootPrompt({
       qualityMode,
       mood
     };
-    
+
     return { prompt: v5Prompt, promptJson };
   }
-  
+
   const sections = [];
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 1: ROLE (Reasoning-based)
   // ═══════════════════════════════════════════════════════════════
-  
+
   sections.push(`ROLE: World-class Cinematographer & Art Director.
 
 You are an expert in visual storytelling with technical mastery and artistic vision.
 Generate a photorealistic fashion photograph suitable for major publication.`);
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 2: HARD RULES
   // ═══════════════════════════════════════════════════════════════
-  
+
   const hardRules = [
     'Return photorealistic images (NO illustration, NO CGI, NO 3D render, NO painterly look).',
     'Natural skin texture, believable fabric behavior, real optics.',
     'No watermarks, no text overlays, no captions, no logos.'
   ];
-  
+
   if (hasIdentityRefs) {
     hardRules.push('FACE IDENTITY IS CRITICAL: The generated person MUST be the EXACT SAME person as in identity reference [$1]. Same face shape, eyes, nose, lips.');
   }
-  
+
   if (hasClothingRefs) {
     hardRules.push('CLOTHING IS CRITICAL: Garments MUST match reference images exactly — same silhouette, length, fit, colors, construction.');
   }
-  
+
   hardRules.push('Do NOT invent brands, logos, or text.');
-  
+
   sections.push(`
 TASK: Analyze constraints and generate a photorealistic image.
 
 HARD RULES:
 ${hardRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`);
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 3: REASONING STEPS
   // ═══════════════════════════════════════════════════════════════
-  
+
   const reasoningSteps = [];
-  
+
   if (useVirtualStudio) {
     const focalLabel = virtualCamera.focalLength ? FOCAL_LENGTH[virtualCamera.focalLength]?.label : 'Portrait';
     reasoningSteps.push(`1. OPTICAL ANALYSIS: Apply ${focalLabel} lens characteristics for perspective and depth.`);
-    
+
     if (lighting?.primarySource) {
       const sourceLabel = LIGHT_SOURCES[lighting.primarySource]?.label || lighting.primarySource;
       reasoningSteps.push(`2. LIGHTING SETUP: Establish ${sourceLabel} as primary illumination for "${mood}" mood.`);
     }
   }
-  
+
   if (hasIdentityRefs) {
     reasoningSteps.push(`${reasoningSteps.length + 1}. IDENTITY MATCHING: Person in [$1] MUST appear with exact facial features preserved.`);
   }
-  
+
   if (hasClothingRefs) {
     reasoningSteps.push(`${reasoningSteps.length + 1}. CLOTHING ACCURACY: Recreate garments from [$3]/[$4] with precise silhouette and construction.`);
   }
-  
+
   if (hasStyleRef) {
     reasoningSteps.push(`${reasoningSteps.length + 1}. STYLE APPLICATION: Apply color grading and mood from [$2] to the image.`);
   }
-  
+
   if (reasoningSteps.length > 0) {
     sections.push(`
 REASONING STEPS (analyze before generating):
 
 ${reasoningSteps.join('\n')}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 4: UNIVERSE / VISUAL DNA (Custom Shoot 4)
   // Один монолитный блок с полным описанием визуальной вселенной
   // Режим: 'strict' (жёсткие директивы) или 'soft' (нарративный)
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (useUniverse && universeParams) {
     // ═══════════════════════════════════════════════════════════════
     // SMART SANITIZATION: Auto-fix conflicting parameters
     // Студия → indoor погода, ночь → нет солнца, и т.д.
     // ═══════════════════════════════════════════════════════════════
     const { params: sanitizedParams, corrections, wasModified } = sanitizeUniverseParams(universeParams);
-    
+
     if (wasModified) {
-      console.log('[CustomShootGenerator] 🔧 Auto-corrected universe params:', 
+      console.log('[CustomShootGenerator] 🔧 Auto-corrected universe params:',
         corrections.map(c => `${c.param}: ${c.from}→${c.to}`).join(', ')
       );
     }
-    
+
     // Определяем режим промпта: strict (новый) или soft (старый)
     // По умолчанию используем descriptive для описательного стиля арт-директора
     // Доступные режимы: 'soft', 'strict', 'descriptive'
     const promptStyle = sanitizedParams.promptStyle || 'descriptive';
-    
+
     const universeNarrative = buildUniverseNarrativeByMode(sanitizedParams, promptStyle);
     if (universeNarrative) {
       sections.push(`
@@ -401,7 +405,7 @@ UNIVERSE / VISUAL DNA (LOCKED — applies to ALL frames)
 
 ${universeNarrative}`);
     }
-    
+
     // Проверяем конфликты и добавляем предупреждения (после санитизации)
     const conflicts = getConflicts(sanitizedParams);
     if (conflicts.length > 0) {
@@ -412,33 +416,33 @@ ${universeNarrative}`);
       console.log('[CustomShootGenerator] ⚠️ Remaining conflicts after sanitization:', conflicts.map(c => c.id));
     }
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 4B: VIRTUAL CAMERA (legacy Virtual Studio system)
   // Используется если universeParams НЕ переданы
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (!useUniverse && useVirtualStudio && virtualCamera) {
     const cameraPrompt = buildVirtualCameraPrompt(virtualCamera);
     sections.push(`
 ${cameraPrompt}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 5: LIGHTING (legacy Virtual Studio system)
   // Используется если universeParams НЕ переданы
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (!useUniverse && useVirtualStudio && lighting) {
     const lightingPrompt = buildLightingPrompt(lighting);
     sections.push(`
 ${lightingPrompt}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 6: STYLE LOCK
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (locks?.style?.enabled && hasStyleRef) {
     const styleLockPrompt = buildStyleLockPrompt(locks.style);
     if (styleLockPrompt) {
@@ -446,18 +450,18 @@ ${lightingPrompt}`);
 ${styleLockPrompt}`);
     }
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 7: LOCATION LOCK - REMOVED
   // Location Lock functionality removed - location is now implied in Style Lock
   // If Style Lock is active, the location from the reference image will be preserved
   // ═══════════════════════════════════════════════════════════════
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 8: LOCATION (only if Style Lock is NOT active)
   // If Style Lock is enabled, location is implied in the style reference
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (location && !hasStyleRef) {
     const locationDesc = buildLocationPromptSnippet(location) || location.description || '';
     if (locationDesc) {
@@ -471,16 +475,16 @@ ${location.label}: ${locationDesc}`);
 === LOCATION ===
 Use the location/background from the Style Lock reference image.`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 9: FRAME/POSE
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (frame) {
     sections.push(`
 === FRAME / POSE ===
 ${frame.label || 'Custom frame'}: ${frame.description || frame.poseDescription || ''}`);
-    
+
     if (hasPoseSketch) {
       const adherence = POSE_ADHERENCE_MAP[poseAdherence] || POSE_ADHERENCE_MAP[2];
       sections.push(`
@@ -493,11 +497,11 @@ ${adherence.instruction}
 ${adherence.forbid ? `⛔ ${adherence.forbid}` : ''}`);
     }
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 9B: COMPOSITION (shotSize + cameraAngle) — STRICT
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (composition && (composition.shotSize || composition.cameraAngle)) {
     const SHOT_SIZE_DIRECTIVES = {
       extreme_closeup: 'EXTREME CLOSE-UP: Only face/detail visible, fills 90%+ of frame. NO body below chin.',
@@ -509,7 +513,7 @@ ${adherence.forbid ? `⛔ ${adherence.forbid}` : ''}`);
       full_body: 'FULL BODY: ENTIRE body from head to feet. All limbs visible.',
       wide: 'WIDE SHOT: Full body PLUS significant environment context around subject.'
     };
-    
+
     const CAMERA_ANGLE_DIRECTIVES = {
       birds_eye: 'BIRD\'S EYE VIEW: Camera DIRECTLY ABOVE subject, looking straight down. Subject appears flattened.',
       high: 'HIGH ANGLE: Camera ABOVE eye level, looking DOWN at subject. Subject appears smaller/vulnerable.',
@@ -519,25 +523,25 @@ ${adherence.forbid ? `⛔ ${adherence.forbid}` : ''}`);
       dutch: 'DUTCH ANGLE: Camera TILTED 15-30° from horizontal. Creates dynamic tension/unease.',
       fisheye: 'FISHEYE: Extreme wide-angle with VISIBLE barrel distortion. Edges curve dramatically.'
     };
-    
+
     const shotDesc = SHOT_SIZE_DIRECTIVES[composition.shotSize] || composition.shotSize;
     const angleDesc = CAMERA_ANGLE_DIRECTIVES[composition.cameraAngle] || composition.cameraAngle;
-    
+
     let compositionBlock = `
 === COMPOSITION (MANDATORY — NOT NEGOTIABLE) ===`;
-    
+
     if (composition.shotSize && composition.shotSize !== 'default') {
       compositionBlock += `
 
 FRAMING: ${shotDesc}`;
     }
-    
+
     if (composition.cameraAngle && composition.cameraAngle !== 'eye_level') {
       compositionBlock += `
 
 CAMERA ANGLE: ${angleDesc}`;
     }
-    
+
     compositionBlock += `
 
 ⚠️ STRICT ENFORCEMENT:
@@ -545,14 +549,14 @@ CAMERA ANGLE: ${angleDesc}`;
 - If LOW ANGLE specified → camera MUST be below eye level
 - If FISHEYE specified → edges MUST curve with visible distortion
 - These are REQUIREMENTS, not suggestions`;
-    
+
     sections.push(compositionBlock);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 10: EMOTION
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (emotionId) {
     const emotion = getEmotionById(emotionId);
     if (emotion) {
@@ -567,11 +571,11 @@ ${emotion.physicalHints ? `Physical cues: ${Array.isArray(emotion.physicalHints)
 ${emotion.avoid ? `AVOID: ${Array.isArray(emotion.avoid) ? emotion.avoid.join(', ') : emotion.avoid}` : ''}`);
     }
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 11: IDENTITY RULES
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (hasIdentityRefs) {
     sections.push(`
 === IDENTITY PRESERVATION (CRITICAL — [$1]) ===
@@ -593,11 +597,11 @@ FORBIDDEN:
 
 ${modelDescription ? `Additional notes: ${modelDescription}` : ''}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 12: CLOTHING RULES
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (hasClothingRefs) {
     // Build clothing description section
     let clothingSection = `
@@ -619,7 +623,7 @@ MUST MATCH:
 OUTFIT STYLE:
 ${lookPrompt.trim()}`;
     }
-    
+
     // Add structured clothing item prompts (NEW format)
     if (clothingItemPrompts && clothingItemPrompts.length > 0) {
       clothingSection += `
@@ -638,15 +642,15 @@ CLOTHING ITEMS:`;
 USER DESCRIPTIONS:
 ${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`;
     }
-    
+
     sections.push(clothingSection);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 13: ANTI-AI AUTHENTICITY (только для legacy mode)
   // При использовании universeParams — anti-ai уже включён в нарратив
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (!useUniverse) {
     sections.push(`
 === AUTHENTICITY (Anti-AI) ===
@@ -665,21 +669,21 @@ AVOID:
 - Empty, lifeless eyes
 - HDR or hyper-processed look`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 14: EXTRA INSTRUCTIONS
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (extraPrompt) {
     sections.push(`
 === ADDITIONAL INSTRUCTIONS ===
 
 ${extraPrompt}`);
   }
-  
+
   // Build final prompt
   const prompt = sections.join('\n');
-  
+
   // Build JSON representation
   const promptJson = {
     format: useUniverse ? 'custom_shoot_universe_v1' : 'custom_shoot_virtual_studio_v1',
@@ -699,7 +703,7 @@ ${extraPrompt}`);
     emotionId,
     poseAdherence
   };
-  
+
   return { prompt, promptJson };
 }
 
@@ -729,16 +733,16 @@ export async function generateCustomShootFrame({
   presets = null,
   aspectRatio = null,
   imageSize = null,
-  
+
   // Virtual Studio parameters (new)
   virtualCamera = null,
   lighting = null,
   qualityMode = 'DRAFT',
   mood = 'natural',
-  
+
   // Universe parameters (Custom Shoot 4)
   universeParams = null,
-  
+
   // Legacy parameters (kept for compatibility)
   captureStyle = null,
   cameraSignature = null,
@@ -752,29 +756,29 @@ export async function generateCustomShootFrame({
 }) {
   const genId = `gen_${Date.now() % 100000}`;
   const startTime = Date.now();
-  
+
   const log = (step, data = {}) => {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[CustomShootGenerator] [${genId}] [${elapsed}s] ${step}`, 
+    console.log(`[CustomShootGenerator] [${genId}] [${elapsed}s] ${step}`,
       Object.keys(data).length > 0 ? JSON.stringify(data) : '');
   };
-  
+
   try {
     const useUniverse = universeParams != null;
     const useVirtualStudio = virtualCamera != null;
-    
+
     log('START', {
       mode: useUniverse ? 'Universe (CS4)' : useVirtualStudio ? 'Virtual Studio' : 'Legacy',
       identityImages: identityImages.length,
       clothingImages: clothingImages.length
     });
-    
+
     const { locks, globalSettings } = shoot;
-    
+
     // Build reference collection with proper slot assignments
     const references = [];
     let refSlot = 1;
-    
+
     // Slot 1: Identity (Subject)
     if (identityImages.length > 0) {
       const identityBoard = await packImagesToBoard(identityImages, { maxSize: 1536, minTile: 512 });
@@ -787,7 +791,7 @@ export async function generateCustomShootFrame({
         });
       }
     }
-    
+
     // Slot 2: Style reference
     if (styleRefImage && locks?.style?.enabled) {
       references.push({
@@ -797,7 +801,7 @@ export async function generateCustomShootFrame({
         description: 'Style lock reference'
       });
     }
-    
+
     // Slots 3-4: Clothing
     for (let i = 0; i < Math.min(clothingImages.length, 2); i++) {
       references.push({
@@ -807,12 +811,12 @@ export async function generateCustomShootFrame({
         description: clothingDescriptions[i] || `Clothing item ${i + 1}`
       });
     }
-    
+
     // Slot 5: Location reference
     // NOTE: Location Lock removed - if Style Lock is enabled, location is implied in style reference
     // locationSketchImage will be null if Style Lock is enabled (handled in customShootRoutes.js)
     const hasStyleLock = styleRefImage && locks?.style?.enabled;
-    
+
     if (locationSketchImage && !hasStyleLock) {
       references.push({
         mimeType: locationSketchImage.mimeType,
@@ -823,7 +827,7 @@ export async function generateCustomShootFrame({
     } else if (hasStyleLock) {
       console.log('[CustomShootGenerator] Style Lock active - location implied in style reference, skipping location slot');
     }
-    
+
     // Slot 6: Pose sketch
     if (poseSketchImage) {
       references.push({
@@ -833,7 +837,7 @@ export async function generateCustomShootFrame({
         description: 'Pose sketch reference'
       });
     }
-    
+
     // Add remaining clothing images (slots 7+)
     for (let i = 2; i < clothingImages.length; i++) {
       references.push({
@@ -843,15 +847,15 @@ export async function generateCustomShootFrame({
         description: clothingDescriptions[i] || `Clothing item ${i + 1}`
       });
     }
-    
+
     // Create reference collection
     const refCollection = createReferenceCollection(references);
-    
+
     console.log('[CustomShootGenerator] Reference collection:', {
       total: refCollection.images.length,
       slots: Object.keys(refCollection.slots).map(s => `[$${s}]`)
     });
-    
+
     // Build prompt
     const { prompt, promptJson } = buildCustomShootPrompt({
       virtualCamera: useVirtualStudio ? virtualCamera : null,
@@ -878,43 +882,43 @@ export async function generateCustomShootFrame({
       qualityMode,
       mood
     });
-    
+
     console.log('[CustomShootGenerator] Prompt built, length:', prompt.length);
-    
+
     // Get quality settings
     const quality = QUALITY_MODES[qualityMode] || QUALITY_MODES.DRAFT;
     const effectiveAspectRatio = aspectRatio || globalSettings?.imageConfig?.aspectRatio || '3:4';
     const effectiveImageSize = imageSize || quality.imageSize;
-    
+
     // Get reference images for API
     const referenceImages = getImagesForApi(refCollection);
-    
+
     // Build image config
     const imageConfig = {
       aspectRatio: effectiveAspectRatio,
       imageSize: effectiveImageSize
     };
-    
+
     log('CALLING_GEMINI', {
       qualityMode,
       imageConfig,
       referenceCount: referenceImages.length,
       promptLength: prompt.length
     });
-    
+
     const geminiStartTime = Date.now();
-    
+
     // Call Gemini
     const result = await requestGeminiImage({
       prompt,
       referenceImages,
       imageConfig
     });
-    
+
     const generationTime = ((Date.now() - geminiStartTime) / 1000).toFixed(1);
-    
+
     log('GEMINI_RESPONSE', { ok: result.ok, duration: generationTime });
-    
+
     if (!result.ok) {
       log('GEMINI_ERROR', { error: result.error?.slice(0, 200) });
       return {
@@ -922,9 +926,9 @@ export async function generateCustomShootFrame({
         error: result.error
       };
     }
-    
+
     log('GEMINI_SUCCESS', { duration: generationTime });
-    
+
     log('RETURNING_RESULT');
     return {
       ok: true,
@@ -948,7 +952,7 @@ export async function generateCustomShootFrame({
         referenceCount: referenceImages.length
       }
     };
-    
+
   } catch (error) {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     console.error(`[CustomShootGenerator] [${genId}] [${elapsed}s] ERROR:`, error);
@@ -969,7 +973,7 @@ export async function generateCustomShootFrame({
 async function packImagesToBoard(images, options = {}) {
   if (!images || images.length === 0) return null;
   if (images.length === 1) return images[0];
-  
+
   return await buildCollage(images, {
     maxSize: options.maxSize || 2048,
     maxCols: options.maxCols || 3,
@@ -985,7 +989,7 @@ async function packImagesToBoard(images, options = {}) {
  */
 export async function prepareImageFromUrl(imageUrl) {
   if (!imageUrl) return null;
-  
+
   // If it's already a data URL
   if (imageUrl.startsWith('data:')) {
     const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
@@ -996,7 +1000,7 @@ export async function prepareImageFromUrl(imageUrl) {
       };
     }
   }
-  
+
   // If it's a stored image path
   if (isStoredImagePath(imageUrl)) {
     const result = await loadImageBuffer(imageUrl);
@@ -1007,7 +1011,7 @@ export async function prepareImageFromUrl(imageUrl) {
       };
     }
   }
-  
+
   console.warn('[CustomShootGenerator] Unknown image reference format:', imageUrl.slice(0, 50));
   return null;
 }
