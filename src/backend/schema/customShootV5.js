@@ -489,6 +489,57 @@ export const TECH_CONTRAST = {
   ]
 };
 
+export const TECH_SKIN_TEXTURE = {
+  id: 'skinTexture',
+  label: '🧬 Текстура кожи',
+  description: 'Детализация и реализм кожи',
+  options: [
+    {
+      value: 'natural_imperfect',
+      label: 'Natural (Imperfect)',
+      spec: 'SKIN TEXTURE: Natural, imperfect reality. Visible pores, slight unevenness, unretouched look. No smoothing.',
+      constraints: { retouch: 'none', microDetail: 'high' }
+    },
+    {
+      value: 'studio_clean',
+      label: 'Studio Clean',
+      spec: 'SKIN TEXTURE: Studio Standard. Clean, even tone, but texture retained. High-end editorial retouching.',
+      constraints: { retouch: 'light', microDetail: 'medium' }
+    },
+    {
+      value: 'raw_analog',
+      label: 'Raw Analog',
+      spec: 'SKIN TEXTURE: Raw Analog. Grainy, highly textured, emphasis on localized micro-contrast. Harsh reality.',
+      constraints: { retouch: 'none', microDetail: 'extreme', filmGrain: true }
+    },
+    {
+      value: 'hyper_real',
+      label: 'Hyper-Realistic',
+      spec: 'SKIN TEXTURE: Hyper-Realistic. Extreme pore detail, peach fuzz, vellus hair visible. "Macro" skin detail.',
+      constraints: { retouch: 'none', microDetail: 'maximum' }
+    },
+    {
+      value: 'soft_glam',
+      label: 'Soft Glamour',
+      spec: 'SKIN TEXTURE: Soft Glamour. Smooth, creamy, classic beauty lighting. Reduced micro-texture.',
+      constraints: { retouch: 'medium', microDetail: 'low' }
+    }
+  ]
+};
+
+export const TECH_ANTI_AI = {
+  id: 'antiAiLevel',
+  label: '🤖 Anti-AI фильтр',
+  description: 'Уровень подавления "пластиковости"',
+  options: [
+    { value: 'off', label: 'Выкл (Стандарт)', spec: '' },
+    { value: 'low', label: 'Низкий', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon.' },
+    { value: 'medium', label: 'Средний', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry.' },
+    { value: 'high', label: 'Высокий', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry, airbrushed, digital art, uncanny valley.' },
+    { value: 'maximum', label: 'Максимум (Raw)', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry, airbrushed, digital art, uncanny valley, cgi, glossy skin, instagram filter.' },
+  ]
+};
+
 // ═══════════════════════════════════════════════════════════════
 // SECTION 2: ARTISTIC PARAMETERS (Narrative Description)
 // These are SUBJECTIVE, INTERPRETIVE — described narratively
@@ -1343,6 +1394,16 @@ function buildTechnicalSpecs(params) {
   const contrast = TECH_CONTRAST.options.find(o => o.value === params.contrastCurve);
   if (contrast) lines.push(contrast.spec);
 
+  // Skin Texture
+  const skin = TECH_SKIN_TEXTURE.options.find(o => o.value === params.skinTexture);
+  if (skin) lines.push(skin.spec);
+
+  // Anti-AI (added to specs as negative constraint instruction)
+  const antiAi = TECH_ANTI_AI.options.find(o => o.value === params.antiAiLevel);
+  if (antiAi && antiAi.value !== 'off') {
+    lines.push(`REALISM ENFORCEMENT: ${antiAi.spec}`);
+  }
+
   console.log('[buildTechnicalSpecs] Generated', lines.length, 'lines');
   return lines.join('\n');
 }
@@ -1637,7 +1698,9 @@ export const TECHNICAL_PARAMS = {
   lightQuality: TECH_LIGHT_QUALITY,
   whiteBalance: TECH_WHITE_BALANCE,
   exposure: TECH_EXPOSURE,
-  contrastCurve: TECH_CONTRAST
+  contrastCurve: TECH_CONTRAST,
+  skinTexture: TECH_SKIN_TEXTURE,
+  antiAiLevel: TECH_ANTI_AI
 };
 
 // All artistic parameters
@@ -1670,6 +1733,8 @@ export const DEFAULT_PARAMS = {
   whiteBalance: 'daylight',
   exposure: 'neutral',
   contrastCurve: 's_curve_moderate',
+  skinTexture: 'natural_imperfect',
+  antiAiLevel: 'medium',
 
   // Artistic
   visualMood: 'confident_bold',

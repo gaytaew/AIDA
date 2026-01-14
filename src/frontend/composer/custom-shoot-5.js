@@ -1429,7 +1429,8 @@ function renderUniverseParamsUI() {
   };
 
   // Build Technical params (camera, focalLength, aperture, shutterSpeed, lightSource, lightDirection, lightQuality, whiteBalance, exposure, contrastCurve)
-  const technicalKeys = ['camera', 'focalLength', 'aperture', 'shutterSpeed', 'lightSource', 'lightDirection', 'lightQuality', 'whiteBalance', 'exposure', 'contrastCurve'];
+  // Build Technical params (camera, focalLength, aperture, shutterSpeed, lightSource, lightDirection, lightQuality, whiteBalance, exposure, contrastCurve, skinTexture, antiAiLevel)
+  const technicalKeys = ['camera', 'focalLength', 'aperture', 'shutterSpeed', 'lightSource', 'lightDirection', 'lightQuality', 'whiteBalance', 'exposure', 'contrastCurve', 'skinTexture', 'antiAiLevel'];
   const technicalParams = technicalKeys
     .filter(id => schema.technical?.[id])
     .map(id => renderParamSelect(id, schema.technical[id], 'technical'))
@@ -2783,6 +2784,7 @@ function buildFrameSettingsHtml(frame) {
       retouchLevel: '✨ Ретушь',
       distortionPolicy: '🔍 Дисторсия',
       cameraProximity: '📏 Дистанция',
+      skinTexture: '🧬 Текстура кожи',
 
       // Era
       decade: '📅 Эпоха',
@@ -2813,7 +2815,7 @@ function buildFrameSettingsHtml(frame) {
     // Group params by category for display
     const categories = {
       'Подход': ['shootingApproach', 'productDiscipline'],
-      'Техника': ['camera', 'cameraClass', 'focalLength', 'focalRange', 'aperture', 'apertureIntent', 'shutterSpeed', 'shutterIntent', 'iso', 'exposure', 'exposureIntent', 'whiteBalance', 'contrastCurve', 'processingStyle', 'retouchLevel'],
+      'Техника': ['camera', 'cameraClass', 'focalLength', 'focalRange', 'aperture', 'apertureIntent', 'shutterSpeed', 'shutterIntent', 'iso', 'exposure', 'exposureIntent', 'whiteBalance', 'contrastCurve', 'processingStyle', 'retouchLevel', 'skinTexture'],
       'Освещение': ['lightSource', 'lightDirection', 'lightQuality'],
       'Эпоха': ['decade', 'culturalContext'],
       'Оптика': ['distortionPolicy', 'cameraProximity'],
