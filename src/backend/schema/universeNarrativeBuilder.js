@@ -534,28 +534,12 @@ function buildLightingNarrative(params) {
   const quality = getNarrative('lighting', 'lightQuality', params.lightQuality);
   if (quality) parts.push('. ' + quality);
   
-  // ─────────────────────────────────────────────────────────────
-  // SMART CONTEXT: Skip irrelevant params based on space/lighting
-  // ─────────────────────────────────────────────────────────────
-  const isIndoor = params.weatherLighting === 'indoor';
   const isStudio = ['studio_soft', 'studio_hard'].includes(params.lightSource);
   
   // Time of day - skip for pure studio lighting (no windows)
   if (!isStudio) {
     const time = getNarrative('lighting', 'timeOfDay', params.timeOfDay);
     if (time) parts.push('. ' + time);
-  }
-  
-  // Weather - skip for indoor (weatherLighting === 'indoor')
-  if (!isIndoor) {
-    const weather = getNarrative('lighting', 'weatherLighting', params.weatherLighting);
-    if (weather) parts.push('. ' + weather);
-  }
-  
-  // Season - skip for indoor/studio
-  if (!isIndoor && !isStudio) {
-    const season = getNarrative('lighting', 'season', params.season);
-    if (season) parts.push('. ' + season);
   }
   
   let result = parts.join('');
@@ -565,6 +549,40 @@ function buildLightingNarrative(params) {
     result = result.charAt(0).toUpperCase() + result.slice(1);
     // Добавить предупреждение о независимости от позы
     result += ' [LIGHTING НЕ ЗАВИСИТ ОТ ПОЗЫ — одинаково для всех кадров]';
+  }
+  
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// БЛОК: CONTEXT (Контекст локации) — погода, сезон
+// Влияет на окружение и атмосферу, НЕ на свет/цвет напрямую
+// ═══════════════════════════════════════════════════════════════
+
+function buildContextNarrative(params) {
+  const parts = [];
+  
+  const isIndoor = params.weatherLighting === 'indoor';
+  const isStudio = ['studio_soft', 'studio_hard'].includes(params.lightSource);
+  
+  // Weather - skip for indoor (weatherLighting === 'indoor')
+  if (!isIndoor) {
+    const weather = getNarrative('context', 'weatherLighting', params.weatherLighting);
+    if (weather) parts.push(weather);
+  }
+  
+  // Season - skip for indoor/studio (season not visible indoors)
+  if (!isIndoor && !isStudio) {
+    const season = getNarrative('context', 'season', params.season);
+    if (season) parts.push('. ' + season);
+  }
+  
+  let result = parts.join('');
+  result = result.replace(/\.\s*\./g, '.').replace(/\s+/g, ' ').trim();
+  
+  if (result.length > 0) {
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+    result += ' [КОНТЕКСТ ЛОКАЦИИ — окружение одинаково для всех кадров]';
   }
   
   return result;
@@ -587,7 +605,8 @@ function buildUniverseNarrative(params) {
     lens: buildLensNarrative(params),
     mood: buildMoodNarrative(params),
     lighting: buildLightingNarrative(params),
-    lightingTechnical: buildLightingTechnicalAnchor(params), // NEW: Technical anchor
+    lightingTechnical: buildLightingTechnicalAnchor(params), // Technical anchor
+    context: buildContextNarrative(params), // Location context (weather, season)
     antiAi: buildAntiAiNarrative(params)
   };
 }
@@ -1097,18 +1116,37 @@ ${anchors.map(a => `• ${a}`).join('\n')}`);
     if (timeDay) lightingParams.push(`Time: ${timeDay}`);
   }
   
-  // Weather - skip for indoor
-  if (!isIndoor) {
-    const weather = TECHNICAL_VALUES.weatherLighting[params.weatherLighting];
-    if (weather) lightingParams.push(`Weather: ${weather}`);
-  }
-  
   if (lightingParams.length > 0) {
     sections.push(`LIGHTING (LOCKED — SAME for ALL frames, independent of pose):
 ${lightingParams.map(l => `• ${l}`).join('\n')}
 
 ⚠️ CRITICAL: Lighting MUST remain consistent across ALL frames.
 The pose/framing may change, but light source, direction, quality, and time of day MUST NOT change.`);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // LOCATION CONTEXT (погода, сезон — окружение, НЕ свет)
+  // ═══════════════════════════════════════════════════════════════
+  
+  const contextParams = [];
+  
+  // Weather - skip for indoor
+  if (!isIndoor) {
+    const weather = TECHNICAL_VALUES.weatherLighting[params.weatherLighting];
+    if (weather) contextParams.push(`Weather: ${weather}`);
+  }
+  
+  // Season - skip for indoor/studio
+  if (!isIndoor && !isStudio) {
+    const season = TECHNICAL_VALUES.season[params.season];
+    if (season) contextParams.push(`Season: ${season}`);
+  }
+  
+  if (contextParams.length > 0) {
+    sections.push(`LOCATION CONTEXT (environment atmosphere — SAME for ALL frames):
+${contextParams.map(c => `• ${c}`).join('\n')}
+
+These define the environmental context, not lighting parameters.`);
   }
   
   // ═══════════════════════════════════════════════════════════════
@@ -1769,18 +1807,6 @@ function buildDescriptiveUniverseNarrative(params) {
     }
   }
   
-  // Weather - skip for indoor
-  if (!isIndoorDesc) {
-    const weather = DESCRIPTIVE_EFFECTS.weatherLighting[params.weatherLighting];
-    if (weather) lightParts.push('. Условия: ' + weather.toLowerCase());
-  }
-  
-  // Season - skip for indoor/studio
-  if (!isIndoorDesc && !isStudioDesc) {
-    const season = DESCRIPTIVE_EFFECTS.season?.[params.season];
-    if (season && params.season !== 'any') lightParts.push('. ' + season);
-  }
-  
   if (lightParts.length > 0) {
     let lightText = lightParts.join('');
     lightText = lightText.replace(/\.\s*\./g, '.').replace(/\s+/g, ' ').trim();
@@ -1793,6 +1819,33 @@ function buildDescriptiveUniverseNarrative(params) {
     const lightingTechnicalDesc = buildLightingTechnicalAnchor(params);
     if (lightingTechnicalDesc) {
       sections.push(lightingTechnicalDesc);
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // LOCATION CONTEXT (погода, сезон — окружение)
+  // ═══════════════════════════════════════════════════════════════
+  
+  const contextParts = [];
+  
+  // Weather - skip for indoor
+  if (!isIndoorDesc) {
+    const weather = DESCRIPTIVE_EFFECTS.weatherLighting[params.weatherLighting];
+    if (weather) contextParts.push('Погода: ' + weather.toLowerCase());
+  }
+  
+  // Season - skip for indoor/studio
+  if (!isIndoorDesc && !isStudioDesc) {
+    const season = DESCRIPTIVE_EFFECTS.season?.[params.season];
+    if (season && params.season !== 'any') contextParts.push('. ' + season);
+  }
+  
+  if (contextParts.length > 0) {
+    let contextText = contextParts.join('');
+    contextText = contextText.replace(/\.\s*\./g, '.').replace(/\s+/g, ' ').trim();
+    if (contextText) {
+      contextText = contextText.charAt(0).toUpperCase() + contextText.slice(1);
+      sections.push(`**LOCATION CONTEXT (environment — SAME for ALL frames):**\n${contextText}\n\nЭто контекст окружения, а НЕ параметры освещения.`);
     }
   }
   
