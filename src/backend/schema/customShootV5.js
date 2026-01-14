@@ -1244,6 +1244,21 @@ export function buildV5Prompt(params, scene = {}) {
 TASK: Generate a photorealistic image based on the following Technical Specifications and Artistic Brief.
 
 ═══════════════════════════════════════════════════════════════
+⚠️ CRITICAL RULES FOR REFERENCE IMAGES
+═══════════════════════════════════════════════════════════════
+
+1. LOCATION REFERENCE (if provided): Use ONLY for spatial context (type of place, objects, architecture).
+   DO NOT copy lighting, colors, or atmosphere from location reference.
+   The visual style MUST come from Technical Specs and Artistic Brief below.
+
+2. STYLE REFERENCE [$2] (if provided): Copy the overall visual style, color grading, and mood.
+
+3. IDENTITY REFERENCE [$1] (if provided): Match the person's face and body accurately.
+
+4. ENVIRONMENTAL VARIATION: Adapt the scene to weather, season, and time of day parameters.
+   Example: If "snowy" weather is specified, add snow even if reference shows summer.
+
+═══════════════════════════════════════════════════════════════
 [TECHNICAL SPECIFICATIONS] — STRICT ADHERENCE REQUIRED
 These parameters mimic a real camera setup. Do not deviate.
 ═══════════════════════════════════════════════════════════════
@@ -1359,18 +1374,71 @@ function buildSceneDescription(scene, params) {
   const parts = [];
   
   // ═══════════════════════════════════════════════════════════════
-  // LOCATION
+  // LOCATION (CONTEXT ONLY — NOT visual style)
   // ═══════════════════════════════════════════════════════════════
   if (scene.location) {
     const loc = scene.location;
+    let locationContext = '';
+    
     if (typeof loc === 'object') {
-      if (loc.visualPrompt) {
-        parts.push(`LOCATION: ${loc.visualPrompt}`);
-      } else if (loc.label) {
-        parts.push(`LOCATION: ${loc.label}${loc.description ? ` — ${loc.description}` : ''}`);
+      // Extract ONLY contextual information, NOT visual style
+      const contextParts = [];
+      
+      // Type of place
+      if (loc.label) contextParts.push(loc.label);
+      if (loc.spaceType) contextParts.push(`(${loc.spaceType})`);
+      
+      // Physical description without lighting/color
+      if (loc.description) {
+        // Strip any lighting/color references from description
+        const cleanDesc = loc.description
+          .replace(/\b(golden|warm|cool|soft|hard|bright|dim|dramatic|moody)\s*(light|lighting|glow|sun|shadow)/gi, '')
+          .replace(/\b(bright|dark|vibrant|muted|saturated)\s*colors?\b/gi, '')
+          .trim();
+        if (cleanDesc) contextParts.push(cleanDesc);
       }
+      
+      // Props and objects (architectural elements, furniture, vegetation)
+      if (loc.props) contextParts.push(`Props: ${loc.props}`);
+      if (loc.materials) contextParts.push(`Materials: ${loc.materials}`);
+      if (loc.architecturalStyle) contextParts.push(`Architecture: ${loc.architecturalStyle}`);
+      
+      locationContext = contextParts.join('. ');
     } else if (typeof loc === 'string' && loc) {
-      parts.push(`LOCATION: ${loc}`);
+      locationContext = loc;
+    }
+    
+    if (locationContext) {
+      // Build adaptive location description based on current params
+      const adaptations = [];
+      
+      // Weather adaptation
+      const weather = CONTEXT_WEATHER.options.find(o => o.value === params.weather);
+      if (weather && weather.value !== 'clear' && weather.value !== 'indoor') {
+        adaptations.push(`adapted for ${weather.label} conditions`);
+      }
+      
+      // Season adaptation  
+      const season = CONTEXT_SEASON.options.find(o => o.value === params.season);
+      if (season && season.value !== 'any') {
+        adaptations.push(`in ${season.label.toLowerCase()}`);
+      }
+      
+      // Time adaptation
+      const time = CONTEXT_TIME.options.find(o => o.value === params.timeOfDay);
+      if (time && time.value !== 'afternoon') {
+        adaptations.push(`during ${time.label.toLowerCase()}`);
+      }
+      
+      const adaptationNote = adaptations.length > 0 
+        ? ` (${adaptations.join(', ')})` 
+        : '';
+      
+      parts.push(`LOCATION CONTEXT: ${locationContext}${adaptationNote}
+⚠️ IMPORTANT: Use this location ONLY for spatial context (type of place, objects, architecture).
+DO NOT copy the visual style (lighting, colors, mood) from any location reference image.
+The lighting, color palette, and atmosphere MUST come from [TECHNICAL SPECIFICATIONS] and [ARTISTIC BRIEF] above.
+Feel free to add environmental variations based on weather/season/time of day.`);
     }
   }
   
