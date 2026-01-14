@@ -870,7 +870,7 @@ async function loadModels() {
     const res = await fetchWithTimeout('/api/models', {}, 10000);
     const data = await res.json();
     if (data.ok) {
-      state.models = data.models || [];
+      state.models = data.data || data.models || [];
     }
   } catch (e) {
     console.error('[Models] Load error:', e);
