@@ -85,112 +85,6 @@ export {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// TECHNICAL POSE DESCRIPTION BUILDER
-// Strips all mood/emotion/atmosphere words from pose description
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Words/phrases that should be stripped from pose descriptions
- * These can influence visual parameters (lighting, mood, color)
- */
-const POSE_FORBIDDEN_WORDS = [
-  // Mood words
-  'confident', 'vulnerable', 'powerful', 'playful', 'mysterious', 'sensual',
-  'dramatic', 'intimate', 'relaxed', 'tense', 'serene', 'energetic', 'calm',
-  'bold', 'soft', 'aggressive', 'gentle', 'fierce', 'sultry', 'elegant',
-  'commanding', 'submissive', 'assertive', 'contemplative', 'pensive',
-  // Atmosphere words  
-  'moody', 'atmospheric', 'dreamy', 'ethereal', 'dark', 'bright', 'warm', 'cool',
-  'inviting', 'distant', 'cold', 'cozy', 'romantic', 'edgy', 'gritty',
-  // Energy words
-  'high-energy', 'low-energy', 'dynamic', 'static', 'explosive', 'quiet',
-  // Lighting hints
-  'backlit', 'shadowy', 'illuminated', 'highlighted', 'silhouette',
-  // Quality words
-  'beautiful', 'stunning', 'gorgeous', 'striking', 'captivating'
-];
-
-/**
- * Build PURELY TECHNICAL pose description
- * Only body position, camera angle, shot size — nothing else
- */
-function buildTechnicalPoseDescription(frame) {
-  if (!frame) return 'No specific pose defined';
-  
-  const parts = [];
-  const t = frame.technical || {};
-  
-  // 1. Shot size (purely technical)
-  if (t.shotSize) {
-    const sizeMap = {
-      extreme_close_up: 'Extreme close-up (face detail only)',
-      close_up: 'Close-up (head and shoulders)',
-      medium_close: 'Medium close-up (chest up)',
-      medium: 'Medium shot (waist up)',
-      medium_full: 'Medium full (knees up)',
-      full_body: 'Full body (head to feet)',
-      wide: 'Wide shot (full body + environment)'
-    };
-    parts.push(`Shot: ${sizeMap[t.shotSize] || t.shotSize}`);
-  }
-  
-  // 2. Camera angle (purely technical)
-  if (t.cameraAngle) {
-    const angleMap = {
-      eye_level: 'Camera at eye level',
-      low_angle: 'Camera below eye level, looking up',
-      high_angle: 'Camera above eye level, looking down',
-      overhead: 'Camera directly overhead',
-      dutch_angle: 'Camera tilted (dutch angle)',
-      worms_eye: 'Camera at ground level'
-    };
-    parts.push(`Angle: ${angleMap[t.cameraAngle] || t.cameraAngle}`);
-  }
-  
-  // 3. Pose type (purely physical)
-  if (t.poseType) {
-    const poseMap = {
-      static: 'Standing still',
-      dynamic: 'In motion',
-      walking: 'Walking',
-      sitting: 'Sitting',
-      lying: 'Lying down',
-      leaning: 'Leaning against surface',
-      crouching: 'Crouching/squatting',
-      jumping: 'Mid-jump'
-    };
-    parts.push(`Body: ${poseMap[t.poseType] || t.poseType}`);
-  }
-  
-  // 4. Physical pose description (cleaned from mood words)
-  let poseText = t.poseDescription || frame.description || '';
-  if (poseText) {
-    // Remove mood/atmosphere words
-    let cleaned = poseText;
-    for (const word of POSE_FORBIDDEN_WORDS) {
-      const regex = new RegExp(`\\b${word}\\b`, 'gi');
-      cleaned = cleaned.replace(regex, '');
-    }
-    // Clean up double spaces and punctuation
-    cleaned = cleaned.replace(/\s+/g, ' ').replace(/,\s*,/g, ',').replace(/\s+,/g, ',').trim();
-    if (cleaned && cleaned.length > 10) {
-      parts.push(`Position: ${cleaned}`);
-    }
-  }
-  
-  // 5. Focus point (technical)
-  if (t.focusPoint) {
-    parts.push(`Focus: ${t.focusPoint}`);
-  }
-  
-  if (parts.length === 0) {
-    return 'Standard standing pose, camera at eye level, medium shot';
-  }
-  
-  return parts.join('\n');
-}
-
-// ═══════════════════════════════════════════════════════════════
 // STYLE & LOCATION LOCK PROMPTS (kept for backward compatibility)
 // ═══════════════════════════════════════════════════════════════
 
@@ -496,22 +390,13 @@ ${location.label}: ${locationDesc}`);
   }
   
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 9: FRAME/POSE (PURELY TECHNICAL — no mood/atmosphere)
+  // SECTION 9: FRAME/POSE
   // ═══════════════════════════════════════════════════════════════
   
   if (frame) {
-    // Build ONLY technical pose description, no emotional/mood words
-    const poseDesc = buildTechnicalPoseDescription(frame);
-    
     sections.push(`
-=== FRAME / POSE (TECHNICAL ONLY) ===
-${poseDesc}
-
-⚠️ POSE DOES NOT DEFINE:
-- Mood, emotion, atmosphere, energy
-- Lighting or color
-- Camera aesthetic or film look
-- Anything besides physical body position and camera framing`);
+=== FRAME / POSE ===
+${frame.label || 'Custom frame'}: ${frame.description || frame.poseDescription || ''}`);
     
     if (hasPoseSketch) {
       const adherence = POSE_ADHERENCE_MAP[poseAdherence] || POSE_ADHERENCE_MAP[2];
