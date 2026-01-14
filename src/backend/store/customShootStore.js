@@ -186,24 +186,24 @@ ensureStoreDir().catch(console.error);
 
 /**
  * Get all custom shoots (list with basic info)
+ * OPTIMIZED: Parallel file reading for faster loading
  */
 export async function getAllCustomShoots() {
   await ensureStoreDir();
   
   try {
     const files = await fs.readdir(STORE_DIR);
-    const shoots = [];
+    const jsonFiles = files.filter(f => f.endsWith('.json'));
     
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-      
+    // Read all files in parallel
+    const shootPromises = jsonFiles.map(async (file) => {
       try {
         const filePath = path.join(STORE_DIR, file);
         const content = await fs.readFile(filePath, 'utf-8');
         const shoot = JSON.parse(content);
         
         // Return basic info for list
-        shoots.push({
+        return {
           id: shoot.id,
           label: shoot.label,
           mode: shoot.mode,
@@ -214,11 +214,15 @@ export async function getAllCustomShoots() {
           hasLocationLock: shoot.locks?.location?.enabled || false,
           // Preview from first generated image
           previewUrl: shoot.generatedImages?.[0]?.imageUrl || null
-        });
+        };
       } catch (err) {
         console.error(`[CustomShootStore] Error reading ${file}:`, err.message);
+        return null;
       }
-    }
+    });
+    
+    const results = await Promise.all(shootPromises);
+    const shoots = results.filter(s => s !== null);
     
     // Sort by updatedAt descending (newest first)
     shoots.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
