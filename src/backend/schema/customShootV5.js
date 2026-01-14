@@ -807,8 +807,8 @@ export const DEPENDENCY_RULES = [
   {
     id: 'night_no_sun',
     when: { field: 'timeOfDay', value: 'night' },
-    disables: { 
-      field: 'lightSource', 
+    disables: {
+      field: 'lightSource',
       values: ['direct_sun', 'golden_hour', 'overcast', 'open_shade'],
       reason: 'No sunlight at night'
     },
@@ -817,8 +817,8 @@ export const DEPENDENCY_RULES = [
   {
     id: 'overcast_no_direct_sun',
     when: { field: 'weather', value: 'overcast' },
-    disables: { 
-      field: 'lightSource', 
+    disables: {
+      field: 'lightSource',
       values: ['direct_sun', 'golden_hour'],
       reason: 'Clouds block direct sunlight'
     },
@@ -827,8 +827,8 @@ export const DEPENDENCY_RULES = [
   {
     id: 'overcast_no_hard_light',
     when: { field: 'weather', value: 'overcast' },
-    disables: { 
-      field: 'lightQuality', 
+    disables: {
+      field: 'lightQuality',
       values: ['hard'],
       reason: 'Overcast sky creates only soft diffused light'
     },
@@ -837,8 +837,8 @@ export const DEPENDENCY_RULES = [
   {
     id: 'rainy_soft_light_only',
     when: { field: 'weather', value: 'rainy' },
-    disables: { 
-      field: 'lightQuality', 
+    disables: {
+      field: 'lightQuality',
       values: ['hard', 'medium'],
       reason: 'Rain clouds diffuse all light'
     },
@@ -847,8 +847,8 @@ export const DEPENDENCY_RULES = [
   {
     id: 'rainy_no_sun',
     when: { field: 'weather', value: 'rainy' },
-    disables: { 
-      field: 'lightSource', 
+    disables: {
+      field: 'lightSource',
       values: ['direct_sun', 'golden_hour'],
       reason: 'Rain clouds block sun'
     },
@@ -857,22 +857,22 @@ export const DEPENDENCY_RULES = [
   {
     id: 'foggy_no_hard_light',
     when: { field: 'weather', value: 'foggy' },
-    disables: { 
-      field: 'lightQuality', 
+    disables: {
+      field: 'lightQuality',
       values: ['hard'],
       reason: 'Fog diffuses all light'
     },
     autoFix: { field: 'lightQuality', value: 'diffused' }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════
   // LIGHT SOURCE → TIME OF DAY constraints
   // ═══════════════════════════════════════════════════════════════
   {
     id: 'golden_hour_time',
     when: { field: 'lightSource', value: 'golden_hour' },
-    disables: { 
-      field: 'timeOfDay', 
+    disables: {
+      field: 'timeOfDay',
       values: ['night', 'midday', 'morning'],
       reason: 'Golden hour only occurs 1-2hrs before sunset'
     },
@@ -881,8 +881,8 @@ export const DEPENDENCY_RULES = [
   {
     id: 'blue_hour_time',
     when: { field: 'lightSource', value: 'blue_hour' },
-    disables: { 
-      field: 'timeOfDay', 
+    disables: {
+      field: 'timeOfDay',
       values: ['midday', 'morning', 'afternoon'],
       reason: 'Blue hour only after sunset'
     },
@@ -891,8 +891,8 @@ export const DEPENDENCY_RULES = [
   {
     id: 'golden_hour_weather',
     when: { field: 'lightSource', value: 'golden_hour' },
-    disables: { 
-      field: 'weather', 
+    disables: {
+      field: 'weather',
       values: ['overcast', 'rainy', 'foggy', 'stormy'],
       reason: 'Golden hour requires clear or partly cloudy sky'
     },
@@ -901,50 +901,50 @@ export const DEPENDENCY_RULES = [
   {
     id: 'direct_sun_weather',
     when: { field: 'lightSource', value: 'direct_sun' },
-    disables: { 
-      field: 'weather', 
+    disables: {
+      field: 'weather',
       values: ['overcast', 'rainy', 'foggy', 'stormy'],
       reason: 'Direct sun requires clear sky'
     },
     autoFix: { field: 'weather', value: 'clear' }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════
   // GOLDEN HOUR → WHITE BALANCE constraint
   // ═══════════════════════════════════════════════════════════════
   {
     id: 'golden_hour_warm_wb',
     when: { field: 'lightSource', value: 'golden_hour' },
-    disables: { 
-      field: 'whiteBalance', 
+    disables: {
+      field: 'whiteBalance',
       values: ['cool'],
       reason: 'Golden hour light is physically warm (3500-4500K)'
     },
     autoFix: { field: 'whiteBalance', value: 'warm' }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════
   // STUDIO LIGHT → INDOOR constraint
   // ═══════════════════════════════════════════════════════════════
   {
     id: 'studio_indoor',
     when: { field: 'lightSource', values: ['studio_softbox', 'studio_hard'] },
-    requires: { 
-      field: 'weather', 
+    requires: {
+      field: 'weather',
       value: 'indoor',
       reason: 'Studio lighting is only available indoors'
     },
     autoFix: { field: 'weather', value: 'indoor' }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════
   // CAMERA → APERTURE constraints
   // ═══════════════════════════════════════════════════════════════
   {
     id: 'disposable_fixed_aperture',
     when: { field: 'camera', value: 'disposable' },
-    locks: { 
-      field: 'aperture', 
+    locks: {
+      field: 'aperture',
       value: 'stopped_down',
       reason: 'Disposable cameras have fixed f/10 aperture'
     }
@@ -952,21 +952,21 @@ export const DEPENDENCY_RULES = [
   {
     id: 'smartphone_fixed_aperture',
     when: { field: 'camera', value: 'smartphone' },
-    disables: { 
-      field: 'aperture', 
+    disables: {
+      field: 'aperture',
       values: ['hyperfocal'],
       reason: 'Smartphone sensors cannot achieve true hyperfocal'
     }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════
   // FOCAL LENGTH → DISTORTION constraints
   // ═══════════════════════════════════════════════════════════════
   {
     id: 'fisheye_distortion',
     when: { field: 'focalLength', value: 'fisheye' },
-    locks: { 
-      field: 'distortion', 
+    locks: {
+      field: 'distortion',
       value: 'extreme',
       reason: 'Fisheye lenses have mandatory extreme distortion'
     }
@@ -974,8 +974,8 @@ export const DEPENDENCY_RULES = [
   {
     id: 'ultrawide_distortion',
     when: { field: 'focalLength', value: 'ultrawide' },
-    disables: { 
-      field: 'distortion', 
+    disables: {
+      field: 'distortion',
       values: ['none'],
       reason: 'Ultra-wide lenses have inherent distortion'
     }
@@ -983,21 +983,21 @@ export const DEPENDENCY_RULES = [
   {
     id: 'telephoto_no_distortion',
     when: { field: 'focalLength', values: ['telephoto', 'super_telephoto'] },
-    locks: { 
-      field: 'distortion', 
+    locks: {
+      field: 'distortion',
       value: 'none',
       reason: 'Telephoto lenses have no barrel distortion'
     }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SEASON → WEATHER constraints
   // ═══════════════════════════════════════════════════════════════
   {
     id: 'summer_no_snow',
     when: { field: 'season', value: 'summer' },
-    disables: { 
-      field: 'weather', 
+    disables: {
+      field: 'weather',
       values: ['snowy'],
       reason: 'Snow impossible in summer'
     }
@@ -1005,21 +1005,21 @@ export const DEPENDENCY_RULES = [
   {
     id: 'winter_no_heatwave',
     when: { field: 'season', value: 'winter' },
-    suggests: { 
-      field: 'whiteBalance', 
+    suggests: {
+      field: 'whiteBalance',
       value: 'daylight',
       reason: 'Winter light is typically cooler/neutral'
     }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════
   // BACKLIGHT → DIRECTION constraint
   // ═══════════════════════════════════════════════════════════════
   {
     id: 'backlight_direction',
     when: { field: 'lightSource', value: 'backlight' },
-    locks: { 
-      field: 'lightDirection', 
+    locks: {
+      field: 'lightDirection',
       value: 'backlight',
       reason: 'Backlight source = backlight direction by definition'
     }
@@ -1082,19 +1082,19 @@ export function applyDependencies(params) {
   const result = { ...params };
   const applied = [];
   const warnings = [];
-  
+
   for (const rule of DEPENDENCY_RULES) {
     // Check if rule condition is met
     let conditionMet = false;
-    
+
     if (rule.when.value) {
       conditionMet = result[rule.when.field] === rule.when.value;
     } else if (rule.when.values) {
       conditionMet = rule.when.values.includes(result[rule.when.field]);
     }
-    
+
     if (!conditionMet) continue;
-    
+
     // Apply the rule
     if (rule.locks) {
       // Hard lock: force value
@@ -1110,7 +1110,7 @@ export function applyDependencies(params) {
         });
       }
     }
-    
+
     if (rule.disables) {
       // Disable certain values
       if (rule.disables.values.includes(result[rule.disables.field])) {
@@ -1125,7 +1125,7 @@ export function applyDependencies(params) {
         });
       }
     }
-    
+
     if (rule.requires) {
       // Require specific value
       if (result[rule.requires.field] !== rule.requires.value) {
@@ -1140,7 +1140,7 @@ export function applyDependencies(params) {
         });
       }
     }
-    
+
     if (rule.suggests) {
       // Soft suggestion (warning only)
       if (result[rule.suggests.field] !== rule.suggests.value) {
@@ -1154,7 +1154,7 @@ export function applyDependencies(params) {
       }
     }
   }
-  
+
   return { params: result, applied, warnings };
 }
 
@@ -1163,30 +1163,30 @@ export function applyDependencies(params) {
  */
 export function getDisabledOptions(field, currentParams) {
   const disabled = new Set();
-  
+
   for (const rule of DEPENDENCY_RULES) {
     // Check if rule condition is met
     let conditionMet = false;
-    
+
     if (rule.when.value) {
       conditionMet = currentParams[rule.when.field] === rule.when.value;
     } else if (rule.when.values) {
       conditionMet = rule.when.values.includes(currentParams[rule.when.field]);
     }
-    
+
     if (!conditionMet) continue;
-    
+
     // Check if this rule affects the target field
     if (rule.disables?.field === field) {
       rule.disables.values.forEach(v => disabled.add(v));
     }
-    
+
     if (rule.locks?.field === field) {
       // If locked, ALL other values are disabled
       // We'll handle this in UI by showing only the locked value
     }
   }
-  
+
   return disabled;
 }
 
@@ -1197,20 +1197,20 @@ export function getLockedValue(field, currentParams) {
   for (const rule of DEPENDENCY_RULES) {
     // Check if rule condition is met
     let conditionMet = false;
-    
+
     if (rule.when.value) {
       conditionMet = currentParams[rule.when.field] === rule.when.value;
     } else if (rule.when.values) {
       conditionMet = rule.when.values.includes(currentParams[rule.when.field]);
     }
-    
+
     if (!conditionMet) continue;
-    
+
     if (rule.locks?.field === field) {
       return { value: rule.locks.value, reason: rule.locks.reason };
     }
   }
-  
+
   return null;
 }
 
@@ -1224,21 +1224,21 @@ export function getLockedValue(field, currentParams) {
 export function buildV5Prompt(params, scene = {}) {
   console.log('[buildV5Prompt] Input params:', JSON.stringify(params, null, 2));
   console.log('[buildV5Prompt] Input scene:', JSON.stringify(scene, null, 2));
-  
+
   // First, apply dependency rules to ensure consistency
   const { params: resolvedParams, applied } = applyDependencies(params);
-  
+
   console.log('[buildV5Prompt] Resolved params:', JSON.stringify(resolvedParams, null, 2));
-  
+
   // Build Technical Specifications block
   const techSpecs = buildTechnicalSpecs(resolvedParams);
-  
+
   // Build Artistic Brief block
   const artisticBrief = buildArtisticBrief(resolvedParams);
-  
+
   // Build Scene Description
   const sceneDesc = buildSceneDescription(scene, resolvedParams);
-  
+
   // Assemble final prompt
   const prompt = `ROLE: World-class Photographer & Art Director.
 TASK: Generate a photorealistic image based on the following Technical Specifications and Artistic Brief.
@@ -1247,16 +1247,22 @@ TASK: Generate a photorealistic image based on the following Technical Specifica
 ⚠️ CRITICAL RULES FOR REFERENCE IMAGES
 ═══════════════════════════════════════════════════════════════
 
-1. LOCATION REFERENCE (if provided): Use ONLY for spatial context (type of place, objects, architecture).
-   DO NOT copy lighting, colors, or atmosphere from location reference.
-   The visual style MUST come from Technical Specs and Artistic Brief below.
+1. LOCATION REFERENCE (if provided): 
+   - Use ONLY for spatial context (geometry, architecture, layout, props).
+   - IGNORE the visual style, lighting, colors, weather, and atmosphere of the reference image.
+   - You MUST re-render this space strictly following the [TECHNICAL SPECIFICATIONS] (lighting, weather, time).
+   - The reference is just a "geometry input" or "gray box" guide.
 
 2. STYLE REFERENCE [$2] (if provided): Copy the overall visual style, color grading, and mood.
 
 3. IDENTITY REFERENCE [$1] (if provided): Match the person's face and body accurately.
 
-4. ENVIRONMENTAL VARIATION: Adapt the scene to weather, season, and time of day parameters.
-   Example: If "snowy" weather is specified, add snow even if reference shows summer.
+4. ENVIRONMENTAL VARIATION (CRITICAL): 
+   - The scene MUST adapt to the specified Weather, Season, and Time of Day.
+   - If "snow" is active: cover the location in snow, even if reference is sunny/green.
+   - If "rain" is active: make surfaces wet, add reflections, change light to overcast.
+   - If "night" is active: relight the scene with artificial sources/moonlight.
+   - NEVER start with the reference's weather/light. Start with the requested parameters.
 
 ═══════════════════════════════════════════════════════════════
 [TECHNICAL SPECIFICATIONS] — STRICT ADHERENCE REQUIRED
@@ -1291,103 +1297,103 @@ ${sceneDesc}`;
 
 function buildTechnicalSpecs(params) {
   const lines = [];
-  
+
   console.log('[buildTechnicalSpecs] Looking for camera:', params.camera);
-  
+
   // Camera
   const camera = TECH_CAMERA.options.find(o => o.value === params.camera);
   console.log('[buildTechnicalSpecs] Found camera:', camera?.value, camera?.spec?.substring(0, 50));
   if (camera) lines.push(camera.spec);
-  
+
   // Lens
   const focal = TECH_FOCAL.options.find(o => o.value === params.focalLength);
   if (focal) lines.push(focal.spec);
-  
+
   // Aperture
   const aperture = TECH_APERTURE.options.find(o => o.value === params.aperture);
   if (aperture) lines.push(aperture.spec);
-  
+
   // Shutter
   const shutter = TECH_SHUTTER.options.find(o => o.value === params.shutterSpeed);
   if (shutter) lines.push(shutter.spec);
-  
+
   // Light Source
   const lightSource = TECH_LIGHT_SOURCE.options.find(o => o.value === params.lightSource);
   if (lightSource) lines.push(lightSource.spec);
-  
+
   // Light Direction
   const lightDir = TECH_LIGHT_DIRECTION.options.find(o => o.value === params.lightDirection);
   if (lightDir) lines.push(lightDir.spec);
-  
+
   // Light Quality
   const lightQuality = TECH_LIGHT_QUALITY.options.find(o => o.value === params.lightQuality);
   if (lightQuality) lines.push(lightQuality.spec);
-  
+
   // White Balance
   const wb = TECH_WHITE_BALANCE.options.find(o => o.value === params.whiteBalance);
   if (wb) lines.push(wb.spec);
-  
+
   // Exposure
   const exposure = TECH_EXPOSURE.options.find(o => o.value === params.exposure);
   if (exposure) lines.push(exposure.spec);
-  
+
   // Contrast
   const contrast = TECH_CONTRAST.options.find(o => o.value === params.contrastCurve);
   if (contrast) lines.push(contrast.spec);
-  
+
   console.log('[buildTechnicalSpecs] Generated', lines.length, 'lines');
   return lines.join('\n');
 }
 
 function buildArtisticBrief(params) {
   const lines = [];
-  
+
   // Visual Mood
   const mood = ART_MOOD.options.find(o => o.value === params.visualMood);
   if (mood) lines.push(mood.narrative);
-  
+
   // Era
   const era = ART_ERA.options.find(o => o.value === params.decade);
   if (era) lines.push(era.narrative);
-  
+
   // Cultural Context
   const context = ART_CONTEXT.options.find(o => o.value === params.culturalContext);
   if (context) lines.push(context.narrative);
-  
+
   // Processing
   const processing = ART_PROCESSING.options.find(o => o.value === params.processingStyle);
   if (processing) lines.push(processing.narrative);
-  
+
   // Energy
   const energy = ART_ENERGY.options.find(o => o.value === params.energyLevel);
   if (energy) lines.push(energy.narrative);
-  
+
   // Spontaneity
   const spontaneity = ART_SPONTANEITY.options.find(o => o.value === params.spontaneity);
   if (spontaneity) lines.push(spontaneity.narrative);
-  
+
   console.log('[buildArtisticBrief] Generated', lines.length, 'lines');
   return lines.join('\n\n');
 }
 
 function buildSceneDescription(scene, params) {
   const parts = [];
-  
+
   // ═══════════════════════════════════════════════════════════════
   // LOCATION (CONTEXT ONLY — NOT visual style)
   // ═══════════════════════════════════════════════════════════════
   if (scene.location) {
     const loc = scene.location;
     let locationContext = '';
-    
+
     if (typeof loc === 'object') {
       // Extract ONLY contextual information, NOT visual style
       const contextParts = [];
-      
+
       // Type of place
       if (loc.label) contextParts.push(loc.label);
       if (loc.spaceType) contextParts.push(`(${loc.spaceType})`);
-      
+
       // Physical description without lighting/color
       if (loc.description) {
         // Strip any lighting/color references from description
@@ -1397,58 +1403,58 @@ function buildSceneDescription(scene, params) {
           .trim();
         if (cleanDesc) contextParts.push(cleanDesc);
       }
-      
+
       // Props and objects (architectural elements, furniture, vegetation)
       if (loc.props) contextParts.push(`Props: ${loc.props}`);
       if (loc.materials) contextParts.push(`Materials: ${loc.materials}`);
       if (loc.architecturalStyle) contextParts.push(`Architecture: ${loc.architecturalStyle}`);
-      
+
       locationContext = contextParts.join('. ');
     } else if (typeof loc === 'string' && loc) {
       locationContext = loc;
     }
-    
+
     if (locationContext) {
       // Build adaptive location description based on current params
       const adaptations = [];
-      
+
       // Weather adaptation
       const weather = CONTEXT_WEATHER.options.find(o => o.value === params.weather);
       if (weather && weather.value !== 'clear' && weather.value !== 'indoor') {
         adaptations.push(`adapted for ${weather.label} conditions`);
       }
-      
+
       // Season adaptation  
       const season = CONTEXT_SEASON.options.find(o => o.value === params.season);
       if (season && season.value !== 'any') {
         adaptations.push(`in ${season.label.toLowerCase()}`);
       }
-      
+
       // Time adaptation
       const time = CONTEXT_TIME.options.find(o => o.value === params.timeOfDay);
       if (time && time.value !== 'afternoon') {
         adaptations.push(`during ${time.label.toLowerCase()}`);
       }
-      
-      const adaptationNote = adaptations.length > 0 
-        ? ` (${adaptations.join(', ')})` 
+
+      const adaptationNote = adaptations.length > 0
+        ? ` (${adaptations.join(', ')})`
         : '';
-      
+
       parts.push(`LOCATION CONTEXT: ${locationContext}${adaptationNote}
-⚠️ IMPORTANT: Use this location ONLY for spatial context (type of place, objects, architecture).
-DO NOT copy the visual style (lighting, colors, mood) from any location reference image.
-The lighting, color palette, and atmosphere MUST come from [TECHNICAL SPECIFICATIONS] and [ARTISTIC BRIEF] above.
-Feel free to add environmental variations based on weather/season/time of day.`);
+⚠️ IMPORTANT: This location description and any reference image defines GEOMETRY ONLY.
+- IGNORE the visual style/lighting of the location reference.
+- RENDER this space using the weather/lighting defined in Technical Specs.
+- Apply the environmental adaptations (snow, rain, night, etc.) vigorously.`);
     }
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // MODEL DESCRIPTION
   // ═══════════════════════════════════════════════════════════════
   if (scene.modelDescription) {
     parts.push(`MODEL: ${scene.modelDescription}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // EMOTION
   // ═══════════════════════════════════════════════════════════════
@@ -1460,7 +1466,7 @@ Feel free to add environmental variations based on weather/season/time of day.`)
       parts.push(`EMOTION: ${emo.label}`);
     }
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // COMPOSITION (Shot Size + Camera Angle)
   // ═══════════════════════════════════════════════════════════════
@@ -1476,7 +1482,7 @@ Feel free to add environmental variations based on weather/season/time of day.`)
     };
     parts.push(`SHOT SIZE: ${shotLabels[scene.shotSize] || scene.shotSize}`);
   }
-  
+
   if (scene.cameraAngle && scene.cameraAngle !== 'eye_level') {
     const angleLabels = {
       'low_angle': 'Low Angle (looking up, heroic)',
@@ -1487,25 +1493,25 @@ Feel free to add environmental variations based on weather/season/time of day.`)
     };
     parts.push(`CAMERA ANGLE: ${angleLabels[scene.cameraAngle] || scene.cameraAngle}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // ACTION/POSE
   // ═══════════════════════════════════════════════════════════════
   if (scene.action) {
     parts.push(`ACTION: ${scene.action}`);
   }
-  
+
   if (scene.pose && scene.pose !== scene.action) {
     parts.push(`POSE: ${scene.pose}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // CLOTHING
   // ═══════════════════════════════════════════════════════════════
   if (scene.lookPrompt) {
     parts.push(`OUTFIT STYLE: ${scene.lookPrompt}`);
   }
-  
+
   if (scene.clothingDescriptions && scene.clothingDescriptions.length > 0) {
     const clothingText = scene.clothingDescriptions
       .filter(c => c && c.trim())
@@ -1514,7 +1520,7 @@ Feel free to add environmental variations based on weather/season/time of day.`)
       parts.push(`CLOTHING ITEMS: ${clothingText}`);
     }
   }
-  
+
   if (scene.clothingItemPrompts && scene.clothingItemPrompts.length > 0) {
     const itemsText = scene.clothingItemPrompts
       .filter(item => item && item.prompt)
@@ -1524,39 +1530,39 @@ Feel free to add environmental variations based on weather/season/time of day.`)
       parts.push(`CLOTHING DETAILS: ${itemsText}`);
     }
   }
-  
+
   if (scene.clothingFocus) {
-    const clothingText = typeof scene.clothingFocus === 'string' 
-      ? scene.clothingFocus 
+    const clothingText = typeof scene.clothingFocus === 'string'
+      ? scene.clothingFocus
       : (scene.clothingFocus.description || '');
     if (clothingText && clothingText !== '{}' && clothingText !== '[object Object]') {
       parts.push(`CLOTHING FOCUS: ${clothingText}`);
     }
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // ENVIRONMENT & TEXTURE
   // ═══════════════════════════════════════════════════════════════
   if (scene.environment) {
     parts.push(`ENVIRONMENT: ${scene.environment}`);
   }
-  
+
   if (scene.texture) {
     parts.push(`TEXTURE DETAILS: ${scene.texture}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // CONTEXT (Time, Weather, Season from V5 params)
   // ═══════════════════════════════════════════════════════════════
   const time = CONTEXT_TIME.options.find(o => o.value === params.timeOfDay);
   if (time) parts.push(`TIME OF DAY: ${time.label}`);
-  
+
   const weather = CONTEXT_WEATHER.options.find(o => o.value === params.weather);
   if (weather) parts.push(`WEATHER: ${weather.label}`);
-  
+
   const season = CONTEXT_SEASON.options.find(o => o.value === params.season);
   if (season && season.value !== 'any') parts.push(`SEASON: ${season.label} — ${season.visual}`);
-  
+
   // ═══════════════════════════════════════════════════════════════
   // REFERENCE FLAGS
   // ═══════════════════════════════════════════════════════════════
@@ -1565,18 +1571,18 @@ Feel free to add environmental variations based on weather/season/time of day.`)
   if (scene.hasClothingRefs) refNotes.push('Clothing reference images provided');
   if (scene.hasStyleRef) refNotes.push('Style reference image provided [$2] — match its visual style');
   if (scene.hasPoseSketch) refNotes.push('Pose sketch provided — follow the pose');
-  
+
   if (refNotes.length > 0) {
     parts.push(`\nREFERENCES:\n${refNotes.map(n => `• ${n}`).join('\n')}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // EXTRA PROMPT (user's additional instructions)
   // ═══════════════════════════════════════════════════════════════
   if (scene.extraPrompt && scene.extraPrompt.trim()) {
     parts.push(`\nADDITIONAL INSTRUCTIONS: ${scene.extraPrompt.trim()}`);
   }
-  
+
   return parts.join('\n');
 }
 
@@ -1628,7 +1634,7 @@ export const DEFAULT_PARAMS = {
   whiteBalance: 'daylight',
   exposure: 'neutral',
   contrastCurve: 's_curve_moderate',
-  
+
   // Artistic
   visualMood: 'confident_bold',
   decade: 'contemporary',
@@ -1636,7 +1642,7 @@ export const DEFAULT_PARAMS = {
   processingStyle: 'punchy',
   energyLevel: 'medium',
   spontaneity: 'relaxed_posed',
-  
+
   // Context
   timeOfDay: 'afternoon',
   weather: 'clear',
