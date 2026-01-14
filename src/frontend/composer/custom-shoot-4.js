@@ -8,6 +8,33 @@
  */
 
 // ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Fetch with timeout to prevent hanging requests
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${timeoutMs}ms`);
+    }
+    throw e;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════
 
@@ -296,13 +323,13 @@ function updateStepStatuses() {
 
 async function loadShoots() {
   try {
-    const res = await fetch('/api/custom-shoots');
+    const res = await fetchWithTimeout('/api/custom-shoots', {}, 10000);
     const data = await res.json();
     if (data.ok) {
       state.shoots = data.shoots || [];
     }
   } catch (e) {
-    console.error('Error loading custom shoots:', e);
+    console.error('[LoadShoots] Error:', e.message);
   }
   renderShootsList();
 }
@@ -493,13 +520,13 @@ async function deleteShoot(shootId) {
 
 async function loadModels() {
   try {
-    const res = await fetch('/api/models');
+    const res = await fetchWithTimeout('/api/models', {}, 10000);
     const data = await res.json();
     if (data.ok) {
       state.models = data.data || [];
     }
   } catch (e) {
-    console.error('Error loading models:', e);
+    console.error('[LoadModels] Error:', e.message);
   }
 }
 
@@ -1130,31 +1157,31 @@ async function saveShootClothing() {
 
 async function loadFrames() {
   try {
-    const res = await fetch('/api/frames');
+    const res = await fetchWithTimeout('/api/frames', {}, 10000);
     const data = await res.json();
     if (data.ok) {
       state.frames = data.data || [];
     }
   } catch (e) {
-    console.error('Error loading frames:', e);
+    console.error('[LoadFrames] Error:', e.message);
   }
 }
 
 async function loadLocations() {
   try {
-    const res = await fetch('/api/locations');
+    const res = await fetchWithTimeout('/api/locations', {}, 10000);
     const data = await res.json();
     if (data.ok) {
       state.locations = data.data || [];
     }
   } catch (e) {
-    console.error('Error loading locations:', e);
+    console.error('[LoadLocations] Error:', e.message);
   }
 }
 
 async function loadEmotions() {
   try {
-    const res = await fetch('/api/emotions/options');
+    const res = await fetchWithTimeout('/api/emotions/options', {}, 10000);
     const data = await res.json();
     console.log('[LoadEmotions] Response:', data);
     
@@ -1195,7 +1222,7 @@ async function loadEmotions() {
  */
 async function loadUniverseParams() {
   try {
-    const res = await fetch('/api/universes/params');
+    const res = await fetchWithTimeout('/api/universes/params', {}, 10000);
     const data = await res.json();
     
     if (data.ok && data.data) {
@@ -2524,10 +2551,11 @@ function showToast(message, duration = 3000) {
 
 async function checkServerStatus() {
   try {
-    const res = await fetch('/api/health');
+    const res = await fetchWithTimeout('/api/health', {}, 5000);
     const data = await res.json();
     elements.serverStatus.textContent = data.ok ? 'Сервер работает' : 'Ошибка';
   } catch (e) {
+    console.warn('[CheckServer] Error:', e.message);
     elements.serverStatus.textContent = 'Нет связи';
   }
 }
@@ -2537,24 +2565,40 @@ async function checkServerStatus() {
 // ═══════════════════════════════════════════════════════════════
 
 async function init() {
-  initElements();
-  initEventListeners();
-  initLightbox();
-  initSettingsAutoSave();
-  initClothingEventDelegation(); // Надёжная обработка событий одежды
+  console.log('[Init] Starting...');
   
-  await checkServerStatus();
-  
-  await Promise.all([
-    loadShoots(),
-    loadModels(),
-    loadFrames(),
-    loadLocations(),
-    loadEmotions(),
-    loadUniverseParams()
-  ]);
-  
-  updateStepStatuses();
+  try {
+    initElements();
+    console.log('[Init] Elements OK');
+    
+    initEventListeners();
+    console.log('[Init] EventListeners OK');
+    
+    initLightbox();
+    initSettingsAutoSave();
+    initClothingEventDelegation();
+    console.log('[Init] Components OK');
+    
+    await checkServerStatus();
+    console.log('[Init] Server check OK');
+    
+    console.log('[Init] Loading data...');
+    await Promise.all([
+      loadShoots(),
+      loadModels(),
+      loadFrames(),
+      loadLocations(),
+      loadEmotions(),
+      loadUniverseParams()
+    ]);
+    console.log('[Init] Data loaded OK');
+    
+    updateStepStatuses();
+    console.log('[Init] Complete!');
+  } catch (e) {
+    console.error('[Init] CRITICAL ERROR:', e);
+    alert('Ошибка загрузки страницы: ' + e.message + '\n\nПопробуйте обновить страницу.');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
