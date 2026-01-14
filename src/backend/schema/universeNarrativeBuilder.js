@@ -6,6 +6,7 @@
  */
 
 import { UNIVERSE_PARAMS, ANTIAI_FLAGS } from './universeParams.js';
+import { buildVisualAnchorsPrompt, getAnchorsForUI } from './visualAnchors.js';
 
 // ═══════════════════════════════════════════════════════════════
 // LIGHTING TECHNICAL ANCHORS
@@ -1840,15 +1841,43 @@ function buildDescriptiveUniverseNarrative(params) {
  * @param {string} mode - 'soft', 'strict', или 'descriptive' (новый)
  * @returns {string}
  */
-function buildUniverseNarrativeByMode(params, mode = 'descriptive') {
+/**
+ * Универсальная функция — выбирает режим на основе параметра
+ * Теперь ВСЕГДА добавляет Visual Anchors для консистентности
+ * 
+ * @param {Object} params - Параметры вселенной
+ * @param {string} mode - 'soft', 'strict', или 'descriptive' (новый)
+ * @param {Object} options - Дополнительные опции
+ * @param {boolean} options.includeAnchors - Добавлять Visual Anchors (default: true)
+ * @returns {string}
+ */
+function buildUniverseNarrativeByMode(params, mode = 'descriptive', options = {}) {
+  const { includeAnchors = true } = options;
+  
+  let narrative = '';
+  
   if (mode === 'soft') {
-    return buildUnifiedUniverseNarrative(params);
+    narrative = buildUnifiedUniverseNarrative(params);
+  } else if (mode === 'strict') {
+    narrative = buildStrictUniverseNarrative(params);
+  } else {
+    // Default: descriptive (новый)
+    narrative = buildDescriptiveUniverseNarrative(params);
   }
-  if (mode === 'strict') {
-    return buildStrictUniverseNarrative(params);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // VISUAL ANCHORS — числовые якори для консистентности
+  // Добавляются ПОСЛЕ основного нарратива
+  // ═══════════════════════════════════════════════════════════════
+  
+  if (includeAnchors) {
+    const anchorsPrompt = buildVisualAnchorsPrompt(params);
+    if (anchorsPrompt) {
+      narrative += '\n\n' + anchorsPrompt;
+    }
   }
-  // Default: descriptive (новый)
-  return buildDescriptiveUniverseNarrative(params);
+  
+  return narrative;
 }
 
 /**
@@ -1932,8 +1961,9 @@ export {
   buildUnifiedUniverseNarrative,    // Soft mode (старый нарративный стиль)
   buildStrictUniverseNarrative,     // Strict mode (директивный стиль с bullet-points)
   buildDescriptiveUniverseNarrative, // Descriptive mode (новый описательный стиль)
-  buildUniverseNarrativeByMode,     // Универсальная функция с выбором режима
+  buildUniverseNarrativeByMode,     // Универсальная функция с выбором режима + Visual Anchors
   getDefaultParams,
-  DESCRIPTIVE_EFFECTS               // Экспорт описаний для UI preview
+  DESCRIPTIVE_EFFECTS,              // Экспорт описаний для UI preview
+  getAnchorsForUI                   // NEW: Получить anchors для UI
 };
 

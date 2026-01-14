@@ -16,7 +16,8 @@ import { UNIVERSE_OPTIONS, createEmptyUniverse, universeToPromptBlock } from '..
 import { createEmptyLocation, generateLocationId } from '../schema/location.js';
 import { analyzeReferencesAndGenerateUniverse, validateImageData } from '../services/universeAnalyzer.js';
 import { UNIVERSE_PARAMS, getAllParamsFlat, getBlocksStructure } from '../schema/universeParams.js';
-import { buildUniverseNarrative, buildUniverseText, buildUniverseForPrompt, getDefaultParams } from '../schema/universeNarrativeBuilder.js';
+import { buildUniverseNarrative, buildUniverseText, buildUniverseForPrompt, getDefaultParams, getAnchorsForUI } from '../schema/universeNarrativeBuilder.js';
+import { buildVisualAnchors, getAnchorsForUI as getAnchorsForUIFromModule } from '../schema/visualAnchors.js';
 import { checkUniverseConflicts, getConflicts, getWarnings, getHints, formatIssuesForUI, hasConflicts } from '../schema/universeConflicts.js';
 
 const router = express.Router();
@@ -85,12 +86,18 @@ router.post('/params/preview', (req, res) => {
     const text = buildUniverseText(params);
     const forPrompt = buildUniverseForPrompt(params);
     
+    // NEW: Visual Anchors for UI display
+    const anchors = buildVisualAnchors(params);
+    const anchorsForUI = getAnchorsForUIFromModule(params);
+    
     res.json({
       ok: true,
       data: {
-        narrative,  // Object with blocks
-        text,       // Formatted text with markdown
-        forPrompt   // Object ready for prompt generation
+        narrative,      // Object with blocks
+        text,           // Formatted text with markdown
+        forPrompt,      // Object ready for prompt generation
+        anchors,        // Raw anchors object
+        anchorsForUI    // Formatted anchors for UI display
       }
     });
   } catch (err) {

@@ -1320,6 +1320,9 @@ function renderUniverseParamsUI() {
  */
 async function updateNarrativePreview() {
   const previewContent = document.getElementById('narrative-preview-content');
+  const anchorsContent = document.getElementById('visual-anchors-content');
+  const anchorsPanel = document.getElementById('visual-anchors-panel');
+  
   if (!previewContent) return;
   
   try {
@@ -1333,6 +1336,66 @@ async function updateNarrativePreview() {
     
     if (data.ok && data.data) {
       state.narrativePreview = data.data;
+      
+      // ═══════════════════════════════════════════════════════════════
+      // RENDER VISUAL ANCHORS (NEW)
+      // ═══════════════════════════════════════════════════════════════
+      
+      if (data.data.anchorsForUI && anchorsContent && anchorsPanel) {
+        const anchorsForUI = data.data.anchorsForUI;
+        
+        if (anchorsForUI.length > 0) {
+          anchorsPanel.style.display = 'block';
+          
+          // Group anchors by category
+          const byCategory = {
+            color: anchorsForUI.filter(a => a.category === 'color'),
+            lighting: anchorsForUI.filter(a => a.category === 'lighting'),
+            lens: anchorsForUI.filter(a => a.category === 'lens'),
+            skin: anchorsForUI.filter(a => a.category === 'skin')
+          };
+          
+          let anchorsHtml = '';
+          
+          // Render each category
+          for (const [catId, catAnchors] of Object.entries(byCategory)) {
+            if (catAnchors.length === 0) continue;
+            
+            const catLabels = {
+              color: '🎨 Цвет',
+              lighting: '💡 Свет',
+              lens: '📷 Оптика',
+              skin: '👤 Кожа'
+            };
+            
+            anchorsHtml += `<div style="flex: 1; min-width: 200px; background: var(--color-bg); padding: 10px; border-radius: 8px; margin-bottom: 8px;">`;
+            anchorsHtml += `<div style="font-size: 11px; font-weight: 600; margin-bottom: 8px; color: var(--color-primary);">${catLabels[catId] || catId}</div>`;
+            
+            for (const anchor of catAnchors) {
+              const colorPreview = anchor.colorPreview 
+                ? `<span style="display: inline-block; width: 14px; height: 14px; background: ${anchor.colorPreview}; border-radius: 3px; border: 1px solid var(--color-border); vertical-align: middle; margin-right: 4px;"></span>` 
+                : '';
+              
+              anchorsHtml += `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px;">
+                  <span style="color: var(--color-text-muted);">${anchor.icon} ${anchor.label}</span>
+                  <span style="font-weight: 500;">${colorPreview}${escapeHtml(anchor.value)}${anchor.tolerance ? ` <span style="color: var(--color-text-muted);">${anchor.tolerance}</span>` : ''}</span>
+                </div>
+              `;
+            }
+            
+            anchorsHtml += `</div>`;
+          }
+          
+          anchorsContent.innerHTML = anchorsHtml;
+        } else {
+          anchorsPanel.style.display = 'none';
+        }
+      }
+      
+      // ═══════════════════════════════════════════════════════════════
+      // RENDER NARRATIVE PREVIEW (existing)
+      // ═══════════════════════════════════════════════════════════════
       
       // Render preview as formatted blocks
       const narrative = data.data.narrative;
