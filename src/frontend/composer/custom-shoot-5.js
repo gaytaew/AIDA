@@ -501,6 +501,19 @@ function loadShootState() {
 
   // Load generation settings
   state.generationSettings = state.currentShoot.generationSettings || {};
+
+  // Restore V5 Universe parameters if saved
+  if (state.generationSettings.universeValues) {
+    console.log('[LoadShootState] Restoring V5 settings:', Object.keys(state.generationSettings.universeValues));
+    state.universeValues = { ...state.generationSettings.universeValues };
+    state.v5Values = { ...state.generationSettings.universeValues };
+
+    // Defer render to ensure schema is loaded
+    setTimeout(() => {
+      renderUniverseParamsUI();
+      applyV5Dependencies();
+    }, 100);
+  }
 }
 
 /**
@@ -1723,10 +1736,10 @@ function collectGenerationSettings() {
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
 
     // Extra prompt
-    extraPrompt: elements.genExtraPrompt?.value || ''
+    extraPrompt: elements.genExtraPrompt?.value || '',
 
-    // NOTE: All other settings (camera, lighting, color, anti-ai, mood, etc.)
-    // are now controlled via Universe params and not collected here
+    // V5 Universe Parameters (Auto-saved draft settings)
+    universeValues: { ...state.universeValues }
   };
 }
 
@@ -1842,6 +1855,17 @@ function initSettingsAutoSave() {
   // Add input listener to extra prompt (with debounce already in saveGenerationSettings)
   if (elements.genExtraPrompt) {
     elements.genExtraPrompt.addEventListener('input', saveGenerationSettings);
+  }
+
+  // Delegated listener for V5 Universe Parameters (dynamic selects)
+  const universeContainer = document.getElementById('universe-params-container');
+  if (universeContainer) {
+    universeContainer.addEventListener('change', (e) => {
+      if (e.target.classList.contains('v5-param-select')) {
+        console.log('[AutoSave] Universe param changed:', e.target.dataset.v5Param, e.target.value);
+        saveGenerationSettings();
+      }
+    });
   }
 }
 
