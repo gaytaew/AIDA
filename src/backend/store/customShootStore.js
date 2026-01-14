@@ -784,6 +784,7 @@ export async function getCustomShootWithImages(id, options = {}) {
     
     // OPTIMIZATION: Strip base64 from clothing images in slim mode
     if (slim && shoot.clothing?.length > 0) {
+      let strippedCount = 0;
       for (const clothingEntry of shoot.clothing) {
         if (clothingEntry.items?.length > 0) {
           for (const item of clothingEntry.items) {
@@ -792,6 +793,7 @@ export async function getCustomShootWithImages(id, options = {}) {
               // Replace base64 with placeholder
               item.images = item.images.map((img, idx) => {
                 if (img.url && img.url.startsWith('data:image')) {
+                  strippedCount++;
                   return { id: img.id || `img_${idx}`, _placeholder: true };
                 }
                 return img;
@@ -800,6 +802,7 @@ export async function getCustomShootWithImages(id, options = {}) {
           }
         }
       }
+      console.log(`[CustomShootStore] Slim mode: stripped ${strippedCount} base64 images from clothing`);
     }
     
     return shoot;
