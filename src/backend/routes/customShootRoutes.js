@@ -277,17 +277,41 @@ router.get('/:id', async (req, res) => {
  * Update a custom shoot
  */
 router.put('/:id', async (req, res) => {
+  const startTime = Date.now();
+  const shootId = req.params.id;
+  
+  console.log(`[CustomShootRoutes] PUT /${shootId} started`);
+  
   try {
-    // updateShootParams handles not-found case internally
-    const updatedShoot = await updateShootParams(req.params.id, req.body);
+    // TIMEOUT: 30 seconds max for PUT operations
+    const PUT_TIMEOUT_MS = 30000;
+    
+    const updatePromise = updateShootParams(shootId, req.body);
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('PUT operation timeout after 30 seconds')), PUT_TIMEOUT_MS);
+    });
+    
+    const updatedShoot = await Promise.race([updatePromise, timeoutPromise]);
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[CustomShootRoutes] PUT /${shootId} completed in ${duration}s`);
     
     res.json({ ok: true, shoot: updatedShoot });
   } catch (err) {
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    
     // Handle not found
     if (err.message.includes('not found')) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
-    console.error('[CustomShootRoutes] Error updating shoot:', err);
+    
+    // Handle timeout
+    if (err.message.includes('timeout')) {
+      console.error(`[CustomShootRoutes] PUT /${shootId} TIMEOUT after ${duration}s`);
+      return res.status(504).json({ ok: false, error: 'Operation timeout', timeout: true });
+    }
+    
+    console.error(`[CustomShootRoutes] PUT /${shootId} ERROR after ${duration}s:`, err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

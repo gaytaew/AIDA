@@ -37,8 +37,8 @@ app.use(cors());
 app.use((req, res, next) => {
   const url = req.originalUrl || req.url;
   
-  // Log all POST requests to /generate immediately
-  if (req.method === 'POST' && url.includes('/generate')) {
+  // Log POST/PUT requests to custom-shoots immediately
+  if ((req.method === 'POST' || req.method === 'PUT') && url.includes('/custom-shoots')) {
     const contentLength = req.headers['content-length'] || 0;
     console.log(`[HTTP] ⚡ INCOMING: ${req.method} ${url} (content-length: ${Math.round(contentLength / 1024)}KB)`);
   }
@@ -53,14 +53,14 @@ app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use((req, res, next) => {
   const url = req.originalUrl || req.url;
   
-  if (req.method === 'POST' && url.includes('/generate')) {
+  if ((req.method === 'POST' || req.method === 'PUT') && url.includes('/custom-shoots')) {
     console.log(`[HTTP] ✓ BODY_PARSED: ${req.method} ${url}`);
   }
   
   next();
 });
 
-// Request timing middleware
+// Request timing middleware with FORCED TIMEOUT
 app.use((req, res, next) => {
   const start = Date.now();
   const method = req.method;
@@ -80,13 +80,34 @@ app.use((req, res, next) => {
     }
   });
   
-  // Log if response doesn't finish within 2 minutes
+  // FORCED TIMEOUT: If request doesn't finish in 3 minutes, kill it
+  // This prevents zombie connections from blocking browser connection pool
+  const REQUEST_TIMEOUT_MS = 180000; // 3 minutes
+  
+  const forceTimeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.error(`[HTTP] ❌ FORCE_TIMEOUT: ${method} ${url} killed after 3 minutes`);
+      res.status(504).json({ 
+        ok: false, 
+        error: 'Request timeout - operation took too long',
+        timeout: true 
+      });
+    }
+  }, REQUEST_TIMEOUT_MS);
+  
+  // Log warning at 2 minutes
   const warnTimeout = setTimeout(() => {
     console.warn(`[HTTP] ⚠️ SLOW REQUEST: ${method} ${url} still pending after 2 minutes`);
   }, 120000);
   
-  res.on('finish', () => clearTimeout(warnTimeout));
-  res.on('close', () => clearTimeout(warnTimeout));
+  res.on('finish', () => {
+    clearTimeout(warnTimeout);
+    clearTimeout(forceTimeout);
+  });
+  res.on('close', () => {
+    clearTimeout(warnTimeout);
+    clearTimeout(forceTimeout);
+  });
   
   next();
 });
