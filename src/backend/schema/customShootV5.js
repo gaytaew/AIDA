@@ -1222,8 +1222,13 @@ export function getLockedValue(field, currentParams) {
  * Build the V5 prompt with clear Technical/Artistic separation
  */
 export function buildV5Prompt(params, scene = {}) {
+  console.log('[buildV5Prompt] Input params:', JSON.stringify(params, null, 2));
+  console.log('[buildV5Prompt] Input scene:', JSON.stringify(scene, null, 2));
+  
   // First, apply dependency rules to ensure consistency
   const { params: resolvedParams, applied } = applyDependencies(params);
+  
+  console.log('[buildV5Prompt] Resolved params:', JSON.stringify(resolvedParams, null, 2));
   
   // Build Technical Specifications block
   const techSpecs = buildTechnicalSpecs(resolvedParams);
@@ -1272,8 +1277,11 @@ ${sceneDesc}`;
 function buildTechnicalSpecs(params) {
   const lines = [];
   
+  console.log('[buildTechnicalSpecs] Looking for camera:', params.camera);
+  
   // Camera
   const camera = TECH_CAMERA.options.find(o => o.value === params.camera);
+  console.log('[buildTechnicalSpecs] Found camera:', camera?.value, camera?.spec?.substring(0, 50));
   if (camera) lines.push(camera.spec);
   
   // Lens
@@ -1312,6 +1320,7 @@ function buildTechnicalSpecs(params) {
   const contrast = TECH_CONTRAST.options.find(o => o.value === params.contrastCurve);
   if (contrast) lines.push(contrast.spec);
   
+  console.log('[buildTechnicalSpecs] Generated', lines.length, 'lines');
   return lines.join('\n');
 }
 
@@ -1342,6 +1351,7 @@ function buildArtisticBrief(params) {
   const spontaneity = ART_SPONTANEITY.options.find(o => o.value === params.spontaneity);
   if (spontaneity) lines.push(spontaneity.narrative);
   
+  console.log('[buildArtisticBrief] Generated', lines.length, 'lines');
   return lines.join('\n\n');
 }
 
