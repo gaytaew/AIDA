@@ -1334,13 +1334,19 @@ function renderUniverseParamsUI() {
   const renderParamSelect = (paramId, paramDef, category) => {
     if (!paramDef || !paramDef.options) return '';
     
-    const currentValue = state.v5Values?.[paramId] || Object.keys(paramDef.options)[0];
+    // Options can be array or object
+    const optionsArray = Array.isArray(paramDef.options) 
+      ? paramDef.options 
+      : Object.entries(paramDef.options).map(([key, opt]) => ({ value: key, ...opt }));
     
-    const optionsHtml = Object.entries(paramDef.options).map(([key, opt]) => {
-      const selected = key === currentValue ? 'selected' : '';
-      const label = opt.label || key;
+    const currentValue = state.v5Values?.[paramId] || optionsArray[0]?.value;
+    
+    const optionsHtml = optionsArray.map(opt => {
+      const value = opt.value;
+      const selected = value === currentValue ? 'selected' : '';
+      const label = opt.label || value;
       const desc = opt.spec || opt.narrative || opt.description || '';
-      return `<option value="${key}" ${selected} title="${escapeHtml(desc)}">${escapeHtml(label)}</option>`;
+      return `<option value="${value}" ${selected} title="${escapeHtml(desc)}">${escapeHtml(label)}</option>`;
     }).join('');
     
     return `
@@ -1360,20 +1366,26 @@ function renderUniverseParamsUI() {
     `;
   };
   
-  // Build Technical params
-  const technicalParams = Object.entries(schema.technical || {}).map(([id, def]) => 
-    renderParamSelect(id, def, 'technical')
-  ).join('');
+  // Build Technical params (camera, focalLength, aperture, shutterSpeed, lightSource, lightDirection, lightQuality, whiteBalance, exposure, contrastCurve)
+  const technicalKeys = ['camera', 'focalLength', 'aperture', 'shutterSpeed', 'lightSource', 'lightDirection', 'lightQuality', 'whiteBalance', 'exposure', 'contrastCurve'];
+  const technicalParams = technicalKeys
+    .filter(id => schema.technical?.[id])
+    .map(id => renderParamSelect(id, schema.technical[id], 'technical'))
+    .join('');
   
-  // Build Artistic params  
-  const artisticParams = Object.entries(schema.artistic || {}).map(([id, def]) => 
-    renderParamSelect(id, def, 'artistic')
-  ).join('');
+  // Build Artistic params (visualMood, decade, culturalContext, processingStyle, energyLevel, spontaneity)
+  const artisticKeys = ['visualMood', 'decade', 'culturalContext', 'processingStyle', 'energyLevel', 'spontaneity'];
+  const artisticParams = artisticKeys
+    .filter(id => schema.artistic?.[id])
+    .map(id => renderParamSelect(id, schema.artistic[id], 'artistic'))
+    .join('');
   
-  // Build Context params
-  const contextParams = Object.entries(schema.context || {}).map(([id, def]) => 
-    renderParamSelect(id, def, 'context')
-  ).join('');
+  // Build Context params (timeOfDay, weather, season)
+  const contextKeys = ['timeOfDay', 'weather', 'season'];
+  const contextParams = contextKeys
+    .filter(id => schema.context?.[id])
+    .map(id => renderParamSelect(id, schema.context[id], 'context'))
+    .join('');
   
   container.innerHTML = `
     <!-- Technical Parameters -->
