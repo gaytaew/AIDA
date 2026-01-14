@@ -156,6 +156,37 @@ function initEventListeners() {
   elements.styleLockOff.addEventListener('click', () => setStyleLockMode('off'));
   elements.styleLockStrict.addEventListener('click', () => setStyleLockMode('strict'));
   elements.styleLockSoft.addEventListener('click', () => setStyleLockMode('soft'));
+  
+  // DELEGATED event handler for generate buttons (won't break on DOM re-renders)
+  elements.framesToGenerate.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-gen-frame');
+    if (btn) {
+      console.log('[Event] Generate button clicked via delegation');
+      e.stopPropagation();
+      generateFrame(btn.dataset.frameId || null);
+    }
+  });
+  
+  // DELEGATED event handler for gallery buttons
+  elements.imagesGallery.addEventListener('click', (e) => {
+    const lightboxBtn = e.target.closest('.btn-open-lightbox');
+    if (lightboxBtn) {
+      openLightbox(parseInt(lightboxBtn.dataset.frameIndex));
+      return;
+    }
+    
+    const styleRefBtn = e.target.closest('.btn-set-style-ref');
+    if (styleRefBtn) {
+      setAsStyleRef(styleRefBtn.dataset.imageId);
+      return;
+    }
+    
+    const deleteBtn = e.target.closest('[data-delete-frame]');
+    if (deleteBtn) {
+      deleteFrame(parseInt(deleteBtn.dataset.deleteFrame));
+      return;
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1685,13 +1716,7 @@ function renderFramesToGenerate() {
     `;
   }
   
-  // Add click handlers
-  elements.framesToGenerate.querySelectorAll('.btn-gen-frame').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      generateFrame(btn.dataset.frameId || null);
-    });
-  });
+  // Click handlers are now delegated in initEventListeners()
 }
 
 /**
@@ -2007,20 +2032,7 @@ function renderGeneratedHistory() {
     `;
   }).join('');
   
-  // Attach handlers
-  elements.imagesGallery.querySelectorAll('.btn-open-lightbox').forEach(btn => {
-    btn.addEventListener('click', () => openLightbox(parseInt(btn.dataset.frameIndex)));
-  });
-  
-  elements.imagesGallery.querySelectorAll('.btn-set-style-ref').forEach(btn => {
-    btn.addEventListener('click', () => setAsStyleRef(btn.dataset.imageId));
-  });
-  
-  // btn-copy-settings now uses inline onclick="window.copyFrameSettings(idx)"
-  
-  elements.imagesGallery.querySelectorAll('[data-delete-frame]').forEach(btn => {
-    btn.addEventListener('click', () => deleteFrame(parseInt(btn.dataset.deleteFrame)));
-  });
+  // Click handlers are delegated in initEventListeners() - no need to re-attach
 }
 
 /**
