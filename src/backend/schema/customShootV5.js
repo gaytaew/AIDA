@@ -1358,14 +1358,117 @@ function buildArtisticBrief(params) {
 function buildSceneDescription(scene, params) {
   const parts = [];
   
+  // ═══════════════════════════════════════════════════════════════
+  // LOCATION
+  // ═══════════════════════════════════════════════════════════════
+  if (scene.location) {
+    const loc = scene.location;
+    if (typeof loc === 'object') {
+      if (loc.visualPrompt) {
+        parts.push(`LOCATION: ${loc.visualPrompt}`);
+      } else if (loc.label) {
+        parts.push(`LOCATION: ${loc.label}${loc.description ? ` — ${loc.description}` : ''}`);
+      }
+    } else if (typeof loc === 'string' && loc) {
+      parts.push(`LOCATION: ${loc}`);
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // MODEL DESCRIPTION
+  // ═══════════════════════════════════════════════════════════════
+  if (scene.modelDescription) {
+    parts.push(`MODEL: ${scene.modelDescription}`);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // EMOTION
+  // ═══════════════════════════════════════════════════════════════
+  if (scene.emotionId && typeof scene.emotionId === 'object') {
+    const emo = scene.emotionId;
+    if (emo.visualPrompt) {
+      parts.push(`EMOTION: ${emo.visualPrompt}`);
+    } else if (emo.label) {
+      parts.push(`EMOTION: ${emo.label}`);
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // COMPOSITION (Shot Size + Camera Angle)
+  // ═══════════════════════════════════════════════════════════════
+  if (scene.shotSize && scene.shotSize !== 'default') {
+    const shotLabels = {
+      'extreme_closeup': 'Extreme Close-up (eyes/lips only)',
+      'closeup': 'Close-up (face fills frame)',
+      'medium_closeup': 'Medium Close-up (head and shoulders)',
+      'medium_shot': 'Medium Shot (waist up)',
+      'cowboy_shot': 'Cowboy Shot (mid-thigh up)',
+      'full_shot': 'Full Shot (entire body)',
+      'wide_shot': 'Wide Shot (body with environment)'
+    };
+    parts.push(`SHOT SIZE: ${shotLabels[scene.shotSize] || scene.shotSize}`);
+  }
+  
+  if (scene.cameraAngle && scene.cameraAngle !== 'eye_level') {
+    const angleLabels = {
+      'low_angle': 'Low Angle (looking up, heroic)',
+      'high_angle': 'High Angle (looking down)',
+      'overhead': 'Overhead (bird\'s eye view)',
+      'dutch_angle': 'Dutch Angle (tilted horizon)',
+      'selfie': 'Selfie Angle (arm\'s length, slightly above)'
+    };
+    parts.push(`CAMERA ANGLE: ${angleLabels[scene.cameraAngle] || scene.cameraAngle}`);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // ACTION/POSE
+  // ═══════════════════════════════════════════════════════════════
   if (scene.action) {
     parts.push(`ACTION: ${scene.action}`);
   }
   
-  if (scene.pose) {
+  if (scene.pose && scene.pose !== scene.action) {
     parts.push(`POSE: ${scene.pose}`);
   }
   
+  // ═══════════════════════════════════════════════════════════════
+  // CLOTHING
+  // ═══════════════════════════════════════════════════════════════
+  if (scene.lookPrompt) {
+    parts.push(`OUTFIT STYLE: ${scene.lookPrompt}`);
+  }
+  
+  if (scene.clothingDescriptions && scene.clothingDescriptions.length > 0) {
+    const clothingText = scene.clothingDescriptions
+      .filter(c => c && c.trim())
+      .join('; ');
+    if (clothingText) {
+      parts.push(`CLOTHING ITEMS: ${clothingText}`);
+    }
+  }
+  
+  if (scene.clothingItemPrompts && scene.clothingItemPrompts.length > 0) {
+    const itemsText = scene.clothingItemPrompts
+      .filter(item => item && item.prompt)
+      .map(item => `${item.name || 'Item'}: ${item.prompt}`)
+      .join('; ');
+    if (itemsText) {
+      parts.push(`CLOTHING DETAILS: ${itemsText}`);
+    }
+  }
+  
+  if (scene.clothingFocus) {
+    const clothingText = typeof scene.clothingFocus === 'string' 
+      ? scene.clothingFocus 
+      : (scene.clothingFocus.description || '');
+    if (clothingText && clothingText !== '{}' && clothingText !== '[object Object]') {
+      parts.push(`CLOTHING FOCUS: ${clothingText}`);
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // ENVIRONMENT & TEXTURE
+  // ═══════════════════════════════════════════════════════════════
   if (scene.environment) {
     parts.push(`ENVIRONMENT: ${scene.environment}`);
   }
@@ -1374,25 +1477,37 @@ function buildSceneDescription(scene, params) {
     parts.push(`TEXTURE DETAILS: ${scene.texture}`);
   }
   
-  if (scene.clothingFocus) {
-    // Handle both string and object formats
-    const clothingText = typeof scene.clothingFocus === 'string' 
-      ? scene.clothingFocus 
-      : (scene.clothingFocus.description || JSON.stringify(scene.clothingFocus));
-    if (clothingText && clothingText !== '{}') {
-      parts.push(`CLOTHING FOCUS: ${clothingText}`);
-    }
-  }
-  
-  // Add context from params
+  // ═══════════════════════════════════════════════════════════════
+  // CONTEXT (Time, Weather, Season from V5 params)
+  // ═══════════════════════════════════════════════════════════════
   const time = CONTEXT_TIME.options.find(o => o.value === params.timeOfDay);
-  if (time) parts.push(`TIME: ${time.label}`);
+  if (time) parts.push(`TIME OF DAY: ${time.label}`);
   
   const weather = CONTEXT_WEATHER.options.find(o => o.value === params.weather);
   if (weather) parts.push(`WEATHER: ${weather.label}`);
   
   const season = CONTEXT_SEASON.options.find(o => o.value === params.season);
   if (season && season.value !== 'any') parts.push(`SEASON: ${season.label} — ${season.visual}`);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // REFERENCE FLAGS
+  // ═══════════════════════════════════════════════════════════════
+  const refNotes = [];
+  if (scene.hasIdentityRefs) refNotes.push('Identity reference images provided [$1]');
+  if (scene.hasClothingRefs) refNotes.push('Clothing reference images provided');
+  if (scene.hasStyleRef) refNotes.push('Style reference image provided [$2] — match its visual style');
+  if (scene.hasPoseSketch) refNotes.push('Pose sketch provided — follow the pose');
+  
+  if (refNotes.length > 0) {
+    parts.push(`\nREFERENCES:\n${refNotes.map(n => `• ${n}`).join('\n')}`);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // EXTRA PROMPT (user's additional instructions)
+  // ═══════════════════════════════════════════════════════════════
+  if (scene.extraPrompt && scene.extraPrompt.trim()) {
+    parts.push(`\nADDITIONAL INSTRUCTIONS: ${scene.extraPrompt.trim()}`);
+  }
   
   return parts.join('\n');
 }

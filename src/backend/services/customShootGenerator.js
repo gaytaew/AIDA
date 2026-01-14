@@ -226,13 +226,44 @@ export function buildCustomShootPrompt({
     // If nested in 'universe' key (from some UI states), extract it
     const params = universeParams.universe || universeParams;
     
-    // Build scene from frame
+    // Build comprehensive scene object with ALL available data
     const scene = {
+      // From frame
       action: frame?.description || frame?.poseDescription || '',
       pose: frame?.poseDescription || '',
       environment: frame?.environment || '',
       texture: frame?.texture || '',
-      clothingFocus: frame?.clothingFocus || ''
+      clothingFocus: frame?.clothingFocus || '',
+      
+      // Location
+      location: location,
+      
+      // Emotion
+      emotionId: emotionId,
+      
+      // Model description
+      modelDescription: modelDescription,
+      
+      // Clothing
+      clothingDescriptions: clothingDescriptions,
+      clothingItemPrompts: clothingItemPrompts,
+      lookPrompt: lookPrompt,
+      
+      // Composition
+      shotSize: composition?.shotSize || 'default',
+      cameraAngle: composition?.cameraAngle || 'eye_level',
+      
+      // Extra prompt from user
+      extraPrompt: extraPrompt,
+      
+      // Pose adherence level
+      poseAdherence: poseAdherence,
+      
+      // Reference flags
+      hasIdentityRefs: hasIdentityRefs,
+      hasClothingRefs: hasClothingRefs,
+      hasStyleRef: hasStyleRef,
+      hasPoseSketch: hasPoseSketch
     };
     
     // Build V5 prompt with dependency resolution
@@ -254,6 +285,10 @@ export function buildCustomShootPrompt({
       resolvedParams,
       corrections,
       frame,
+      location,
+      emotionId,
+      extraPrompt,
+      composition,
       qualityMode,
       mood
     };
