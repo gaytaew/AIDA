@@ -832,7 +832,9 @@ router.post('/:id/generate', async (req, res) => {
       extraPrompt: extraPrompt || '',
       presets: presets || null,
       prompt: result.prompt,
-      refs: refs, // Save refs with preview thumbnails
+      // IMPORTANT: Save refs WITHOUT previewUrl to prevent JSON bloat
+      // Each base64 preview is ~800KB, causing 120MB+ JSON files
+      refs: refs.map(r => ({ kind: r.kind, label: r.label })),
       generationTime: genDuration,
       // Universe params snapshot for "copy settings" feature
       universeParams: universeParams || null
