@@ -260,6 +260,50 @@ function initEventListeners() {
       deleteFrame(parseInt(deleteBtn.dataset.deleteFrame));
       return;
     }
+
+    // EDIT MODE TOGGLER
+    const editToggleBtn = e.target.closest('.btn-toggle-edit-mode');
+    if (editToggleBtn) {
+      const idx = editToggleBtn.dataset.frameIndex;
+      const ui = document.getElementById(`edit-mode-ui-${idx}`);
+      if (ui) {
+        const isHidden = ui.style.display === 'none';
+        // Hide all other edit uis
+        document.querySelectorAll('.edit-mode-ui').forEach(el => el.style.display = 'none');
+        // Toggle current
+        ui.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          setTimeout(() => document.getElementById(`edit-prompt-${idx}`)?.focus(), 100);
+        }
+      }
+      return;
+    }
+
+    // SUBMIT EDIT
+    const submitEditBtn = e.target.closest('.btn-submit-edit');
+    if (submitEditBtn) {
+      const idx = submitEditBtn.dataset.frameIndex;
+      const frameId = submitEditBtn.dataset.frameId;
+      const prompt = document.getElementById(`edit-prompt-${idx}`)?.value;
+      if (prompt && prompt.trim()) {
+        editFrame(frameId, prompt.trim());
+        // Hide UI
+        const ui = document.getElementById(`edit-mode-ui-${idx}`);
+        if (ui) ui.style.display = 'none';
+      } else {
+        alert('Введите описание изменений');
+      }
+      return;
+    }
+
+    // CANCEL EDIT
+    const cancelEditBtn = e.target.closest('.btn-cancel-edit');
+    if (cancelEditBtn) {
+      const idx = cancelEditBtn.dataset.frameIndex;
+      const ui = document.getElementById(`edit-mode-ui-${idx}`);
+      if (ui) ui.style.display = 'none';
+      return;
+    }
   });
 }
 
@@ -2422,6 +2466,82 @@ async function generateFrame(frameId) {
   }
 }
 
+/**
+ * Edit a specific frame using text instruction
+ */
+async function editFrame(frameId, instruction) {
+  if (!state.currentShoot) return;
+
+  const genId = `edit_${Date.now() % 100000}`;
+  console.log(`[EditFrame] [${genId}] Starting edit for ${frameId} with: "${instruction}"`);
+
+  if (state.isGenerating) {
+    showToast('⏳ Подождите, генерация уже идёт...');
+    return;
+  }
+
+  // Set global lock
+  state.isGenerating = true;
+  showToast('🎨 Применяем изменения...');
+
+  // Add placeholder
+  const placeholderId = `pending_edit_${Date.now()}`;
+  state.generatedFrames.unshift({
+    id: placeholderId,
+    status: 'generating',
+    timestamp: new Date().toISOString()
+  });
+  renderGeneratedHistory();
+
+  try {
+    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/edit-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageId: frameId,
+        instruction: instruction
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 100)}`);
+    }
+
+    const data = await res.json();
+
+    // Update placeholder
+    const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+
+    if (data.ok && data.image) {
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex] = {
+          ...data.image,
+          status: 'ready',
+          timestamp: new Date().toISOString()
+        };
+      }
+      showToast('✅ Изменения применены!');
+    } else {
+      throw new Error(data.error || 'Ошибка редактирования');
+    }
+
+    renderGeneratedHistory();
+
+  } catch (e) {
+    console.error(`[EditFrame] Error:`, e);
+    const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+    if (placeholderIndex >= 0) {
+      state.generatedFrames[placeholderIndex].status = 'error';
+      state.generatedFrames[placeholderIndex].error = e.message;
+      renderGeneratedHistory();
+    }
+    alert('Ошибка: ' + e.message);
+  } finally {
+    state.isGenerating = false;
+  }
+}
+
 function renderGeneratedHistory() {
   const readyCount = state.generatedFrames.filter(f => f.status !== 'generating' && f.status !== 'error').length;
   elements.generationCount.textContent = `${readyCount} изображений`;
@@ -2521,7 +2641,19 @@ function renderGeneratedHistory() {
             <button class="btn btn-secondary" onclick="window.downloadAsJpeg('${frame.imageUrl}', 'custom-shoot-${idx}')" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Скачать JPEG">💾</button>
             <button class="btn btn-secondary" onclick="window.copyFrameSettings(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Применить настройки этого кадра">📋</button>
             <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock (включает локацию)">🎨</button>
+            <button class="btn btn-secondary btn-toggle-edit-mode" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Режим изменений (Edit Mode)">✏️</button>
             <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);" title="Удалить">✕</button>
+          </div>
+        </div>
+        
+        <!-- EDIT MODE UI (Hidden by default) -->
+        <div class="edit-mode-ui" id="edit-mode-ui-${idx}" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border);">
+          <div style="font-size: 11px; font-weight: 600; color: var(--color-primary); margin-bottom: 6px;">✏️ РЕЖИМ ИЗМЕНЕНИЯ (Nano Banana Pro)</div>
+          <div style="font-size: 10px; color: var(--color-text-muted); margin-bottom: 8px;">Опишите, что нужно изменить в этом кадре. Остальное останется прежним.</div>
+          <textarea class="edit-prompt-input" id="edit-prompt-${idx}" placeholder="Например: Сделай волосы светлыми; Добавь очки; Измени фон на ночной город..." style="width: 100%; min-height: 60px; font-size: 12px; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); margin-bottom: 8px; resize: vertical;"></textarea>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-primary btn-submit-edit" data-frame-id="${frame.id}" data-frame-index="${idx}" style="flex: 2; font-size: 12px;">🔄 Генерировать изменения</button>
+            <button class="btn btn-secondary btn-cancel-edit" data-frame-index="${idx}" style="flex: 1; font-size: 12px;">Отмена</button>
           </div>
         </div>
         

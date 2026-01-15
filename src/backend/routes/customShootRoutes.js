@@ -19,7 +19,7 @@ import {
   clearLocationLockOnShoot,
   updateShootParams
 } from '../store/customShootStore.js';
-import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
+import { loadImageBuffer, saveImage, isStoredImagePath } from '../store/imageStore.js';
 import {
   createEmptyCustomShoot,
   validateCustomShoot,
@@ -36,6 +36,7 @@ import {
 } from '../schema/stylePresets.js';
 import {
   generateCustomShootFrame,
+  editCustomShootImage,
   prepareImageFromUrl,
   getVirtualStudioOptions,
   QUALITY_MODES,
