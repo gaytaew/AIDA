@@ -5,7 +5,7 @@
 let currentItems = [];
 let currentLookId = null;
 let currentCollageBase64 = null; // Auto-generated
-let tempItemImageBase64 = null; // Inner modal state
+let tempItemImages = []; // Array of base64 strings
 
 // Initial Load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -135,27 +135,33 @@ function fillForm(look) {
 function renderItems() {
     const container = document.getElementById('items-list');
     container.innerHTML = currentItems.map((item, idx) => {
-        let imgHtml = '<span style="font-size: 24px;">👕</span>';
+        let imgHtml = '';
 
-        // Resolve Image URL
-        // If it's a new item, it might have base64 in `imageBase64`
-        // If it's saved item, it has `image` filename
-        let src = '';
-        if (item.imageBase64) {
-            src = `data:image/jpeg;base64,${item.imageBase64}`;
-        } else if (item.image) {
-            // Need look context to build URL... but we might not have saved ID if it's new look?
-            // If we are editing, currentLookId exists.
-            src = getLookImageUrl({ id: currentLookId || 'temp' }, item.image);
+        // Gather all image sources for this item
+        // 1. New images (base64)
+        if (item.imagesBase64 && item.imagesBase64.length) {
+            imgHtml += item.imagesBase64.map(b64 =>
+                `<img src="data:image/jpeg;base64,${b64}" style="width: 40px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #444;">`
+            ).join('');
         }
 
-        if (src) {
-            imgHtml = `<img src="${src}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        // 2. Saved images
+        if (item.images && item.images.length) {
+            imgHtml += item.images.map(filename =>
+                `<img src="${getLookImageUrl({ id: currentLookId }, filename)}" style="width: 40px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #444;">`
+            ).join('');
         }
+        // 3. Legacy single saved image
+        else if (item.image) {
+            imgHtml = `<img src="${getLookImageUrl({ id: currentLookId }, item.image)}" style="width: 40px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #444;">`;
+        }
+
+        // Fallback
+        if (!imgHtml) imgHtml = '<span style="font-size: 24px;">👕</span>';
 
         return `
         <div class="look-item">
-            <div class="look-item-image" style="background: #333; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <div class="look-item-image" style="width: auto; height: auto; min-width: 60px; min-height: 60px; background: transparent; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; justify-content: flex-start; overflow: visible;">
                 ${imgHtml}
             </div>
             <div class="look-item-content">
@@ -188,7 +194,6 @@ function setupEventListeners() {
     // Item Upload Inputs
     const itemImgZone = document.getElementById('item-image-zone');
     const itemImgInput = document.getElementById('item-image-input');
-    const itemImgBtnRemove = document.getElementById('btn-remove-item-image');
 
     // Open Modal
     btnAdd.onclick = () => {
@@ -200,57 +205,20 @@ function setupEventListeners() {
     };
 
     // Close Modal
-    btnCancel.onclick = () => {
-        modal.style.display = 'none';
-    };
-
-    // Item Image Logic
-    itemImgZone.onclick = (e) => {
-        if (e.target !== itemImgBtnRemove) itemImgInput.click();
-    };
-
-    itemImgInput.onchange = async (e) => {
-        if (e.target.files.length) {
-            await handleItemFile(e.target.files[0]);
-        }
-    };
-
-    itemImgBtnRemove.onclick = (e) => {
-        e.stopPropagation();
-        resetItemImage();
-    };
-
-    // Paste in Modal
-    modal.addEventListener('paste', async (e) => {
-        // Only if modal is visible
-        if (modal.style.display === 'none') return;
-
-        const items = e.clipboardData?.items;
-        if (!items) return;
-        for (const item of items) {
-            if (item.type.startsWith('image/')) {
-                await handleItemFile(item.getAsFile());
-                break;
-            }
-        }
-    });
-
-    // Confirm Add Item
     btnConfirm.onclick = () => {
         const type = document.getElementById('item-type-select').value;
         const desc = document.getElementById('item-desc-input').value;
 
-        if (desc) { // Allow items without images? Yes, but user wants collages.
-            // If image is uploaded
-
+        if (desc) {
             const newItem = {
                 id: Date.now().toString(),
                 type,
-                description: desc
+                description: desc,
+                imagesBase64: [] // New array structure
             };
 
-            if (tempItemImageBase64) {
-                newItem.imageBase64 = tempItemImageBase64;
+            if (tempItemImages && tempItemImages.length > 0) {
+                newItem.imagesBase64 = [...tempItemImages]; // Copy array
             }
 
             currentItems.push(newItem);
@@ -260,6 +228,39 @@ function setupEventListeners() {
             alert('Введите описание предмета');
         }
     };
+
+    btnCancel.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    // Item Image Logic
+    itemImgZone.onclick = (e) => {
+        itemImgInput.click();
+    };
+
+    itemImgInput.onchange = async (e) => {
+        if (e.target.files.length) {
+            await handleItemFiles(e.target.files);
+        }
+        itemImgInput.value = ''; // Reset to allow re-selection
+    };
+
+    // Paste in Modal
+    modal.addEventListener('paste', async (e) => {
+        if (modal.style.display === 'none') return;
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        const files = [];
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                files.push(item.getAsFile());
+            }
+        }
+        if (files.length > 0) {
+            await handleItemFiles(files);
+        }
+    });
 
     // Form Submit
     document.getElementById('look-form').onsubmit = async (e) => {
@@ -362,16 +363,28 @@ async function updateCollage() {
     // If it's a saved item, we need the URL.
 
     for (const item of currentItems) {
-        let src = null;
-        if (item.imageBase64) {
-            src = `data:image/jpeg;base64,${item.imageBase64}`;
-        } else if (item.image && currentLookId) {
-            src = getLookImageUrl({ id: currentLookId }, item.image);
+        const sources = [];
+
+        // New base64s
+        if (item.imagesBase64) {
+            item.imagesBase64.forEach(b64 => sources.push(`data:image/jpeg;base64,${b64}`));
+        } else if (item.imageBase64) {
+            sources.push(`data:image/jpeg;base64,${item.imageBase64}`);
         }
 
-        if (src) {
-            imagesWithBase64.push({ src, item });
+        // Saved images
+        if (item.images && currentLookId) {
+            item.images.forEach(f => sources.push(getLookImageUrl({ id: currentLookId }, f)));
+        } else if (item.image && currentLookId) {
+            sources.push(getLookImageUrl({ id: currentLookId }, item.image));
         }
+
+        // Add all unique sources
+        // Using Set to avoid duplication if image and images[0] overlap
+        const unique = [...new Set(sources)];
+        unique.forEach(src => {
+            if (src) imagesWithBase64.push({ src, item });
+        });
     }
 
     if (imagesWithBase64.length === 0) {
@@ -454,34 +467,39 @@ async function generateCollage(imgObjs) {
 // ═══════════════════════════════════════════════════════════════
 
 function resetItemImage(clearGlobal = false) {
-    if (clearGlobal) tempItemImageBase64 = null;
-
-    document.getElementById('item-image-preview').style.display = 'none';
-    document.getElementById('item-image-placeholder').style.display = 'block';
-    document.getElementById('btn-remove-item-image').style.display = 'none';
+    if (clearGlobal) tempItemImages = [];
+    renderThumbnailList();
     document.getElementById('item-image-input').value = '';
 }
 
-async function handleItemFile(file) {
-    if (!file) return;
-    try {
-        const compressed = await compressImage(file);
-        tempItemImageBase64 = compressed;
+function renderThumbnailList() {
+    const list = document.getElementById('item-images-list');
+    list.innerHTML = tempItemImages.map((b64, idx) => `
+        <div style="position: relative; width: 60px; height: 80px; border: 1px solid #444; border-radius: 4px; overflow: hidden;">
+            <img src="data:image/jpeg;base64,${b64}" style="width: 100%; height: 100%; object-fit: cover;">
+            <div onclick="removeTempImage(${idx})" style="position: absolute; top: 0; right: 0; background: rgba(0,0,0,0.6); color: white; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer;">×</div>
+        </div>
+    `).join('');
+}
 
-        // Show preview
-        const img = document.getElementById('item-image-preview');
-        const ph = document.getElementById('item-image-placeholder');
-        const btn = document.getElementById('btn-remove-item-image');
+window.removeTempImage = (idx) => {
+    tempItemImages.splice(idx, 1);
+    renderThumbnailList();
+};
 
-        img.src = `data:image/jpeg;base64,${compressed}`;
-        img.style.display = 'block';
-        ph.style.display = 'none';
-        btn.style.display = 'block';
+async function handleItemFiles(files) {
+    if (!files || !files.length) return;
 
-    } catch (e) {
-        console.error(e);
-        alert('Failed to process image');
+    // Process all files
+    for (let i = 0; i < files.length; i++) {
+        try {
+            const compressed = await compressImage(files[i]);
+            tempItemImages.push(compressed);
+        } catch (e) {
+            console.error('Failed to process image', files[i].name, e);
+        }
     }
+    renderThumbnailList();
 }
 
 function compressImage(file) {

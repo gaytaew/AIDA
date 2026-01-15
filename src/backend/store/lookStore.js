@@ -169,12 +169,33 @@ export async function createLook(data) {
         if (newLook.items && Array.isArray(newLook.items)) {
             for (let i = 0; i < newLook.items.length; i++) {
                 const item = newLook.items[i];
+
+                // Ensure images array exists
+                if (!item.images) item.images = [];
+
+                // 1. Legacy Single
                 if (item.imageBase64) {
-                    const ext = 'jpg'; // force jpg for simplicity
-                    const fileName = `item-${i}-${Date.now()}.jpg`;
+                    const fileName = `item-${i}-legacy-${Date.now()}.jpg`;
                     await saveImage(folderPath, fileName, item.imageBase64);
-                    item.image = fileName; // Update item with filename
-                    delete item.imageBase64; // Remove base64 from stored JSON
+                    item.image = fileName;
+                    item.images.push(fileName);
+                    delete item.imageBase64;
+                }
+
+                // 2. New Multiple
+                if (item.imagesBase64 && Array.isArray(item.imagesBase64)) {
+                    for (let j = 0; j < item.imagesBase64.length; j++) {
+                        const b64 = item.imagesBase64[j];
+                        const fileName = `item-${i}-${j}-${Date.now()}.jpg`;
+                        await saveImage(folderPath, fileName, b64);
+                        item.images.push(fileName);
+                    }
+                    delete item.imagesBase64;
+                }
+
+                // Sync legacy .image prop
+                if (!item.image && item.images.length > 0) {
+                    item.image = item.images[0];
                 }
             }
         }
@@ -216,12 +237,33 @@ export async function updateLook(id, updates) {
         if (updatedLook.items && Array.isArray(updatedLook.items)) {
             for (let i = 0; i < updatedLook.items.length; i++) {
                 const item = updatedLook.items[i];
-                // If it has a new base64 image
+
+                // Ensure images array exists
+                if (!item.images) item.images = [];
+
+                // 1. Handle Legacy Single Image Base64
                 if (item.imageBase64) {
-                    const fileName = `item-${i}-${Date.now()}.jpg`;
+                    const fileName = `item-${i}-legacy-${Date.now()}.jpg`;
                     await saveImage(folderPath, fileName, item.imageBase64);
-                    item.image = fileName;
+                    item.image = fileName; // Legacy prop
+                    item.images.push(fileName); // Sync to new array
                     delete item.imageBase64;
+                }
+
+                // 2. Handle Multiple Images Base64 (New Standard)
+                if (item.imagesBase64 && Array.isArray(item.imagesBase64)) {
+                    for (let j = 0; j < item.imagesBase64.length; j++) {
+                        const b64 = item.imagesBase64[j];
+                        const fileName = `item-${i}-${j}-${Date.now()}.jpg`;
+                        await saveImage(folderPath, fileName, b64);
+                        item.images.push(fileName);
+                    }
+                    delete item.imagesBase64;
+                }
+
+                // Sync legacy .image prop if missing but .images exists
+                if (!item.image && item.images.length > 0) {
+                    item.image = item.images[0];
                 }
             }
         }
