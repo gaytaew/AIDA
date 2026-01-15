@@ -868,6 +868,79 @@ router.post('/:id/generate', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/custom-shoots/:id/edit-image
+ * Edit an existing image with text instruction
+ */
+router.post('/:id/edit-image', async (req, res) => {
+  const requestId = `edit_${Date.now()}`;
+  const shootId = req.params.id;
+  const { imageId, instruction } = req.body;
+
+  console.log(`[CustomShootRoutes] [${requestId}] EDIT Request for shoot ${shootId}`, { imageId, instruction });
+
+  try {
+    const shoot = await getCustomShootById(shootId);
+    if (!shoot) {
+      return res.status(404).json({ ok: false, error: 'Shoot not found' });
+    }
+
+    if (!imageId || !instruction) {
+      return res.status(400).json({ ok: false, error: 'Missing imageId or instruction' });
+    }
+
+    const result = await editCustomShootImage({
+      shoot,
+      imageId,
+      instruction
+    });
+
+    if (!result.ok) {
+      return res.status(500).json({ ok: false, error: result.error });
+    }
+
+    // The processed output from customShootGenerator (editCustomShootImage)
+    // returns { ok: true, data: { base64, mimeType, ...imgMetadata } }
+    const { base64, mimeType, ...imgMetadata } = result.data;
+    const newImageId = imgMetadata.id;
+
+    // 1. Save binary to disk
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+    const saveResult = await saveImage(shootId, newImageId, dataUrl);
+
+    if (!saveResult.ok) {
+      throw new Error(`Failed to save image: ${saveResult.error}`);
+    }
+
+    // 2. Add record to shoot
+    // imgMetadata has the new ID and all source props. 
+    // We set the proper imageUrl to the saved path.
+    const imageRecord = {
+      ...imgMetadata,
+      imageUrl: saveResult.filePath  // Stored path: "SHOOTID/img.jpg"
+    };
+
+    await addImageToShoot(shootId, imageRecord);
+
+    // 3. Return response with accessible URL
+    // We constructed '/api/images/' prefix logic earlier
+    // Or we can return Data URL for immediate display
+    const responseImage = {
+      ...imageRecord,
+      imageUrl: dataUrl // Send Data URL for immediate display
+    };
+
+    res.json({
+      ok: true,
+      image: responseImage
+    });
+
+  } catch (e) {
+    console.error(`[Edit] Error:`, e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════
 // IMAGE MANAGEMENT ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
