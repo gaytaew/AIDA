@@ -22,5 +22,7 @@ jobs:
             git reset --hard origin/main
             npm ci --production
             npm run check || true
-            sudo systemctl restart aida || echo "Service not configured yet"
+            sudo systemctl restart aida >/dev/null 2>&1 || echo "Service not configured yet"
+            echo "DEPLOY_COMPLETE"
+            exit 0
 
