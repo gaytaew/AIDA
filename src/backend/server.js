@@ -23,6 +23,7 @@ import modelRoutes from './routes/modelRoutes.js';
 import shootRoutes from './routes/shootRoutes.js';
 import emotionRoutes from './routes/emotionRoutes.js';
 import customShootRoutes from './routes/customShootRoutes.js';
+import lookRoutes from './routes/lookRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,13 +44,13 @@ app.use((req, res, next) => {
 // This helps identify if requests are stuck in body parsing
 app.use((req, res, next) => {
   const url = req.originalUrl || req.url;
-  
+
   // Log POST/PUT requests to custom-shoots immediately
   if ((req.method === 'POST' || req.method === 'PUT') && url.includes('/custom-shoots')) {
     const contentLength = req.headers['content-length'] || 0;
     console.log(`[HTTP] ⚡ INCOMING: ${req.method} ${url} (content-length: ${Math.round(contentLength / 1024)}KB)`);
   }
-  
+
   next();
 });
 
@@ -59,11 +60,11 @@ app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 // DIAGNOSTIC: Log after body parsing
 app.use((req, res, next) => {
   const url = req.originalUrl || req.url;
-  
+
   if ((req.method === 'POST' || req.method === 'PUT') && url.includes('/custom-shoots')) {
     console.log(`[HTTP] ✓ BODY_PARSED: ${req.method} ${url}`);
   }
-  
+
   next();
 });
 
@@ -72,13 +73,13 @@ app.use((req, res, next) => {
   const start = Date.now();
   const method = req.method;
   const url = req.originalUrl || req.url;
-  
+
   // Log request start for large bodies
   const bodySize = req.headers['content-length'] || 0;
   if (bodySize > 10000) {
     console.log(`[HTTP] → ${method} ${url} (body: ${Math.round(bodySize / 1024)}KB)`);
   }
-  
+
   // Log response time
   res.on('finish', () => {
     const duration = Date.now() - start;
@@ -86,27 +87,27 @@ app.use((req, res, next) => {
       console.log(`[HTTP] ← ${method} ${url} [${res.statusCode}] ${duration}ms`);
     }
   });
-  
+
   // FORCED TIMEOUT: If request doesn't finish in 3 minutes, kill it
   // This prevents zombie connections from blocking browser connection pool
   const REQUEST_TIMEOUT_MS = 180000; // 3 minutes
-  
+
   const forceTimeout = setTimeout(() => {
     if (!res.headersSent) {
       console.error(`[HTTP] ❌ FORCE_TIMEOUT: ${method} ${url} killed after 3 minutes`);
-      res.status(504).json({ 
-        ok: false, 
+      res.status(504).json({
+        ok: false,
         error: 'Request timeout - operation took too long',
-        timeout: true 
+        timeout: true
       });
     }
   }, REQUEST_TIMEOUT_MS);
-  
+
   // Log warning at 2 minutes
   const warnTimeout = setTimeout(() => {
     console.warn(`[HTTP] ⚠️ SLOW REQUEST: ${method} ${url} still pending after 2 minutes`);
   }, 120000);
-  
+
   res.on('finish', () => {
     clearTimeout(warnTimeout);
     clearTimeout(forceTimeout);
@@ -115,7 +116,7 @@ app.use((req, res, next) => {
     clearTimeout(warnTimeout);
     clearTimeout(forceTimeout);
   });
-  
+
   next();
 });
 
@@ -137,6 +138,7 @@ app.use('/api/models', modelRoutes);
 app.use('/api/shoots', shootRoutes);
 app.use('/api/emotions', emotionRoutes);
 app.use('/api/custom-shoots', customShootRoutes);
+app.use('/api/looks', lookRoutes);
 
 // Fallback: serve index.html for SPA-like navigation
 app.get('*', (req, res) => {

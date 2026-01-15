@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Look Editor — AIDA</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        /* Look Editor specific styles */
+        .items-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .look-item {
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .look-item-image {
+            width: 64px;
+            height: 64px;
+            background: var(--color-bg);
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .look-item-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .look-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .look-item-type {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            font-weight: 600;
+        }
+
+        .look-item-desc {
+            font-size: 13px;
+            color: var(--color-text);
+        }
+
+        .btn-remove-item {
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+        }
+
+        .btn-remove-item:hover {
+            color: #EF4444;
+        }
+
+        .add-item-zone {
+            border: 1px dashed var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--color-text-muted);
+            font-size: 13px;
+        }
+
+        .add-item-zone:hover {
+            border-color: var(--color-accent);
+            background: rgba(99, 102, 241, 0.05);
+            color: var(--color-accent);
+        }
+
+        /* Modal for adding item */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            width: 400px;
+            padding: 24px;
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* Look Gallery Grid */
+        .look-card {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .look-card:hover {
+            border-color: var(--color-accent);
+            transform: translateY(-2px);
+        }
+
+        .look-card.selected {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 2px var(--color-accent);
+        }
+
+        .look-card-preview {
+            aspect-ratio: 3/4;
+            background: var(--color-surface-elevated);
+            position: relative;
+        }
+
+        .look-card-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .look-card-info {
+            padding: 12px;
+        }
+
+        .look-card-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .look-card-meta {
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="logo">
+                    <div class="logo-icon">A</div>
+                    <div class="logo-text">AIDA</div>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav" id="sidebar-nav">
+                <!-- Auto-populated -->
+            </nav>
+            <script src="/shared/sidebar-nav.js"></script>
+
+            <div class="sidebar-footer">
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Загрузка...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="page-header">
+                <h1 class="page-title">Редактор Образов (Looks)</h1>
+                <p class="page-subtitle">
+                    Создавайте и сохраняйте готовые образы (одежда + стилизация) для использования в генераторе.
+                </p>
+            </header>
+
+            <div class="page-content">
+                <div class="editor-layout">
+                    <!-- Left: Edit Panel -->
+                    <div class="panel">
+                        <div class="panel-title">
+                            <span class="panel-title-icon">👔</span>
+                            <span>Параметры Образа</span>
+                        </div>
+
+                        <form id="look-form">
+                            <div class="form-grid">
+                                <div class="form-group full">
+                                    <label for="look-label">Название образа</label>
+                                    <input type="text" id="look-label"
+                                        placeholder="Например: Summer Denim, Corporate Chic">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="look-category">Категория</label>
+                                    <select id="look-category">
+                                        <!-- Populated via JS -->
+                                    </select>
+                                </div>
+
+                                <!-- Items Section -->
+                                <div class="form-group full">
+                                    <label>Элементы одежды</label>
+                                    <div id="items-list" class="items-container">
+                                        <!-- Items will appear here -->
+                                    </div>
+                                    <div id="btn-add-item" class="add-item-zone" style="margin-top: 12px;">
+                                        + Добавить предмет одежды
+                                    </div>
+                                </div>
+
+                                <!-- Prompt Overrides (Optional) -->
+                                <div class="form-group full"
+                                    style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <label>Дополнительное описание (Prompt)</label>
+                                        <span
+                                            style="font-size: 11px; color: var(--color-text-muted);">Опционально</span>
+                                    </div>
+                                    <textarea id="look-prompt-tech"
+                                        placeholder="Техническое описание одежды (materials, fit, details)..."
+                                        style="min-height: 80px; font-family: monospace; font-size: 12px;"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 24px; display: flex; gap: 12px;">
+                                <button type="submit" class="btn btn-primary">💾 Сохранить образ</button>
+                                <button type="button" id="btn-clear" class="btn btn-secondary">Очистить</button>
+                                <button type="button" id="btn-delete" class="btn btn-secondary"
+                                    style="margin-left: auto; color: #EF4444; display: none;">Удалить</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Right: Gallery -->
+                    <div class="panel">
+                        <div class="panel-title">
+                            <span class="panel-title-icon">📚</span>
+                            <span>Каталог Образов</span>
+                        </div>
+
+                        <div id="looks-gallery"
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px;">
+                            <!-- Gallery items -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="item-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 16px;">Добавить предмет</h3>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label>Тип</label>
+                <select id="item-type-select"
+                    style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text); border-radius: 4px;">
+                    <option value="top">Верх (Top)</option>
+                    <option value="bottom">Низ (Bottom)</option>
+                    <option value="shoes">Обувь (Shoes)</option>
+                    <option value="accessory">Аксессуар (Accessory)</option>
+                    <option value="outerwear">Верхняя одежда (Outerwear)</option>
+                    <option value="dress">Платье/Костюм (Full Body)</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label>Описание</label>
+                <input type="text" id="item-desc-input" placeholder="Напр: White cotton t-shirt"
+                    style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text); border-radius: 4px;">
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button id="btn-cancel-item" class="btn btn-secondary">Отмена</button>
+                <button id="btn-confirm-item" class="btn btn-primary">Добавить</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="look-editor.js"></script>
+</body>
+
+</html>

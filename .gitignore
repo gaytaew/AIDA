@@ -17,6 +17,13 @@ src/backend/store/universes/
 src/backend/store/frames/
 src/backend/store/locations/
 src/backend/store/shoots/
+src/backend/store/looks/
+src/backend/store/custom-shoots/
+src/backend/store/images/
+src/backend/store/shoot-images/
+
+# Global Photo Stream
+_all_photos/
 
 # OS
 .DS_Store
@@ -36,3 +43,5 @@ npm-debug.log*
 dist/
 build/
 
+# Backups
+_backups/

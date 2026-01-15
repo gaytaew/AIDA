@@ -19,6 +19,7 @@ const __dirname = path.dirname(__filename);
 
 const SHOOTS_DIR = path.resolve(__dirname, 'shoots');
 const IMAGES_DIR = path.resolve(__dirname, 'shoot-images');
+const GLOBAL_PHOTOS_DIR = path.resolve(__dirname, '../../../_all_photos');
 
 // ═══════════════════════════════════════════════════════════════
 // FILE SYSTEM HELPERS
@@ -70,17 +71,17 @@ function enqueueWrite(task) {
  */
 export async function getAllShoots() {
   await ensureDir(SHOOTS_DIR);
-  
+
   const files = await fs.readdir(SHOOTS_DIR);
   const jsonFiles = files.filter(f => f.endsWith('.json'));
-  
+
   const shoots = [];
-  
+
   for (const file of jsonFiles) {
     try {
       const filePath = path.join(SHOOTS_DIR, file);
       const stat = await fs.stat(filePath);
-      
+
       // For large files (>100KB), read only the beginning
       // This is safe because id, label, createdAt, updatedAt are at the top of the JSON
       if (stat.size > 100000) {
@@ -88,15 +89,15 @@ export async function getAllShoots() {
         const buffer = Buffer.alloc(3000); // Read first 3KB
         await fd.read(buffer, 0, 3000, 0);
         await fd.close();
-        
+
         const partial = buffer.toString('utf8');
-        
+
         // Extract fields using regex (faster than full parse)
         const idMatch = partial.match(/"id"\s*:\s*"([^"]+)"/);
         const labelMatch = partial.match(/"label"\s*:\s*"([^"]+)"/);
         const createdMatch = partial.match(/"createdAt"\s*:\s*"([^"]+)"/);
         const updatedMatch = partial.match(/"updatedAt"\s*:\s*"([^"]+)"/);
-        
+
         shoots.push({
           id: idMatch?.[1] || file.replace('.json', ''),
           label: labelMatch?.[1] || 'Съёмка',
@@ -112,7 +113,7 @@ export async function getAllShoots() {
         // For small files, full parse is fine
         const raw = await fs.readFile(filePath, 'utf8');
         const shoot = JSON.parse(raw);
-        
+
         shoots.push({
           id: shoot.id,
           label: shoot.label,
@@ -128,10 +129,10 @@ export async function getAllShoots() {
       console.error(`[ShootStore] Error reading ${file}:`, error.message);
     }
   }
-  
+
   // Sort by updatedAt descending
   shoots.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-  
+
   return shoots;
 }
 
@@ -140,21 +141,21 @@ export async function getAllShoots() {
  */
 export async function getShootById(id) {
   await ensureDir(SHOOTS_DIR);
-  
+
   const filePath = buildShootPath(id);
-  
+
   if (!(await fileExists(filePath))) {
     return null;
   }
-  
+
   const raw = await fs.readFile(filePath, 'utf8');
   const shoot = JSON.parse(raw);
-  
+
   const validation = validateShootConfig(shoot);
   if (!validation.valid) {
     console.warn(`[ShootStore] Shoot ${id} has validation warnings:`, validation.errors);
   }
-  
+
   return shoot;
 }
 
@@ -163,30 +164,30 @@ export async function getShootById(id) {
  */
 export async function createShoot(shootData = {}) {
   const now = new Date().toISOString();
-  
+
   const newShoot = {
     ...createEmptyShootConfig(shootData.label),
     ...shootData,
     createdAt: now,
     updatedAt: now
   };
-  
+
   const validation = validateShootConfig(newShoot);
   if (!validation.valid) {
     return { success: false, errors: validation.errors };
   }
-  
+
   const filePath = buildShootPath(newShoot.id);
-  
+
   if (await fileExists(filePath)) {
     return { success: false, errors: [`Shoot with ID "${newShoot.id}" already exists.`] };
   }
-  
+
   await enqueueWrite(async () => {
     await ensureDir(SHOOTS_DIR);
     await fs.writeFile(filePath, JSON.stringify(newShoot, null, 2), 'utf8');
   });
-  
+
   return { success: true, shoot: newShoot };
 }
 
@@ -195,11 +196,11 @@ export async function createShoot(shootData = {}) {
  */
 export async function updateShoot(id, updates) {
   const existingShoot = await getShootById(id);
-  
+
   if (!existingShoot) {
     return { success: false, errors: [`Shoot with ID "${id}" not found.`] };
   }
-  
+
   const updatedShoot = {
     ...existingShoot,
     ...updates,
@@ -207,18 +208,18 @@ export async function updateShoot(id, updates) {
     createdAt: existingShoot.createdAt, // Preserve original creation time
     updatedAt: new Date().toISOString()
   };
-  
+
   const validation = validateShootConfig(updatedShoot);
   if (!validation.valid) {
     return { success: false, errors: validation.errors };
   }
-  
+
   const filePath = buildShootPath(id);
-  
+
   await enqueueWrite(async () => {
     await fs.writeFile(filePath, JSON.stringify(updatedShoot, null, 2), 'utf8');
   });
-  
+
   return { success: true, shoot: updatedShoot };
 }
 
@@ -227,15 +228,15 @@ export async function updateShoot(id, updates) {
  */
 export async function deleteShoot(id) {
   const filePath = buildShootPath(id);
-  
+
   if (!(await fileExists(filePath))) {
     return { success: false, errors: [`Shoot with ID "${id}" not found.`] };
   }
-  
+
   await enqueueWrite(async () => {
     await fs.unlink(filePath);
   });
-  
+
   return { success: true };
 }
 
@@ -251,9 +252,9 @@ export async function addModelToShoot(shootId, modelData) {
   if (!shoot) {
     return { success: false, errors: ['Shoot not found'] };
   }
-  
+
   const models = [...(shoot.models || [])];
-  
+
   // Check if model already exists
   const existingIndex = models.findIndex(m => m.modelId === modelData.modelId);
   if (existingIndex >= 0) {
@@ -264,7 +265,7 @@ export async function addModelToShoot(shootId, modelData) {
     }
     models.push(modelData);
   }
-  
+
   return await updateShoot(shootId, { models });
 }
 
@@ -276,20 +277,20 @@ export async function removeModelFromShoot(shootId, modelId) {
   if (!shoot) {
     return { success: false, errors: ['Shoot not found'] };
   }
-  
+
   const models = (shoot.models || []).filter(m => m.modelId !== modelId);
-  
+
   // Also remove related clothing and outfit avatars
   const clothing = (shoot.clothing || []).filter(c => {
     const modelIndex = shoot.models.findIndex(m => m.modelId === modelId);
     return c.forModelIndex !== modelIndex;
   });
-  
+
   const outfitAvatars = (shoot.outfitAvatars || []).filter(a => {
     const modelIndex = shoot.models.findIndex(m => m.modelId === modelId);
     return a.forModelIndex !== modelIndex;
   });
-  
+
   return await updateShoot(shootId, { models, clothing, outfitAvatars });
 }
 
@@ -301,18 +302,18 @@ export async function setClothingForModel(shootId, modelIndex, clothingRefs) {
   if (!shoot) {
     return { success: false, errors: ['Shoot not found'] };
   }
-  
+
   const clothing = [...(shoot.clothing || [])];
-  
+
   // Find existing entry for this model
   const existingIndex = clothing.findIndex(c => c.forModelIndex === modelIndex);
-  
+
   if (existingIndex >= 0) {
     clothing[existingIndex] = { forModelIndex: modelIndex, refs: clothingRefs };
   } else {
     clothing.push({ forModelIndex: modelIndex, refs: clothingRefs });
   }
-  
+
   // Reset outfit avatar for this model when clothing changes
   const outfitAvatars = (shoot.outfitAvatars || []).map(a => {
     if (a.forModelIndex === modelIndex) {
@@ -320,7 +321,7 @@ export async function setClothingForModel(shootId, modelIndex, clothingRefs) {
     }
     return a;
   });
-  
+
   return await updateShoot(shootId, { clothing, outfitAvatars });
 }
 
@@ -332,11 +333,11 @@ export async function setOutfitAvatarForModel(shootId, modelIndex, avatarData) {
   if (!shoot) {
     return { success: false, errors: ['Shoot not found'] };
   }
-  
+
   const outfitAvatars = [...(shoot.outfitAvatars || [])];
-  
+
   const existingIndex = outfitAvatars.findIndex(a => a.forModelIndex === modelIndex);
-  
+
   const avatarEntry = {
     forModelIndex: modelIndex,
     status: avatarData.status || 'ok',
@@ -345,13 +346,13 @@ export async function setOutfitAvatarForModel(shootId, modelIndex, avatarData) {
     prompt: avatarData.prompt || null,
     approvedAt: avatarData.approved ? new Date().toISOString() : null
   };
-  
+
   if (existingIndex >= 0) {
     outfitAvatars[existingIndex] = avatarEntry;
   } else {
     outfitAvatars.push(avatarEntry);
   }
-  
+
   return await updateShoot(shootId, { outfitAvatars });
 }
 
@@ -363,17 +364,17 @@ export async function addFrameToShoot(shootId, frameData) {
   if (!shoot) {
     return { success: false, errors: ['Shoot not found'] };
   }
-  
+
   const frames = [...(shoot.frames || [])];
-  
+
   // Determine order
   const maxOrder = frames.reduce((max, f) => Math.max(max, f.order || 0), 0);
-  
+
   frames.push({
     ...frameData,
     order: frameData.order || maxOrder + 1
   });
-  
+
   return await updateShoot(shootId, { frames });
 }
 
@@ -385,9 +386,9 @@ export async function removeFrameFromShoot(shootId, frameId) {
   if (!shoot) {
     return { success: false, errors: ['Shoot not found'] };
   }
-  
+
   const frames = (shoot.frames || []).filter(f => f.frameId !== frameId);
-  
+
   return await updateShoot(shootId, { frames });
 }
 
@@ -408,19 +409,37 @@ export async function setUniverseForShoot(shootId, universe) {
 async function saveImageToFile(shootId, imageId, imageUrl, metadata) {
   const shootImagesDir = path.join(IMAGES_DIR, shootId);
   await ensureDir(shootImagesDir);
-  
+
   // Extract base64 from data URL
   const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
   if (match) {
     const buffer = Buffer.from(match[2], 'base64');
     const imagePath = buildImagePath(shootId, imageId);
     await fs.writeFile(imagePath, buffer);
+
+    // ═══════════════════════════════════════════════════════════════
+    // GLOBAL PHOTO STREAM
+    // ═══════════════════════════════════════════════════════════════
+    try {
+      // Ensure directory
+      try { await fs.access(GLOBAL_PHOTOS_DIR); } catch { await fs.mkdir(GLOBAL_PHOTOS_DIR, { recursive: true }); }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const globalFilename = `${timestamp}_${shootId}_${imageId}.jpg`; // Assuming jpg from buffer/usage
+      const globalPath = path.join(GLOBAL_PHOTOS_DIR, globalFilename);
+
+      await fs.writeFile(globalPath, buffer);
+      console.log(`[ShootStore] 📸 Streamed to: _all_photos/${globalFilename}`);
+    } catch (streamErr) {
+      console.error('[ShootStore] Global stream save failed:', streamErr);
+    }
+    // ═══════════════════════════════════════════════════════════════
   }
-  
+
   // Save metadata
   const metaPath = buildImageMetaPath(shootId, imageId);
   await fs.writeFile(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
-  
+
   return true;
 }
 
@@ -430,16 +449,16 @@ async function saveImageToFile(shootId, imageId, imageUrl, metadata) {
 async function loadImageFromFile(shootId, imageId) {
   const imagePath = buildImagePath(shootId, imageId);
   const metaPath = buildImageMetaPath(shootId, imageId);
-  
+
   try {
     const [imageBuffer, metaRaw] = await Promise.all([
       fs.readFile(imagePath),
       fs.readFile(metaPath, 'utf8')
     ]);
-    
+
     const metadata = JSON.parse(metaRaw);
     const imageUrl = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
-    
+
     return { ...metadata, imageUrl };
   } catch (error) {
     return null;
@@ -469,10 +488,10 @@ export async function addGeneratedImageToShoot(shootId, imageData) {
   if (!shoot) {
     return { success: false, errors: ['Shoot not found'] };
   }
-  
+
   const imageId = generateImageId();
   const now = new Date().toISOString();
-  
+
   const metadata = {
     id: imageId,
     frameId: imageData.frameId || 'default',
@@ -492,19 +511,19 @@ export async function addGeneratedImageToShoot(shootId, imageData) {
     // Note: promptJson and refs NOT saved to avoid bloat
     createdAt: now
   };
-  
+
   // Save image to separate file
   await saveImageToFile(shootId, imageId, imageData.imageUrl, metadata);
-  
+
   // Update shoot with just the image ID reference (not the full data)
   const imageRefs = [...(shoot.generatedImageRefs || []), imageId];
   const result = await updateShoot(shootId, { generatedImageRefs: imageRefs });
-  
+
   if (result.success) {
-    return { 
-      success: true, 
+    return {
+      success: true,
       image: { ...metadata, imageUrl: imageData.imageUrl },
-      shoot: result.shoot 
+      shoot: result.shoot
     };
   }
   return result;
@@ -515,7 +534,7 @@ export async function addGeneratedImageToShoot(shootId, imageData) {
  */
 export async function getGeneratedImagesForShoot(shootId) {
   const imageIds = await listShootImageIds(shootId);
-  
+
   const images = [];
   for (const imageId of imageIds) {
     const image = await loadImageFromFile(shootId, imageId);
@@ -523,10 +542,10 @@ export async function getGeneratedImagesForShoot(shootId) {
       images.push(image);
     }
   }
-  
+
   // Sort by createdAt descending
   images.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  
+
   return images;
 }
 
@@ -538,7 +557,7 @@ export async function removeGeneratedImageFromShoot(shootId, imageId) {
   if (!shoot) {
     return { success: false, errors: ['Shoot not found'] };
   }
-  
+
   // Delete files
   try {
     await fs.unlink(buildImagePath(shootId, imageId));
@@ -546,10 +565,10 @@ export async function removeGeneratedImageFromShoot(shootId, imageId) {
   } catch (error) {
     console.warn(`[ShootStore] Could not delete image files for ${imageId}:`, error.message);
   }
-  
+
   // Update refs
   const imageRefs = (shoot.generatedImageRefs || []).filter(id => id !== imageId);
-  
+
   return await updateShoot(shootId, { generatedImageRefs: imageRefs });
 }
 
@@ -558,7 +577,7 @@ export async function removeGeneratedImageFromShoot(shootId, imageId) {
  */
 export async function clearGeneratedImagesFromShoot(shootId) {
   const imageIds = await listShootImageIds(shootId);
-  
+
   // Delete all files
   for (const imageId of imageIds) {
     try {
@@ -568,7 +587,7 @@ export async function clearGeneratedImagesFromShoot(shootId) {
       console.warn(`[ShootStore] Could not delete image ${imageId}:`, error.message);
     }
   }
-  
+
   return await updateShoot(shootId, { generatedImageRefs: [] });
 }
 

@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/backend/server.js",
     "dev": "node --watch src/backend/server.js",
-    "check": "node --check src/backend/server.js"
+    "check": "node --check src/backend/server.js",
+    "backup": "bash scripts/backup.sh"
   },
   "keywords": [
     "fashion",
@@ -30,4 +31,3 @@
     "undici": "^6.21.0"
   }
 }
-

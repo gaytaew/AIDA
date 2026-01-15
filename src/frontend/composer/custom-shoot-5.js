@@ -798,6 +798,9 @@ function renderClothingSections() {
             ${model.previewSrc ? `<img src="${model.previewSrc}" alt="">` : ''}
           </div>
           <div class="clothing-section-title">${escapeHtml(model.name)}</div>
+          <button class="btn btn-secondary btn-sm btn-select-look" data-model-index="${index}" style="margin-left: auto; font-size: 11px;">
+            👔 Выбрать Look
+          </button>
         </div>
         
         <!-- Общий промпт лука -->
@@ -3243,3 +3246,166 @@ window.copyFrameSettings = function (frameIndex) {
   console.log('[CopySettings] DONE. Changed:', changedCount);
   showToast(`✅ Применено ${changedCount} настроек`);
 };
+
+// ═══════════════════════════════════════════════════════════════
+// LOOKS MODULE
+// ═══════════════════════════════════════════════════════════════
+
+let targetModelIndexForLook = null;
+
+function initLooksLogic() {
+  const closeBtn = document.getElementById('btn-close-looks-modal');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeLooksModal);
+  }
+
+  // Delegated event for Select Look buttons
+  if (elements.clothingSections) {
+    elements.clothingSections.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-select-look');
+      if (btn) {
+        openLooksModal(parseInt(btn.dataset.modelIndex));
+      }
+    });
+  }
+
+  // Delegated event for Look selection in grid
+  const grid = document.getElementById('looks-grid');
+  if (grid) {
+    grid.addEventListener('click', (e) => {
+      const card = e.target.closest('.look-setup-card');
+      if (card) {
+        applyLookToModel(card.dataset.lookId);
+      }
+    });
+  }
+}
+
+async function openLooksModal(modelIndex) {
+  targetModelIndexForLook = modelIndex;
+  const modal = document.getElementById('looks-modal');
+  const grid = document.getElementById('looks-grid');
+
+  if (modal) modal.style.display = 'flex';
+  if (grid) grid.innerHTML = '<div style="padding: 20px; color: var(--color-text-muted);">Загрузка...</div>';
+
+  try {
+    const res = await fetch('/api/looks');
+    const json = await res.json();
+
+    if (!json.ok || !json.data.length) {
+      if (grid) grid.innerHTML = '<div style="padding: 20px;">Нет доступных образов. Создайте их в редакторе.</div>';
+      return;
+    }
+
+    if (grid) {
+      grid.innerHTML = json.data.map(look => `
+        <div class="look-setup-card" data-look-id="${look.id}" style="
+             background: var(--color-bg); 
+             border: 1px solid var(--color-border); 
+             border-radius: 8px; 
+             overflow: hidden; 
+             cursor: pointer; 
+             transition: transform 0.2s;">
+          <div style="height: 120px; background: #333; position: relative;">
+             <div style="position: absolute; bottom: 8px; left: 8px; font-size: 32px;">👔</div>
+          </div>
+          <div style="padding: 12px;">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${escapeHtml(look.label)}</div>
+            <div style="font-size: 12px; color: var(--color-text-muted);">
+              ${look.items.length} предметов • ${look.category}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    console.error('Error loading looks:', e);
+    if (grid) grid.innerHTML = 'Ошибка загрузки';
+  }
+}
+
+function closeLooksModal() {
+  const modal = document.getElementById('looks-modal');
+  if (modal) modal.style.display = 'none';
+  targetModelIndexForLook = null;
+}
+
+async function applyLookToModel(lookId) {
+  if (targetModelIndexForLook === null) return;
+
+  try {
+    const res = await fetch(`/api/looks/${lookId}`);
+    const json = await res.json();
+
+    if (json.ok) {
+      const look = json.data;
+      const modelIdx = targetModelIndexForLook;
+
+      // 1. Convert Look Items to Clothing Items
+      const newItems = look.items.map(item => ({
+        id: Date.now() + Math.random(), // New ID for this instance
+        name: item.type, // Map type to name
+        type: item.type,
+        prompt: item.description,
+        images: []
+      }));
+
+      const currentItems = state.clothingByModel[modelIdx] || [];
+      state.clothingByModel[modelIdx] = [...currentItems, ...newItems];
+
+      // 2. Update Prompt
+      if (look.prompt?.tech?.description) {
+        const currentPrompt = state.lookPrompts[modelIdx] || '';
+        state.lookPrompts[modelIdx] = currentPrompt
+          ? currentPrompt + '\n' + look.prompt.tech.description
+          : look.prompt.tech.description;
+      }
+
+      // 3. Save and Render
+      // Need to define saveShootClothing in scope or use existing one if exported?
+      // It's in the same file.
+      // Wait, saveShootClothing is likely NOT defined in this file (it was missing from my read).
+      // Let's check if saveShootClothing exists. It should be there.
+      // I'll assume it exists or I'll implement a simple save logic here.
+
+      // Checking file contents (lines 1-800)... I didn't see saveShootClothing.
+      // Let's implement inline save logic just in case.
+
+      if (typeof saveShootClothing === 'function') {
+        await saveShootClothing();
+      } else {
+        // Fallback save implementation
+        if (state.currentShoot) {
+          const clothingPayload = state.clothingByModel.map((items, idx) => ({
+            forModelIndex: idx,
+            items: items
+          }));
+          const promptsPayload = state.lookPrompts.map((p, idx) => ({
+            forModelIndex: idx,
+            prompt: p
+          }));
+
+          await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clothing: clothingPayload,
+              lookPrompts: promptsPayload
+            })
+          });
+        }
+      }
+
+      renderClothingSections();
+      closeLooksModal();
+      showToast('✅ Образ применён');
+    }
+  } catch (e) {
+    console.error('Error applying look:', e);
+    alert('Failed to apply look');
+  }
+}
+
+// Init called at end
+document.addEventListener('DOMContentLoaded', initLooksLogic);

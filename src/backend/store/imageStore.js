@@ -21,6 +21,9 @@ const __dirname = path.dirname(__filename);
 // Base directory for images
 const IMAGES_DIR = path.join(__dirname, 'images');
 
+// GLOBAL STREAM: Save all generated photos here
+const GLOBAL_PHOTOS_DIR = path.resolve(__dirname, '../../../_all_photos');
+
 /**
  * Ensure images directory exists
  */
@@ -30,6 +33,18 @@ async function ensureImagesDir() {
   } catch {
     await fs.mkdir(IMAGES_DIR, { recursive: true });
     console.log('[ImageStore] Created images directory:', IMAGES_DIR);
+  }
+}
+
+/**
+ * Ensure global photos directory exists
+ */
+async function ensureGlobalPhotosDir() {
+  try {
+    await fs.access(GLOBAL_PHOTOS_DIR);
+  } catch {
+    await fs.mkdir(GLOBAL_PHOTOS_DIR, { recursive: true });
+    console.log('[ImageStore] Created global photos directory:', GLOBAL_PHOTOS_DIR);
   }
 }
 
@@ -53,12 +68,12 @@ function parseDataUrl(dataUrl) {
   if (!dataUrl || !dataUrl.startsWith('data:')) {
     return null;
   }
-  
+
   const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) {
     return null;
   }
-  
+
   return {
     mimeType: match[1],
     base64: match[2]
@@ -88,37 +103,56 @@ function getExtension(mimeType) {
  */
 export async function saveImage(shootId, imageId, dataUrl) {
   await ensureImagesDir();
-  
+
   const parsed = parseDataUrl(dataUrl);
   if (!parsed) {
     return { ok: false, error: 'Invalid data URL' };
   }
-  
+
   const shootDir = await ensureShootDir(shootId);
   const ext = getExtension(parsed.mimeType);
   const filename = `${imageId}.${ext}`;
   const filePath = path.join(shootDir, filename);
-  
+
   // Write as binary
   const buffer = Buffer.from(parsed.base64, 'base64');
-  
+
   // Atomic write
   const tempPath = filePath + '.tmp.' + randomBytes(4).toString('hex');
   try {
     await fs.writeFile(tempPath, buffer);
     await fs.rename(tempPath, filePath);
-    
+
     console.log(`[ImageStore] Saved image: ${shootId}/${filename} (${(buffer.length / 1024).toFixed(0)} KB)`);
-    
-    return { 
-      ok: true, 
+
+    // ═══════════════════════════════════════════════════════════════
+    // GLOBAL PHOTO STREAM
+    // ═══════════════════════════════════════════════════════════════
+    try {
+      await ensureGlobalPhotosDir();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      // Format: timestamp_shootId_imageId.ext
+      const globalFilename = `${timestamp}_${shootId}_${imageId}.${ext}`;
+      const globalPath = path.join(GLOBAL_PHOTOS_DIR, globalFilename);
+
+      // Copy the file we just wrote
+      await fs.copyFile(filePath, globalPath);
+      console.log(`[ImageStore] 📸 Streamed to: _all_photos/${globalFilename}`);
+    } catch (streamErr) {
+      console.error('[ImageStore] Global stream save failed:', streamErr);
+      // Non-blocking error - don't fail the main request
+    }
+    // ═══════════════════════════════════════════════════════════════
+
+    return {
+      ok: true,
       filePath: `${shootId}/${filename}`,
       mimeType: parsed.mimeType,
       size: buffer.length
     };
   } catch (err) {
     // Cleanup temp file if exists
-    try { await fs.unlink(tempPath); } catch {}
+    try { await fs.unlink(tempPath); } catch { }
     console.error('[ImageStore] Save error:', err);
     return { ok: false, error: err.message };
   }
@@ -134,17 +168,17 @@ export async function loadImage(imagePath) {
   if (!imagePath) {
     return { ok: false, error: 'No image path' };
   }
-  
+
   // If already a data URL, return as-is
   if (imagePath.startsWith('data:')) {
     return { ok: true, dataUrl: imagePath };
   }
-  
+
   const fullPath = path.join(IMAGES_DIR, imagePath);
-  
+
   try {
     const buffer = await fs.readFile(fullPath);
-    
+
     // Determine mime type from extension
     const ext = path.extname(imagePath).toLowerCase().slice(1);
     const mimeMap = {
@@ -155,10 +189,10 @@ export async function loadImage(imagePath) {
       'gif': 'image/gif'
     };
     const mimeType = mimeMap[ext] || 'image/jpeg';
-    
+
     const base64 = buffer.toString('base64');
     const dataUrl = `data:${mimeType};base64,${base64}`;
-    
+
     return { ok: true, dataUrl, mimeType, buffer };
   } catch (err) {
     if (err.code === 'ENOENT') {
@@ -176,12 +210,12 @@ export async function loadImageBuffer(imagePath) {
   if (!imagePath) {
     return { ok: false, error: 'No image path' };
   }
-  
+
   const fullPath = path.join(IMAGES_DIR, imagePath);
-  
+
   try {
     const buffer = await fs.readFile(fullPath);
-    
+
     const ext = path.extname(imagePath).toLowerCase().slice(1);
     const mimeMap = {
       'jpg': 'image/jpeg',
@@ -191,7 +225,7 @@ export async function loadImageBuffer(imagePath) {
       'gif': 'image/gif'
     };
     const mimeType = mimeMap[ext] || 'image/jpeg';
-    
+
     return { ok: true, buffer, mimeType };
   } catch (err) {
     if (err.code === 'ENOENT') {
@@ -208,9 +242,9 @@ export async function deleteImage(imagePath) {
   if (!imagePath || imagePath.startsWith('data:')) {
     return { ok: true }; // Nothing to delete
   }
-  
+
   const fullPath = path.join(IMAGES_DIR, imagePath);
-  
+
   try {
     await fs.unlink(fullPath);
     console.log(`[ImageStore] Deleted image: ${imagePath}`);
@@ -229,7 +263,7 @@ export async function deleteImage(imagePath) {
  */
 export async function deleteShootImages(shootId) {
   const shootDir = path.join(IMAGES_DIR, shootId);
-  
+
   try {
     await fs.rm(shootDir, { recursive: true, force: true });
     console.log(`[ImageStore] Deleted shoot images: ${shootId}`);
