@@ -243,18 +243,21 @@ GOAL: Create an image indistinguishable from a real photo shot on a Phase One ca
     const surfaceSpec = FOOD_SURFACE.options.find(o => o.value === surface)?.spec || '';
     const crockerySpec = FOOD_CROCKERY.options.find(o => o.value === crockery)?.spec || '';
 
+    // 2. MANDATORY ENVIRONMENT (IMMUTABLE)
+    // These settings MUST override any reference image content (e.g. background/plate)
     sections.push(`
-TECHNIQUE:
-- ${cameraSpec}
-- ${angleSpec}
-- ${lightingSpec}
-- ${compSpec}
-- ${depthSpec}
-- ${colorSpec}`);
+MANDATORY SCENE CONFIG:
+The following environmental settings are HARD REQUIREMENTS.
+If a Reference Image shows a different background or plate, YOU MUST REPLACE IT with the settings below.
 
-    // 2. SUBJECT LOGIC (Reference vs Description)
+SURFACE / BACKGROUND: ${surfaceSpec || 'Neutral'}
+CROCKERY / VESSEL: ${crockerySpec || 'Appropriate for dish'}
+LIGHTING: ${lightingSpec}
+CAMERA: ${cameraSpec}
+ANGLE: ${angleSpec}
+`);
 
-    // 2. SUBJECT LOGIC (Reference + Text Hybrid)
+    // 3. SUBJECT LOGIC (Reference vs Description)
     // The user wants the STRUCTURE from the reference, but the CONTENT from the text description?
     // Or strictly the reference content?
     // Based on "Ignore Prompt" report: The user typed a prompt but it was ignored because "if (indexMap.subject)" block didn't include ${dishDescription}.
@@ -279,8 +282,8 @@ REFERENCE GUIDANCE (STRUCTURE & FORM):
    - NEW LOGIC: Use Ref for Lighting/Angle/Shape. Use Description for FOOD CONTENT.
 
 IMPORTANT OVERRIDES:
-- IGNORE the background/surface in Reference [$${indexMap.subject}]. Replace it with: "${surfaceSpec}".
-- IGNORE the plate/crockery in Reference [$${indexMap.subject}]. Replace it with: "${crockerySpec}" (unless a specific Crockery Reference is provided).`);
+- **BACKGROUND**: DO NOT COPY the background from Reference [$${indexMap.subject}]. Use the "SURFACE" specified above.
+- **PLATE/DISH**: DO NOT COPY the plate/dish from Reference [$${indexMap.subject}]. Use the "CROCKERY" specified above (unless a specific Crockery Reference is separately provided).`);
 
     } else {
         // TEXT DESCRIPTION MODE
@@ -290,12 +293,14 @@ SUBJECT (TEXT BASED):
     }
 
     sections.push(`
-STYLING:
+STYLING DETAILS:
 - ${platingSpec}
 - ${stateSpec}
 - ${textureSpec}
 - ${dynamicsSpec}
-- ${surfaceSpec}`); // Added Surface
+- ${compSpec}
+- ${depthSpec}
+- ${colorSpec}`);
 
     // 3. OTHER REFERENCES
     const refLines = [];
