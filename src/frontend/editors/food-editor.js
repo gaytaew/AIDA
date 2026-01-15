@@ -109,7 +109,7 @@ function renderOptions() {
     populate(els.selects.dynamics, state.options.dynamics);
     populate(els.selects.state, state.options.state);
     populate(els.selects.aspectRatio, state.options.aspectRatio);
-    populate(els.selects.quality, state.options.quality);
+    populate(els.selects.imageSize, state.options.imageSize);
 }
 
 function applyPreset(presetId) {
