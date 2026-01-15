@@ -254,8 +254,9 @@ TECHNIQUE:
 
     // 2. SUBJECT LOGIC (Reference vs Description)
 
-    // STRICT REFERENCE MODE
-    sections.push(`
+    if (indexMap.subject) {
+        // STRICT REFERENCE MODE
+        sections.push(`
 SUBJECT (STRICT REFERENCE MATCH):
 The image MUST be a near-duplicate of the food in Reference [$${indexMap.subject}].
 1. MATCH: Ingredients, textures, cooking level, glossiness 100%.
@@ -268,24 +269,24 @@ IMPORTANT OVERRIDES:
 - IGNORE the background/surface in Reference [$${indexMap.subject}]. Replace it with: "${surfaceSpec}".
 - IGNORE the plate/crockery in Reference [$${indexMap.subject}]. Replace it with: "${crockerySpec}" (unless a specific Crockery Reference is provided).`);
 
-    if (changesDescription) {
-        sections.push(`
+        if (changesDescription) {
+            sections.push(`
 REQUIRED MODIFICATIONS (Apply to Reference [$${indexMap.subject}]):
 > ${changesDescription}
 (Keep everything else exactly as in the reference, especially the Shape)`);
-    } else {
-        sections.push(`
+        } else {
+            sections.push(`
 NO MODIFICATIONS to the Food itself: Reproduce the reference dish exactly (Shape, Texture, Ingredients).`);
-    }
+        }
 
-} else {
-    // TEXT DESCRIPTION MODE
-    sections.push(`
+    } else {
+        // TEXT DESCRIPTION MODE
+        sections.push(`
 SUBJECT (TEXT BASED):
 ${dishDescription}`);
-}
+    }
 
-sections.push(`
+    sections.push(`
 STYLING:
 - ${platingSpec}
 - ${stateSpec}
@@ -293,45 +294,45 @@ STYLING:
 - ${dynamicsSpec}
 - ${surfaceSpec}`); // Added Surface
 
-// 3. OTHER REFERENCES
-const refLines = [];
+    // 3. OTHER REFERENCES
+    const refLines = [];
 
-if (indexMap.crockery) {
-    refLines.push(`REFERENCE [$${indexMap.crockery}]: CROCKERY / VESSEL (MANDATORY).
+    if (indexMap.crockery) {
+        refLines.push(`REFERENCE [$${indexMap.crockery}]: CROCKERY / VESSEL (MANDATORY).
         - Use the EXACT plate/bowl/cup from [$${indexMap.crockery}].
         - Ignore any food inside the crockery reference; replace it with the SUBJECT.`);
-} else {
-    // Fallback to Crockery Param if no Ref
-    if (crockerySpec) {
-        refLines.push(`CROCKERY (NO REFERENCE):
+    } else {
+        // Fallback to Crockery Param if no Ref
+        if (crockerySpec) {
+            refLines.push(`CROCKERY (NO REFERENCE):
         - ${crockerySpec}`);
+        }
     }
-}
 
-if (indexMap.style) {
-    refLines.push(`REFERENCE [$${indexMap.style}]: VISUAL STYLE / MOOD.
+    if (indexMap.style) {
+        refLines.push(`REFERENCE [$${indexMap.style}]: VISUAL STYLE / MOOD.
         - Copy lighting, color grading, and background texture from [$${indexMap.style}].`);
-}
+    }
 
-if (refLines.length > 0) {
-    sections.push(`
+    if (refLines.length > 0) {
+        sections.push(`
 REFERENCES:
 ${refLines.join('\n')}`);
-}
+    }
 
-// 4. HARD RULES (Updated for Hyper-realism)
-sections.push(`
+    // 4. HARD RULES (Updated for Hyper-realism)
+    sections.push(`
 HARD RULES:
 1. PHOTOREALISM IS PARAMOUNT. No plastic texture, no CGI look.
 2. EDIBLE TEXTURES: Moisture, steam (if hot), crumbs, imperfections must look real.
 3. No text, logos, or watermarks.`);
 
-// Note: Quality logic removed, handled by imageSize resolution in requestGeminiImage
+    // Note: Quality logic removed, handled by imageSize resolution in requestGeminiImage
 
-// Backup: Explicitly state format in text
-if (params.aspectRatio) {
-    sections.push(`FORMAT: The output image must be in ${params.aspectRatio} aspect ratio.`);
-}
+    // Backup: Explicitly state format in text
+    if (params.aspectRatio) {
+        sections.push(`FORMAT: The output image must be in ${params.aspectRatio} aspect ratio.`);
+    }
 
-return sections.join('\n');
+    return sections.join('\n');
 }
