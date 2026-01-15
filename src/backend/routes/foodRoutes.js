@@ -45,6 +45,8 @@ router.get('/options', (req, res) => {
             color: FOOD_COLOR,
             texture: FOOD_TEXTURE,
             dynamics: FOOD_DYNAMICS,
+            surface: FOOD_SURFACE,
+            crockery: FOOD_CROCKERY,
             presets: FOOD_PRESETS
         }
     });
