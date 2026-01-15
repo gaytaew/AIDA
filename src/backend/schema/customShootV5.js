@@ -1118,9 +1118,9 @@ export const CONTEXT_SEASON = {
   label: '🍂 Время года',
   options: [
     { value: 'spring', label: 'Весна', visual: 'Fresh green foliage, flowers blooming' },
-    { value: 'summer', label: 'Лето', visual: 'Lush green, bright light, heat haze' },
+    { value: 'summer', label: 'Лето', visual: 'Lush green foliage environment' },
     { value: 'autumn', label: 'Осень', visual: 'Golden/red foliage, fallen leaves' },
-    { value: 'winter', label: 'Зима', visual: 'Bare trees, possible snow, cold light' },
+    { value: 'winter', label: 'Зима', visual: 'Bare trees, possible snow' },
     { value: 'any', label: 'Любой / В помещении', visual: 'Season not visible' }
   ]
 };
@@ -1340,14 +1340,6 @@ Interpret these descriptions to set the mood and style.
 ═══════════════════════════════════════════════════════════════
 
 ${artisticBrief}
-
-${applied.length > 0 ? `
-═══════════════════════════════════════════════════════════════
-[SYSTEM NOTES] — AUTO-CORRECTIONS APPLIED
-The following parameter conflicts were automatically resolved:
-${applied.map(a => `• ${a.field}: ${a.from} → ${a.to} (${a.reason})`).join('\n')}
-═══════════════════════════════════════════════════════════════
-` : ''}
 
 ═══════════════════════════════════════════════════════════════
 [SCENE DESCRIPTION]
@@ -1632,17 +1624,8 @@ function buildSceneDescription(scene, params) {
     parts.push(`TEXTURE DETAILS: ${scene.texture}`);
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // CONTEXT (Time, Weather, Season from V5 params)
-  // ═══════════════════════════════════════════════════════════════
-  const time = CONTEXT_TIME.options.find(o => o.value === params.timeOfDay);
-  if (time) parts.push(`TIME OF DAY: ${time.label}`);
-
-  const weather = CONTEXT_WEATHER.options.find(o => o.value === params.weather);
-  if (weather) parts.push(`WEATHER: ${weather.label}`);
-
-  const season = CONTEXT_SEASON.options.find(o => o.value === params.season);
-  if (season && season.value !== 'any') parts.push(`SEASON: ${season.label} — ${season.visual}`);
+  // Context params are already integrated into LOCATION CONTEXT above via adaptations.
+  // We remove the redundant explicit block here to prevent duplication.
 
   // ═══════════════════════════════════════════════════════════════
   // REFERENCE FLAGS
