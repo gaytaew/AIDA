@@ -31,6 +31,8 @@ const els = {
         color: document.getElementById('param-color'), // New
         plating: document.getElementById('param-plating'),
         texture: document.getElementById('param-texture'), // New
+        surface: document.getElementById('param-surface'), // Phase 4 (Was missing)
+        crockery: document.getElementById('param-crockery'), // Phase 4 (Was missing)
         dynamics: document.getElementById('param-dynamics'), // New
         state: document.getElementById('param-state'),
         aspectRatio: document.getElementById('param-aspectRatio'),
