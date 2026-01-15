@@ -300,54 +300,207 @@ function loadParams(params) {
     alert('✅ Загружено из истории!');
 }
 
+/* ═══════════════════════════════════════
+   HISTORY & GALLERY (V5 Standard)
+   ═══════════════════════════════════════ */
+
 function renderHistory() {
+    // Map to V5 standard 'generatedFrames' format for compatibility if needed, 
+    // but we can just render state.history directly using the V5 template logic.
+
     if (state.history.length === 0) {
-        els.historyContainer.innerHTML = '';
-        els.emptyState.style.display = 'block';
+        els.historyContainer.innerHTML = `
+          <div class="empty-state" id="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+            <div class="empty-state-icon">🍔</div>
+            <div class="empty-state-title">История пуста</div>
+            <div class="empty-state-text">Здесь появятся ваши вкусные кадры</div>
+          </div>`;
         return;
     }
 
-    els.emptyState.style.display = 'none';
-    els.historyContainer.innerHTML = state.history.map((item, index) => {
+    els.historyContainer.innerHTML = state.history.map((item, idx) => {
         const p = item.params || {};
         const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        const v = (val) => val ? val : '-';
+        const imageUrl = `data:${item.mimeType};base64,${item.base64}`; // Construct URL for Lightbox/Img
+
+        // Settings HTML
+        const settingsHtml = buildFoodSettingsHtml(p);
+
+        // Refs HTML
+        // item doesn't store refs images structure nicely in `state.history`, 
+        // usually we might want to store them? For now we just show badges if refs were used.
+        // Actually `item` has `params`, but `item.base64` is the result.
+        // Did we store which refs were used? Not deeply in `item` (only in `state.images` at time of gen).
+        // For now, assume badges are based on non-empty params if we tracked them, 
+        // OR just skip ref thumbs in history for v1.
 
         return `
-        <div class="history-card">
-            <div style="position:relative;">
-                <img src="data:${item.mimeType};base64,${item.base64}" loading="lazy" style="display:block;">
-                <div style="position: absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); color:white; padding:2px 6px; border-radius:4px; font-size:10px;">${dateStr}</div>
-            </div>
-            
-            <div class="history-info">
-                <div style="font-weight:600; font-size:12px; margin-bottom:6px; color:#fff;">${p.dishDescription || 'No description'}</div>
-                
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; font-size:10px; color:#999;">
-                    <div>📸 ${v(p.camera)}</div>
-                    <div>💡 ${v(p.lighting)}</div>
-                    <div>🥣 ${v(p.crockery)}</div>
-                    <div>🪵 ${v(p.surface)}</div>
-                </div>
+      <div class="selection-card generated-frame-card" style="cursor: default; position: relative;">
+        <!-- Lock badges -->
+        <div class="history-lock-badges">
+          ${p.surface ? '<span class="history-lock-badge style" title="Surface Set">🪵</span>' : ''}
+          ${p.crockery ? '<span class="history-lock-badge location" title="Crockery Set">🥣</span>' : ''}
+        </div>
+        
+        <div class="selection-card-preview btn-open-lightbox" data-index="${idx}" style="cursor: pointer;" title="Клик для просмотра">
+          <img src="${imageUrl}" alt="Food Shot" style="object-fit: contain; background: #000; pointer-events: none;">
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <div class="selection-card-title" style="margin: 0; font-size:14px;">${escapeHtml(p.dishDescription || 'Food Shot')}</div>
+          <span style="font-size: 11px; color: var(--color-text-muted);">${dateStr}</span>
+        </div>
+        
+        <div style="font-size: 11px; color: var(--color-text-muted); margin-bottom:8px;">
+           ${p.camera ? `📸 ${p.camera}` : ''} • ${p.lighting ? `💡 ${p.lighting}` : ''}
+        </div>
 
-                ${p.changesDescription ? `<div style="margin-top:6px; color:#fbbf24; font-size:10px;">✏️ ${p.changesDescription}</div>` : ''}
-
-                <div style="margin-top:8px; border-top:1px solid #333; padding-top:4px; font-size:9px; opacity:0.5;">
-                     ${String(p.imageSize || '2k').toUpperCase()} • ${v(p.aspectRatio)}
-                </div>
-            </div>
-
-            <div class="history-actions">
-                 <button class="btn-mini" onclick="window.loadParamsHistory(${index})">♻️ Load</button>
-                 <a href="data:${item.mimeType};base64,${item.base64}" download="food_${index}.jpg" class="btn-mini" style="text-align:center; text-decoration:none; color:white;">💾 Save</a>
-            </div>
-        </div>`;
+        <!-- Actions -->
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 8px;">
+            <a href="${imageUrl}" download="food_${idx}.jpg" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾 Save</a>
+            <button class="btn btn-secondary" onclick="window.loadParamsHistory(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Load Params">♻️ Load</button>
+            <button class="btn btn-secondary" onclick="window.deleteHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>
+          </div>
+        </div>
+        
+        <!-- Settings Details -->
+        <details style="margin-top: 12px; width: 100%;">
+          <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
+            ⚙️ Детали и Настройки
+          </summary>
+          <div style="margin-top: 10px; text-align: left; font-size: 11px; background: var(--color-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--color-border);">
+            ${settingsHtml}
+          </div>
+        </details>
+        
+        <!-- Prompt Debug -->
+        <details style="margin-top: 8px; width: 100%;">
+          <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
+            📋 Промпт
+          </summary>
+          <div style="margin-top: 10px; text-align: left;">
+            <pre style="white-space: pre-wrap; word-break: break-word; background: var(--color-surface-elevated); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 150px; overflow: auto; font-size: 10px; font-family: monospace; border: 1px solid var(--color-border); margin-top: 10px;">${escapeHtml(item.prompt || 'N/A')}</pre>
+          </div>
+        </details>
+      </div>
+    `;
     }).join('');
+
+    // Attach Lightbox Handlers
+    document.querySelectorAll('.btn-open-lightbox').forEach(btn => {
+        btn.addEventListener('click', () => openLightbox(parseInt(btn.dataset.index)));
+    });
+}
+
+function buildFoodSettingsHtml(p) {
+    const items = [];
+    const row = (label, val) => `<div><strong>${label}:</strong> ${escapeHtml(val)}</div>`;
+
+    if (p.aspectRatio) items.push(row('📐 Формат', `${p.aspectRatio}, ${p.imageSize || '2K'}`));
+    if (p.dishDescription) items.push(row('🍽️ Блюдо', p.dishDescription));
+    if (p.changesDescription) items.push(`<div style="color:var(--color-accent);"><strong>✏️ Правки:</strong> ${escapeHtml(p.changesDescription)}</div>`);
+
+    if (p.camera) items.push(row('📸 Камера', p.camera));
+    if (p.angle) items.push(row('📐 Ракурс', p.angle));
+    if (p.lighting) items.push(row('💡 Свет', p.lighting));
+
+    if (p.plating) items.push(row('👨‍🍳 Подача', p.plating));
+    if (p.surface) items.push(row('🪵 Поверхность', p.surface));
+    if (p.crockery) items.push(row('🥣 Посуда', p.crockery));
+
+    // Group others
+    const extras = [];
+    if (p.texture) extras.push(`Фактура: ${p.texture}`);
+    if (p.steam) extras.push(`Пар: ${p.steam}`);
+    if (p.color) extras.push(`Цвет: ${p.color}`);
+
+    if (extras.length > 0) {
+        items.push(`<div><strong>✨ Детали:</strong> ${extras.join(', ')}</div>`);
+    }
+
+    return items.join('');
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 window.loadParamsHistory = (index) => {
     if (state.history[index]) loadParams(state.history[index].params);
 };
 
+window.deleteHistoryItem = (index) => {
+    if (confirm('Удалить из истории?')) {
+        state.history.splice(index, 1);
+        renderHistory();
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// LIGHTBOX
+// ═══════════════════════════════════════════════════════════════
+
+const lightbox = {
+    overlay: null,
+    image: null,
+    currentIndex: 0,
+    images: [] // base64 strings
+};
+
+function initLightbox() {
+    // Create lightbox DOM if not exists
+    if (!document.getElementById('lightbox')) {
+        const lb = document.createElement('div');
+        lb.id = 'lightbox';
+        lb.className = 'lightbox-overlay';
+        lb.innerHTML = `
+            <button class="lightbox-close" id="lightbox-close">×</button>
+            <div class="lightbox-container">
+                <img id="lightbox-image" class="lightbox-image" src="" alt="Full view">
+            </div>
+        `;
+        document.body.appendChild(lb);
+    }
+
+    lightbox.overlay = document.getElementById('lightbox');
+    lightbox.image = document.getElementById('lightbox-image');
+
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+
+    lightbox.overlay.addEventListener('click', (e) => {
+        if (e.target === lightbox.overlay) closeLightbox();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (!lightbox.overlay.classList.contains('active')) return;
+        if (e.key === 'Escape') closeLightbox();
+    });
+}
+
+function openLightbox(index) {
+    if (!lightbox.overlay) initLightbox();
+
+    lightbox.images = state.history.map(item => `data:${item.mimeType};base64,${item.base64}`);
+    lightbox.currentIndex = index;
+
+    updateLightboxImage();
+    lightbox.overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+    lightbox.overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function updateLightboxImage() {
+    lightbox.image.src = lightbox.images[lightbox.currentIndex] || '';
+}
+
 // Start
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    initLightbox();
+});
