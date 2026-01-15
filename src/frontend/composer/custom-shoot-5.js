@@ -1557,6 +1557,9 @@ function renderUniverseParamsUI() {
 /**
  * Apply V5 dependency rules and show corrections
  */
+/**
+ * Apply V5 dependency rules and show corrections
+ */
 async function applyV5Dependencies() {
   try {
     const res = await fetchWithTimeout('/api/universes/v5/apply', {
@@ -1568,34 +1571,30 @@ async function applyV5Dependencies() {
     const data = await res.json();
 
     if (data.ok && data.data) {
-      const { resolvedParams, corrections } = data.data;
+      const { corrections, warnings } = data.data;
 
-      // Update state with resolved params
-      state.v5Values = { ...resolvedParams };
-      state.universeValues = { ...resolvedParams };
+      // DO NOT AUTO-APPLY CORRECTIONS!
+      // The user wants manual control. We just show conflicts.
 
-      // Update UI selects if values changed
-      Object.entries(resolvedParams).forEach(([paramId, value]) => {
-        const select = document.querySelector(`[data-v5-param="${paramId}"]`);
-        if (select && select.value !== value) {
-          select.value = value;
-        }
-      });
+      // Clear old markers
+      document.querySelectorAll('.v5-conflict-marker').forEach(el => el.remove());
+      document.querySelectorAll('.v5-param-select').forEach(el => el.classList.remove('v5-conflict-input'));
 
-      // Show corrections panel if any
+      // Render new markers
+      renderConflictMarkers(corrections || [], warnings || []);
+
+      // Also update the global corrections panel (as a summary)
       const panel = document.getElementById('v5-corrections-panel');
       const list = document.getElementById('v5-corrections-list');
 
       if (corrections && corrections.length > 0 && panel && list) {
         panel.style.display = 'block';
         list.innerHTML = corrections.map(c => `
-          <div style="padding: 8px; background: var(--color-bg); border-radius: 6px; margin-bottom: 6px; font-size: 12px;">
-            <strong>${c.field}</strong>: ${c.from} → ${c.to}
-            <div style="font-size: 11px; color: var(--color-text-muted);">${c.reason || 'Конфликт параметров'}</div>
+          <div style="padding: 8px; background: var(--color-bg); border-radius: 6px; margin-bottom: 6px; font-size: 12px; border-left: 3px solid #ff9800;">
+            <strong>${c.field}</strong> conflict!
+            <div style="font-size: 11px; color: var(--color-text-muted);">${c.reason || 'Incompatible parameter'}</div>
           </div>
         `).join('');
-
-        console.log('[V5] Applied corrections:', corrections);
       } else if (panel) {
         panel.style.display = 'none';
       }
@@ -1603,6 +1602,50 @@ async function applyV5Dependencies() {
   } catch (e) {
     console.error('[V5] Error applying dependencies:', e);
   }
+}
+
+/**
+ * Render visual conflict markers under fields
+ */
+function renderConflictMarkers(conflicts, warnings) {
+  // combine all issues
+  const allIssues = [
+    ...conflicts.map(c => ({ ...c, type: 'conflict', color: '#ff9800', icon: '⚠️' })),
+    ...warnings.map(w => ({ ...w, type: 'warning', color: '#2196f3', icon: '💡' }))
+  ];
+
+  allIssues.forEach(issue => {
+    // Find the input element
+    const el = document.querySelector(`.v5-param-select[data-v5-param="${issue.field}"]`);
+    if (el) {
+      // Highlight input
+      el.classList.add('v5-conflict-input');
+
+      // Create marker
+      const marker = document.createElement('div');
+      marker.className = 'v5-conflict-marker';
+      marker.style.cssText = `
+        font-size: 11px;
+        color: ${issue.color};
+        margin-top: 4px;
+        padding: 4px 6px;
+        background: rgba(0,0,0,0.05);
+        border-left: 2px solid ${issue.color};
+        border-radius: 0 4px 4px 0;
+      `;
+      marker.innerHTML = `
+        <div style="font-weight: 500;">${issue.icon} ${issue.type === 'conflict' ? 'Conflict' : 'Suggestion'}</div>
+        <div style="opacity: 0.8;">${issue.reason}</div>
+      `;
+
+      // Append after the form group wrapper
+      // The select is inside a .form-group div (created by renderParamSelect)
+      const wrapper = el.parentElement;
+      if (wrapper) {
+        wrapper.appendChild(marker);
+      }
+    }
+  });
 }
 
 /**
