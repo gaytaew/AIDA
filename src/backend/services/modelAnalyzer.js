@@ -75,8 +75,6 @@ Return a valid JSON object with this structure:
   "promptSnippet": "Detailed physical description (2-4 paragraphs) covering all visible features. Be specific about measurements, shapes, colors. This will be used verbatim in image generation prompts.",
   "heightCm": estimated height as number or null,
   "bodyType": "one of: slim, athletic, curvy, petite, tall, average, plus-size",
-  "faceExpressions": "Default facial expression characteristics based on the photos",
-  "poses": "Default pose style and movement characteristics",
   "background": "Professional characteristics/vibe (e.g., fashion, editorial, commercial, extreme, lifestyle). Infer from the model's look and potential utility."
 }
 
@@ -197,8 +195,6 @@ export async function analyzeModelPhotos(images, hint = '') {
     promptSnippet: parsed.promptSnippet || '',
     heightCm: typeof parsed.heightCm === 'number' ? Math.round(parsed.heightCm) : null,
     bodyType: parsed.bodyType || '',
-    faceExpressions: parsed.faceExpressions || '',
-    poses: parsed.poses || '',
     background: parsed.background || ''
   };
 

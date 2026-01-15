@@ -29,8 +29,6 @@ const elements = {
   modelBodyType: null,
   modelBackground: null, // New field
   modelPrompt: null,
-  modelExpressions: null,
-  modelPoses: null,
 
   // New granular controls
   avatarGrid: null,
@@ -80,8 +78,6 @@ function initElements() {
   elements.modelBodyType = document.getElementById('model-body-type');
   elements.modelBackground = document.getElementById('model-background');
   elements.modelPrompt = document.getElementById('model-prompt');
-  elements.modelExpressions = document.getElementById('model-expressions');
-  elements.modelPoses = document.getElementById('model-poses');
 
   elements.avatarGrid = document.getElementById('avatar-grid');
   elements.btnGenerateAvatarsAll = document.getElementById('btn-generate-avatars-all');
@@ -311,8 +307,6 @@ function fillFormWithModel(model) {
   elements.modelBodyType.value = model.bodyType || '';
   elements.modelBackground.value = model.background || '';
   elements.modelPrompt.value = model.promptSnippet || '';
-  elements.modelExpressions.value = model.faceExpressions || '';
-  elements.modelPoses.value = model.poses || '';
 
   // Render grid based on loaded shots or empty state
   renderAvatarGrid();
@@ -616,9 +610,7 @@ function collectFormData() {
     heightCm: elements.modelHeight.value ? parseInt(elements.modelHeight.value) : null,
     bodyType: elements.modelBodyType.value,
     background: elements.modelBackground.value.trim(),
-    promptSnippet: elements.modelPrompt.value.trim(),
-    faceExpressions: elements.modelExpressions.value.trim(),
-    poses: elements.modelPoses.value.trim()
+    promptSnippet: elements.modelPrompt.value.trim()
   };
 }
 
@@ -782,8 +774,6 @@ function clearForm() {
   elements.modelBodyType.value = '';
   elements.modelBackground.value = '';
   elements.modelPrompt.value = '';
-  elements.modelExpressions.value = '';
-  elements.modelPoses.value = '';
   elements.fileInput.value = '';
   elements.avatarGrid.innerHTML = '';
   elements.collagePreview.style.display = 'none';
@@ -821,29 +811,25 @@ function hideStatus(elementId) {
   el.className = 'status-message';
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function checkServerStatus() {
+  fetch('/api/health')
+    .then(r => r.json())
+    .then(data => {
+      elements.serverStatus.textContent = data.ok ? 'Онлайн' : 'Ошибка';
+      elements.serverStatus.style.color = data.ok ? 'var(--color-success)' : 'var(--color-error)';
+    })
+    .catch(() => {
+      elements.serverStatus.textContent = 'Офлайн';
+      elements.serverStatus.style.color = 'var(--color-error)';
+    });
 }
 
-async function checkServerStatus() {
-  try {
-    const response = await fetch('/api/health');
-    const data = await response.json();
-
-    if (data.ok) {
-      elements.serverStatus.textContent = 'Сервер работает';
-      elements.serverStatus.parentElement.classList.add('online');
-    } else {
-      throw new Error('Server not healthy');
-    }
-  } catch (error) {
-    elements.serverStatus.textContent = 'Сервер недоступен';
-    elements.serverStatus.parentElement.classList.add('offline');
-  }
+function escapeHtml(unsafe) {
+  if (typeof unsafe !== 'string') return '';
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
-
