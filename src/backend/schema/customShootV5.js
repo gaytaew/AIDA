@@ -533,11 +533,11 @@ export const TECH_ANTI_AI = {
   label: '🤖 Anti-AI фильтр',
   description: 'Уровень подавления "пластиковости"',
   options: [
-    { value: 'off', label: 'Выкл (Стандарт)', spec: '' },
-    { value: 'low', label: 'Низкий', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon.' },
-    { value: 'medium', label: 'Средний', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry.' },
-    { value: 'high', label: 'Высокий', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry, airbrushed, digital art, uncanny valley.' },
-    { value: 'maximum', label: 'Максимум (Raw)', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry, airbrushed, digital art, uncanny valley, cgi, glossy skin, instagram filter.' },
+    { value: 'off', label: 'Выкл (Стандарт)', spec: 'NEGATIVE PROMPT: distorted face, bad anatomy, awkward expression, grimace, weird smile.' },
+    { value: 'low', label: 'Низкий', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, distorted face, bad anatomy, awkward expression, grimace, weird smile.' },
+    { value: 'medium', label: 'Средний', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry, distorted face, bad anatomy, awkward expression, grimace, weird smile, bad eyes, crossed eyes.' },
+    { value: 'high', label: 'Высокий', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry, airbrushed, digital art, uncanny valley, distorted face, bad anatomy, awkward expression, grimace, weird smile, bad eyes, open mouth drooling.' },
+    { value: 'maximum', label: 'Максимум (Raw)', spec: 'NEGATIVE PROMPT: smooth plastic skin, wax doll, 3d render, cartoon, oversmoothed, artificial shine, perfect symmetry, airbrushed, digital art, uncanny valley, cgi, glossy skin, instagram filter, distorted face, bad anatomy, awkward expression, grimace, weird smile, bad eyes, uncanny smile.' },
   ]
 };
 
@@ -819,7 +819,7 @@ export const ART_SPONTANEITY = {
     {
       value: 'candid',
       label: 'Абсолютно случайно (Candid)',
-      narrative: 'SPONTANEITY: Fully candid — subject unaware of camera or ignoring it. Caught mid-action, mid-sentence, mid-thought.',
+      narrative: 'SPONTANEITY: Fully candid — subject unaware of camera or ignoring it. Caught in a natural moment, but composition and expression remain photogenic. Avoid awkward mid-speech frames.',
       direction: 'observe, don\'t direct'
     },
     {

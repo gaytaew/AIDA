@@ -3519,7 +3519,30 @@ async function applyLookToModel(lookId) {
         name: item.type, // Map type to name
         type: item.type,
         prompt: item.description,
-        images: []
+        images: (function () {
+          const imgs = [];
+          // Handle multiple images (new standard)
+          if (item.images && Array.isArray(item.images)) {
+            item.images.forEach((filename, idx) => {
+              imgs.push({
+                id: `img_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 5)}`,
+                url: `/api/looks/${lookId}/images/${filename}`,
+                view: 'front',
+                uploadedAt: new Date().toISOString()
+              });
+            });
+          }
+          // Handle legacy single image
+          else if (item.image) {
+            imgs.push({
+              id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+              url: `/api/looks/${lookId}/images/${item.image}`,
+              view: 'front',
+              uploadedAt: new Date().toISOString()
+            });
+          }
+          return imgs;
+        })()
       }));
 
       const currentItems = state.clothingByModel[modelIdx] || [];

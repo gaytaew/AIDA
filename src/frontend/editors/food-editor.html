@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIDA — Food Shoot Generator</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        /* Specific styles for Food Editor */
+        .grid-Layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 24px;
+            height: calc(100vh - 100px);
+        }
+
+        .panel-scroll {
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .ref-zones {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .ref-card {
+            background: var(--color-bg-secondary);
+            border: 1px dashed var(--color-border);
+            border-radius: 8px;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .ref-card:hover {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .ref-card.has-image {
+            border-style: solid;
+            border-color: var(--color-border);
+            padding: 0;
+        }
+
+        .ref-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ref-card-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .ref-card-label {
+            font-size: 11px;
+            color: var(--color-text-muted);
+            font-weight: 500;
+        }
+
+        .ref-card-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .ref-card.has-image:hover .ref-card-remove {
+            display: flex;
+        }
+
+        .param-group {
+            margin-bottom: 20px;
+        }
+
+        .param-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .result-image {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="logo">
+                    <div class="logo-icon">A</div>
+                    <div class="logo-text">AIDA</div>
+                </a>
+            </div>
+            <nav class="sidebar-nav" id="sidebar-nav"></nav>
+            <script src="/shared/sidebar-nav.js"></script>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="page-header">
+                <h1 class="page-title">🍔 Food Shoot Generator</h1>
+                <div class="header-actions">
+                    <div id="status-text" class="status-badge" style="display:none;">Loading...</div>
+                </div>
+            </header>
+
+            <div class="page-content" style="overflow: hidden;">
+                <div class="grid-Layout">
+
+                    <!-- LEFT: Controls -->
+                    <div class="panel-scroll">
+
+                        <!-- Description -->
+                        <div class="form-group">
+                            <label class="form-label">Что готовим? (Блюдо)</label>
+                            <textarea id="dish-desc" class="form-input" rows="3"
+                                placeholder="Свежий круассан с миндалем и сахарной пудрой..."></textarea>
+                        </div>
+
+                        <!-- Parameters -->
+                        <div class="param-group">
+                            <span class="param-label">Настройки съемки</span>
+
+                            <div style="display: grid; gap: 12px;">
+                                <div>
+                                    <label class="form-label-mini">Камера</label>
+                                    <select id="param-camera" class="form-select"></select>
+                                </div>
+                                <div>
+                                    <label class="form-label-mini">Ракурс</label>
+                                    <select id="param-angle" class="form-select"></select>
+                                </div>
+                                <div>
+                                    <label class="form-label-mini">Свет</label>
+                                    <select id="param-lighting" class="form-select"></select>
+                                </div>
+                                <div>
+                                    <label class="form-label-mini">Подача</label>
+                                    <select id="param-plating" class="form-select"></select>
+                                </div>
+                                <div>
+                                    <label class="form-label-mini">Состояние</label>
+                                    <select id="param-state" class="form-select"></select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- References -->
+                        <div class="param-group">
+                            <span class="param-label">Референсы</span>
+                            <div class="ref-zones">
+                                <!-- Slot 1: Subject -->
+                                <div class="ref-card" id="ref-subject">
+                                    <input type="file" accept="image/*" hidden>
+                                    <div class="ref-card-icon">🍲</div>
+                                    <div class="ref-card-label">Блюдо<br>(Optional)</div>
+                                    <div class="ref-content"></div>
+                                    <button class="ref-card-remove">×</button>
+                                </div>
+
+                                <!-- Slot 2: Crockery -->
+                                <div class="ref-card" id="ref-crockery"
+                                    style="border-color: var(--color-accent); background: rgba(139, 92, 246, 0.05);">
+                                    <input type="file" accept="image/*" hidden>
+                                    <div class="ref-card-icon">🍽️</div>
+                                    <div class="ref-card-label">Посуда<br>(Важно!)</div>
+                                    <div class="ref-content"></div>
+                                    <button class="ref-card-remove">×</button>
+                                </div>
+
+                                <!-- Slot 3: Style -->
+                                <div class="ref-card" id="ref-style">
+                                    <input type="file" accept="image/*" hidden>
+                                    <div class="ref-card-icon">🎨</div>
+                                    <div class="ref-card-label">Стиль<br>(Optional)</div>
+                                    <div class="ref-content"></div>
+                                    <button class="ref-card-remove">×</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="actions">
+                            <button id="btn-generate" class="btn btn-primary btn-full btn-lg">
+                                <span>📸 Сгенерировать</span>
+                            </button>
+                            <div id="gen-status"
+                                style="text-align: center; margin-top: 10px; font-size: 13px; color: var(--color-text-muted); display: none;">
+                                <span class="spinner"></span> Генерирую...
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- RIGHT: Preview -->
+                    <div class="panel-scroll"
+                        style="background: var(--color-bg-secondary); border-radius: 12px; padding: 24px; display: flex; align-items: flex-start; justify-content: center;">
+                        <div id="result-container" style="max-width: 600px; width: 100%; text-align: center;">
+                            <div class="empty-state" id="empty-state">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🍔</div>
+                                <h3>Готов к съемке</h3>
+                                <p>Настрой параметры и нажми Сгенерировать</p>
+                            </div>
+                            <!-- Result Image will be injected here -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="food-editor.js"></script>
+</body>
+
+</html>

@@ -24,6 +24,7 @@ import shootRoutes from './routes/shootRoutes.js';
 import emotionRoutes from './routes/emotionRoutes.js';
 import customShootRoutes from './routes/customShootRoutes.js';
 import lookRoutes from './routes/lookRoutes.js';
+import foodRoutes from './routes/foodRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -146,6 +147,7 @@ app.use('/api/shoots', shootRoutes);
 app.use('/api/emotions', emotionRoutes);
 app.use('/api/custom-shoots', customShootRoutes);
 app.use('/api/looks', lookRoutes);
+app.use('/api/food', foodRoutes);
 
 // Static files (look images)
 const looksStorePath = path.resolve(__dirname, 'store/looks');
