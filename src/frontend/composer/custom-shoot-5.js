@@ -12,6 +12,45 @@
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * Downloads an image URL as JPEG
+ */
+window.downloadAsJpeg = async function (url, filenameBase) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+
+    const ctx = canvas.getContext('2d');
+    // Fill white background for transparency
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0);
+
+    const jpegUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+    const link = document.createElement('a');
+    link.href = jpegUrl;
+    link.download = filenameBase + '.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (e) {
+    console.error('Download failed', e);
+    // Fallback to direct download if conversion fails
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filenameBase + '.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
+
+/**
  * Fetch with timeout to prevent hanging requests
  */
 async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
@@ -2479,7 +2518,7 @@ function renderGeneratedHistory() {
         <!-- Actions -->
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; gap: 8px;">
-            <a href="${frame.imageUrl}" download="custom-shoot-${idx}.png" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Скачать">💾</a>
+            <button class="btn btn-secondary" onclick="window.downloadAsJpeg('${frame.imageUrl}', 'custom-shoot-${idx}')" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Скачать JPEG">💾</button>
             <button class="btn btn-secondary" onclick="window.copyFrameSettings(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Применить настройки этого кадра">📋</button>
             <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock (включает локацию)">🎨</button>
             <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);" title="Удалить">✕</button>
