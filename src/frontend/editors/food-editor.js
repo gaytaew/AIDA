@@ -5,6 +5,7 @@
 // State
 const state = {
     options: null,
+    history: [], // Array of generated results
     images: {
         subject: null,
         crockery: null,
@@ -18,7 +19,7 @@ const els = {
     changesDesc: document.getElementById('changes-desc'),
     btnGenerate: document.getElementById('btn-generate'),
     genStatus: document.getElementById('gen-status'),
-    resultContainer: document.getElementById('result-container'),
+    historyContainer: document.getElementById('history-container'),
     emptyState: document.getElementById('empty-state'),
     selects: {
         camera: document.getElementById('param-camera'),
@@ -189,7 +190,7 @@ async function generate() {
         const json = await res.json();
 
         if (json.ok) {
-            showResult(json.data);
+            addToHistory(json.data);
         } else {
             alert('Ошибка: ' + json.error);
         }
@@ -203,16 +204,64 @@ async function generate() {
     }
 }
 
-function showResult(data) {
+function addToHistory(data) {
+    state.history.unshift(data);
+    renderHistory();
+}
+
+function loadParams(params) {
+    // Text inputs
+    if (params.dishDescription) els.dishDesc.value = params.dishDescription;
+    if (params.changesDescription) els.changesDesc.value = params.changesDescription;
+
+    // Selects
+    if (params.camera) els.selects.camera.value = params.camera;
+    if (params.angle) els.selects.angle.value = params.angle;
+    if (params.lighting) els.selects.lighting.value = params.lighting;
+    if (params.plating) els.selects.plating.value = params.plating;
+    if (params.state) els.selects.state.value = params.state;
+    if (params.aspectRatio) els.selects.aspectRatio.value = params.aspectRatio;
+    if (params.quality) els.selects.quality.value = params.quality;
+
+    alert('Параметры загружены!');
+}
+
+function renderHistory() {
+    if (state.history.length === 0) {
+        els.emptyState.style.display = 'block';
+        els.historyContainer.innerHTML = '';
+        els.historyContainer.appendChild(els.emptyState);
+        return;
+    }
+
     els.emptyState.style.display = 'none';
 
-    els.resultContainer.innerHTML = `
-    <img src="data:${data.mimeType};base64,${data.base64}" class="result-image">
-    <div style="margin-top: 16px; text-align: left; background: #111; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #888; overflow-x: auto;">
-      <strong>PROMPT:</strong><br>
-      ${data.prompt.replace(/\n/g, '<br>')}
-    </div>
-  `;
+    // Clear keeping empty state ref? No need, just redraw.
+    els.historyContainer.innerHTML = '';
+
+    state.history.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+
+        card.innerHTML = `
+            <img src="data:${item.mimeType};base64,${item.base64}">
+            <div class="history-actions">
+                <button class="btn-mini btn-load" data-index="${index}">📥 Load Params</button>
+                <a href="data:${item.mimeType};base64,${item.base64}" download="food-shoot-${index}.jpg" class="btn-mini" style="text-align:center; text-decoration:none;">💾 Save</a>
+            </div>
+            <div class="history-info">
+                <strong>${item.params.dishDescription.slice(0, 30)}...</strong><br>
+                Format: ${item.params.aspectRatio} • Quality: ${item.params.quality}
+            </div>
+        `;
+
+        // Bind Load Param
+        card.querySelector('.btn-load').addEventListener('click', () => {
+            loadParams(item.params);
+        });
+
+        els.historyContainer.appendChild(card);
+    });
 }
 
 // Start

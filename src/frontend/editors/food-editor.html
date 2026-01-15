@@ -112,6 +112,51 @@
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
+
+        /* History Gallery */
+        .history-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .history-card img {
+            width: 100%;
+            aspect-ratio: auto;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .history-info {
+            padding: 12px;
+            font-size: 11px;
+            color: #888;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .history-actions {
+            padding: 8px;
+            display: grid;
+            gap: 8px;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .btn-mini {
+            padding: 6px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: 1px solid var(--color-border);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-mini:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 
@@ -239,17 +284,21 @@
 
                     </div>
 
-                    <!-- RIGHT: Preview -->
+                    <!-- RIGHT: Gallery -->
                     <div class="panel-scroll"
-                        style="background: var(--color-bg-secondary); border-radius: 12px; padding: 24px; display: flex; align-items: flex-start; justify-content: center;">
-                        <div id="result-container" style="max-width: 600px; width: 100%; text-align: center;">
-                            <div class="empty-state" id="empty-state">
+                        style="background: var(--color-bg-secondary); border-radius: 12px; padding: 24px;">
+
+                        <div id="history-container"
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                            <!-- Empty State -->
+                            <div class="empty-state" id="empty-state"
+                                style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--color-text-muted);">
                                 <div style="font-size: 48px; margin-bottom: 16px;">🍔</div>
-                                <h3>Готов к съемке</h3>
-                                <p>Настрой параметры и нажми Сгенерировать</p>
+                                <h3>История генераций</h3>
+                                <p>Результаты будут появляться здесь</p>
                             </div>
-                            <!-- Result Image will be injected here -->
                         </div>
+
                     </div>
 
                 </div>

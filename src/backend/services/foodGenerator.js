@@ -240,7 +240,9 @@ The image MUST be a near-duplicate of the food in Reference [$${indexMap.subject
 2. MATCH: Geometric Shape & Form Factor (CRITICAL). 
    - If the reference is RECTANGULAR, the output MUST be RECTANGULAR.
    - If the reference is SQUARE, the output MUST be SQUARE.
+   - IGNORE your internal bias that "Pizza is round". If ref is rectangular, make it rectangular.
    - DO NOT default to round plates/shapes if the reference shows otherwise.
+   - CROCKERY SHAPE must match [$1] (or [$2] if provided) EXACTLY.
 3. MATCH: Portion size and general arrangement.`);
 
         if (changesDescription) {
