@@ -23,7 +23,8 @@ const NAV_ITEMS = [
       { href: '/editors/universe-editor.html', icon: '🌌', label: 'Вселенные' },
       { href: '/editors/location-editor.html', icon: '📍', label: 'Локации' },
       { href: '/editors/frame-editor.html', icon: '🖼️', label: 'Каталог кадров' },
-      { href: '/editors/model-editor.html', icon: '👤', label: 'Модели' }
+      { href: '/editors/model-editor.html', icon: '👤', label: 'Модели' },
+      { href: '/editors/look-editor.html', icon: '👔', label: 'Образы (Looks)' }
     ]
   }
 ];
