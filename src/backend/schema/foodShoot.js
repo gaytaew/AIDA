@@ -61,8 +61,59 @@ export const FOOD_ANGLE = {
     ]
 };
 
+export const FOOD_COMPOSITION = {
+    id: 'composition',
+    label: '⚖️ Композиция',
+    description: 'Распределение объектов в кадре',
+    options: [
+        {
+            value: 'center',
+            label: 'Центральная (Hero)',
+            spec: 'COMPOSITION: Centered "Hero" composition. Subject is dead center, commanding attention. Symmetrical balance.'
+        },
+        {
+            value: 'rule_of_thirds',
+            label: 'Правило третей',
+            spec: 'COMPOSITION: Rule of Thirds. Subject placed off-center at intersection points. Dynamic negative space.'
+        },
+        {
+            value: 'minimal',
+            label: 'Минимализм (Negative Space)',
+            spec: 'COMPOSITION: Minimalist. Huge negative space, small subject. Clean, airy, elegant.'
+        },
+        {
+            value: 'knolling',
+            label: 'Knolling / Grid',
+            spec: 'COMPOSITION: Knolling. Ingredients and objects arranged in a clean grid or parallel lines. Organized chaos.'
+        }
+    ]
+};
+
+export const FOOD_DEPTH = {
+    id: 'depth',
+    label: '💧 Глубина резкости',
+    description: 'Размытие фона (Боке)',
+    options: [
+        {
+            value: 'f2_8',
+            label: 'f/2.8 (Soft Bokeh)',
+            spec: 'DEPTH OF FIELD: f/2.8 Shallow. Creamy bokeh, background melts away. Focus is razor sharp on the front of the food.'
+        },
+        {
+            value: 'f5_6',
+            label: 'f/5.6 (Balanced)',
+            spec: 'DEPTH OF FIELD: f/5.6 Balanced. Main subject fully sharp, background softly out of focus but recognizable.'
+        },
+        {
+            value: 'f11',
+            label: 'f/11 (Deep Focus)',
+            spec: 'DEPTH OF FIELD: f/11 Deep Focus. Everything from front to back is sharp. Commercial catalog look.'
+        }
+    ]
+};
+
 // ═══════════════════════════════════════════════════════════════
-// SECTION 2: LIGHTING
+// SECTION 2: LIGHTING & COLOR
 // ═══════════════════════════════════════════════════════════════
 
 export const FOOD_LIGHTING = {
@@ -93,12 +144,51 @@ export const FOOD_LIGHTING = {
             label: 'Studio Clean (Commercial)',
             spec: 'LIGHT: Even, bright studio lighting. Minimal shadows, clean white/neutral background. Commercial catalog look.',
             constraints: { source: 'studio_box', quality: 'even' }
+        },
+        {
+            value: 'backlight_rim',
+            label: 'Backlight (Rim Light)',
+            spec: 'LIGHT: Strong Backlight. Rim light catches steam and texture edges. Glowing silhouette effect, high drama.',
+            constraints: { source: 'back', quality: 'rim' }
+        }
+    ]
+};
+
+export const FOOD_COLOR = {
+    id: 'color',
+    label: '🎨 Грейдинг (Цвет)',
+    description: 'Цветовая палитра и настроение',
+    options: [
+        {
+            value: 'natural_vibrant',
+            label: 'Natural Vibrant',
+            spec: 'COLOR: Natural, true-to-life colors but slightly punchy. Fresh vegetables look crisp, meats look juicy.',
+        },
+        {
+            value: 'muted_organic',
+            label: 'Muted / Kinfolk',
+            spec: 'COLOR: Muted, organic, desaturated earth tones. Matte finish, low contrast, "Kinfolk" magazine aesthetic.',
+        },
+        {
+            value: 'warm_golden',
+            label: 'Warm Golden (Bakery)',
+            spec: 'COLOR: Warm, golden, honey tones. Nostalgic and comforting. Verified bakery vibe.',
+        },
+        {
+            value: 'cool_clean',
+            label: 'Cool & Clean',
+            spec: 'COLOR: Cool, blue-tinted whites, crisp and sterile. Modern, scientific, fresh (good for seafood/drinks).',
+        },
+        {
+            value: 'dark_rich',
+            label: 'Dark & Rich',
+            spec: 'COLOR: Dark, rich, deep shadows. Jewel tones. Luxurious and expensive feel.',
         }
     ]
 };
 
 // ═══════════════════════════════════════════════════════════════
-// SECTION 3: STYLING & PLATING
+// SECTION 3: STYLING & TEXTURE
 // ═══════════════════════════════════════════════════════════════
 
 export const FOOD_PLATING = {
@@ -133,6 +223,57 @@ export const FOOD_PLATING = {
     ]
 };
 
+export const FOOD_TEXTURE = {
+    id: 'texture',
+    label: '🧶 Детализация',
+    description: 'Акцент на фактуре',
+    options: [
+        {
+            value: 'sharp_crisp',
+            label: 'Sharp & Crisp',
+            spec: 'TEXTURE: Ultra-sharp, crisp edges. Every detail defined. High fidelity commercial look.',
+        },
+        {
+            value: 'soft_dreamy',
+            label: 'Soft & Dreamy',
+            spec: 'TEXTURE: Soft, slight glow/bloom. Hazier atmosphere, less clinical detail. Emotional.',
+        },
+        {
+            value: 'gritty_raw',
+            label: 'Gritty & Raw',
+            spec: 'TEXTURE: High micro-contrast, gritty detail. Enhances salt crystals, crust cracks, burnt edges.',
+        }
+    ]
+};
+
+export const FOOD_DYNAMICS = {
+    id: 'dynamics',
+    label: '💥 Динамика',
+    description: 'Движение и эффекты',
+    options: [
+        {
+            value: 'still',
+            label: 'Still Life (Static)',
+            spec: 'DYNAMICS: Perfectly still. No movement. Clean and calm.',
+        },
+        {
+            value: 'steam',
+            label: 'Steam (Hot)',
+            spec: 'DYNAMICS: Delicate wisps of steam rising from the hot food. Backlit to show visibility.',
+        },
+        {
+            value: 'splashes',
+            label: 'Splashes / Drips',
+            spec: 'DYNAMICS: Action shot! Splashing sauce, falling crumbs, or flying flour dust. Frozen motion.',
+        },
+        {
+            value: 'human_element',
+            label: 'Hand / Human Element',
+            spec: 'DYNAMICS: Human element implied. A hand holding a fork, or reaching for a slice. Lifestyle feel.',
+        }
+    ]
+};
+
 export const FOOD_STATE = {
     id: 'state',
     label: '🌡️ Состояние',
@@ -142,12 +283,6 @@ export const FOOD_STATE = {
             value: 'perfect',
             label: 'Perfect / Untouched',
             spec: 'STATE: Pristine, untouched condition. Perfect styling.',
-        },
-        {
-            value: 'steaming',
-            label: 'Hot / Steaming',
-            spec: 'STATE: Hot and fresh. Visible steam rising, glistening surfaces, melting elements.',
-            constraints: { fx: 'steam' }
         },
         {
             value: 'melting',
@@ -189,3 +324,78 @@ export const FOOD_QUALITY = {
         { value: 'final', label: 'Final (Hyper-Realistic, Slow)' }
     ]
 };
+
+// ═══════════════════════════════════════════════════════════════
+// SECTION 5: PRESETS
+// ═══════════════════════════════════════════════════════════════
+
+export const FOOD_PRESETS = [
+    {
+        id: 'commercial_fresh',
+        label: 'Commercial Fresh (Catalog)',
+        description: 'Bright, clean, punchy colors. Standard for menus.',
+        values: {
+            camera: 'standard_50mm',
+            angle: '45_degree',
+            composition: 'center',
+            depth: 'f11',
+            lighting: 'studio_clean',
+            color: 'natural_vibrant',
+            plating: 'geometric',
+            texture: 'sharp_crisp',
+            dynamics: 'still',
+            state: 'perfect'
+        }
+    },
+    {
+        id: 'dark_moody',
+        label: 'Dark & Moody (Editorial)',
+        description: 'Low key, dramatic shadows, rich textures.',
+        values: {
+            camera: 'standard_50mm',
+            angle: 'eye_level',
+            composition: 'rule_of_thirds',
+            depth: 'f2_8',
+            lighting: 'dark_moody',
+            color: 'dark_rich',
+            plating: 'rustic_messy',
+            texture: 'gritty_raw',
+            dynamics: 'still',
+            state: 'perfect'
+        }
+    },
+    {
+        id: 'instagram_trend',
+        label: 'Insta Trend (Flat Lay)',
+        description: 'Top down, soft light, minimal colorful look.',
+        values: {
+            camera: 'wide_35mm',
+            angle: 'flat_lay',
+            composition: 'knolling',
+            depth: 'f5_6',
+            lighting: 'natural_window',
+            color: 'natural_vibrant',
+            plating: 'geometric',
+            texture: 'soft_dreamy',
+            dynamics: 'still',
+            state: 'perfect'
+        }
+    },
+    {
+        id: 'macro_porn',
+        label: 'Food Porn (Macro)',
+        description: 'Extreme close up, dripping, shiny, impossible to resist.',
+        values: {
+            camera: 'macro_100mm',
+            angle: '45_degree',
+            composition: 'center',
+            depth: 'f2_8',
+            lighting: 'backlight_rim',
+            color: 'warm_golden',
+            plating: 'rustic_messy',
+            texture: 'sharp_crisp',
+            dynamics: 'human_element', // Suggesting eating
+            state: 'bitten'
+        }
+    }
+];

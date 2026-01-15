@@ -22,10 +22,16 @@ const els = {
     historyContainer: document.getElementById('history-container'),
     emptyState: document.getElementById('empty-state'),
     selects: {
+        preset: document.getElementById('param-preset'), // New
         camera: document.getElementById('param-camera'),
         angle: document.getElementById('param-angle'),
+        composition: document.getElementById('param-composition'), // New
+        depth: document.getElementById('param-depth'), // New
         lighting: document.getElementById('param-lighting'),
+        color: document.getElementById('param-color'), // New
         plating: document.getElementById('param-plating'),
+        texture: document.getElementById('param-texture'), // New
+        dynamics: document.getElementById('param-dynamics'), // New
         state: document.getElementById('param-state'),
         aspectRatio: document.getElementById('param-aspectRatio'),
         quality: document.getElementById('param-quality'),
@@ -43,6 +49,11 @@ async function init() {
     setupUploads();
 
     els.btnGenerate.addEventListener('click', generate);
+
+    // Preset Listener
+    els.selects.preset.addEventListener('change', (e) => {
+        applyPreset(e.target.value);
+    });
 }
 
 // 2. Load Options from Backend
@@ -62,19 +73,58 @@ async function loadOptions() {
 function renderOptions() {
     if (!state.options) return;
 
-    const populate = (select, opts) => {
-        select.innerHTML = opts.options.map(o =>
-            `<option value="${o.value}">${o.label}</option>`
-        ).join('');
+    const populate = (select, data) => {
+        // Handle Presets array
+        if (Array.isArray(data)) {
+            select.innerHTML += data.map(o =>
+                `<option value="${o.id}">${o.label}</option>`
+            ).join('');
+            return;
+        }
+
+        // Handle Parameter objects
+        if (data && data.options) {
+            select.innerHTML = data.options.map(o =>
+                `<option value="${o.value}">${o.label}</option>`
+            ).join('');
+        }
     };
 
+    // Populate Presets
+    populate(els.selects.preset, state.options.presets);
+
+    // Populate Params
     populate(els.selects.camera, state.options.camera);
     populate(els.selects.angle, state.options.angle);
+    populate(els.selects.composition, state.options.composition);
+    populate(els.selects.depth, state.options.depth);
     populate(els.selects.lighting, state.options.lighting);
+    populate(els.selects.color, state.options.color);
     populate(els.selects.plating, state.options.plating);
+    populate(els.selects.texture, state.options.texture);
+    populate(els.selects.dynamics, state.options.dynamics);
     populate(els.selects.state, state.options.state);
     populate(els.selects.aspectRatio, state.options.aspectRatio);
     populate(els.selects.quality, state.options.quality);
+}
+
+function applyPreset(presetId) {
+    if (!presetId) return;
+    const preset = state.options.presets.find(p => p.id === presetId);
+    if (!preset || !preset.values) return;
+
+    // Apply values
+    const v = preset.values;
+    if (v.camera) els.selects.camera.value = v.camera;
+    if (v.angle) els.selects.angle.value = v.angle;
+    if (v.composition) els.selects.composition.value = v.composition;
+    if (v.depth) els.selects.depth.value = v.depth;
+    if (v.lighting) els.selects.lighting.value = v.lighting;
+    if (v.color) els.selects.color.value = v.color;
+    if (v.plating) els.selects.plating.value = v.plating;
+    if (v.texture) els.selects.texture.value = v.texture;
+    if (v.dynamics) els.selects.dynamics.value = v.dynamics;
+    if (v.state) els.selects.state.value = v.state;
 }
 
 // 3. File Upload Logic
@@ -169,8 +219,13 @@ async function generate() {
                 dishDescription,
                 camera: els.selects.camera.value,
                 angle: els.selects.angle.value,
+                composition: els.selects.composition.value,
+                depth: els.selects.depth.value,
                 lighting: els.selects.lighting.value,
+                color: els.selects.color.value,
                 plating: els.selects.plating.value,
+                texture: els.selects.texture.value,
+                dynamics: els.selects.dynamics.value,
                 state: els.selects.state.value,
                 aspectRatio: els.selects.aspectRatio.value,
                 quality: els.selects.quality.value,
@@ -217,8 +272,13 @@ function loadParams(params) {
     // Selects
     if (params.camera) els.selects.camera.value = params.camera;
     if (params.angle) els.selects.angle.value = params.angle;
+    if (params.composition) els.selects.composition.value = params.composition;
+    if (params.depth) els.selects.depth.value = params.depth;
     if (params.lighting) els.selects.lighting.value = params.lighting;
+    if (params.color) els.selects.color.value = params.color;
     if (params.plating) els.selects.plating.value = params.plating;
+    if (params.texture) els.selects.texture.value = params.texture;
+    if (params.dynamics) els.selects.dynamics.value = params.dynamics;
     if (params.state) els.selects.state.value = params.state;
     if (params.aspectRatio) els.selects.aspectRatio.value = params.aspectRatio;
     if (params.quality) els.selects.quality.value = params.quality;

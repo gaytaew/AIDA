@@ -16,7 +16,12 @@ import {
     FOOD_ANGLE,
     FOOD_LIGHTING,
     FOOD_PLATING,
-    FOOD_STATE
+    FOOD_STATE,
+    FOOD_COMPOSITION,
+    FOOD_DEPTH,
+    FOOD_COLOR,
+    FOOD_TEXTURE,
+    FOOD_DYNAMICS
 } from '../schema/foodShoot.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -205,8 +210,9 @@ export async function generateFoodShootFrame({
 function buildFoodShootPromptDynamic(params, indexMap) {
     const {
         dishDescription,
-        changesDescription, // NEW
+        changesDescription,
         camera, angle, lighting, plating, state,
+        composition, depth, color, texture, dynamics, // NEW from Phase 3
         quality = 'draft'
     } = params;
 
@@ -217,17 +223,28 @@ function buildFoodShootPromptDynamic(params, indexMap) {
 SPECIALTY: Hyper-realistic macro food photography.
 GOAL: Create an image indistinguishable from a real photo shot on a Phase One camera.`);
 
+    // Lookup Specs (Fallback to sensible defaults if missing)
     const cameraSpec = FOOD_CAMERA.options.find(o => o.value === camera)?.spec || 'Standard Lens';
     const angleSpec = FOOD_ANGLE.options.find(o => o.value === angle)?.spec || '45 Degree Angle';
     const lightingSpec = FOOD_LIGHTING.options.find(o => o.value === lighting)?.spec || 'Natural Light';
     const platingSpec = FOOD_PLATING.options.find(o => o.value === plating)?.spec || 'Standard Plating';
     const stateSpec = FOOD_STATE.options.find(o => o.value === state)?.spec || 'Perfect Condition';
 
+    // New Specs
+    const compSpec = FOOD_COMPOSITION.options.find(o => o.value === composition)?.spec || '';
+    const depthSpec = FOOD_DEPTH.options.find(o => o.value === depth)?.spec || '';
+    const colorSpec = FOOD_COLOR.options.find(o => o.value === color)?.spec || '';
+    const textureSpec = FOOD_TEXTURE.options.find(o => o.value === texture)?.spec || '';
+    const dynamicsSpec = FOOD_DYNAMICS.options.find(o => o.value === dynamics)?.spec || '';
+
     sections.push(`
 TECHNIQUE:
 - ${cameraSpec}
 - ${angleSpec}
-- ${lightingSpec}`);
+- ${lightingSpec}
+- ${compSpec}
+- ${depthSpec}
+- ${colorSpec}`);
 
     // 2. SUBJECT LOGIC (Reference vs Description)
 
@@ -265,7 +282,9 @@ ${dishDescription}`);
     sections.push(`
 STYLING:
 - ${platingSpec}
-- ${stateSpec}`);
+- ${stateSpec}
+- ${textureSpec}
+- ${dynamicsSpec}`);
 
     // 3. OTHER REFERENCES
     const refLines = [];

@@ -11,6 +11,12 @@ import {
     FOOD_PLATING,
     FOOD_STATE,
     FOOD_ASPECT_RATIO,
+    FOOD_COMPOSITION,
+    FOOD_DEPTH,
+    FOOD_COLOR,
+    FOOD_TEXTURE,
+    FOOD_DYNAMICS,
+    FOOD_PRESETS,
     FOOD_QUALITY
 } from '../schema/foodShoot.js';
 
@@ -30,7 +36,14 @@ router.get('/options', (req, res) => {
             plating: FOOD_PLATING,
             state: FOOD_STATE,
             aspectRatio: FOOD_ASPECT_RATIO,
-            quality: FOOD_QUALITY
+            quality: FOOD_QUALITY,
+            // New Params
+            composition: FOOD_COMPOSITION,
+            depth: FOOD_DEPTH,
+            color: FOOD_COLOR,
+            texture: FOOD_TEXTURE,
+            dynamics: FOOD_DYNAMICS,
+            presets: FOOD_PRESETS
         }
     });
 });
