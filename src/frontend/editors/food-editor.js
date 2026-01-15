@@ -36,7 +36,7 @@ const els = {
         dynamics: document.getElementById('param-dynamics'), // New
         state: document.getElementById('param-state'),
         aspectRatio: document.getElementById('param-aspectRatio'),
-        quality: document.getElementById('param-quality'),
+        imageSize: document.getElementById('param-imageSize'),
     },
     refs: {
         subject: document.getElementById('ref-subject'),
