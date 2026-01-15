@@ -349,35 +349,5 @@ window.loadParamsHistory = (index) => {
     if (state.history[index]) loadParams(state.history[index].params);
 };
 
-els.emptyState.style.display = 'none';
-
-// Clear keeping empty state ref? No need, just redraw.
-els.historyContainer.innerHTML = '';
-
-state.history.forEach((item, index) => {
-    const card = document.createElement('div');
-    card.className = 'history-card';
-
-    card.innerHTML = `
-            <img src="data:${item.mimeType};base64,${item.base64}">
-            <div class="history-actions">
-                <button class="btn-mini btn-load" data-index="${index}">📥 Load Params</button>
-                <a href="data:${item.mimeType};base64,${item.base64}" download="food-shoot-${index}.jpg" class="btn-mini" style="text-align:center; text-decoration:none;">💾 Save</a>
-            </div>
-            <div class="history-info">
-                <strong>${item.params.dishDescription.slice(0, 30)}...</strong><br>
-                Format: ${item.params.aspectRatio} • Quality: ${item.params.quality}
-            </div>
-        `;
-
-    // Bind Load Param
-    card.querySelector('.btn-load').addEventListener('click', () => {
-        loadParams(item.params);
-    });
-
-    els.historyContainer.appendChild(card);
-});
-}
-
 // Start
 document.addEventListener('DOMContentLoaded', init);
