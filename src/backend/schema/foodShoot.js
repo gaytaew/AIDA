@@ -163,3 +163,29 @@ export const FOOD_STATE = {
         }
     ]
 };
+
+// ═══════════════════════════════════════════════════════════════
+// SECTION 4: FORMAT & QUALITY
+// ═══════════════════════════════════════════════════════════════
+
+export const FOOD_ASPECT_RATIO = {
+    id: 'aspectRatio',
+    label: '📏 Формат',
+    description: 'Соотношение сторон',
+    options: [
+        { value: '3:4', label: 'Vertical (Instagram) 3:4' },
+        { value: '1:1', label: 'Square 1:1' },
+        { value: '16:9', label: 'Cinematic 16:9' },
+        { value: '9:16', label: 'Mobile Full 9:16' }
+    ]
+};
+
+export const FOOD_QUALITY = {
+    id: 'quality',
+    label: '💎 Качество',
+    description: 'Время генерации и детализация',
+    options: [
+        { value: 'draft', label: 'Draft (Fast)' },
+        { value: 'final', label: 'Final (Hyper-Realistic, Slow)' }
+    ]
+};
