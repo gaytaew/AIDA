@@ -26,9 +26,9 @@ import {
   generateImageId,
   getAllPresets
 } from '../schema/customShoot.js';
-import { 
-  getAllStylePresets, 
-  checkConflicts, 
+import {
+  getAllStylePresets,
+  checkConflicts,
   getAllConflicts,
   getShootTypeDefaults,
   validateAndCorrectParams,
@@ -116,8 +116,8 @@ router.get('/presets', async (req, res) => {
 router.get('/virtual-studio-options', async (req, res) => {
   try {
     const options = getVirtualStudioOptions();
-    res.json({ 
-      ok: true, 
+    res.json({
+      ok: true,
       options,
       qualityModes: Object.values(QUALITY_MODES),
       aspectRatios: Object.entries(ASPECT_RATIOS).map(([id, config]) => ({ id, ...config }))
@@ -136,14 +136,14 @@ router.get('/virtual-studio-options', async (req, res) => {
 router.post('/check-conflicts', async (req, res) => {
   try {
     const { currentSelections, paramToCheck, valueToCheck } = req.body;
-    
+
     if (!currentSelections || !paramToCheck || !valueToCheck) {
-      return res.status(400).json({ 
-        ok: false, 
-        error: 'Missing required parameters: currentSelections, paramToCheck, valueToCheck' 
+      return res.status(400).json({
+        ok: false,
+        error: 'Missing required parameters: currentSelections, paramToCheck, valueToCheck'
       });
     }
-    
+
     const result = checkConflicts(currentSelections, paramToCheck, valueToCheck);
     res.json({ ok: true, ...result });
   } catch (err) {
@@ -160,11 +160,11 @@ router.post('/check-conflicts', async (req, res) => {
 router.post('/all-conflicts', async (req, res) => {
   try {
     const { selections } = req.body;
-    
+
     if (!selections) {
       return res.status(400).json({ ok: false, error: 'Missing selections' });
     }
-    
+
     const conflicts = getAllConflicts(selections);
     res.json({ ok: true, conflicts });
   } catch (err) {
@@ -197,11 +197,11 @@ router.get('/shoot-type-defaults/:shootType', async (req, res) => {
 router.post('/validate-params', async (req, res) => {
   try {
     const { params } = req.body;
-    
+
     if (!params) {
       return res.status(400).json({ ok: false, error: 'Missing params' });
     }
-    
+
     const validation = validateAndCorrectParams(params);
     res.json({ ok: true, ...validation });
   } catch (err) {
@@ -219,11 +219,11 @@ router.post('/validate-params', async (req, res) => {
 router.post('/recommendations', async (req, res) => {
   try {
     const { context, param } = req.body;
-    
+
     if (!context || !param) {
       return res.status(400).json({ ok: false, error: 'Missing context or param' });
     }
-    
+
     const recommendations = getParameterRecommendations(context, param);
     res.json({ ok: true, ...recommendations });
   } catch (err) {
@@ -240,9 +240,9 @@ router.post('/', async (req, res) => {
   try {
     const { label } = req.body;
     const shoot = createEmptyCustomShoot(label || 'New Custom Shoot');
-    
+
     await saveCustomShoot(shoot);
-    
+
     res.json({ ok: true, shoot });
   } catch (err) {
     console.error('[CustomShootRoutes] Error creating shoot:', err);
@@ -258,13 +258,13 @@ router.get('/:id', async (req, res) => {
   try {
     // Use slim=1 query param for faster loading (strips large base64 data)
     const slim = req.query.slim === '1' || req.query.slim === 'true';
-    
+
     const shoot = await getCustomShootWithImages(req.params.id, { slim });
-    
+
     if (!shoot) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
-    
+
     res.json({ ok: true, shoot });
   } catch (err) {
     console.error('[CustomShootRoutes] Error getting shoot:', err);
@@ -279,38 +279,38 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const startTime = Date.now();
   const shootId = req.params.id;
-  
+
   console.log(`[CustomShootRoutes] PUT /${shootId} started`);
-  
+
   try {
     // TIMEOUT: 30 seconds max for PUT operations
     const PUT_TIMEOUT_MS = 30000;
-    
+
     const updatePromise = updateShootParams(shootId, req.body);
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('PUT operation timeout after 30 seconds')), PUT_TIMEOUT_MS);
     });
-    
+
     const updatedShoot = await Promise.race([updatePromise, timeoutPromise]);
-    
+
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[CustomShootRoutes] PUT /${shootId} completed in ${duration}s`);
-    
+
     res.json({ ok: true, shoot: updatedShoot });
   } catch (err) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    
+
     // Handle not found
     if (err.message.includes('not found')) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
-    
+
     // Handle timeout
     if (err.message.includes('timeout')) {
       console.error(`[CustomShootRoutes] PUT /${shootId} TIMEOUT after ${duration}s`);
       return res.status(504).json({ ok: false, error: 'Operation timeout', timeout: true });
     }
-    
+
     console.error(`[CustomShootRoutes] PUT /${shootId} ERROR after ${duration}s:`, err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -323,11 +323,11 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const deleted = await deleteCustomShoot(req.params.id);
-    
+
     if (!deleted) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
-    
+
     res.json({ ok: true });
   } catch (err) {
     console.error('[CustomShootRoutes] Error deleting shoot:', err);
@@ -346,17 +346,17 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/lock-style', async (req, res) => {
   try {
     const { imageId, mode = 'strict' } = req.body;
-    
+
     if (!imageId) {
       return res.status(400).json({ ok: false, error: 'imageId is required' });
     }
-    
+
     if (!['strict', 'soft'].includes(mode)) {
       return res.status(400).json({ ok: false, error: 'mode must be "strict" or "soft"' });
     }
-    
+
     const shoot = await setStyleLockOnShoot(req.params.id, imageId, mode);
-    
+
     res.json({ ok: true, shoot });
   } catch (err) {
     console.error('[CustomShootRoutes] Error setting style lock:', err);
@@ -385,17 +385,17 @@ router.delete('/:id/lock-style', async (req, res) => {
 router.post('/:id/lock-location', async (req, res) => {
   try {
     const { imageId, mode = 'strict' } = req.body;
-    
+
     if (!imageId) {
       return res.status(400).json({ ok: false, error: 'imageId is required' });
     }
-    
+
     if (!['strict', 'soft'].includes(mode)) {
       return res.status(400).json({ ok: false, error: 'mode must be "strict" or "soft"' });
     }
-    
+
     const shoot = await setLocationLockOnShoot(req.params.id, imageId, mode);
-    
+
     res.json({ ok: true, shoot });
   } catch (err) {
     console.error('[CustomShootRoutes] Error setting location lock:', err);
@@ -428,24 +428,24 @@ router.delete('/:id/lock-location', async (req, res) => {
 router.post('/:id/generate', async (req, res) => {
   const requestId = `gen_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const startTime = Date.now();
-  
+
   const log = (step, data = {}) => {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[CustomShootRoutes] [${requestId}] [${elapsed}s] ${step}`, 
+    console.log(`[CustomShootRoutes] [${requestId}] [${elapsed}s] ${step}`,
       Object.keys(data).length > 0 ? JSON.stringify(data) : '');
   };
-  
+
   log('REQUEST_START', { shootId: req.params.id });
-  
+
   try {
     log('LOADING_SHOOT');
     const shoot = await getCustomShootById(req.params.id);
     log('SHOOT_LOADED', { found: !!shoot });
-    
+
     if (!shoot) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
-    
+
     const {
       frame,
       emotionId,
@@ -471,12 +471,12 @@ router.post('/:id/generate', async (req, res) => {
       ambient,
       identityImages: reqIdentityImages,
       clothingImages: reqClothingImages,
-      
+
       // ═══════════════════════════════════════════════════════════════
       // NEW: Universe Parameters (Custom Shoot 4 architecture)
       // ═══════════════════════════════════════════════════════════════
       universeParams, // Full universe configuration for Custom Shoot 4
-      
+
       // ═══════════════════════════════════════════════════════════════
       // Virtual Studio Parameters (legacy)
       // ═══════════════════════════════════════════════════════════════
@@ -485,13 +485,13 @@ router.post('/:id/generate', async (req, res) => {
       qualityMode,    // 'DRAFT' | 'PRODUCTION'
       mood            // string for atmosphere/feeling
     } = req.body;
-    
+
     console.log('[CustomShootRoutes] Generate request for shoot:', shoot.id);
-    console.log('[CustomShootRoutes] Request params:', { 
-      emotionId, 
-      locationId, 
-      aspectRatio, 
-      imageSize, 
+    console.log('[CustomShootRoutes] Request params:', {
+      emotionId,
+      locationId,
+      aspectRatio,
+      imageSize,
       presets,
       captureStyle,
       cameraSignature,
@@ -512,7 +512,7 @@ router.post('/:id/generate', async (req, res) => {
       qualityMode,
       mood
     });
-    
+
     // Prepare identity images
     let identityImages = [];
     if (reqIdentityImages && Array.isArray(reqIdentityImages)) {
@@ -522,11 +522,11 @@ router.post('/:id/generate', async (req, res) => {
       for (const shootModel of shoot.models) {
         const modelId = shootModel.modelId || shootModel.id;
         if (!modelId) continue;
-        
+
         const model = await getModelById(modelId);
         if (model && model.imageFiles && model.imageFiles.length > 0) {
           const modelsDir = getModelsDir();
-          
+
           for (const filename of model.imageFiles) {
             const filePath = path.join(modelsDir, model.id, filename);
             try {
@@ -542,13 +542,13 @@ router.post('/:id/generate', async (req, res) => {
         }
       }
     }
-    
+
     // Prepare clothing images and descriptions (supports both old and new formats)
     let clothingImages = [];
     let clothingDescriptions = [];
     let clothingItemPrompts = []; // NEW: prompts per clothing item
     let lookPrompt = ''; // NEW: overall look prompt
-    
+
     if (reqClothingImages && Array.isArray(reqClothingImages)) {
       clothingImages = reqClothingImages;
     } else if (shoot.clothing?.length > 0) {
@@ -592,7 +592,7 @@ router.post('/:id/generate', async (req, res) => {
         }
       }
     }
-    
+
     // Collect look prompt (overall outfit style)
     if (shoot.lookPrompts && Array.isArray(shoot.lookPrompts)) {
       // Use first non-empty look prompt (for primary model)
@@ -601,16 +601,16 @@ router.post('/:id/generate', async (req, res) => {
         lookPrompt = firstLookPrompt.prompt.trim();
       }
     }
-    
+
     // Prepare style reference image
     let styleRefImage = null;
     if (shoot.locks?.style?.enabled && shoot.locks.style.sourceImageUrl) {
       styleRefImage = await prepareImageFromUrl(shoot.locks.style.sourceImageUrl);
     }
-    
+
     // Location Lock removed - location is now implied in Style Lock
     // If Style Lock is enabled, location from the reference image will be used
-    
+
     console.log('[CustomShootRoutes] Prepared refs:', {
       identity: identityImages.length,
       clothing: clothingImages.length,
@@ -620,7 +620,7 @@ router.post('/:id/generate', async (req, res) => {
       location: shoot.location?.label || null,
       frame: shoot.currentFrame?.label || null
     });
-    
+
     // Get location if locationId provided
     let location = shoot.location;
     if (locationId) {
@@ -634,7 +634,7 @@ router.post('/:id/generate', async (req, res) => {
     // IMPORTANT: If Style Lock is enabled, skip location sketch - location is already implied in style reference
     const isStyleLockEnabled = shoot.locks?.style?.enabled && styleRefImage;
     let locationSketchImage = null;
-    
+
     if (isStyleLockEnabled) {
       console.log('[CustomShootRoutes] Style Lock is enabled - skipping location sketch (location implied in style reference)');
     } else if (location) {
@@ -646,7 +646,7 @@ router.post('/:id/generate', async (req, res) => {
         }
       }
     }
-    
+
     // Load pose sketch from frame (same as shootRoutes)
     let poseSketchImage = null;
     const effectiveFrame = frame || shoot.currentFrame;
@@ -660,20 +660,20 @@ router.post('/:id/generate', async (req, res) => {
         }
       }
     }
-    
+
     // Build collages for refs preview (same as shootRoutes)
     const { buildCollage } = await import('../utils/imageCollage.js');
-    
+
     let identityCollage = null;
     let clothingCollage = null;
-    
+
     // Identity collage: HIGH QUALITY for face recognition
     // - Larger size (1536px) to preserve facial details
     // - Higher JPEG quality (95) to avoid compression artifacts
     // - Larger minimum tile (512px) for each face
     // - Max 2 columns to keep faces bigger
     if (identityImages.length > 0) {
-      identityCollage = await buildCollage(identityImages, { 
+      identityCollage = await buildCollage(identityImages, {
         maxSize: 1536,      // Much larger for face details
         maxCols: 2,         // Fewer columns = bigger faces
         minTile: 512,       // Each face at least 512px
@@ -682,10 +682,10 @@ router.post('/:id/generate', async (req, res) => {
         position: 'attention'  // Smart crop focusing on faces
       });
     }
-    
+
     // Clothing collage: HIGH quality, CONTAIN to show full garments without cropping
     if (clothingImages.length > 0) {
-      clothingCollage = await buildCollage(clothingImages, { 
+      clothingCollage = await buildCollage(clothingImages, {
         maxSize: 1536,      // Large for clothing details
         maxCols: 2,         // Fewer columns = bigger images
         minTile: 512,       // Large tiles
@@ -694,19 +694,19 @@ router.post('/:id/generate', async (req, res) => {
         background: '#ffffff'
       });
     }
-    
+
     // Track generation time
     const genStartTime = Date.now();
-    
-    log('GENERATING', { 
-      identityImages: identityImages.length, 
+
+    log('GENERATING', {
+      identityImages: identityImages.length,
       clothingImages: clothingImages.length,
       hasStyleRef: !!styleRefImage,
       styleLockActive: isStyleLockEnabled,
       hasLocationSketch: !!locationSketchImage,
       hasPoseSketch: !!poseSketchImage
     });
-    
+
     // Generate
     const result = await generateCustomShootFrame({
       shoot,
@@ -741,12 +741,12 @@ router.post('/:id/generate', async (req, res) => {
       lensFocalLength,
       // Ambient (situational conditions: weather, season, atmosphere)
       ambient,
-      
+
       // ═══════════════════════════════════════════════════════════════
       // Universe Parameters (Custom Shoot 4 architecture)
       // ═══════════════════════════════════════════════════════════════
       universeParams,
-      
+
       // ═══════════════════════════════════════════════════════════════
       // Virtual Studio Parameters (legacy architecture)
       // ═══════════════════════════════════════════════════════════════
@@ -755,16 +755,16 @@ router.post('/:id/generate', async (req, res) => {
       qualityMode: qualityMode || 'DRAFT',
       mood: mood || 'natural'
     });
-    
+
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);
-    
+
     log('GENERATION_COMPLETE', { ok: result.ok, duration: genDuration });
-    
+
     if (!result.ok) {
       log('GENERATION_FAILED', { error: result.error?.slice(0, 200) });
       return res.status(500).json({ ok: false, error: result.error });
     }
-    
+
     // Build refs with preview URLs (same format as shootRoutes)
     const refs = [];
     if (identityCollage) {
@@ -805,11 +805,11 @@ router.post('/:id/generate', async (req, res) => {
         previewUrl: `data:${locationSketchImage.mimeType};base64,${locationSketchImage.base64}`
       });
     }
-    
+
     // Get frame and location labels
     const frameLabel = effectiveFrame?.label || 'По умолчанию';
     const locationLabel = location?.label || null;
-    
+
     // Save generated image to shoot history
     // Refs are saved with previewUrls (small 512px thumbnails) for display in history
     const imageData = {
@@ -837,19 +837,20 @@ router.post('/:id/generate', async (req, res) => {
       refs: refs.map(r => ({ kind: r.kind, label: r.label })),
       generationTime: genDuration,
       // Universe params snapshot for "copy settings" feature
-      universeParams: universeParams || null
+      // PREFER resolvedParams from V5 engine (includes defaults), fallback to input params
+      universeParams: result.promptJson?.resolvedParams || universeParams || null
     };
-    
+
     log('SAVING_IMAGE', { imageId: imageData.id });
     const savedImage = await addImageToShoot(shoot.id, imageData);
     log('IMAGE_SAVED', { savedId: savedImage.id });
-    
+
     // Return the original data URL for immediate display (not the stored path)
     const responseImage = {
       ...savedImage,
       imageUrl: imageData.imageUrl  // Use original data URL, not the saved path
     };
-    
+
     log('SENDING_RESPONSE');
     res.json({
       ok: true,
@@ -858,7 +859,7 @@ router.post('/:id/generate', async (req, res) => {
       refs
     });
     log('RESPONSE_SENT');
-    
+
   } catch (err) {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     console.error(`[CustomShootRoutes] [${requestId}] [${elapsed}s] ERROR:`, err);
@@ -877,11 +878,11 @@ router.post('/:id/generate', async (req, res) => {
 router.delete('/:id/images/:imageId', async (req, res) => {
   try {
     const deleted = await removeImageFromShoot(req.params.id, req.params.imageId);
-    
+
     if (!deleted) {
       return res.status(404).json({ ok: false, error: 'Image not found' });
     }
-    
+
     res.json({ ok: true });
   } catch (err) {
     console.error('[CustomShootRoutes] Error deleting image:', err);
@@ -900,21 +901,21 @@ router.delete('/:id/images/:imageId', async (req, res) => {
 router.get('/:shootId/images/:imageId', async (req, res) => {
   try {
     const { shootId, imageId } = req.params;
-    
+
     // Try common extensions
     const extensions = ['jpg', 'jpeg', 'png', 'webp'];
     let result = null;
-    
+
     for (const ext of extensions) {
       const imagePath = `${shootId}/${imageId}.${ext}`;
       result = await loadImageBuffer(imagePath);
       if (result.ok) break;
     }
-    
+
     if (!result || !result.ok) {
       return res.status(404).json({ ok: false, error: 'Image not found' });
     }
-    
+
     res.setHeader('Content-Type', result.mimeType);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
     res.send(result.buffer);
@@ -935,9 +936,9 @@ router.get('/:shootId/images/:imageId', async (req, res) => {
 router.post('/analyze-model', async (req, res) => {
   try {
     const { image, imageUrl, useCache = true } = req.body;
-    
+
     let imageData = null;
-    
+
     // Handle base64 image data
     if (image?.base64) {
       imageData = {
@@ -965,23 +966,23 @@ router.post('/analyze-model', async (req, res) => {
         };
       }
     }
-    
+
     if (!imageData) {
       return res.status(400).json({ ok: false, error: 'No valid image provided' });
     }
-    
+
     console.log('[V3] Analyzing model reference...');
     const result = await analyzeModelReference(imageData, { useCache });
-    
+
     if (!result.ok) {
       return res.status(500).json({ ok: false, error: result.error });
     }
-    
+
     // Build prompt components
     const identityLockInstructions = buildIdentityLockInstructions(result.analysis);
     const narrativeDescription = buildNarrativeDescription(result.analysis);
     const consistencyMetadata = generateConsistencyMetadata(result.analysis);
-    
+
     res.json({
       ok: true,
       analysis: result.analysis,
@@ -992,7 +993,7 @@ router.post('/analyze-model', async (req, res) => {
       },
       consistencyMetadata
     });
-    
+
   } catch (err) {
     console.error('[V3] Error analyzing model:', err);
     res.status(500).json({ ok: false, error: err.message });
@@ -1006,9 +1007,9 @@ router.post('/analyze-model', async (req, res) => {
 router.post('/analyze-clothing', async (req, res) => {
   try {
     const { image, imageUrl, useCache = true } = req.body;
-    
+
     let imageData = null;
-    
+
     // Handle base64 image data
     if (image?.base64) {
       imageData = {
@@ -1036,22 +1037,22 @@ router.post('/analyze-clothing', async (req, res) => {
         };
       }
     }
-    
+
     if (!imageData) {
       return res.status(400).json({ ok: false, error: 'No valid image provided' });
     }
-    
+
     console.log('[V3] Analyzing clothing reference...');
     const result = await analyzeClothingReference(imageData, { useCache });
-    
+
     if (!result.ok) {
       return res.status(500).json({ ok: false, error: result.error });
     }
-    
+
     // Build prompt components
     const promptDescription = buildClothingPromptDescription(result.analysis);
     const preservationInstructions = buildPreservationInstructions(result.analysis);
-    
+
     res.json({
       ok: true,
       analysis: result.analysis,
@@ -1061,7 +1062,7 @@ router.post('/analyze-clothing', async (req, res) => {
         preservationInstructions
       }
     });
-    
+
   } catch (err) {
     console.error('[V3] Error analyzing clothing:', err);
     res.status(500).json({ ok: false, error: err.message });
@@ -1120,17 +1121,17 @@ router.get('/v3-options', async (req, res) => {
 router.post('/:id/generate-v3', async (req, res) => {
   try {
     const shoot = await getCustomShootById(req.params.id);
-    
+
     if (!shoot) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
-    
+
     const {
       // V3 specific params
       modelAnalysis,
       clothingAnalyses,
       identityLockStrength = 'strict',
-      
+
       // Photo realism settings
       camera = 'contax_t2',
       lens = '85mm',
@@ -1138,7 +1139,7 @@ router.post('/:id/generate-v3', async (req, res) => {
       filmType = 'portra_400',
       shutterSpeed,
       iso,
-      
+
       // Atmospheric settings
       location,
       lightingSetup = 'natural_window',
@@ -1147,7 +1148,7 @@ router.post('/:id/generate-v3', async (req, res) => {
       weather,
       mood,
       colorTemperature,
-      
+
       // Composition settings
       shotSize = 'medium_closeup',
       cameraAngle = 'eye_level',
@@ -1156,24 +1157,24 @@ router.post('/:id/generate-v3', async (req, res) => {
       handPlacement,
       gazeDirection = 'camera',
       focusPoint = 'eyes',
-      
+
       // Frame reference
       frame,
-      
+
       // Technical
       aspectRatio = '3:4',
       imageSize = '2K',
-      
+
       // Extra
       extraPrompt,
-      
+
       // Identity/clothing images (if not using pre-analyzed)
       identityImages: reqIdentityImages,
       clothingImages: reqClothingImages
     } = req.body;
-    
+
     console.log('[V3] Generate request for shoot:', shoot.id);
-    
+
     // Prepare identity images
     let identityImages = [];
     if (reqIdentityImages && Array.isArray(reqIdentityImages)) {
@@ -1182,11 +1183,11 @@ router.post('/:id/generate-v3', async (req, res) => {
       for (const shootModel of shoot.models) {
         const modelId = shootModel.modelId || shootModel.id;
         if (!modelId) continue;
-        
+
         const model = await getModelById(modelId);
         if (model && model.imageFiles && model.imageFiles.length > 0) {
           const modelsDir = getModelsDir();
-          
+
           for (const filename of model.imageFiles) {
             const filePath = path.join(modelsDir, model.id, filename);
             try {
@@ -1202,7 +1203,7 @@ router.post('/:id/generate-v3', async (req, res) => {
         }
       }
     }
-    
+
     // Prepare clothing images
     let clothingImages = [];
     if (reqClothingImages && Array.isArray(reqClothingImages)) {
@@ -1219,11 +1220,11 @@ router.post('/:id/generate-v3', async (req, res) => {
         }
       }
     }
-    
+
     // Run analyses if not provided
     let effectiveModelAnalysis = modelAnalysis;
     let effectiveClothingAnalyses = clothingAnalyses || [];
-    
+
     // Analyze model if we have images but no analysis
     if (!effectiveModelAnalysis && identityImages.length > 0) {
       console.log('[V3] Running model identity analysis...');
@@ -1232,7 +1233,7 @@ router.post('/:id/generate-v3', async (req, res) => {
         effectiveModelAnalysis = modelResult.analysis;
       }
     }
-    
+
     // Analyze clothing if we have images but no analyses
     if (effectiveClothingAnalyses.length === 0 && clothingImages.length > 0) {
       console.log('[V3] Running clothing analysis...');
@@ -1241,22 +1242,22 @@ router.post('/:id/generate-v3', async (req, res) => {
         .filter(r => r.ok)
         .map(r => r.analysis);
     }
-    
+
     // Build V3 prompt
     const builder = createPromptBuilderV3();
-    
+
     // Block 1: Hard Constraints
     builder.setTechnicalRequirements(aspectRatio, imageSize);
     builder.addPhotorealismRules();
-    
+
     if (effectiveModelAnalysis) {
       builder.setIdentityLock(effectiveModelAnalysis, identityLockStrength);
     }
-    
+
     if (effectiveClothingAnalyses.length > 0) {
       builder.setClothingLock(effectiveClothingAnalyses);
     }
-    
+
     // Block 2: Photo Realism
     builder.setCamera(camera);
     builder.setLens(lens);
@@ -1264,7 +1265,7 @@ router.post('/:id/generate-v3', async (req, res) => {
     builder.setFilmType(filmType);
     if (shutterSpeed) builder.setShutterSpeed(shutterSpeed);
     if (iso) builder.setISO(iso);
-    
+
     // Block 3: Visual Identity
     if (effectiveModelAnalysis) {
       builder.setModelDescription(buildNarrativeDescription(effectiveModelAnalysis));
@@ -1274,7 +1275,7 @@ router.post('/:id/generate-v3', async (req, res) => {
         effectiveClothingAnalyses.map(a => buildClothingPromptDescription(a))
       );
     }
-    
+
     // Block 4: Atmospheric
     if (location) builder.setLocation(location);
     builder.setLightingSetup(lightingSetup);
@@ -1283,7 +1284,7 @@ router.post('/:id/generate-v3', async (req, res) => {
     if (weather) builder.setWeather(weather);
     if (mood) builder.setMood(mood);
     if (colorTemperature) builder.setColorTemperature(colorTemperature);
-    
+
     // Block 5: Composition
     builder.setShotSize(shotSize);
     builder.setCameraAngle(cameraAngle);
@@ -1292,30 +1293,30 @@ router.post('/:id/generate-v3', async (req, res) => {
     if (handPlacement) builder.setHandPlacement(handPlacement);
     builder.setGazeDirection(gazeDirection);
     builder.setFocusPoint(focusPoint);
-    
+
     // Block 6: Quality Gates
     builder.addQualityGates();
-    
+
     // Extra prompt
     if (extraPrompt) {
       builder.hardConstraints.push(`\nADDITIONAL INSTRUCTIONS: ${extraPrompt}`);
     }
-    
+
     // Validate
     const validation = builder.validateConflicts();
     if (!validation.valid) {
       console.warn('[V3] Prompt conflicts:', validation.conflicts);
     }
-    
+
     // Build final prompt
     const promptText = builder.toText();
     const promptJson = builder.build();
-    
+
     console.log('[V3] Prompt built, length:', promptText.length);
-    
+
     // Prepare reference images for generation
     const referenceImages = [];
-    
+
     // Add identity images
     if (identityImages.length > 0) {
       // Build collage for identity
@@ -1330,12 +1331,12 @@ router.post('/:id/generate-v3', async (req, res) => {
         referenceImages.push(identityCollage);
       }
     }
-    
+
     // Add clothing images (separately for quality)
     for (const clothingImg of clothingImages) {
       referenceImages.push(clothingImg);
     }
-    
+
     // Add pose sketch if available
     const effectiveFrame = frame || shoot.currentFrame;
     if (effectiveFrame) {
@@ -1347,28 +1348,28 @@ router.post('/:id/generate-v3', async (req, res) => {
         }
       }
     }
-    
+
     console.log(`[V3] Sending ${referenceImages.length} reference images`);
-    
+
     // Track generation time
     const genStartTime = Date.now();
-    
+
     // Call Gemini
     const result = await requestGeminiImage({
       prompt: promptText,
       referenceImages,
       imageConfig: { aspectRatio, imageSize }
     });
-    
+
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);
-    
+
     if (!result.ok) {
       console.error('[V3] Generation failed:', result.error);
       return res.status(500).json({ ok: false, error: result.error });
     }
-    
+
     console.log(`[V3] Generation successful in ${genDuration}s`);
-    
+
     // Build image data
     const imageData = {
       id: generateImageId(),
@@ -1394,10 +1395,10 @@ router.post('/:id/generate-v3', async (req, res) => {
       prompt: promptText,
       generationTime: genDuration
     };
-    
+
     // Save to shoot history
     const savedImage = await addImageToShoot(shoot.id, imageData);
-    
+
     res.json({
       ok: true,
       image: {
@@ -1412,7 +1413,7 @@ router.post('/:id/generate-v3', async (req, res) => {
         clothing: effectiveClothingAnalyses.map(a => ({ type: a.garmentType, color: a.primaryColor?.name }))
       }
     });
-    
+
   } catch (err) {
     console.error('[V3] Error generating:', err);
     res.status(500).json({ ok: false, error: err.message });

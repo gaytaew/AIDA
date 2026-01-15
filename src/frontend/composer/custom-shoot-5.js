@@ -1414,7 +1414,14 @@ function renderUniverseParamsUI() {
       ? paramDef.options
       : Object.entries(paramDef.options).map(([key, opt]) => ({ value: key, ...opt }));
 
-    const currentValue = state.v5Values?.[paramId] || optionsArray[0]?.value;
+    // Determine default value (explicit vs first option)
+    let defaultVal = optionsArray[0]?.value;
+    const explicitDefault = optionsArray.find(o => o.isDefault);
+    if (explicitDefault) {
+      defaultVal = explicitDefault.value;
+    }
+
+    const currentValue = state.v5Values?.[paramId] || defaultVal;
 
     const optionsHtml = optionsArray.map(opt => {
       const value = opt.value;

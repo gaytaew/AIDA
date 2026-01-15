@@ -108,7 +108,8 @@ export const TECH_FOCAL = {
       value: 'standard',
       label: 'Стандартный (35-50mm)',
       spec: 'LENS: 35-50mm Standard. Neutral human-eye perspective, zero distortion, most "honest" rendering.',
-      constraints: { distortion: 'none', perspective: 'natural', minFocusDistance: 0.4 }
+      constraints: { distortion: 'none', perspective: 'natural', minFocusDistance: 0.4 },
+      isDefault: true
     },
     {
       value: 'portrait',
