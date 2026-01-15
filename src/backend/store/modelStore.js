@@ -83,11 +83,11 @@ async function writeManifest(folderPath, model) {
  */
 async function saveImagesToFolder(folderPath, images) {
   const savedFiles = [];
-  
+
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
     if (!img || !img.base64) continue;
-    
+
     // Determine extension from mimeType
     let ext = 'jpg';
     if (img.mimeType) {
@@ -95,10 +95,10 @@ async function saveImagesToFolder(folderPath, images) {
       else if (img.mimeType.includes('webp')) ext = 'webp';
       else if (img.mimeType.includes('gif')) ext = 'gif';
     }
-    
+
     const filename = `identity-${String(i + 1).padStart(2, '0')}.${ext}`;
     const filePath = path.join(folderPath, filename);
-    
+
     try {
       const buffer = Buffer.from(img.base64, 'base64');
       await fs.writeFile(filePath, buffer);
@@ -107,7 +107,7 @@ async function saveImagesToFolder(folderPath, images) {
       console.error(`Failed to save image ${filename}:`, e.message);
     }
   }
-  
+
   return savedFiles;
 }
 
@@ -117,7 +117,7 @@ async function saveImagesToFolder(folderPath, images) {
 async function listImageFiles(folderPath) {
   try {
     const entries = await fs.readdir(folderPath);
-    return entries.filter(name => 
+    return entries.filter(name =>
       /\.(jpg|jpeg|png|webp|gif)$/i.test(name) && name !== MANIFEST_FILE
     );
   } catch {
@@ -126,27 +126,45 @@ async function listImageFiles(folderPath) {
 }
 
 /**
+ * Helper to sanitize ID for folder name
+ */
+function getSafeId(id) {
+  return String(id || '').trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+/**
  * Build previewSrc URL for a model
  * Uses the first image file as preview
  */
 function buildPreviewUrl(model) {
   if (!model || !model.id) return '';
-  
+
   // If previewSrc is already a full URL, use it
   if (model.previewSrc && model.previewSrc.startsWith('/api/')) {
     return model.previewSrc;
   }
-  
+
+  const safeId = getSafeId(model.id);
+
   // Use first image file as preview
   if (model.imageFiles && model.imageFiles.length > 0) {
-    return `/api/models/images/${model.id}/${model.imageFiles[0]}`;
+    return `/api/models/images/${safeId}/${model.imageFiles[0]}`;
   }
-  
+
   // Fallback to previewSrc if it's a filename
   if (model.previewSrc) {
-    return `/api/models/images/${model.id}/${model.previewSrc}`;
+    // Check if previewSrc already includes the folder/ID
+    if (model.previewSrc.includes('/')) {
+      // It might be "folder/image.jpg"
+      // Ensure we point to the correct static path
+      // But since we can't be sure if the folder part is correct, 
+      // it's safer to strip the folder and use safeId + basename
+      const filename = path.basename(model.previewSrc);
+      return `/api/models/images/${safeId}/${filename}`;
+    }
+    return `/api/models/images/${safeId}/${model.previewSrc}`;
   }
-  
+
   return '';
 }
 
@@ -155,36 +173,36 @@ function buildPreviewUrl(model) {
  */
 export async function getAllModels() {
   await ensureModelsDir();
-  
+
   const entries = await fs.readdir(MODELS_DIR, { withFileTypes: true });
   const models = [];
-  
+
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    
+
     const folderPath = path.join(MODELS_DIR, entry.name);
     const manifest = await readManifest(folderPath);
-    
+
     if (manifest && manifest.id) {
       // Ensure imageFiles is populated
       if (!manifest.imageFiles || manifest.imageFiles.length === 0) {
         manifest.imageFiles = await listImageFiles(folderPath);
       }
-      
+
       // Build previewSrc URL
       manifest.previewSrc = buildPreviewUrl(manifest);
-      
+
       models.push(manifest);
     }
   }
-  
+
   // Sort by updatedAt descending
   models.sort((a, b) => {
     const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
     const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
     return dateB - dateA;
   });
-  
+
   return models;
 }
 
@@ -196,18 +214,18 @@ export async function getModelById(id) {
   if (!folderPath || !(await pathExists(folderPath))) {
     return null;
   }
-  
+
   const manifest = await readManifest(folderPath);
   if (!manifest) return null;
-  
+
   // Ensure imageFiles is populated
   if (!manifest.imageFiles || manifest.imageFiles.length === 0) {
     manifest.imageFiles = await listImageFiles(folderPath);
   }
-  
+
   // Build previewSrc URL
   manifest.previewSrc = buildPreviewUrl(manifest);
-  
+
   return manifest;
 }
 
@@ -218,7 +236,7 @@ export async function getModelById(id) {
  */
 export async function createModel(modelData, images = []) {
   const now = new Date().toISOString();
-  
+
   // Create model object
   const template = createEmptyModel(modelData.name || 'Новая модель');
   const newModel = {
@@ -229,27 +247,27 @@ export async function createModel(modelData, images = []) {
     createdAt: now,
     updatedAt: now
   };
-  
+
   // Validate
   const validation = validateModel(newModel);
   if (!validation.valid) {
     return { success: false, errors: validation.errors };
   }
-  
+
   const folderPath = getModelFolderPath(newModel.id);
   if (!folderPath) {
     return { success: false, errors: ['Invalid model ID'] };
   }
-  
+
   // Check if already exists
   if (await pathExists(folderPath)) {
     return { success: false, errors: [`Model with ID "${newModel.id}" already exists`] };
   }
-  
+
   // Create folder and save
   await enqueueWrite(async () => {
     await fs.mkdir(folderPath, { recursive: true });
-    
+
     // Save images if provided
     if (images && images.length > 0) {
       newModel.imageFiles = await saveImagesToFolder(folderPath, images);
@@ -258,10 +276,10 @@ export async function createModel(modelData, images = []) {
         newModel.previewSrc = `${newModel.dirPath}/${newModel.imageFiles[0]}`;
       }
     }
-    
+
     await writeManifest(folderPath, newModel);
   });
-  
+
   return { success: true, model: newModel };
 }
 
@@ -276,12 +294,12 @@ export async function updateModel(id, updates, newImages = null) {
   if (!existingModel) {
     return { success: false, errors: [`Model with ID "${id}" not found`] };
   }
-  
+
   const folderPath = getModelFolderPath(id);
   if (!folderPath) {
     return { success: false, errors: ['Invalid model ID'] };
   }
-  
+
   // Merge updates
   const updatedModel = {
     ...existingModel,
@@ -290,50 +308,50 @@ export async function updateModel(id, updates, newImages = null) {
     dirPath: existingModel.dirPath, // dirPath cannot be changed
     updatedAt: new Date().toISOString()
   };
-  
+
   // Validate
   const validation = validateModel(updatedModel);
   if (!validation.valid) {
     return { success: false, errors: validation.errors };
   }
-  
+
   await enqueueWrite(async () => {
     // Save new images if provided
     if (newImages && newImages.length > 0) {
       // Get existing count to continue numbering
       const existingImages = await listImageFiles(folderPath);
       const startIndex = existingImages.length;
-      
+
       for (let i = 0; i < newImages.length; i++) {
         const img = newImages[i];
         if (!img || !img.base64) continue;
-        
+
         let ext = 'jpg';
         if (img.mimeType) {
           if (img.mimeType.includes('png')) ext = 'png';
           else if (img.mimeType.includes('webp')) ext = 'webp';
           else if (img.mimeType.includes('gif')) ext = 'gif';
         }
-        
+
         const filename = `identity-${String(startIndex + i + 1).padStart(2, '0')}.${ext}`;
         const filePath = path.join(folderPath, filename);
-        
+
         const buffer = Buffer.from(img.base64, 'base64');
         await fs.writeFile(filePath, buffer);
       }
-      
+
       // Update imageFiles list
       updatedModel.imageFiles = await listImageFiles(folderPath);
-      
+
       // Update preview if it was empty
       if (!updatedModel.previewSrc && updatedModel.imageFiles.length > 0) {
         updatedModel.previewSrc = `${updatedModel.dirPath}/${updatedModel.imageFiles[0]}`;
       }
     }
-    
+
     await writeManifest(folderPath, updatedModel);
   });
-  
+
   return { success: true, model: updatedModel };
 }
 
@@ -345,11 +363,11 @@ export async function deleteModel(id) {
   if (!folderPath || !(await pathExists(folderPath))) {
     return { success: false, errors: [`Model with ID "${id}" not found`] };
   }
-  
+
   await enqueueWrite(async () => {
     await fs.rm(folderPath, { recursive: true, force: true });
   });
-  
+
   return { success: true };
 }
 
