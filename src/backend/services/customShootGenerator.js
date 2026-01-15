@@ -1111,3 +1111,133 @@ export function getVirtualStudioOptions() {
     }))
   };
 }
+
+/**
+ * Edit an existing generated image using a text instruction (multimodal)
+ * Uses Gemini/Vertex in "editor" mode
+ */
+export async function editCustomShootImage({
+  shoot,
+  imageId,
+  instruction
+}) {
+  const genId = `edit_${Date.now() % 100000}`;
+
+  console.log(`[CustomShootGenerator] [${genId}] EDIT_START`, { shootId: shoot.id, imageId, instruction });
+
+  if (!instruction || !instruction.trim()) {
+    return { ok: false, error: 'Empty instruction' };
+  }
+
+  try {
+    // 1. Find the original image record
+    const sourceImage = shoot.setup.generatedFrames.find(f => f.id === imageId);
+    if (!sourceImage) {
+      throw new Error('Image not found in shoot');
+    }
+
+    // 2. Load the actual image buffer
+    const imagePath = sourceImage.imageUrl;
+    let imageBuffer;
+    let mimeType = 'image/jpeg';
+
+    try {
+      // Check if path is a stored path or full URL
+      if (isStoredImagePath(imagePath)) {
+        const res = await loadImageBuffer(imagePath);
+        if (!res.ok) throw new Error(res.error);
+        imageBuffer = res.buffer;
+        mimeType = res.mimeType;
+      } else if (imagePath.startsWith('data:')) {
+        const match = imagePath.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          mimeType = match[1];
+          imageBuffer = Buffer.from(match[2], 'base64');
+        } else {
+          throw new Error('Invalid data URL');
+        }
+      } else {
+        // Fallback or external URL? Assuming stored path relative to images
+        // If it's a relative path not matching the regex, might be tricky.
+        const res = await loadImageBuffer(imagePath);
+        if (!res.ok) throw new Error(res.error);
+        imageBuffer = res.buffer;
+        mimeType = res.mimeType;
+      }
+    } catch (e) {
+      console.error(`[Edit] Failed to load source image ${imagePath}:`, e);
+      throw new Error('Failed to load source image file');
+    }
+
+    // 3. Construct the prompt
+    const systemPrompt = `ROLE: Professional Photo Retoucher & Editor.
+TASK: Edit the provided image according to the USER INSTRUCTION.
+
+HARD RULES:
+1. PRESERVE everything that is not mentioned in the instruction.
+2. Maintain the exact same face identity, composition, lighting, and style.
+3. The output must be photorealistic (no cartoons/illustrations).
+4. If the instruction asks for an impossible change (e.g. "make it a video"), politely refuse or ignore and return best effort.
+
+USER INSTRUCTION: "${instruction}"
+
+Apply the change seamlessly.`;
+
+    // 4. Call Gemini (or fallback Vertex)
+    const imagePayload = {
+      base64: imageBuffer.toString('base64'),
+      mimeType: mimeType
+    };
+
+    let result = await requestGeminiImage({
+      prompt: systemPrompt,
+      referenceImages: [imagePayload],
+      imageConfig: {
+        aspectRatio: sourceImage.aspectRatio || '3:4',
+        imageSize: sourceImage.imageSize || '2K'
+      }
+    });
+
+    // Check for overload and fallback to Vertex
+    if (!result.ok && result.errorCode === 'api_overloaded') {
+      console.warn(`[CustomShootGenerator] [${genId}] Gemini overloaded, falling back to Vertex AI`);
+      result = await requestVertexImage({
+        prompt: systemPrompt,
+        referenceImages: [imagePayload],
+        imageConfig: {
+          aspectRatio: sourceImage.aspectRatio || '3:4',
+          imageSize: sourceImage.imageSize || '2K'
+        }
+      });
+    }
+
+    if (!result.ok) {
+      throw new Error(result.error || 'Generation failed');
+    }
+
+    // 5. Return success data
+    // We do NOT save here, the route handler does that.
+    const newImageId = generateImageId();
+
+    return {
+      ok: true,
+      data: {
+        mimeType: result.mimeType,
+        base64: result.base64,
+        prompt: systemPrompt,
+        // Inherit metadata from source
+        ...sourceImage,
+        id: newImageId,
+        imageUrl: null, // to be set by saver
+        timestamp: new Date().toISOString(),
+        isStyleReference: false,
+        frameLabel: (sourceImage.frameLabel || 'Image') + ' (Edited)',
+        extraPrompt: instruction
+      }
+    };
+
+  } catch (e) {
+    console.error(`[CustomShootGenerator] [${genId}] Edit error:`, e);
+    return { ok: false, error: e.message };
+  }
+}
