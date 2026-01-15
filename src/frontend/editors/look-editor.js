@@ -4,7 +4,8 @@
 
 let currentItems = [];
 let currentLookId = null;
-let currentCoverBase64 = null; // Staged new cover image
+let currentCollageBase64 = null; // Auto-generated
+let tempItemImageBase64 = null; // Inner modal state
 
 // Initial Load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -28,17 +29,20 @@ async function loadCategories() {
     }
 }
 
-// Helper to get image URL
-function getLookImageUrl(look) {
-    if (!look || !look.coverImage) return null;
-    if (look.coverImage.startsWith('data:')) return look.coverImage;
-    if (look.coverImage.startsWith('/')) return look.coverImage;
+// ═══════════════════════════════════════════════════════════════
+// GALLERY & DISPLAY
+// ═══════════════════════════════════════════════════════════════
+
+function getLookImageUrl(look, filename) {
+    if (!filename) return null;
+    if (filename.startsWith('data:')) return filename;
+
+    // Check if filename is actually a full URL (legacy or external)
+    if (filename.startsWith('/')) return filename;
 
     // Construct path: /api/looks/images/{safeId}/{filename}
-    // We need safeId helper or rely on look.id if it's safe-ish.
-    // Backend uses safeId.
     const safeId = look.id.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
-    return `/api/looks/images/${safeId}/${look.coverImage}`;
+    return `/api/looks/images/${safeId}/${filename}`;
 }
 
 async function loadGallery() {
@@ -55,10 +59,10 @@ async function loadGallery() {
         }
 
         gallery.innerHTML = json.data.map(look => {
-            const imgUrl = getLookImageUrl(look);
+            const imgUrl = getLookImageUrl(look, look.coverImage);
             const bg = imgUrl ? `url('${imgUrl}?t=${Date.now()}')` : getColorHash(look.id);
             const style = imgUrl
-                ? `background-image: ${bg}; background-size: cover; background-position: center;`
+                ? `background-image: ${bg}; background-size: cover; background-position: top center;`
                 : `background: ${bg};`;
 
             return `
@@ -78,15 +82,18 @@ async function loadGallery() {
     }
 }
 
-// Generate a consistent pastel color from ID
 function getColorHash(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
     const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-    return '#' + '00000'.substring(0, 6 - c.length) + c + '20'; // 20 for low opacity
+    return '#' + '00000'.substring(0, 6 - c.length) + c + '20';
 }
+
+// ═══════════════════════════════════════════════════════════════
+// SELECTION & EDITOR
+// ═══════════════════════════════════════════════════════════════
 
 window.selectLook = async (id) => {
     currentLookId = id;
@@ -95,7 +102,7 @@ window.selectLook = async (id) => {
 
     if (json.ok) {
         fillForm(json.data);
-        loadGallery(); // Refresh to update selection state
+        loadGallery();
     }
 };
 
@@ -104,16 +111,22 @@ function fillForm(look) {
     document.getElementById('look-category').value = look.category;
     document.getElementById('look-prompt-tech').value = look.prompt?.tech?.description || '';
 
-    currentItems = look.items || [];
+    // clone items
+    currentItems = (look.items || []).map(item => ({ ...item }));
+
+    // Render items
     renderItems();
 
-    // Images
-    currentCoverBase64 = null; // Clear staged
+    // Render collage (load cover image)
     if (look.coverImage) {
-        const url = getLookImageUrl(look);
-        setCoverPreview(url);
+        const url = getLookImageUrl(look, look.coverImage);
+        setCollagePreview(url);
+    } else if (currentItems.length > 0) {
+        updateCollage(); // Regenerate if missing but items exist? 
+        // Or if we load an existing look, we assume coverImage is good. 
+        // But if user adds items, we regenerate.
     } else {
-        clearCoverPreview();
+        clearCollagePreview();
     }
 
     document.getElementById('btn-delete').style.display = 'block';
@@ -121,10 +134,29 @@ function fillForm(look) {
 
 function renderItems() {
     const container = document.getElementById('items-list');
-    container.innerHTML = currentItems.map((item, idx) => `
+    container.innerHTML = currentItems.map((item, idx) => {
+        let imgHtml = '<span style="font-size: 24px;">👕</span>';
+
+        // Resolve Image URL
+        // If it's a new item, it might have base64 in `imageBase64`
+        // If it's saved item, it has `image` filename
+        let src = '';
+        if (item.imageBase64) {
+            src = `data:image/jpeg;base64,${item.imageBase64}`;
+        } else if (item.image) {
+            // Need look context to build URL... but we might not have saved ID if it's new look?
+            // If we are editing, currentLookId exists.
+            src = getLookImageUrl({ id: currentLookId || 'temp' }, item.image);
+        }
+
+        if (src) {
+            imgHtml = `<img src="${src}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        }
+
+        return `
         <div class="look-item">
-            <div class="look-item-image" style="background: #333; display: flex; align-items: center; justify-content: center;">
-                <span style="font-size: 24px;">👕</span>
+            <div class="look-item-image" style="background: #333; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                ${imgHtml}
             </div>
             <div class="look-item-content">
                 <div class="look-item-header">
@@ -134,7 +166,11 @@ function renderItems() {
                 <div class="look-item-desc">${item.description}</div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
+
+    // Trigger collage update whenever items change
+    // Debounce this? For now direct call.
+    updateCollage();
 }
 
 window.removeItem = (idx) => {
@@ -143,84 +179,85 @@ window.removeItem = (idx) => {
 };
 
 function setupEventListeners() {
-    // Cover Upload
-    const zone = document.getElementById('cover-upload-zone');
-    const input = document.getElementById('cover-input');
-    const btnRemove = document.getElementById('btn-remove-cover');
-
-    zone.onclick = (e) => {
-        if (e.target !== btnRemove) input.click();
-    };
-
-    input.onchange = async (e) => {
-        if (e.target.files.length) {
-            await handleCoverFile(e.target.files[0]);
-        }
-    };
-
-    btnRemove.onclick = (e) => {
-        e.stopPropagation();
-        clearCoverPreview();
-        currentCoverBase64 = null;
-        input.value = '';
-    };
-
-    // Drag & Drop
-    zone.ondragover = (e) => {
-        e.preventDefault();
-        zone.style.borderColor = 'var(--color-accent)';
-    };
-    zone.ondragleave = () => {
-        zone.style.borderColor = 'var(--color-border)';
-    };
-    zone.ondrop = async (e) => {
-        e.preventDefault();
-        zone.style.borderColor = 'var(--color-border)';
-        if (e.dataTransfer.files.length) {
-            await handleCoverFile(e.dataTransfer.files[0]);
-        }
-    };
-
-    // Paste
-    document.addEventListener('paste', async (e) => {
-        const items = e.clipboardData?.items;
-        if (!items) return;
-        for (const item of items) {
-            if (item.type.startsWith('image/')) {
-                await handleCoverFile(item.getAsFile());
-                break; // One image at a time
-            }
-        }
-    });
-
     // Add Item Modal
     const modal = document.getElementById('item-modal');
     const btnAdd = document.getElementById('btn-add-item');
     const btnCancel = document.getElementById('btn-cancel-item');
     const btnConfirm = document.getElementById('btn-confirm-item');
 
+    // Item Upload Inputs
+    const itemImgZone = document.getElementById('item-image-zone');
+    const itemImgInput = document.getElementById('item-image-input');
+    const itemImgBtnRemove = document.getElementById('btn-remove-item-image');
+
+    // Open Modal
     btnAdd.onclick = () => {
         document.getElementById('item-desc-input').value = '';
+        document.getElementById('item-type-select').value = 'top';
+        resetItemImage(true);
         modal.style.display = 'flex';
         document.getElementById('item-desc-input').focus();
     };
 
+    // Close Modal
     btnCancel.onclick = () => {
         modal.style.display = 'none';
     };
 
+    // Item Image Logic
+    itemImgZone.onclick = (e) => {
+        if (e.target !== itemImgBtnRemove) itemImgInput.click();
+    };
+
+    itemImgInput.onchange = async (e) => {
+        if (e.target.files.length) {
+            await handleItemFile(e.target.files[0]);
+        }
+    };
+
+    itemImgBtnRemove.onclick = (e) => {
+        e.stopPropagation();
+        resetItemImage();
+    };
+
+    // Paste in Modal
+    modal.addEventListener('paste', async (e) => {
+        // Only if modal is visible
+        if (modal.style.display === 'none') return;
+
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                await handleItemFile(item.getAsFile());
+                break;
+            }
+        }
+    });
+
+    // Confirm Add Item
     btnConfirm.onclick = () => {
         const type = document.getElementById('item-type-select').value;
         const desc = document.getElementById('item-desc-input').value;
 
-        if (desc) {
-            currentItems.push({
+        if (desc) { // Allow items without images? Yes, but user wants collages.
+            // If image is uploaded
+
+            const newItem = {
                 id: Date.now().toString(),
                 type,
                 description: desc
-            });
+            };
+
+            if (tempItemImageBase64) {
+                newItem.imageBase64 = tempItemImageBase64;
+            }
+
+            currentItems.push(newItem);
             renderItems();
             modal.style.display = 'none';
+        } else {
+            alert('Введите описание предмета');
         }
     };
 
@@ -228,6 +265,7 @@ function setupEventListeners() {
     document.getElementById('look-form').onsubmit = async (e) => {
         e.preventDefault();
 
+        // Ensure we send currentCollageBase64 if updated
         const data = {
             label: document.getElementById('look-label').value,
             category: document.getElementById('look-category').value,
@@ -235,7 +273,7 @@ function setupEventListeners() {
             prompt: {
                 tech: { description: document.getElementById('look-prompt-tech').value }
             },
-            coverImageBase64: currentCoverBase64 // Only sent if changed/new
+            coverImageBase64: currentCollageBase64 // The generated collage
         };
 
         let url = '/api/looks';
@@ -259,7 +297,7 @@ function setupEventListeners() {
                     clearForm();
                 } else {
                     currentLookId = json.data.id;
-                    fillForm(json.data); // Reload to get processed URLs
+                    fillForm(json.data);
                 }
                 loadGallery();
             } else {
@@ -284,45 +322,162 @@ function setupEventListeners() {
 
 function clearForm() {
     currentLookId = null;
-    currentCoverBase64 = null;
+    currentCollageBase64 = null;
     document.getElementById('look-label').value = '';
     document.getElementById('look-prompt-tech').value = '';
     currentItems = [];
     renderItems();
-    clearCoverPreview();
+    clearCollagePreview();
     document.getElementById('btn-delete').style.display = 'none';
     loadGallery();
 }
 
-function setCoverPreview(src) {
-    const img = document.getElementById('cover-preview');
-    const ph = document.getElementById('cover-placeholder');
-    const btn = document.getElementById('btn-remove-cover');
+// ═══════════════════════════════════════════════════════════════
+// COLLAGE LOGIC
+// ═══════════════════════════════════════════════════════════════
+
+function setCollagePreview(src) {
+    const img = document.getElementById('collage-preview-img');
+    const ph = document.getElementById('collage-placeholder');
 
     img.src = src;
     img.style.display = 'block';
     ph.style.display = 'none';
-    btn.style.display = 'block';
 }
 
-function clearCoverPreview() {
-    const img = document.getElementById('cover-preview');
-    const ph = document.getElementById('cover-placeholder');
-    const btn = document.getElementById('btn-remove-cover');
+function clearCollagePreview() {
+    const img = document.getElementById('collage-preview-img');
+    const ph = document.getElementById('collage-placeholder');
 
     img.src = '';
     img.style.display = 'none';
-    ph.style.display = 'flex';
-    btn.style.display = 'none';
+    ph.style.display = 'block';
 }
 
-// Image Utils
-async function handleCoverFile(file) {
+async function updateCollage() {
+    const imagesWithBase64 = [];
+
+    // Gather all item images
+    // Note: We need to load them to Canvas, so valid src is needed (dataURL or http)
+    // If it's a saved item, we need the URL.
+
+    for (const item of currentItems) {
+        let src = null;
+        if (item.imageBase64) {
+            src = `data:image/jpeg;base64,${item.imageBase64}`;
+        } else if (item.image && currentLookId) {
+            src = getLookImageUrl({ id: currentLookId }, item.image);
+        }
+
+        if (src) {
+            imagesWithBase64.push({ src, item });
+        }
+    }
+
+    if (imagesWithBase64.length === 0) {
+        clearCollagePreview();
+        currentCollageBase64 = null;
+        return;
+    }
+
+    try {
+        const collageBase64 = await generateCollage(imagesWithBase64);
+        currentCollageBase64 = collageBase64;
+        setCollagePreview(`data:image/jpeg;base64,${collageBase64}`);
+    } catch (e) {
+        console.error('Collage generation failed:', e);
+    }
+}
+
+async function generateCollage(imgObjs) {
+    // Determine Grid
+    const count = imgObjs.length;
+    let cols = 1;
+    let rows = 1;
+
+    if (count === 2) { cols = 2; rows = 1; }
+    else if (count === 3) { cols = 3; rows = 1; } // Or 2 col, 2 row (one span)
+    else if (count === 4) { cols = 2; rows = 2; }
+    else if (count > 4) { cols = 3; rows = Math.ceil(count / 3); }
+
+    // Canvas dimensions (HD)
+    const cw = 1200;
+    const ch = 1600; // 3:4 aspect
+
+    const canvas = document.createElement('canvas');
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext('2d');
+
+    // White bg
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Draw cells
+    const cellW = cw / cols;
+    const cellH = ch / rows;
+
+    // Load all images first
+    const loadedImgs = await Promise.all(imgObjs.map(obj => new Promise((resolve) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => resolve(null);
+        i.src = obj.src;
+        i.crossOrigin = 'Anonymous';
+    })));
+
+    loadedImgs.forEach((img, idx) => {
+        if (!img) return;
+
+        const row = Math.floor(idx / cols);
+        const col = idx % cols;
+        const x = col * cellW;
+        const y = row * cellH;
+
+        // Fit image in cell (contain)
+        // Draw image keeping ratio centered in cell
+        const ratio = Math.min(cellW / img.width, cellH / img.height);
+        const dw = img.width * ratio;
+        const dh = img.height * ratio;
+
+        const dx = x + (cellW - dw) / 2;
+        const dy = y + (cellH - dh) / 2;
+
+        ctx.drawImage(img, dx, dy, dw, dh);
+    });
+
+    return canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL IMAGE UTILS
+// ═══════════════════════════════════════════════════════════════
+
+function resetItemImage(clearGlobal = false) {
+    if (clearGlobal) tempItemImageBase64 = null;
+
+    document.getElementById('item-image-preview').style.display = 'none';
+    document.getElementById('item-image-placeholder').style.display = 'block';
+    document.getElementById('btn-remove-item-image').style.display = 'none';
+    document.getElementById('item-image-input').value = '';
+}
+
+async function handleItemFile(file) {
     if (!file) return;
     try {
         const compressed = await compressImage(file);
-        currentCoverBase64 = compressed; // raw base64 string
-        setCoverPreview(`data:image/jpeg;base64,${compressed}`);
+        tempItemImageBase64 = compressed;
+
+        // Show preview
+        const img = document.getElementById('item-image-preview');
+        const ph = document.getElementById('item-image-placeholder');
+        const btn = document.getElementById('btn-remove-item-image');
+
+        img.src = `data:image/jpeg;base64,${compressed}`;
+        img.style.display = 'block';
+        ph.style.display = 'none';
+        btn.style.display = 'block';
+
     } catch (e) {
         console.error(e);
         alert('Failed to process image');
@@ -353,7 +508,6 @@ function compressImage(file) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Return base64 WITHOUT prefix, backend expects just data
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
             resolve(dataUrl.split(',')[1]);
         };
