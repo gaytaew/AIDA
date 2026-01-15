@@ -313,7 +313,12 @@ function fillFormWithModel(model) {
 
   // Load collage if available
   if (model.previewSrc) {
-    elements.collageImage.src = `/api/models/images/${model.previewSrc}?t=${Date.now()}`;
+    // Handle full URL or filename
+    const src = model.previewSrc.startsWith('/api')
+      ? model.previewSrc
+      : `/api/models/images/${model.previewSrc}`;
+
+    elements.collageImage.src = `${src}?t=${Date.now()}`;
     elements.collagePreview.style.display = 'block';
   } else {
     elements.collagePreview.style.display = 'none';
@@ -653,8 +658,10 @@ function renderModelList() {
   }
 
   elements.modelList.innerHTML = allModels.map(model => {
+    // FIX: Check if previewSrc already has full path (from backend update)
+    // If it starts with /api, use it. Otherwise prepend base path.
     const previewUrl = model.previewSrc
-      ? `/api/models/images/${model.previewSrc}`
+      ? (model.previewSrc.startsWith('/api') ? model.previewSrc : `/api/models/images/${model.previewSrc}`)
       : null;
 
     return `
