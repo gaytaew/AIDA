@@ -300,7 +300,82 @@ export const FOOD_STATE = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// SECTION 4: FORMAT & QUALITY
+// SECTION 5: SCENE & PROPS
+// ═══════════════════════════════════════════════════════════════
+
+export const FOOD_SURFACE = {
+    id: 'surface',
+    label: '🪵 Поверхность',
+    description: 'Фон и текстура стола',
+    options: [
+        {
+            value: 'marble_white',
+            label: 'White Marble (Classic)',
+            spec: 'SURFACE: White Carrera Marble. Cool, elegant, faint grey veins. Clean luxury look.'
+        },
+        {
+            value: 'wood_rustic',
+            label: 'Rustic Wood (Dark)',
+            spec: 'SURFACE: Dark Rustic Wood. Weathered texture, deep brown tones. Farmhouse/Homey vibe.'
+        },
+        {
+            value: 'concrete',
+            label: 'Concrete (Industrial)',
+            spec: 'SURFACE: Grey Concrete. Matte, industrial, neutral grey. Modern and minimalist.'
+        },
+        {
+            value: 'linen_white',
+            label: 'White Linen (Tablecloth)',
+            spec: 'SURFACE: White Linen Tablecloth. Soft texture, fabric folds, classic restaurant feel.'
+        },
+        {
+            value: 'slate_dark',
+            label: 'Dark Slate / Stone',
+            spec: 'SURFACE: Dark Slate/Stone. Black/Dark Grey, rough texture. High contrast for bright food.'
+        },
+        {
+            value: 'paper_crumpled',
+            label: 'Crumpled Paper (Street)',
+            spec: 'SURFACE: Crumpled Greaseproof Paper. Casual, messy, street food vibe.'
+        }
+    ]
+};
+
+export const FOOD_CROCKERY = {
+    id: 'crockery',
+    label: '🥣 Посуда (Если нет Ref)',
+    description: 'Стиль тарелок и приборов',
+    options: [
+        {
+            value: 'ceramic_white',
+            label: 'White Ceramic (Standard)',
+            spec: 'CROCKERY: Simple White Ceramic. Clean round plates. No patterns. Focus on food.'
+        },
+        {
+            value: 'stoneware_dark',
+            label: 'Dark Stoneware (Handmade)',
+            spec: 'CROCKERY: Dark Stoneware. Matte glaze, organic handmade shapes, rustic feel.'
+        },
+        {
+            value: 'wood_board',
+            label: 'Wooden Board (Serving)',
+            spec: 'CROCKERY: Wooden Serving Board/Paddle. No plate. Food directly on wood. Rustic/Pizza.'
+        },
+        {
+            value: 'glass_minimal',
+            label: 'Glass / Transparent',
+            spec: 'CROCKERY: Clear Glass. Modern, light, shows layers.'
+        },
+        {
+            value: 'vintage_floral',
+            label: 'Vintage Floral (Grandma)',
+            spec: 'CROCKERY: Vintage Porcelain with Floral pattern. Delicate, nostalgic, tea party vibe.'
+        }
+    ]
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SECTION 6: FORMAT & QUALITY
 // ═══════════════════════════════════════════════════════════════
 
 export const FOOD_ASPECT_RATIO = {
@@ -344,7 +419,9 @@ export const FOOD_PRESETS = [
             plating: 'geometric',
             texture: 'sharp_crisp',
             dynamics: 'still',
-            state: 'perfect'
+            state: 'perfect',
+            surface: 'marble_white',
+            crockery: 'ceramic_white'
         }
     },
     {
@@ -361,7 +438,9 @@ export const FOOD_PRESETS = [
             plating: 'rustic_messy',
             texture: 'gritty_raw',
             dynamics: 'still',
-            state: 'perfect'
+            state: 'perfect',
+            surface: 'wood_rustic',
+            crockery: 'stoneware_dark'
         }
     },
     {
@@ -378,7 +457,9 @@ export const FOOD_PRESETS = [
             plating: 'geometric',
             texture: 'soft_dreamy',
             dynamics: 'still',
-            state: 'perfect'
+            state: 'perfect',
+            surface: 'concrete',
+            crockery: 'ceramic_white'
         }
     },
     {
@@ -395,7 +476,9 @@ export const FOOD_PRESETS = [
             plating: 'rustic_messy',
             texture: 'sharp_crisp',
             dynamics: 'human_element', // Suggesting eating
-            state: 'bitten'
+            state: 'bitten',
+            surface: 'slate_dark',
+            crockery: 'stoneware_dark'
         }
     }
 ];

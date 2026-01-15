@@ -102,6 +102,8 @@ function renderOptions() {
     populate(els.selects.color, state.options.color);
     populate(els.selects.plating, state.options.plating);
     populate(els.selects.texture, state.options.texture);
+    populate(els.selects.surface, state.options.surface); // Phase 4
+    populate(els.selects.crockery, state.options.crockery); // Phase 4
     populate(els.selects.dynamics, state.options.dynamics);
     populate(els.selects.state, state.options.state);
     populate(els.selects.aspectRatio, state.options.aspectRatio);
@@ -123,6 +125,8 @@ function applyPreset(presetId) {
     if (v.color) els.selects.color.value = v.color;
     if (v.plating) els.selects.plating.value = v.plating;
     if (v.texture) els.selects.texture.value = v.texture;
+    if (v.surface) els.selects.surface.value = v.surface; // Phase 4
+    if (v.crockery) els.selects.crockery.value = v.crockery; // Phase 4
     if (v.dynamics) els.selects.dynamics.value = v.dynamics;
     if (v.state) els.selects.state.value = v.state;
 }
@@ -225,6 +229,8 @@ async function generate() {
                 color: els.selects.color.value,
                 plating: els.selects.plating.value,
                 texture: els.selects.texture.value,
+                surface: els.selects.surface.value, // Phase 4
+                crockery: els.selects.crockery.value, // Phase 4
                 dynamics: els.selects.dynamics.value,
                 state: els.selects.state.value,
                 aspectRatio: els.selects.aspectRatio.value,
@@ -278,6 +284,8 @@ function loadParams(params) {
     if (params.color) els.selects.color.value = params.color;
     if (params.plating) els.selects.plating.value = params.plating;
     if (params.texture) els.selects.texture.value = params.texture;
+    if (params.surface) els.selects.surface.value = params.surface; // Phase 4
+    if (params.crockery) els.selects.crockery.value = params.crockery; // Phase 4
     if (params.dynamics) els.selects.dynamics.value = params.dynamics;
     if (params.state) els.selects.state.value = params.state;
     if (params.aspectRatio) els.selects.aspectRatio.value = params.aspectRatio;

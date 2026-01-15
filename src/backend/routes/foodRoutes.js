@@ -16,6 +16,8 @@ import {
     FOOD_COLOR,
     FOOD_TEXTURE,
     FOOD_DYNAMICS,
+    FOOD_SURFACE,
+    FOOD_CROCKERY,
     FOOD_PRESETS,
     FOOD_QUALITY
 } from '../schema/foodShoot.js';

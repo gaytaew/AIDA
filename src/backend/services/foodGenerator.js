@@ -21,7 +21,9 @@ import {
     FOOD_DEPTH,
     FOOD_COLOR,
     FOOD_TEXTURE,
-    FOOD_DYNAMICS
+    FOOD_DYNAMICS,
+    FOOD_SURFACE,
+    FOOD_CROCKERY
 } from '../schema/foodShoot.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -212,7 +214,8 @@ function buildFoodShootPromptDynamic(params, indexMap) {
         dishDescription,
         changesDescription,
         camera, angle, lighting, plating, state,
-        composition, depth, color, texture, dynamics, // NEW from Phase 3
+        composition, depth, color, texture, dynamics,
+        surface, crockery, // NEW Phase 4
         quality = 'draft'
     } = params;
 
@@ -236,6 +239,8 @@ GOAL: Create an image indistinguishable from a real photo shot on a Phase One ca
     const colorSpec = FOOD_COLOR.options.find(o => o.value === color)?.spec || '';
     const textureSpec = FOOD_TEXTURE.options.find(o => o.value === texture)?.spec || '';
     const dynamicsSpec = FOOD_DYNAMICS.options.find(o => o.value === dynamics)?.spec || '';
+    const surfaceSpec = FOOD_SURFACE.options.find(o => o.value === surface)?.spec || '';
+    const crockerySpec = FOOD_CROCKERY.options.find(o => o.value === crockery)?.spec || '';
 
     sections.push(`
 TECHNIQUE:
@@ -284,7 +289,8 @@ STYLING:
 - ${platingSpec}
 - ${stateSpec}
 - ${textureSpec}
-- ${dynamicsSpec}`);
+- ${dynamicsSpec}
+- ${surfaceSpec}`); // Added Surface
 
     // 3. OTHER REFERENCES
     const refLines = [];
@@ -293,6 +299,12 @@ STYLING:
         refLines.push(`REFERENCE [$${indexMap.crockery}]: CROCKERY / VESSEL (MANDATORY).
         - Use the EXACT plate/bowl/cup from [$${indexMap.crockery}].
         - Ignore any food inside the crockery reference; replace it with the SUBJECT.`);
+    } else {
+        // Fallback to Crockery Param if no Ref
+        if (crockerySpec) {
+            refLines.push(`CROCKERY (NO REFERENCE):
+        - ${crockerySpec}`);
+        }
     }
 
     if (indexMap.style) {
