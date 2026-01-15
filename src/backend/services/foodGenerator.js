@@ -282,12 +282,6 @@ IMPORTANT OVERRIDES:
 - IGNORE the background/surface in Reference [$${indexMap.subject}]. Replace it with: "${surfaceSpec}".
 - IGNORE the plate/crockery in Reference [$${indexMap.subject}]. Replace it with: "${crockerySpec}" (unless a specific Crockery Reference is provided).`);
 
-        if (changesDescription) {
-            sections.push(`
-REQUIRED MODIFICATIONS:
-> ${changesDescription}`);
-        }
-
     } else {
         // TEXT DESCRIPTION MODE
         sections.push(`
@@ -329,7 +323,17 @@ REFERENCES:
 ${refLines.join('\n')}`);
     }
 
-    // 4. HARD RULES (Updated for Hyper-realism)
+    // 4. CRITICAL EDITS (High Priority)
+    if (changesDescription) {
+        sections.push(`
+!!! IMPORTANT EDITS & MODIFICATIONS !!!
+The user has requested specific changes to the result. These must take precedence over references and standard descriptions:
+> "${changesDescription}"
+- IMPLEMENT THESE EDITS VISIBLY.
+- If they conflict with a reference, the EDIT WINS.`);
+    }
+
+    // 5. HARD RULES (Updated for Hyper-realism)
     sections.push(`
 HARD RULES:
 1. PHOTOREALISM IS PARAMOUNT. No plastic texture, no CGI look.
