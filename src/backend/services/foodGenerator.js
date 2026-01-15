@@ -254,16 +254,29 @@ TECHNIQUE:
 
     // 2. SUBJECT LOGIC (Reference vs Description)
 
+    // 2. SUBJECT LOGIC (Reference + Text Hybrid)
+    // The user wants the STRUCTURE from the reference, but the CONTENT from the text description?
+    // Or strictly the reference content?
+    // Based on "Ignore Prompt" report: The user typed a prompt but it was ignored because "if (indexMap.subject)" block didn't include ${dishDescription}.
+
     if (indexMap.subject) {
         // STRICT REFERENCE MODE
         sections.push(`
-SUBJECT (STRICT REFERENCE MATCH):
-The image MUST be a near-duplicate of the food in Reference [$${indexMap.subject}].
-1. MATCH: Ingredients, textures, cooking level, glossiness 100%.
-2. MATCH: Geometric Shape & Form Factor (CRITICAL). 
-   - If the reference is RECTANGULAR, the output MUST be RECTANGULAR.
-   - If the reference is SQUARE, the output MUST be SQUARE.
-3. MATCH: Portion size and general arrangement.
+SUBJECT (HYBRID REFERENCE MATCH):
+The image must follow the GEOMETRY and ARRANGEMENT of Reference [$${indexMap.subject}], but match the DESCRIPTION below.
+
+DESCRIPTION (CONTENT):
+"${dishDescription}"
+
+REFERENCE GUIDANCE (STRUCTURE & FORM):
+1. MATCH: Geometric Shape & Form Factor from [$${indexMap.subject}] (CRITICAL).
+   - If Ref is RECTANGULAR, output RECTANGULAR.
+   - If Ref is SQUARE, output SQUARE.
+2. MATCH: Ingredient Arrangement and Portion Size from [$${indexMap.subject}].
+3. IGNORE: The actual food content of [$${indexMap.subject}] IF it conflicts with the Description.
+   - Example: If Description says "Burger" but Ref is "Pizza", make a Burger shaped like a Pizza (or warn? No, usually just match vibe).
+   - BETTER: "Copy the appearance... maintain ingredients" was the old prompt.
+   - NEW LOGIC: Use Ref for Lighting/Angle/Shape. Use Description for FOOD CONTENT.
 
 IMPORTANT OVERRIDES:
 - IGNORE the background/surface in Reference [$${indexMap.subject}]. Replace it with: "${surfaceSpec}".
@@ -271,19 +284,15 @@ IMPORTANT OVERRIDES:
 
         if (changesDescription) {
             sections.push(`
-REQUIRED MODIFICATIONS (Apply to Reference [$${indexMap.subject}]):
-> ${changesDescription}
-(Keep everything else exactly as in the reference, especially the Shape)`);
-        } else {
-            sections.push(`
-NO MODIFICATIONS to the Food itself: Reproduce the reference dish exactly (Shape, Texture, Ingredients).`);
+REQUIRED MODIFICATIONS:
+> ${changesDescription}`);
         }
 
     } else {
         // TEXT DESCRIPTION MODE
         sections.push(`
 SUBJECT (TEXT BASED):
-${dishDescription}`);
+"${dishDescription}"`);
     }
 
     sections.push(`
