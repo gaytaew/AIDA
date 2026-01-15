@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AIDA — Модульный конструктор съёмок</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
   <div class="app">
     <!-- Sidebar -->
@@ -51,7 +53,7 @@
               <div class="dashboard-card-icon purple">🌌</div>
               <h3 class="dashboard-card-title">Вселенные</h3>
               <p class="dashboard-card-desc">
-                Визуальная ДНК съёмок: камера, свет, цвет, текстуры, оптика, эпоха и эстетика. 
+                Визуальная ДНК съёмок: камера, свет, цвет, текстуры, оптика, эпоха и эстетика.
                 Загрузи референсы — AI создаст вселенную.
               </p>
               <span class="dashboard-card-badge">AI-генерация</span>
@@ -102,20 +104,22 @@
               <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #f59e0b, #10b981);">✨</div>
               <h3 class="dashboard-card-title">Custom Shoot</h3>
               <p class="dashboard-card-desc">
-                Съёмка без готовой вселенной. Настраивай все параметры вручную, используй Style Lock и Location Lock для консистентности.
+                Съёмка без готовой вселенной. Настраивай все параметры вручную, используй Style Lock и Location Lock для
+                консистентности.
               </p>
             </a>
 
 
 
-            <!-- Custom Shoot 4 (TEST) -->
-            <a href="/composer/custom-shoot-4.html" class="dashboard-card" style="border: 2px dashed #6366f1;">
-              <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #818cf8, #a855f7);">🧬</div>
-              <h3 class="dashboard-card-title">Custom Shoot 4</h3>
+            <!-- Custom Shoot V5 (PRODUCTION) -->
+            <a href="/composer/custom-shoot-5.html" class="dashboard-card"
+              style="border: 2px solid #8B5CF6; background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(236, 72, 153, 0.05));">
+              <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">🚀</div>
+              <h3 class="dashboard-card-title">Custom Shoot V5</h3>
               <p class="dashboard-card-desc">
-                Test Lab 4. Четвёртая песочница для тестирования альтернативных подходов.
+                Новое поколение. Полный контроль, Emotion Priority, Visual Diff и улучшенная изоляция референсов.
               </p>
-              <span class="dashboard-card-badge">TEST</span>
+              <span class="dashboard-card-badge" style="background: #8B5CF6; color: white;">NEW</span>
             </a>
 
             <!-- Global Settings -->
@@ -139,7 +143,8 @@
           <div class="dashboard-grid">
             <div class="dashboard-card" style="cursor: default;">
               <div style="display: flex; align-items: center; gap: 16px;">
-                <div class="dashboard-card-icon purple" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">🌌</div>
+                <div class="dashboard-card-icon purple" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">
+                  🌌</div>
                 <div>
                   <div id="stat-universes" style="font-size: 28px; font-weight: 700;">—</div>
                   <div style="font-size: 13px; color: var(--color-text-muted);">Вселенных</div>
@@ -148,7 +153,8 @@
             </div>
             <div class="dashboard-card" style="cursor: default;">
               <div style="display: flex; align-items: center; gap: 16px;">
-                <div class="dashboard-card-icon blue" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">🖼️</div>
+                <div class="dashboard-card-icon blue" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">🖼️
+                </div>
                 <div>
                   <div id="stat-frames" style="font-size: 28px; font-weight: 700;">—</div>
                   <div style="font-size: 13px; color: var(--color-text-muted);">Кадров</div>
@@ -157,7 +163,8 @@
             </div>
             <div class="dashboard-card" style="cursor: default;">
               <div style="display: flex; align-items: center; gap: 16px;">
-                <div class="dashboard-card-icon green" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">👤</div>
+                <div class="dashboard-card-icon green" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">👤
+                </div>
                 <div>
                   <div id="stat-models" style="font-size: 28px; font-weight: 700;">—</div>
                   <div style="font-size: 13px; color: var(--color-text-muted);">Моделей</div>
@@ -166,7 +173,8 @@
             </div>
             <div class="dashboard-card" style="cursor: default;">
               <div style="display: flex; align-items: center; gap: 16px;">
-                <div class="dashboard-card-icon pink" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">📸</div>
+                <div class="dashboard-card-icon pink" style="width: 48px; height: 48px; font-size: 22px; margin: 0;">📸
+                </div>
                 <div>
                   <div id="stat-shoots" style="font-size: 28px; font-weight: 700;">—</div>
                   <div style="font-size: 13px; color: var(--color-text-muted);">Съёмок</div>
@@ -183,13 +191,13 @@
     // Health check and stats
     async function init() {
       const statusText = document.getElementById('status-text');
-      
+
       try {
         // Health check
         const healthRes = await fetch('/api/health');
         const health = await healthRes.json();
         statusText.textContent = health.ok ? 'Сервер работает' : 'Ошибка сервера';
-        
+
         // Load stats
         const [universesRes, framesRes, modelsRes, shootsRes] = await Promise.all([
           fetch('/api/universes'),
@@ -197,25 +205,26 @@
           fetch('/api/models'),
           fetch('/api/shoots')
         ]);
-        
+
         const universes = await universesRes.json();
         const frames = await framesRes.json();
         const models = await modelsRes.json();
         const shoots = await shootsRes.json();
-        
+
         document.getElementById('stat-universes').textContent = universes.ok ? (universes.total || universes.data?.length || 0) : 0;
         document.getElementById('stat-frames').textContent = frames.ok ? (frames.data?.length || 0) : 0;
         document.getElementById('stat-models').textContent = models.ok ? (models.data?.length || 0) : 0;
         document.getElementById('stat-shoots').textContent = shoots.ok ? (shoots.data?.length || 0) : 0;
-        
+
       } catch (e) {
         console.error('Init error:', e);
         statusText.textContent = 'Нет связи';
       }
     }
-    
+
     document.addEventListener('DOMContentLoaded', init);
   </script>
   <script type="module" src="shared/dev-console.js"></script>
 </body>
+
 </html>

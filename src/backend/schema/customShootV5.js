@@ -12,7 +12,7 @@
  * - Dependency Matrix prevents physically impossible combinations
  */
 
-import { getEmotionById } from '../services/avatarEmotions.js';
+import { getEmotionById } from '../schema/emotion.js';
 
 // ═══════════════════════════════════════════════════════════════
 // SECTION 1: TECHNICAL PARAMETERS (Camera Setup)
@@ -1453,12 +1453,11 @@ function buildArtisticBrief(params, scene) {
     }
 
     if (emo) {
-      if (emo.prompt) {
-        lines.push(`EMOTION & EXPRESSION: ${emo.prompt} (PRIORITY OVER REFERENCE EXPRESSION)`);
-      } else if (emo.visualPrompt) {
-        lines.push(`EMOTION & EXPRESSION: ${emo.visualPrompt} (PRIORITY OVER REFERENCE EXPRESSION)`);
-      } else if (emo.label) {
-        lines.push(`EMOTION & EXPRESSION: ${emo.label} expression (PRIORITY OVER REFERENCE EXPRESSION)`);
+      const emotionText = emo.atmosphere || emo.prompt || emo.visualPrompt || emo.shortDescription;
+
+      if (emotionText) {
+        lines.push(`EMOTION & EXPRESSION: ${emotionText} (PRIORITY OVER REFERENCE EXPRESSION)`);
+        lines.push(`Target Emotion: ${emo.label || 'Specified Emotion'}`);
       }
     }
   }
