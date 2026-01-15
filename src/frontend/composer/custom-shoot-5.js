@@ -2517,6 +2517,9 @@ function copyFrameSettings(frameIndex) {
   if (frame.universeParams && typeof frame.universeParams === 'object') {
     console.log('[CopySettings] Applying universe params:', Object.keys(frame.universeParams));
 
+    // Capture OLD values for diffing
+    const oldValues = { ...state.universeValues };
+
     // Update state
     state.universeValues = { ...frame.universeParams };
     state.v5Values = { ...frame.universeParams }; // Also update V5 specific state
@@ -2527,11 +2530,58 @@ function copyFrameSettings(frameIndex) {
     applyV5Dependencies();
     renderEmotionOptions(); // Since we re-rendered the container
 
-    // Highlight all selectors to show update
-    const allSelects = document.querySelectorAll('.v5-param-select, .universe-param-select');
-    allSelects.forEach(el => {
-      changedElements.push(el);
-      // Animation handled below
+    // Detect and visualize changes
+    Object.keys(frame.universeParams).forEach(key => {
+      const newVal = frame.universeParams[key];
+      const oldVal = oldValues[key];
+
+      if (newVal !== oldVal) {
+        // Find the element
+        const el = document.querySelector(`.v5-param-select[data-v5-param="${key}"]`);
+        if (el) {
+          changedElements.push(el);
+
+          // Add visual label for previous value
+          // Try to find human readable label from schema
+          let oldLabelStr = oldVal;
+          try {
+            if (state.v5Schema) {
+              // Check technical
+              if (state.v5Schema.technical && state.v5Schema.technical[key]) {
+                const opt = state.v5Schema.technical[key].options.find(o => o.value === oldVal);
+                if (opt) oldLabelStr = opt.label;
+              }
+              // Check artistic
+              else if (state.v5Schema.artistic && state.v5Schema.artistic[key]) {
+                const opt = state.v5Schema.artistic[key].options.find(o => o.value === oldVal);
+                if (opt) oldLabelStr = opt.label;
+              }
+              // Check context
+              else if (state.v5Schema.context && state.v5Schema.context[key]) {
+                const opt = state.v5Schema.context[key].options.find(o => o.value === oldVal);
+                if (opt) oldLabelStr = opt.label;
+              }
+            }
+          } catch (e) { console.error('Error getting label', e); }
+
+          // Remove any existing diff labels for this element (if re-running)
+          const parent = el.parentElement;
+          const existingDiff = parent.querySelector('.diff-label');
+          if (existingDiff) existingDiff.remove();
+
+          // Create diff label
+          const diffDiv = document.createElement('div');
+          diffDiv.className = 'diff-label';
+          diffDiv.style.fontSize = '10px';
+          diffDiv.style.color = '#22c55e'; // Green
+          diffDiv.style.marginTop = '2px';
+          diffDiv.style.fontWeight = 'bold';
+          diffDiv.innerText = `Previously: ${oldLabelStr || 'None'}`;
+
+          // Append after select
+          parent.appendChild(diffDiv);
+        }
+      }
     });
 
     changeLog.push('Universe params applied via re-render');
