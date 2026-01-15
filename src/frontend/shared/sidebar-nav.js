@@ -69,6 +69,29 @@ function renderSidebarNav() {
   }
 
   container.innerHTML = html;
+
+  // Fetch and display version
+  fetch('/version.json?t=' + Date.now())
+    .then(r => r.json())
+    .then(data => {
+      const footer = document.querySelector('.sidebar-footer');
+      if (footer) {
+        const date = new Date(data.buildTime);
+        const timeStr = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        footer.innerHTML = `
+          <div class="status-badge" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="status-dot"></span>
+              <span id="status-text">Онлайн</span>
+            </div>
+            <div style="font-size: 10px; opacity: 0.6; margin-left: 14px;">
+              upd: ${timeStr}
+            </div>
+          </div>
+        `;
+      }
+    })
+    .catch(err => console.error('Version check failed', err));
 }
 
 // Initialize on DOM ready

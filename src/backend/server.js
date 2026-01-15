@@ -120,9 +120,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static files (frontend)
+// Static files (frontend) - DISABLE CACHE to fix updates issue
 const frontendPath = path.resolve(__dirname, '../frontend');
-app.use(express.static(frontendPath));
+app.use(express.static(frontendPath, {
+  setHeaders: (res, path, stat) => {
+    // Disable caching for all static files to ensure updates are seen immediately
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Expires', '-1');
+    res.set('Pragma', 'no-cache');
+  }
+}));
 
 // Static files (model images)
 const modelsStorePath = path.resolve(__dirname, 'store/models');
