@@ -288,22 +288,33 @@
                 </div>
 
                 <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 16px;">
-                  Сгенерируй аватары модели с разных ракурсов. Они будут упакованы в коллаж и использованы как identity
-                  reference при генерации съёмки.
+                  Сгенерируйте 4 обязательных ракурса для создания Identity Collage. Можно генерировать по одному или
+                  все сразу.
                 </p>
 
-                <button id="btn-generate-avatars" class="btn btn-secondary" style="width: 100%;">
-                  🎭 Сгенерировать ракурсы (4 кадра)
-                </button>
+                <div class="avatar-grid" id="avatar-grid"
+                  style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                  <!-- Populated by JS -->
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                  <button id="btn-generate-avatars-all" class="btn btn-secondary" style="flex: 2;">
+                    ✨ Сгенерировать все ракурсы
+                  </button>
+                  <button id="btn-refresh-collage" class="btn btn-secondary" style="flex: 1; display: none;">
+                    🔄 Обновить коллаж
+                  </button>
+                </div>
 
                 <div id="status-avatars" class="status-message"></div>
 
-                <!-- Avatar Shots Preview -->
-                <div id="avatar-shots-preview" class="images-preview" style="margin-top: 16px;"></div>
-
                 <!-- Collage Preview -->
-                <div id="collage-preview" style="display: none; margin-top: 16px;">
-                  <div class="form-label" style="margin-bottom: 8px;">Identity Collage (готов к использованию)</div>
+                <div id="collage-preview"
+                  style="display: none; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+                  <div class="form-label"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span>Identity Collage (Результат)</span>
+                  </div>
                   <div
                     style="border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
                     <img id="collage-image" src="" alt="Identity Collage" style="width: 100%; display: block;">
