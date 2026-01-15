@@ -204,19 +204,18 @@
 
                         <form id="look-form">
                             <!-- Cover Image Upload -->
+                            <!-- Collage Preview (Auto-generated) -->
                             <div class="form-group full" style="margin-bottom: 20px;">
-                                <label>Референс / Обложка</label>
-                                <div id="cover-upload-zone" class="add-item-zone"
-                                    style="height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; position: relative;">
-                                    <div id="cover-placeholder">
-                                        <div style="font-size: 24px; margin-bottom: 8px;">📷</div>
-                                        <div>Нажмите или перетащите фото</div>
+                                <label>Превью образа (Авто-коллаж)</label>
+                                <div id="collage-container"
+                                    style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; height: 300px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    <div id="collage-placeholder"
+                                        style="color: var(--color-text-muted); text-align: center;">
+                                        <div>Добавьте предметы одежды с фото,</div>
+                                        <div>чтобы сформировать коллаж</div>
                                     </div>
-                                    <img id="cover-preview"
-                                        style="display: none; width: 100%; height: 100%; object-fit: contain;">
-                                    <input type="file" id="cover-input" hidden accept="image/*">
-                                    <button type="button" id="btn-remove-cover" class="btn-remove-item"
-                                        style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); border-radius: 50%; color: white; display: none;">×</button>
+                                    <img id="collage-preview-img"
+                                        style="display: none; max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: var(--shadow-lg);">
                                 </div>
                             </div>
 
@@ -290,6 +289,21 @@
     <div id="item-modal" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <h3 style="margin-bottom: 16px;">Добавить предмет</h3>
+            <div class="form-group full" style="margin-bottom: 16px;">
+                <label>Фото предмета</label>
+                <div id="item-image-zone" class="add-item-zone"
+                    style="height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                    <div id="item-image-placeholder">
+                        <div style="font-size: 20px;">📷</div>
+                        <div style="font-size: 11px;">Нажмите чтобы загрузить</div>
+                    </div>
+                    <img id="item-image-preview" style="display: none; width: 100%; height: 100%; object-fit: contain;">
+                    <input type="file" id="item-image-input" hidden accept="image/*">
+                    <button type="button" id="btn-remove-item-image"
+                        style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: none;">×</button>
+                </div>
+            </div>
+
             <div class="form-group" style="margin-bottom: 12px;">
                 <label>Тип</label>
                 <select id="item-type-select"
