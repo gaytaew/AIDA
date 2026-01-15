@@ -174,9 +174,11 @@ export async function generateFoodShootFrame({
         // 3. Call AI
         const result = await requestGeminiImage({
             prompt: promptText,
-            images: validImages,
-            aspectRatio: params.aspectRatio || '3:4', // Dynamic Aspect Ratio
-            safetySettings: 'relaxed' // Food sometimes triggers biology filters?
+            referenceImages: validImages, // FIXED: was 'images'
+            imageConfig: {
+                aspectRatio: params.aspectRatio || '3:4' // FIXED: moved inside imageConfig
+            },
+            // safetySettings: 'relaxed' // Not used in refined client
         });
 
         if (!result || !result.base64) {
@@ -235,16 +237,20 @@ TECHNIQUE:
 SUBJECT (STRICT REFERENCE MATCH):
 The image MUST be a near-duplicate of the food in Reference [$${indexMap.subject}].
 1. MATCH: Ingredients, textures, cooking level, glossiness 100%.
-2. MATCH: Portion size and general arrangement.`);
+2. MATCH: Geometric Shape & Form Factor (CRITICAL). 
+   - If the reference is RECTANGULAR, the output MUST be RECTANGULAR.
+   - If the reference is SQUARE, the output MUST be SQUARE.
+   - DO NOT default to round plates/shapes if the reference shows otherwise.
+3. MATCH: Portion size and general arrangement.`);
 
         if (changesDescription) {
             sections.push(`
 REQUIRED MODIFICATIONS (Apply to Reference [$${indexMap.subject}]):
 > ${changesDescription}
-(Keep everything else exactly as in the reference)`);
+(Keep everything else exactly as in the reference, especially the Shape)`);
         } else {
             sections.push(`
-NO MODIFICATIONS: Reproduce the reference dish exactly.`);
+NO MODIFICATIONS: Reproduce the reference dish exactly (Shape, Texture, Ingredients).`);
         }
 
     } else {
@@ -289,6 +295,11 @@ HARD RULES:
 
     if (quality === 'final') {
         sections.push(`5. HIGH FIDELITY: Render with maximum texture density (8k resolution feel).`);
+    }
+
+    // Backup: Explicitly state format in text
+    if (params.aspectRatio) {
+        sections.push(`FORMAT: The output image must be in ${params.aspectRatio} aspect ratio.`);
     }
 
     return sections.join('\n');
