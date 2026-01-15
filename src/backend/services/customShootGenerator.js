@@ -1131,7 +1131,7 @@ export async function editCustomShootImage({
 
   try {
     // 1. Find the original image record
-    const sourceImage = shoot.setup.generatedFrames.find(f => f.id === imageId);
+    const sourceImage = (shoot.generatedImages || []).find(f => f.id === imageId) || (shoot.setup?.generatedFrames?.find(f => f.id === imageId));
     if (!sourceImage) {
       throw new Error('Image not found in shoot');
     }
