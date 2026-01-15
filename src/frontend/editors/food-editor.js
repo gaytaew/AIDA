@@ -326,14 +326,6 @@ function renderHistory() {
         // Settings HTML
         const settingsHtml = buildFoodSettingsHtml(p);
 
-        // Refs HTML
-        // item doesn't store refs images structure nicely in `state.history`, 
-        // usually we might want to store them? For now we just show badges if refs were used.
-        // Actually `item` has `params`, but `item.base64` is the result.
-        // Did we store which refs were used? Not deeply in `item` (only in `state.images` at time of gen).
-        // For now, assume badges are based on non-empty params if we tracked them, 
-        // OR just skip ref thumbs in history for v1.
-
         return `
       <div class="selection-card generated-frame-card" style="cursor: default; position: relative;">
         <!-- Lock badges -->
@@ -361,6 +353,11 @@ function renderHistory() {
             <a href="${imageUrl}" download="food_${idx}.jpg" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾 Save</a>
             <button class="btn btn-secondary" onclick="window.loadParamsHistory(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Load Params">♻️ Load</button>
             <button class="btn btn-secondary" onclick="window.deleteHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+            <button class="btn-mini" onclick="window.setReferenceFromHistory(${idx}, 'subject')" title="Use as Subject Ref" style="font-size:10px;">🍲 Ref</button>
+            <button class="btn-mini" onclick="window.setReferenceFromHistory(${idx}, 'crockery')" title="Use as Crockery Ref" style="font-size:10px;">🥣 Crockery</button>
+            <button class="btn-mini" onclick="window.setReferenceFromHistory(${idx}, 'style')" title="Use as Style Ref" style="font-size:10px;">🎨 Style</button>
           </div>
         </div>
         
@@ -392,6 +389,41 @@ function renderHistory() {
         btn.addEventListener('click', () => openLightbox(parseInt(btn.dataset.index)));
     });
 }
+
+window.setReferenceFromHistory = async (index, type) => {
+    const item = state.history[index];
+    if (!item) return;
+
+    // Convert base64 to Blob/DataURL
+    const dataUrl = `data:${item.mimeType};base64,${item.base64}`;
+
+    // Create a virtual file object
+    const blob = await fetch(dataUrl).then(res => res.blob());
+    const file = new File([blob], `history_${index}.jpg`, { type: item.mimeType });
+    const compressed = await compressImage(file);
+
+    // Update State
+    state.images[type] = compressed;
+
+    // Update UI Card
+    const card = els.refs[type];
+    card.classList.add('has-image');
+    card.style.backgroundImage = `url(${compressed.dataUrl})`;
+    card.style.backgroundSize = 'cover';
+    card.style.backgroundPosition = 'center';
+    card.querySelector('.ref-card-icon').style.display = 'none';
+    card.querySelector('.ref-card-label').style.display = 'none';
+
+    // Flash effect
+    card.style.transition = 'border-color 0.2s';
+    const originalBorder = card.style.borderColor;
+    card.style.borderColor = '#ffffff';
+    setTimeout(() => {
+        card.style.borderColor = '';
+    }, 300);
+
+    alert(`Reference [${type}] updated from history!`);
+};
 
 function buildFoodSettingsHtml(p) {
     const items = [];
