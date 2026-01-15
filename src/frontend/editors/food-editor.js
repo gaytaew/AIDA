@@ -273,47 +273,92 @@ function addToHistory(data) {
 }
 
 function loadParams(params) {
+    if (!params) return;
+
     // Text inputs
-    if (params.dishDescription) els.dishDesc.value = params.dishDescription;
-    if (params.changesDescription) els.changesDesc.value = params.changesDescription;
+    els.dishDesc.value = params.dishDescription || '';
+    els.changesDesc.value = params.changesDescription || '';
 
-    // Selects
-    if (params.camera) els.selects.camera.value = params.camera;
-    if (params.angle) els.selects.angle.value = params.angle;
-    if (params.composition) els.selects.composition.value = params.composition;
-    if (params.depth) els.selects.depth.value = params.depth;
-    if (params.lighting) els.selects.lighting.value = params.lighting;
-    if (params.color) els.selects.color.value = params.color;
-    if (params.plating) els.selects.plating.value = params.plating;
-    if (params.texture) els.selects.texture.value = params.texture;
-    if (params.surface) els.selects.surface.value = params.surface; // Phase 4
-    if (params.crockery) els.selects.crockery.value = params.crockery; // Phase 4
-    if (params.dynamics) els.selects.dynamics.value = params.dynamics;
-    if (params.state) els.selects.state.value = params.state;
-    if (params.aspectRatio) els.selects.aspectRatio.value = params.aspectRatio;
-    if (params.quality) els.selects.quality.value = params.quality;
+    // Helper to safety set value
+    const safeSet = (el, v) => { if (el && v) el.value = v; };
 
-    alert('Параметры загружены!');
+    safeSet(els.selects.camera, params.camera);
+    safeSet(els.selects.angle, params.angle);
+    safeSet(els.selects.composition, params.composition);
+    safeSet(els.selects.depth, params.depth);
+    safeSet(els.selects.lighting, params.lighting);
+    safeSet(els.selects.color, params.color);
+    safeSet(els.selects.plating, params.plating);
+    safeSet(els.selects.texture, params.texture);
+    safeSet(els.selects.surface, params.surface);
+    safeSet(els.selects.crockery, params.crockery);
+    safeSet(els.selects.dynamics, params.dynamics);
+    safeSet(els.selects.state, params.state);
+    safeSet(els.selects.aspectRatio, params.aspectRatio);
+    safeSet(els.selects.imageSize, params.imageSize);
+
+    alert('✅ Загружено из истории!');
 }
 
 function renderHistory() {
     if (state.history.length === 0) {
-        els.emptyState.style.display = 'block';
         els.historyContainer.innerHTML = '';
-        els.historyContainer.appendChild(els.emptyState);
+        els.emptyState.style.display = 'block';
         return;
     }
 
     els.emptyState.style.display = 'none';
+    els.historyContainer.innerHTML = state.history.map((item, index) => {
+        const p = item.params || {};
+        const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const v = (val) => val ? val : '-';
 
-    // Clear keeping empty state ref? No need, just redraw.
-    els.historyContainer.innerHTML = '';
+        return `
+        <div class="history-card">
+            <div style="position:relative;">
+                <img src="data:${item.mimeType};base64,${item.base64}" loading="lazy" style="display:block;">
+                <div style="position: absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); color:white; padding:2px 6px; border-radius:4px; font-size:10px;">${dateStr}</div>
+            </div>
+            
+            <div class="history-info">
+                <div style="font-weight:600; font-size:12px; margin-bottom:6px; color:#fff;">${p.dishDescription || 'No description'}</div>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; font-size:10px; color:#999;">
+                    <div>📸 ${v(p.camera)}</div>
+                    <div>💡 ${v(p.lighting)}</div>
+                    <div>🥣 ${v(p.crockery)}</div>
+                    <div>🪵 ${v(p.surface)}</div>
+                </div>
 
-    state.history.forEach((item, index) => {
-        const card = document.createElement('div');
-        card.className = 'history-card';
+                ${p.changesDescription ? `<div style="margin-top:6px; color:#fbbf24; font-size:10px;">✏️ ${p.changesDescription}</div>` : ''}
 
-        card.innerHTML = `
+                <div style="margin-top:8px; border-top:1px solid #333; padding-top:4px; font-size:9px; opacity:0.5;">
+                     ${String(p.imageSize || '2k').toUpperCase()} • ${v(p.aspectRatio)}
+                </div>
+            </div>
+
+            <div class="history-actions">
+                 <button class="btn-mini" onclick="window.loadParamsHistory(${index})">♻️ Load</button>
+                 <a href="data:${item.mimeType};base64,${item.base64}" download="food_${index}.jpg" class="btn-mini" style="text-align:center; text-decoration:none; color:white;">💾 Save</a>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.loadParamsHistory = (index) => {
+    if (state.history[index]) loadParams(state.history[index].params);
+};
+
+els.emptyState.style.display = 'none';
+
+// Clear keeping empty state ref? No need, just redraw.
+els.historyContainer.innerHTML = '';
+
+state.history.forEach((item, index) => {
+    const card = document.createElement('div');
+    card.className = 'history-card';
+
+    card.innerHTML = `
             <img src="data:${item.mimeType};base64,${item.base64}">
             <div class="history-actions">
                 <button class="btn-mini btn-load" data-index="${index}">📥 Load Params</button>
@@ -325,13 +370,13 @@ function renderHistory() {
             </div>
         `;
 
-        // Bind Load Param
-        card.querySelector('.btn-load').addEventListener('click', () => {
-            loadParams(item.params);
-        });
-
-        els.historyContainer.appendChild(card);
+    // Bind Load Param
+    card.querySelector('.btn-load').addEventListener('click', () => {
+        loadParams(item.params);
     });
+
+    els.historyContainer.appendChild(card);
+});
 }
 
 // Start
