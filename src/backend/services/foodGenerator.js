@@ -183,7 +183,8 @@ export async function generateFoodShootFrame({
             prompt: promptText,
             referenceImages: validImages, // FIXED: was 'images'
             imageConfig: {
-                aspectRatio: params.aspectRatio || '3:4' // FIXED: moved inside imageConfig
+                aspectRatio: params.aspectRatio || '3:4',
+                imageSize: params.imageSize || '2k' // Passed to provider
             },
             // safetySettings: 'relaxed' // Not used in refined client
         });
@@ -216,7 +217,7 @@ function buildFoodShootPromptDynamic(params, indexMap) {
         camera, angle, lighting, plating, state,
         composition, depth, color, texture, dynamics,
         surface, crockery, // NEW Phase 4
-        quality = 'draft'
+        imageSize = '2k' // NEW Phase 5
     } = params;
 
     const sections = [];
@@ -323,12 +324,9 @@ ${refLines.join('\n')}`);
 HARD RULES:
 1. PHOTOREALISM IS PARAMOUNT. No plastic texture, no CGI look.
 2. EDIBLE TEXTURES: Moisture, steam (if hot), crumbs, imperfections must look real.
-3. If "Final" quality is requested, prioritize texture blending and light scattering.
-4. No text, logos, or watermarks.`);
+3. No text, logos, or watermarks.`);
 
-    if (quality === 'final') {
-        sections.push(`5. HIGH FIDELITY: Render with maximum texture density (8k resolution feel).`);
-    }
+    // Note: Quality logic removed, handled by imageSize resolution in requestGeminiImage
 
     // Backup: Explicitly state format in text
     if (params.aspectRatio) {

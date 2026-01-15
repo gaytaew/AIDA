@@ -19,7 +19,7 @@ import {
     FOOD_SURFACE,
     FOOD_CROCKERY,
     FOOD_PRESETS,
-    FOOD_QUALITY
+    FOOD_IMAGE_SIZE
 } from '../schema/foodShoot.js';
 
 const router = express.Router();
@@ -38,7 +38,7 @@ router.get('/options', (req, res) => {
             plating: FOOD_PLATING,
             state: FOOD_STATE,
             aspectRatio: FOOD_ASPECT_RATIO,
-            quality: FOOD_QUALITY,
+            imageSize: FOOD_IMAGE_SIZE,
             // New Params
             composition: FOOD_COMPOSITION,
             depth: FOOD_DEPTH,

@@ -390,13 +390,13 @@ export const FOOD_ASPECT_RATIO = {
     ]
 };
 
-export const FOOD_QUALITY = {
-    id: 'quality',
-    label: '💎 Качество',
-    description: 'Время генерации и детализация',
+export const FOOD_IMAGE_SIZE = {
+    id: 'imageSize',
+    label: '📐 Размер (Quality)',
+    description: 'Разрешение изображения',
     options: [
-        { value: 'draft', label: 'Draft (Fast)' },
-        { value: 'final', label: 'Final (Hyper-Realistic, Slow)' }
+        { value: '2k', label: '2K (Standard) - Fast' },
+        { value: '4k', label: '4K (Upscaled) - Slow' }
     ]
 };
 
