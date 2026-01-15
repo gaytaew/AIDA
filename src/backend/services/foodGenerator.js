@@ -175,7 +175,7 @@ export async function generateFoodShootFrame({
         const result = await requestGeminiImage({
             prompt: promptText,
             images: validImages,
-            aspectRatio: '3:4', // Standard vertical food shot
+            aspectRatio: params.aspectRatio || '3:4', // Dynamic Aspect Ratio
             safetySettings: 'relaxed' // Food sometimes triggers biology filters?
         });
 
@@ -202,23 +202,18 @@ export async function generateFoodShootFrame({
 // Helper to rebuild prompt with flexible indexes
 function buildFoodShootPromptDynamic(params, indexMap) {
     const {
-        dishDescription, camera, angle, lighting, plating, state
+        dishDescription,
+        changesDescription, // NEW
+        camera, angle, lighting, plating, state,
+        quality = 'draft'
     } = params;
 
-    let prompt = buildFoodShootPrompt({
-        dishDescription, camera, angle, lighting, plating, state,
-        hasSubjectRef: false, hasCrockeryRef: false, hasStyleRef: false // Disable default static logic
-    });
-
-    // Inject dynamic references
-    // We strip the "REFERENCES" section from the base function or just append customized one.
-    // Actually, let's just re-implement the Ref section here to be safe and clean.
-
-    // Re-generating base prompt without refs:
     const sections = [];
+
+    // 1. HYPER-REALISM ROLE
     sections.push(`ROLE: World-class Food Photographer & Food Stylist.
-You are an expert in appetizing textures, lighting that enhances flavor cues, and professional plating.
-Generate a photorealistic food photograph.`);
+SPECIALTY: Hyper-realistic macro food photography.
+GOAL: Create an image indistinguishable from a real photo shot on a Phase One camera.`);
 
     const cameraSpec = FOOD_CAMERA.options.find(o => o.value === camera)?.spec || 'Standard Lens';
     const angleSpec = FOOD_ANGLE.options.find(o => o.value === angle)?.spec || '45 Degree Angle';
@@ -232,52 +227,69 @@ TECHNIQUE:
 - ${angleSpec}
 - ${lightingSpec}`);
 
-    sections.push(`
-SUBJECT:
-${dishDescription}
+    // 2. SUBJECT LOGIC (Reference vs Description)
 
+    if (indexMap.subject) {
+        // STRICT REFERENCE MODE
+        sections.push(`
+SUBJECT (STRICT REFERENCE MATCH):
+The image MUST be a near-duplicate of the food in Reference [$${indexMap.subject}].
+1. MATCH: Ingredients, textures, cooking level, glossiness 100%.
+2. MATCH: Portion size and general arrangement.`);
+
+        if (changesDescription) {
+            sections.push(`
+REQUIRED MODIFICATIONS (Apply to Reference [$${indexMap.subject}]):
+> ${changesDescription}
+(Keep everything else exactly as in the reference)`);
+        } else {
+            sections.push(`
+NO MODIFICATIONS: Reproduce the reference dish exactly.`);
+        }
+
+    } else {
+        // TEXT DESCRIPTION MODE
+        sections.push(`
+SUBJECT (TEXT BASED):
+${dishDescription}`);
+    }
+
+    sections.push(`
 STYLING:
 - ${platingSpec}
 - ${stateSpec}`);
 
-    // DYNAMIC REFERENCES
+    // 3. OTHER REFERENCES
     const refLines = [];
 
-    if (indexMap.subject) {
-        refLines.push(`REFERENCE [$${indexMap.subject}]: MAIN DISH VISUALS.
-    - Copy the appearance of the food from [$${indexMap.subject}].
-    - Maintain ingredients and approximate arrangement.`);
-    }
-
     if (indexMap.crockery) {
-        refLines.push(`REFERENCE [$${indexMap.crockery}]: CROCKERY / VESSEL (CRITICAL).
-    - You MUST use the EXACT plate/bowl/cup pattern and shape from [$${indexMap.crockery}].
-    - Place the food ON/IN this specific vessel.
-    - This is the anchor of the composition.`);
+        refLines.push(`REFERENCE [$${indexMap.crockery}]: CROCKERY / VESSEL (MANDATORY).
+        - Use the EXACT plate/bowl/cup from [$${indexMap.crockery}].
+        - Ignore any food inside the crockery reference; replace it with the SUBJECT.`);
     }
 
     if (indexMap.style) {
         refLines.push(`REFERENCE [$${indexMap.style}]: VISUAL STYLE / MOOD.
-    - Copy lighting vibe, color grading, and background texture from [$${indexMap.style}].
-    - DO NOT copy the subject content, only the aesthetic.`);
+        - Copy lighting, color grading, and background texture from [$${indexMap.style}].`);
     }
 
     if (refLines.length > 0) {
         sections.push(`
 REFERENCES:
 ${refLines.join('\n')}`);
-    } else {
-        sections.push(`
-NO IMAGE REFERENCES PROVIDED.
-Rely strictly on the text description.`);
     }
 
+    // 4. HARD RULES (Updated for Hyper-realism)
     sections.push(`
 HARD RULES:
-1. Photorealistic only. No CGI, no Illustration.
-2. Food must look appetizing (edible textures, moisture, freshness).
-3. If "steaming" is selected, steam must be subtle and backlit.
+1. PHOTOREALISM IS PARAMOUNT. No plastic texture, no CGI look.
+2. EDIBLE TEXTURES: Moisture, steam (if hot), crumbs, imperfections must look real.
+3. If "Final" quality is requested, prioritize texture blending and light scattering.
 4. No text, logos, or watermarks.`);
+
+    if (quality === 'final') {
+        sections.push(`5. HIGH FIDELITY: Render with maximum texture density (8k resolution feel).`);
+    }
 
     return sections.join('\n');
 }

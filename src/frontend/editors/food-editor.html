@@ -176,6 +176,14 @@
                                     <label class="form-label-mini">Состояние</label>
                                     <select id="param-state" class="form-select"></select>
                                 </div>
+                                <div>
+                                    <label class="form-label-mini">Формат</label>
+                                    <select id="param-aspectRatio" class="form-select"></select>
+                                </div>
+                                <div>
+                                    <label class="form-label-mini">Качество</label>
+                                    <select id="param-quality" class="form-select"></select>
+                                </div>
                             </div>
                         </div>
 
@@ -184,12 +192,18 @@
                             <span class="param-label">Референсы</span>
                             <div class="ref-zones">
                                 <!-- Slot 1: Subject -->
-                                <div class="ref-card" id="ref-subject">
-                                    <input type="file" accept="image/*" hidden>
-                                    <div class="ref-card-icon">🍲</div>
-                                    <div class="ref-card-label">Блюдо<br>(Optional)</div>
-                                    <div class="ref-content"></div>
-                                    <button class="ref-card-remove">×</button>
+                                <!-- Slot 1: Subject -->
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <div class="ref-card" id="ref-subject">
+                                        <input type="file" accept="image/*" hidden>
+                                        <div class="ref-card-icon">🍲</div>
+                                        <div class="ref-card-label">Блюдо<br>(Ref)</div>
+                                        <div class="ref-content"></div>
+                                        <button class="ref-card-remove">×</button>
+                                    </div>
+                                    <input type="text" id="changes-desc" class="form-input"
+                                        style="font-size: 11px; padding: 4px;"
+                                        placeholder="Что изменить? (напр. добавить пар)">
                                 </div>
 
                                 <!-- Slot 2: Crockery -->

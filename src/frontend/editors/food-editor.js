@@ -15,6 +15,7 @@ const state = {
 // Elements
 const els = {
     dishDesc: document.getElementById('dish-desc'),
+    changesDesc: document.getElementById('changes-desc'),
     btnGenerate: document.getElementById('btn-generate'),
     genStatus: document.getElementById('gen-status'),
     resultContainer: document.getElementById('result-container'),
@@ -25,6 +26,8 @@ const els = {
         lighting: document.getElementById('param-lighting'),
         plating: document.getElementById('param-plating'),
         state: document.getElementById('param-state'),
+        aspectRatio: document.getElementById('param-aspectRatio'),
+        quality: document.getElementById('param-quality'),
     },
     refs: {
         subject: document.getElementById('ref-subject'),
@@ -69,6 +72,8 @@ function renderOptions() {
     populate(els.selects.lighting, state.options.lighting);
     populate(els.selects.plating, state.options.plating);
     populate(els.selects.state, state.options.state);
+    populate(els.selects.aspectRatio, state.options.aspectRatio);
+    populate(els.selects.quality, state.options.quality);
 }
 
 // 3. File Upload Logic
@@ -165,7 +170,10 @@ async function generate() {
                 angle: els.selects.angle.value,
                 lighting: els.selects.lighting.value,
                 plating: els.selects.plating.value,
-                state: els.selects.state.value
+                state: els.selects.state.value,
+                aspectRatio: els.selects.aspectRatio.value,
+                quality: els.selects.quality.value,
+                changesDescription: els.changesDesc.value.trim()
             },
             subjectImage: state.images.subject,
             crockeryImage: state.images.crockery,

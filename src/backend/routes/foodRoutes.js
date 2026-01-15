@@ -9,7 +9,9 @@ import {
     FOOD_ANGLE,
     FOOD_LIGHTING,
     FOOD_PLATING,
-    FOOD_STATE
+    FOOD_STATE,
+    FOOD_ASPECT_RATIO,
+    FOOD_QUALITY
 } from '../schema/foodShoot.js';
 
 const router = express.Router();
@@ -26,7 +28,9 @@ router.get('/options', (req, res) => {
             angle: FOOD_ANGLE,
             lighting: FOOD_LIGHTING,
             plating: FOOD_PLATING,
-            state: FOOD_STATE
+            state: FOOD_STATE,
+            aspectRatio: FOOD_ASPECT_RATIO,
+            quality: FOOD_QUALITY
         }
     });
 });
