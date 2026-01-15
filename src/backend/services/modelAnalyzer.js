@@ -76,7 +76,8 @@ Return a valid JSON object with this structure:
   "heightCm": estimated height as number or null,
   "bodyType": "one of: slim, athletic, curvy, petite, tall, average, plus-size",
   "faceExpressions": "Default facial expression characteristics based on the photos",
-  "poses": "Default pose style and movement characteristics"
+  "poses": "Default pose style and movement characteristics",
+  "background": "Professional characteristics/vibe (e.g., fashion, editorial, commercial, extreme, lifestyle). Infer from the model's look and potential utility."
 }
 
 ## CRITICAL RULES:
@@ -154,14 +155,17 @@ export async function analyzeModelPhotos(images, hint = '') {
     throw new Error('At least one reference image is required');
   }
 
-  // Prepare image content for OpenAI (limit to 5 images)
-  const imageContents = images.slice(0, 5).map(img => ({
+  // Prepare image content for OpenAI (limit to 1 image for now to fix EPIPE)
+  const imageContents = images.slice(0, 1).map(img => ({
     type: 'image_url',
     image_url: {
       url: `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}`,
       detail: 'high'
     }
   }));
+
+  const payloadSize = JSON.stringify(imageContents).length;
+  console.log(`[ModelAnalyzer] Payload size for 1 image: ${(payloadSize / 1024 / 1024).toFixed(2)} MB`);
 
   const userMessage = hint
     ? `Analyze these photos and create a detailed model profile. User notes: ${hint}`
@@ -194,7 +198,8 @@ export async function analyzeModelPhotos(images, hint = '') {
     heightCm: typeof parsed.heightCm === 'number' ? Math.round(parsed.heightCm) : null,
     bodyType: parsed.bodyType || '',
     faceExpressions: parsed.faceExpressions || '',
-    poses: parsed.poses || ''
+    poses: parsed.poses || '',
+    background: parsed.background || ''
   };
 
   console.log('[ModelAnalyzer] Generated model:', model.name);

@@ -16,6 +16,7 @@
  * @property {string} bodyType - Body type description (slim, athletic, curvy, etc.)
  * @property {string} faceExpressions - Characteristic face expressions
  * @property {string} poses - Typical poses and movement style
+ * @property {string} background - Professional background/characteristics (e.g., fashion, extreme)
  * @property {string} previewSrc - Path to preview image (relative to models folder)
  * @property {string} dirPath - Path to model folder (relative to store/models/)
  * @property {Array<string>} imageFiles - List of image filenames in the folder
@@ -46,6 +47,7 @@ export function createEmptyModel(name = 'Новая модель') {
     bodyType: '',
     faceExpressions: '',
     poses: '',
+    background: '',
     previewSrc: '',
     dirPath: id, // Folder name matches ID
     imageFiles: [],
@@ -98,21 +100,25 @@ export function validateModel(model, { requirePromptSnippet = false } = {}) {
  */
 export function modelToPromptBlock(model) {
   if (!model) return '';
-  
+
   const parts = [];
-  
+
   if (model.promptSnippet) {
     parts.push(model.promptSnippet);
   }
-  
+
   if (model.faceExpressions) {
     parts.push(`Expression: ${model.faceExpressions}`);
   }
-  
+
   if (model.poses) {
     parts.push(`Pose style: ${model.poses}`);
   }
-  
+
+  if (model.background) {
+    parts.push(`Model Background/Vibe: ${model.background}`);
+  }
+
   return parts.join('\n');
 }
 

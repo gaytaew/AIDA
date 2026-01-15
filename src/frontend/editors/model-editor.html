@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -152,6 +153,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="app">
     <!-- Sidebar -->
@@ -208,8 +210,8 @@
             <!-- Hint Input -->
             <div class="form-group full" style="margin-bottom: 20px;">
               <label class="form-label">Подсказка для AI (опционально)</label>
-              <input type="text" id="model-hint" class="form-input" 
-                     placeholder="Например: модель в духе 90-х, андрогинная внешность">
+              <input type="text" id="model-hint" class="form-input"
+                placeholder="Например: модель в духе 90-х, андрогинная внешность">
             </div>
 
             <!-- Generate Button -->
@@ -220,7 +222,8 @@
             <div id="status-generate" class="status-message"></div>
 
             <!-- Form (appears after generation) -->
-            <div id="model-form" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--color-border);">
+            <div id="model-form"
+              style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--color-border);">
               <div class="form-grid">
                 <div class="form-group full">
                   <label class="form-label">Имя модели</label>
@@ -252,33 +255,41 @@
                 </div>
 
                 <div class="form-group full">
+                  <label class="form-label">Характеристики (Background/Experience)</label>
+                  <input type="text" id="model-background" class="form-input"
+                    placeholder="Например: fashion editorial, extreme sports, commercial lifestyle...">
+                </div>
+
+                <div class="form-group full">
                   <label class="form-label">Детальное описание внешности (promptSnippet)</label>
-                  <textarea id="model-prompt" class="form-textarea large" 
-                            placeholder="Полное описание физических характеристик..."></textarea>
+                  <textarea id="model-prompt" class="form-textarea large"
+                    placeholder="Полное описание физических характеристик..."></textarea>
                 </div>
 
                 <div class="form-group full">
                   <label class="form-label">Характерные выражения лица</label>
-                  <textarea id="model-expressions" class="form-textarea" 
-                            placeholder="Типичные выражения и эмоции модели..."></textarea>
+                  <textarea id="model-expressions" class="form-textarea"
+                    placeholder="Типичные выражения и эмоции модели..."></textarea>
                 </div>
 
                 <div class="form-group full">
                   <label class="form-label">Типичные позы</label>
-                  <textarea id="model-poses" class="form-textarea" 
-                            placeholder="Манера позирования, движения..."></textarea>
+                  <textarea id="model-poses" class="form-textarea"
+                    placeholder="Манера позирования, движения..."></textarea>
                 </div>
               </div>
 
               <!-- Step 2: Avatar Generation -->
-              <div id="avatar-section" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--color-border);">
+              <div id="avatar-section"
+                style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--color-border);">
                 <div class="panel-title" style="margin-bottom: 16px;">
                   <span class="panel-title-icon">🎭</span>
                   <span>Шаг 2: Генерация ракурсов</span>
                 </div>
-                
+
                 <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 16px;">
-                  Сгенерируй аватары модели с разных ракурсов. Они будут упакованы в коллаж и использованы как identity reference при генерации съёмки.
+                  Сгенерируй аватары модели с разных ракурсов. Они будут упакованы в коллаж и использованы как identity
+                  reference при генерации съёмки.
                 </p>
 
                 <button id="btn-generate-avatars" class="btn btn-secondary" style="width: 100%;">
@@ -293,7 +304,8 @@
                 <!-- Collage Preview -->
                 <div id="collage-preview" style="display: none; margin-top: 16px;">
                   <div class="form-label" style="margin-bottom: 8px;">Identity Collage (готов к использованию)</div>
-                  <div style="border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
+                  <div
+                    style="border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
                     <img id="collage-image" src="" alt="Identity Collage" style="width: 100%; display: block;">
                   </div>
                 </div>
@@ -331,4 +343,5 @@
   <script type="module" src="model-editor.js"></script>
   <script type="module" src="../shared/dev-console.js"></script>
 </body>
+
 </html>
