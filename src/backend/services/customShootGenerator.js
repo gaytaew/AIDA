@@ -11,6 +11,7 @@
  */
 
 import { requestGeminiImage } from '../providers/geminiClient.js';
+import { requestVertexImage } from '../providers/vertexClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
 import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
@@ -920,6 +921,60 @@ export async function generateCustomShootFrame({
     log('GEMINI_RESPONSE', { ok: result.ok, duration: generationTime });
 
     if (!result.ok) {
+      const errorMsg = result.error || '';
+      const isOverloaded =
+        result.errorCode === 'api_overloaded' ||
+        result.httpStatus === 503 ||
+        /overloaded/i.test(errorMsg) ||
+        /service unavailable/i.test(errorMsg);
+
+      if (isOverloaded) {
+        log('GEMINI_OVERLOADED', { error: errorMsg, action: 'FALLBACK_VERTEX' });
+
+        const vertexResult = await requestVertexImage({
+          prompt,
+          referenceImages,
+          imageConfig
+        });
+
+        if (vertexResult.ok) {
+          log('VERTEX_SUCCESS', { duration: ((Date.now() - geminiStartTime) / 1000).toFixed(1) });
+          // Map Vertex result to standard result format (it matches already)
+          // But ensure we log this success clearly
+
+          return {
+            ok: true,
+            image: {
+              mimeType: vertexResult.mimeType,
+              base64: vertexResult.base64,
+              dataUrl: `data:${vertexResult.mimeType};base64,${vertexResult.base64}`
+            },
+            prompt,
+            promptJson,
+            generationTime: ((Date.now() - geminiStartTime) / 1000).toFixed(1),
+            paramsSnapshot: {
+              useVirtualStudio,
+              useUniverse: !!universeParams,
+              virtualCamera,
+              lighting,
+              universeParams,
+              qualityMode,
+              aspectRatio: effectiveAspectRatio,
+              poseAdherence,
+              referenceCount: referenceImages.length,
+              provider: 'vertex_fallback'
+            }
+          };
+        } else {
+          log('VERTEX_ERROR', { error: vertexResult.error });
+          // If fallback fails, return original error or combined error
+          return {
+            ok: false,
+            error: `Gemini Overloaded AND Vertex Failed. Gemini: ${errorMsg}. Vertex: ${vertexResult.error}`
+          };
+        }
+      }
+
       log('GEMINI_ERROR', { error: result.error?.slice(0, 200) });
       return {
         ok: false,

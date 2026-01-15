@@ -17,11 +17,13 @@ export const config = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   VERTEX_PROJECT_ID: process.env.VERTEX_PROJECT_ID || '',
+  VERTEX_LOCATION: process.env.VERTEX_LOCATION || 'us-central1',
+  VERTEX_MODEL: process.env.VERTEX_MODEL || 'gemini-1.5-pro-002',
 
   // AI Models
   // GPT-5.2 is available via API in this environment
   OPENAI_TEXT_MODEL: process.env.OPENAI_TEXT_MODEL || 'gpt-5.2',
-  
+
   // V3 Generation Settings
   V3_GEMINI_MODEL: process.env.V3_GEMINI_MODEL || 'gemini-2.0-flash',
 
