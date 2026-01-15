@@ -236,7 +236,7 @@ async function generate() {
                 dynamics: els.selects.dynamics.value,
                 state: els.selects.state.value,
                 aspectRatio: els.selects.aspectRatio.value,
-                quality: els.selects.quality.value,
+                imageSize: els.selects.imageSize.value,
                 changesDescription: els.changesDesc.value.trim()
             },
             subjectImage: state.images.subject,
