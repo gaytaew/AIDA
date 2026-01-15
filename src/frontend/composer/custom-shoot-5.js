@@ -1571,7 +1571,8 @@ async function applyV5Dependencies() {
     const data = await res.json();
 
     if (data.ok && data.data) {
-      const { corrections, warnings } = data.data;
+      // API returns 'applied' for the list of corrections/conflicts
+      const { applied: corrections, warnings } = data.data;
 
       // DO NOT AUTO-APPLY CORRECTIONS!
       // The user wants manual control. We just show conflicts.
