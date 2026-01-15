@@ -4,6 +4,7 @@
 
 let currentItems = [];
 let currentLookId = null;
+let currentCoverBase64 = null; // Staged new cover image
 
 // Initial Load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -27,6 +28,19 @@ async function loadCategories() {
     }
 }
 
+// Helper to get image URL
+function getLookImageUrl(look) {
+    if (!look || !look.coverImage) return null;
+    if (look.coverImage.startsWith('data:')) return look.coverImage;
+    if (look.coverImage.startsWith('/')) return look.coverImage;
+
+    // Construct path: /api/looks/images/{safeId}/{filename}
+    // We need safeId helper or rely on look.id if it's safe-ish.
+    // Backend uses safeId.
+    const safeId = look.id.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+    return `/api/looks/images/${safeId}/${look.coverImage}`;
+}
+
 async function loadGallery() {
     const gallery = document.getElementById('looks-gallery');
     gallery.innerHTML = '<div style="padding: 20px; color: var(--color-text-muted);">Загрузка...</div>';
@@ -40,18 +54,24 @@ async function loadGallery() {
             return;
         }
 
-        gallery.innerHTML = json.data.map(look => `
+        gallery.innerHTML = json.data.map(look => {
+            const imgUrl = getLookImageUrl(look);
+            const bg = imgUrl ? `url('${imgUrl}?t=${Date.now()}')` : getColorHash(look.id);
+            const style = imgUrl
+                ? `background-image: ${bg}; background-size: cover; background-position: center;`
+                : `background: ${bg};`;
+
+            return `
             <div class="look-card ${currentLookId === look.id ? 'selected' : ''}" onclick="selectLook('${look.id}')">
-                <div class="look-card-preview" style="background: ${getColorHash(look.id)}">
-                    <!-- Placeholder for cover image if we had one -->
-                    <div style="position: absolute; bottom: 8px; left: 8px; font-size: 24px;">👔</div>
+                <div class="look-card-preview" style="${style}">
+                    ${!imgUrl ? '<div style="position: absolute; bottom: 8px; left: 8px; font-size: 24px;">👔</div>' : ''}
                 </div>
                 <div class="look-card-info">
                     <div class="look-card-title">${look.label}</div>
                     <div class="look-card-meta">${look.items.length} items • ${look.category}</div>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     } catch (e) {
         console.error('Gallery error', e);
         gallery.innerHTML = 'Error loading gallery';
@@ -87,6 +107,15 @@ function fillForm(look) {
     currentItems = look.items || [];
     renderItems();
 
+    // Images
+    currentCoverBase64 = null; // Clear staged
+    if (look.coverImage) {
+        const url = getLookImageUrl(look);
+        setCoverPreview(url);
+    } else {
+        clearCoverPreview();
+    }
+
     document.getElementById('btn-delete').style.display = 'block';
 }
 
@@ -114,6 +143,56 @@ window.removeItem = (idx) => {
 };
 
 function setupEventListeners() {
+    // Cover Upload
+    const zone = document.getElementById('cover-upload-zone');
+    const input = document.getElementById('cover-input');
+    const btnRemove = document.getElementById('btn-remove-cover');
+
+    zone.onclick = (e) => {
+        if (e.target !== btnRemove) input.click();
+    };
+
+    input.onchange = async (e) => {
+        if (e.target.files.length) {
+            await handleCoverFile(e.target.files[0]);
+        }
+    };
+
+    btnRemove.onclick = (e) => {
+        e.stopPropagation();
+        clearCoverPreview();
+        currentCoverBase64 = null;
+        input.value = '';
+    };
+
+    // Drag & Drop
+    zone.ondragover = (e) => {
+        e.preventDefault();
+        zone.style.borderColor = 'var(--color-accent)';
+    };
+    zone.ondragleave = () => {
+        zone.style.borderColor = 'var(--color-border)';
+    };
+    zone.ondrop = async (e) => {
+        e.preventDefault();
+        zone.style.borderColor = 'var(--color-border)';
+        if (e.dataTransfer.files.length) {
+            await handleCoverFile(e.dataTransfer.files[0]);
+        }
+    };
+
+    // Paste
+    document.addEventListener('paste', async (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                await handleCoverFile(item.getAsFile());
+                break; // One image at a time
+            }
+        }
+    });
+
     // Add Item Modal
     const modal = document.getElementById('item-modal');
     const btnAdd = document.getElementById('btn-add-item');
@@ -155,7 +234,8 @@ function setupEventListeners() {
             items: currentItems,
             prompt: {
                 tech: { description: document.getElementById('look-prompt-tech').value }
-            }
+            },
+            coverImageBase64: currentCoverBase64 // Only sent if changed/new
         };
 
         let url = '/api/looks';
@@ -175,11 +255,11 @@ function setupEventListeners() {
 
             const json = await res.json();
             if (json.ok) {
-                // Determine if we should clear form (on create) or stay (on update)
                 if (method === 'POST') {
                     clearForm();
                 } else {
-                    currentLookId = json.data.id; // ensure ID is set
+                    currentLookId = json.data.id;
+                    fillForm(json.data); // Reload to get processed URLs
                 }
                 loadGallery();
             } else {
@@ -204,10 +284,81 @@ function setupEventListeners() {
 
 function clearForm() {
     currentLookId = null;
+    currentCoverBase64 = null;
     document.getElementById('look-label').value = '';
     document.getElementById('look-prompt-tech').value = '';
     currentItems = [];
     renderItems();
+    clearCoverPreview();
     document.getElementById('btn-delete').style.display = 'none';
-    loadGallery(); // to clear selection
+    loadGallery();
+}
+
+function setCoverPreview(src) {
+    const img = document.getElementById('cover-preview');
+    const ph = document.getElementById('cover-placeholder');
+    const btn = document.getElementById('btn-remove-cover');
+
+    img.src = src;
+    img.style.display = 'block';
+    ph.style.display = 'none';
+    btn.style.display = 'block';
+}
+
+function clearCoverPreview() {
+    const img = document.getElementById('cover-preview');
+    const ph = document.getElementById('cover-placeholder');
+    const btn = document.getElementById('btn-remove-cover');
+
+    img.src = '';
+    img.style.display = 'none';
+    ph.style.display = 'flex';
+    btn.style.display = 'none';
+}
+
+// Image Utils
+async function handleCoverFile(file) {
+    if (!file) return;
+    try {
+        const compressed = await compressImage(file);
+        currentCoverBase64 = compressed; // raw base64 string
+        setCoverPreview(`data:image/jpeg;base64,${compressed}`);
+    } catch (e) {
+        console.error(e);
+        alert('Failed to process image');
+    }
+}
+
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = () => { img.src = reader.result; };
+        reader.onerror = reject;
+
+        img.onload = () => {
+            const maxSize = 1200;
+            let { width, height } = img;
+
+            if (width > maxSize || height > maxSize) {
+                const ratio = Math.min(maxSize / width, maxSize / height);
+                width = Math.round(width * ratio);
+                height = Math.round(height * ratio);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Return base64 WITHOUT prefix, backend expects just data
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            resolve(dataUrl.split(',')[1]);
+        };
+        img.onerror = () => reject(new Error('Image load failed'));
+
+        reader.readAsDataURL(file);
+    });
 }

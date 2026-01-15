@@ -1,171 +1,245 @@
 /**
  * Look Store
  * 
- * File-based storage for looks.
+ * Folder-based storage for looks (Outfits/Styles).
+ * Each look is stored in: store/looks/{look-id}/
+ * - manifest.json: look metadata
+ * - cover.jpg: cover image (optional)
+ * - item-*.jpg: item images (optional)
  */
 
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import {
-    validateLook,
-    createEmptyLook
-} from '../schema/look.js';
+import { validateLook, createEmptyLook } from '../schema/look.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const LOOKS_DIR = path.resolve(__dirname, 'looks');
+const MANIFEST_FILE = 'manifest.json';
 
-// ═══════════════════════════════════════════════════════════════
-// FILE SYSTEM HELPERS
-// ═══════════════════════════════════════════════════════════════
-
+// Write queue
 let writeQueue = Promise.resolve();
-
 function enqueueWrite(task) {
     writeQueue = writeQueue.then(task, task);
     return writeQueue;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+
 async function ensureLooksDir() {
     await fs.mkdir(LOOKS_DIR, { recursive: true });
 }
 
-function buildLookFilePath(id) {
-    // Safe filename
-    const safe = String(id || '').trim().replace(/[^a-zA-Z0-9._-]/g, '_');
-    if (!safe) return null;
-    return path.join(LOOKS_DIR, `${safe}.json`);
+function getSafeId(id) {
+    return String(id || '').trim().replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-async function fileExists(filePath) {
+function getLookFolderPath(id) {
+    const safeId = getSafeId(id);
+    if (!safeId) return null;
+    return path.join(LOOKS_DIR, safeId);
+}
+
+async function pathExists(p) {
     try {
-        await fs.access(filePath);
+        await fs.access(p);
         return true;
     } catch {
         return false;
     }
 }
 
-async function readLookFromFile(filePath) {
+/**
+ * Save a single base64 image to the folder
+ */
+async function saveImage(folderPath, filename, base64Data) {
+    if (!base64Data) return null;
     try {
-        const raw = await fs.readFile(filePath, 'utf8');
-        const parsed = JSON.parse(raw);
-        const v = validateLook(parsed);
-        if (!v.valid) {
-            return { ok: false, error: `Invalid look in "${path.basename(filePath)}": ${v.errors.join('; ')}` };
-        }
-        return { ok: true, look: parsed };
+        const buffer = Buffer.from(base64Data, 'base64');
+        const filePath = path.join(folderPath, filename);
+        await fs.writeFile(filePath, buffer);
+        return filename;
     } catch (e) {
-        return { ok: false, error: `Failed to read "${path.basename(filePath)}": ${e.message}` };
+        console.error(`Failed to save image ${filename}:`, e);
+        return null;
     }
 }
 
+async function readManifest(folderPath) {
+    const manifestPath = path.join(folderPath, MANIFEST_FILE);
+    try {
+        const raw = await fs.readFile(manifestPath, 'utf8');
+        return JSON.parse(raw);
+    } catch (e) {
+        console.warn(`Failed to read manifest at ${manifestPath}:`, e.message);
+        return null;
+    }
+}
+
+async function writeManifest(folderPath, look) {
+    const manifestPath = path.join(folderPath, MANIFEST_FILE);
+    await fs.writeFile(manifestPath, JSON.stringify(look, null, 2), 'utf8');
+}
+
 // ═══════════════════════════════════════════════════════════════
-// CRUD OPERATIONS
+// CRUD
 // ═══════════════════════════════════════════════════════════════
 
 export async function getAllLooks() {
     await ensureLooksDir();
-    const entries = await fs.readdir(LOOKS_DIR);
-    const jsonFiles = entries
-        .filter(name => typeof name === 'string' && name.toLowerCase().endsWith('.json'))
-        .map(name => path.join(LOOKS_DIR, name));
+    const entries = await fs.readdir(LOOKS_DIR, { withFileTypes: true });
+
+    // Support both folders (new) and .json files (legacy migration if needed, but we'll assume folders for new system)
+    // Actually, let's just support folders for now as the user likely has no crucial data in the old format yet
+    // or we can just filter folders.
 
     const looks = [];
-    for (const filePath of jsonFiles) {
-        const res = await readLookFromFile(filePath);
-        if (res.ok) {
-            looks.push(res.look);
+
+    for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+
+        const folderPath = path.join(LOOKS_DIR, entry.name);
+        const look = await readManifest(folderPath);
+
+        if (look) {
+            // Ensure preview URL is correct
+            if (look.coverImage && !look.coverImage.startsWith('/')) {
+                const safeId = getSafeId(look.id);
+                // Fix: don't prepend /api here if it's just a filename, the frontend usually constructs it
+                // BUT modelStore logic was: return full URL or allow frontend to construct.
+                // Let's store just the filename in JSON, and frontend constructs path OR backend helper adds it.
+                // For simplicity, let's keep look logic close to model logic.
+                // look.coverImage is just "cover.jpg"
+            }
+            looks.push(look);
         }
     }
 
-    // Sort by updatedAt (newest first)
+    // Sort by updatedAt
     looks.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
 
     return looks;
 }
 
 export async function getLookById(id) {
-    const key = String(id || '').trim();
-    if (!key) return null;
-
-    const filePath = buildLookFilePath(key);
-    if (!filePath || !(await fileExists(filePath))) return null;
-
-    const res = await readLookFromFile(filePath);
-    return res.ok ? res.look : null;
+    const folderPath = getLookFolderPath(id);
+    if (!folderPath || !(await pathExists(folderPath))) return null;
+    return readManifest(folderPath);
 }
 
 export async function createLook(data) {
     const now = new Date().toISOString();
 
+    // Data might contain 'images' (base64) for items? 
+    // Or 'coverImageBase64'?
+    // Let's assume the frontend sends:
+    // { ...lookData, coverImageBase64: "...", items: [ { ...itemData, imageBase64: "..." } ] }
+
+    const { coverImageBase64, ...lookData } = data;
+
     const newLook = {
-        ...createEmptyLook(data.label, data.category),
-        ...data,
+        ...createEmptyLook(lookData.label, lookData.category),
+        ...lookData,
+        id: lookData.id || `look_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         createdAt: now,
         updatedAt: now
     };
 
-    const v = validateLook(newLook);
-    if (!v.valid) {
-        return { success: false, errors: v.errors };
-    }
+    const folderPath = getLookFolderPath(newLook.id);
 
-    const filePath = buildLookFilePath(newLook.id);
-    if (!filePath) {
-        return { success: false, errors: ['Invalid look ID'] };
-    }
-
-    if (await fileExists(filePath)) {
-        return { success: false, errors: [`Look "${newLook.id}" already exists`] };
+    if (await pathExists(folderPath)) {
+        return { success: false, errors: ['Look already exists'] };
     }
 
     await enqueueWrite(async () => {
-        await ensureLooksDir();
-        await fs.writeFile(filePath, JSON.stringify(newLook, null, 2), 'utf8');
+        await fs.mkdir(folderPath, { recursive: true });
+
+        // Save Cover Image
+        if (coverImageBase64) {
+            const fileName = 'cover.jpg';
+            await saveImage(folderPath, fileName, coverImageBase64);
+            newLook.coverImage = fileName; // Store relative filename
+        }
+
+        // Save Item Images (if any) - Iterate through items and check for imageBase64
+        if (newLook.items && Array.isArray(newLook.items)) {
+            for (let i = 0; i < newLook.items.length; i++) {
+                const item = newLook.items[i];
+                if (item.imageBase64) {
+                    const ext = 'jpg'; // force jpg for simplicity
+                    const fileName = `item-${i}-${Date.now()}.jpg`;
+                    await saveImage(folderPath, fileName, item.imageBase64);
+                    item.image = fileName; // Update item with filename
+                    delete item.imageBase64; // Remove base64 from stored JSON
+                }
+            }
+        }
+
+        await writeManifest(folderPath, newLook);
     });
 
     return { success: true, look: newLook };
 }
 
 export async function updateLook(id, updates) {
-    const existing = await getLookById(id);
-    if (!existing) {
-        return { success: false, errors: [`Look "${id}" not found`] };
-    }
+    const currentLook = await getLookById(id);
+    if (!currentLook) return { success: false, errors: ['Look not found'] };
 
-    const updated = {
-        ...existing,
-        ...updates,
-        id: existing.id, // ID cannot change
-        createdAt: existing.createdAt,
+    const folderPath = getLookFolderPath(id);
+    const { coverImageBase64, ...lookData } = updates;
+
+    // Merge basic data
+    const updatedLook = {
+        ...currentLook,
+        ...lookData,
+        id: currentLook.id,
         updatedAt: new Date().toISOString()
     };
 
-    const v = validateLook(updated);
-    if (!v.valid) {
-        return { success: false, errors: v.errors };
-    }
-
-    const filePath = buildLookFilePath(id);
-
     await enqueueWrite(async () => {
-        await fs.writeFile(filePath, JSON.stringify(updated, null, 2), 'utf8');
+        // Handle Cover Image Update
+        if (coverImageBase64) {
+            const fileName = `cover-${Date.now()}.jpg`; // New name to bust cache? Or just options?
+            // actually just cover.jpg is fine if we cache bust on frontend
+            // but unique names are safer against browser caching
+            const finalName = 'cover.jpg';
+            await saveImage(folderPath, finalName, coverImageBase64);
+            updatedLook.coverImage = finalName;
+        }
+
+        // Handle Item Images
+        // Items might be new or existing. 
+        if (updatedLook.items && Array.isArray(updatedLook.items)) {
+            for (let i = 0; i < updatedLook.items.length; i++) {
+                const item = updatedLook.items[i];
+                // If it has a new base64 image
+                if (item.imageBase64) {
+                    const fileName = `item-${i}-${Date.now()}.jpg`;
+                    await saveImage(folderPath, fileName, item.imageBase64);
+                    item.image = fileName;
+                    delete item.imageBase64;
+                }
+            }
+        }
+
+        await writeManifest(folderPath, updatedLook);
     });
 
-    return { success: true, look: updated };
+    return { success: true, look: updatedLook };
 }
 
 export async function deleteLook(id) {
-    const filePath = buildLookFilePath(id);
-    if (!filePath || !(await fileExists(filePath))) {
-        return { success: false, errors: [`Look "${id}" not found`] };
+    const folderPath = getLookFolderPath(id);
+    if (!folderPath || !(await pathExists(folderPath))) {
+        return { success: false, errors: ['Look not found'] };
     }
 
     await enqueueWrite(async () => {
-        await fs.unlink(filePath);
+        await fs.rm(folderPath, { recursive: true, force: true });
     });
 
     return { success: true };

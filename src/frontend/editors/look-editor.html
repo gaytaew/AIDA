@@ -203,6 +203,23 @@
                         </div>
 
                         <form id="look-form">
+                            <!-- Cover Image Upload -->
+                            <div class="form-group full" style="margin-bottom: 20px;">
+                                <label>Референс / Обложка</label>
+                                <div id="cover-upload-zone" class="add-item-zone"
+                                    style="height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                                    <div id="cover-placeholder">
+                                        <div style="font-size: 24px; margin-bottom: 8px;">📷</div>
+                                        <div>Нажмите или перетащите фото</div>
+                                    </div>
+                                    <img id="cover-preview"
+                                        style="display: none; width: 100%; height: 100%; object-fit: contain;">
+                                    <input type="file" id="cover-input" hidden accept="image/*">
+                                    <button type="button" id="btn-remove-cover" class="btn-remove-item"
+                                        style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); border-radius: 50%; color: white; display: none;">×</button>
+                                </div>
+                            </div>
+
                             <div class="form-grid">
                                 <div class="form-group full">
                                     <label for="look-label">Название образа</label>

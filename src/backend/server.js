@@ -147,6 +147,10 @@ app.use('/api/emotions', emotionRoutes);
 app.use('/api/custom-shoots', customShootRoutes);
 app.use('/api/looks', lookRoutes);
 
+// Static files (look images)
+const looksStorePath = path.resolve(__dirname, 'store/looks');
+app.use('/api/looks/images', express.static(looksStorePath));
+
 // Fallback: serve index.html for SPA-like navigation
 app.get('*', (req, res) => {
   // If it's an API request that wasn't matched, return 404
