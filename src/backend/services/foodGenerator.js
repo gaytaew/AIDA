@@ -275,15 +275,16 @@ REFERENCE GUIDANCE (STRUCTURE & FORM):
 1. MATCH: Geometric Shape & Form Factor from [$${indexMap.subject}] (CRITICAL).
    - If Ref is RECTANGULAR, output RECTANGULAR.
    - If Ref is SQUARE, output SQUARE.
-2. MATCH: Ingredient Arrangement and Portion Size from [$${indexMap.subject}].
+${changesDescription ?
+                `2. ADAPT: Ingredient Arrangement from [$${indexMap.subject}] MUST be modified according to the "IMPORTANT EDITS" below.
+   - You MUST deviate from the reference arrangement if the edits require it (e.g. moving toppings).` :
+                `2. MATCH: Ingredient Arrangement and Portion Size from [$${indexMap.subject}].`}
 3. IGNORE: The actual food content of [$${indexMap.subject}] IF it conflicts with the Description.
-   - Example: If Description says "Burger" but Ref is "Pizza", make a Burger shaped like a Pizza (or warn? No, usually just match vibe).
-   - BETTER: "Copy the appearance... maintain ingredients" was the old prompt.
    - NEW LOGIC: Use Ref for Lighting/Angle/Shape. Use Description for FOOD CONTENT.
 
-IMPORTANT OVERRIDES:
+IMPORTANT OVERRIDES (ENVIRONMENT):
 - **BACKGROUND**: DO NOT COPY the background from Reference [$${indexMap.subject}]. Use the "SURFACE" specified above.
-- **PLATE/DISH**: DO NOT COPY the plate/dish from Reference [$${indexMap.subject}]. Use the "CROCKERY" specified above (unless a specific Crockery Reference is separately provided).`);
+- **PLATE/DISH**: DO NOT COPY the plate/dish from Reference [$${indexMap.subject}]. Use the "CROCKERY" specified above (or the Surface if appropriate).`);
 
     } else {
         // TEXT DESCRIPTION MODE
