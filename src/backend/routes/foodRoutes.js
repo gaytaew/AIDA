@@ -66,8 +66,10 @@ router.post('/generate', async (req, res) => {
             subjectImage,
             crockeryImage,
             styleImage,
+            sketchImage, // Add sketch support
             shootId,
-            baseImage // NEW: Support modification workflow
+            frameId, // NEW: For adding variations to existing frame
+            baseImage // Support modification workflow
         } = req.body;
 
         if (!params || !params.dishDescription) {
@@ -79,14 +81,23 @@ router.post('/generate', async (req, res) => {
             subjectImage,
             crockeryImage,
             styleImage,
-            baseImage // NEW: Pass base image for refinement
+            sketchImage,
+            baseImage
         });
 
-        // If shootId provided, save the result
+        // If shootId provided, save to persistence
         if (shootId && result.base64) {
-            const savedImage = await store.addImageToFoodShoot(shootId, result.base64, params);
-            // Return the saved image data (including public URL) instead of raw base64 to save bandwidth/client memory
-            // OR return both. For now, let's append saved info.
+            let savedImage;
+
+            if (frameId) {
+                // Add to existing frame (variation)
+                savedImage = await store.addSnapshot(shootId, frameId, result.base64, {});
+                savedImage.frameId = frameId;
+            } else {
+                // Create new frame (new generation)
+                savedImage = await store.addImageToFoodShoot(shootId, result.base64, params);
+            }
+
             result.savedImage = savedImage;
         }
 
@@ -103,5 +114,6 @@ router.post('/generate', async (req, res) => {
         });
     }
 });
+
 
 export default router;

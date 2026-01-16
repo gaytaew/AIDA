@@ -181,7 +181,8 @@ async function generate() {
             styleImage: state.images.style,
             sketchImage: state.images.sketch,
             baseImage: state.images.base, // Pass base image if present
-            shootId: state.currentShoot?.id
+            shootId: state.currentShoot?.id,
+            frameId: state.refiningFrameId || null // Pass frameId for variations
         };
 
         const res = await fetch('/api/food/generate', {
@@ -193,29 +194,21 @@ async function generate() {
         const json = await res.json();
 
         if (json.ok) {
-            // If savedImage is returned, use it. Otherwise construct from valid response.
-            let newItem;
-            if (json.data.savedImage) {
-                // Merge base64 back into savedImage so we can display it immediately
-                // even if the file isn't served correctly yet
-                newItem = {
-                    ...json.data.savedImage,
-                    base64: json.data.base64 || (json.data.image ? json.data.image.base64 : null),
-                    mimeType: 'image/jpeg'
-                };
+            // Reload shoot data to get fresh frame/snapshot structure
+            if (state.currentShoot?.id) {
+                await reloadCurrentShoot();
             } else {
-                // Fallback for non-shoot generation
-                newItem = {
-                    ...json.data, // json.data IS the image object
+                // Fallback for non-persistent generation
+                const newItem = {
+                    ...json.data,
                     params: json.data.params,
                     createdAt: new Date().toISOString()
                 };
+                addToHistory(newItem, null);
             }
 
-            // Add to history (with parent link if refining)
-            addToHistory(newItem, state.refiningParentId || null);
-
             // Reset refine mode
+            state.refiningFrameId = null;
             state.refiningParentId = null;
             state.images.base = null;
             if (els.btnGenerate) {
@@ -510,8 +503,11 @@ window.setReferenceFromHistory = async (itemId, type) => {
 };
 
 window.refineHistoryItem = async (itemId) => {
-    const item = findHistoryItemById(itemId);
-    if (!item) return;
+    // In the new structure, itemId could be a frameId (top-level) or snapshotId
+    const result = findHistoryItemWithFrame(itemId);
+    if (!result) return;
+
+    const { item, frameId } = result;
 
     // Load Params
     loadParams(item.params);
@@ -537,27 +533,66 @@ window.refineHistoryItem = async (itemId) => {
 
     if (base64) {
         state.images.base = { base64, mimeType: 'image/jpeg' };
-        state.refiningParentId = itemId; // Track parent for tree insertion
+        state.refiningFrameId = frameId; // Track frame for adding variation
+        state.refiningParentId = itemId;
         alert('✨ Режим улучшения активирован! Внеси правки и нажми Сгенерировать.');
 
         if (els.btnGenerate) {
-            els.btnGenerate.innerHTML = '<span>✨ Refine / Modify</span>';
+            els.btnGenerate.innerHTML = '<span>✨ Variation</span>';
             els.btnGenerate.style.background = 'var(--color-accent)';
         }
     }
 };
 
-// Helper to find item by ID in nested structure
-function findHistoryItemById(id) {
-    for (const item of state.history) {
-        if (item.id === id) return item;
-        if (item.children) {
-            for (const child of item.children) {
-                if (child.id === id) return child;
+// Helper to find item by ID in nested structure and return frameId
+function findHistoryItemWithFrame(id) {
+    for (const frame of state.history) {
+        // Frame itself is first snapshot
+        if (frame.id === id) {
+            return { item: frame, frameId: frame.id };
+        }
+        // Search in children (other snapshots of this frame)
+        if (frame.children) {
+            for (const child of frame.children) {
+                if (child.id === id) {
+                    return { item: child, frameId: frame.id };
+                }
             }
         }
     }
     return null;
+}
+
+// Legacy helper
+function findHistoryItemById(id) {
+    const result = findHistoryItemWithFrame(id);
+    return result ? result.item : null;
+}
+
+// Helper to reload current shoot data
+async function reloadCurrentShoot() {
+    if (!state.currentShoot?.id) return;
+
+    try {
+        const res = await fetch(`/api/food-shoots/${state.currentShoot.id}`);
+        const json = await res.json();
+
+        if (json.ok) {
+            const shoot = json.data;
+
+            // Populate history from frames
+            state.history = (shoot.frames || []).map(frame => ({
+                id: frame.id,
+                params: frame.params,
+                createdAt: frame.createdAt,
+                ...(frame.snapshots?.[0] || {}),
+                children: (frame.snapshots || []).slice(1)
+            }));
+            renderHistory();
+        }
+    } catch (e) {
+        console.error('Failed to reload shoot:', e);
+    }
 }
 
 /* Shoots UI Logic */
@@ -648,7 +683,7 @@ function renderShootList(shoots) {
             <div>
                 <div style="font-weight: 600;">${escapeHtml(s.label)}</div>
                 <div style="font-size: 11px; color: var(--color-text-muted);">
-                    ${s.imageCount} фото • ${new Date(s.updatedAt).toLocaleDateString()}
+                    ${s.frameCount || 0} кадров • ${s.snapshotCount || 0} фото • ${new Date(s.updatedAt).toLocaleDateString()}
                 </div>
             </div>
             <button style="background:none; border:none; color: var(--color-accent);">Select ➜</button>
@@ -674,8 +709,17 @@ async function loadShoot(id) {
             const shoot = json.data;
             setCurrentShoot(shoot);
 
-            // Populate history
-            state.history = shoot.images || [];
+            // Populate history from frames (new hierarchical structure)
+            // Frames become top-level items; snapshots are their children
+            state.history = (shoot.frames || []).map(frame => ({
+                id: frame.id,
+                params: frame.params,
+                createdAt: frame.createdAt,
+                // First snapshot image for the main card
+                ...(frame.snapshots?.[0] || {}),
+                // Rest of snapshots become children
+                children: (frame.snapshots || []).slice(1)
+            }));
             renderHistory();
 
             closeShootModal();

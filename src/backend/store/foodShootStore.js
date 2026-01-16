@@ -2,7 +2,7 @@
  * Food Shoot Store
  * 
  * File-based storage for Food Shoots.
- * Modeled after customShootStore.js but simplified for Food vertical.
+ * Hierarchical model: Shoot -> Frame (Block) -> Snapshot (Image)
  */
 
 import fs from 'fs/promises';
@@ -72,6 +72,23 @@ initStores().catch(console.error);
 // INDEX MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Count total snapshots across all frames
+ */
+function countSnapshots(shoot) {
+    if (!shoot.frames?.length) return 0;
+    return shoot.frames.reduce((sum, frame) => sum + (frame.snapshots?.length || 0), 0);
+}
+
+/**
+ * Get preview URL from first frame's first snapshot
+ */
+function getPreviewUrl(shoot) {
+    const firstFrame = shoot.frames?.[0];
+    const firstSnapshot = firstFrame?.snapshots?.[0];
+    return firstSnapshot?.imageUrl || null;
+}
+
 async function readIndex() {
     if (indexCache && (Date.now() - indexCacheTime) < INDEX_CACHE_TTL) {
         return indexCache;
@@ -99,8 +116,6 @@ async function writeIndex(index) {
 
 async function rebuildIndex() {
     console.log('[FoodShootStore] Rebuilding index...');
-
-    // Ensure dir exists before listing
     await initStores();
 
     let files = [];
@@ -112,7 +127,6 @@ async function rebuildIndex() {
     }
 
     const jsonFiles = files.filter(f => f.endsWith('.json') && !f.startsWith('_'));
-
     const shoots = [];
 
     for (const file of jsonFiles) {
@@ -126,15 +140,15 @@ async function rebuildIndex() {
                 label: shoot.label,
                 createdAt: shoot.createdAt,
                 updatedAt: shoot.updatedAt,
-                imageCount: shoot.images?.length || 0,
-                previewUrl: shoot.images?.[0]?.imageUrl || null
+                frameCount: shoot.frames?.length || 0,
+                snapshotCount: countSnapshots(shoot),
+                previewUrl: getPreviewUrl(shoot)
             });
         } catch (err) {
             console.error(`[FoodShootStore] Error reading ${file}:`, err.message);
         }
     }
 
-    // Sort by updatedAt descending
     shoots.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
     const index = { shoots, rebuiltAt: new Date().toISOString() };
@@ -151,8 +165,9 @@ async function updateIndexEntry(shoot) {
             label: shoot.label,
             createdAt: shoot.createdAt,
             updatedAt: shoot.updatedAt,
-            imageCount: shoot.images?.length || 0,
-            previewUrl: shoot.images?.[0]?.imageUrl || null
+            frameCount: shoot.frames?.length || 0,
+            snapshotCount: countSnapshots(shoot),
+            previewUrl: getPreviewUrl(shoot)
         };
 
         const existingIdx = index.shoots.findIndex(s => s.id === shoot.id);
@@ -171,7 +186,7 @@ async function updateIndexEntry(shoot) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CRUD
+// CRUD - SHOOTS
 // ═══════════════════════════════════════════════════════════════
 
 export async function getAllFoodShoots() {
@@ -192,11 +207,11 @@ export async function getFoodShootById(id) {
         const content = await fs.readFile(filePath, 'utf-8');
         return JSON.parse(content);
     } catch (err) {
-        return null; // Not found
+        return null;
     }
 }
 
-export async function createFoodShoot(label = 'New Food Shoot') {
+export async function createFoodShoot(label = 'Новая съёмка') {
     await initStores();
     console.log(`[FoodShootStore] Creating shoot: ${label}`);
 
@@ -208,7 +223,7 @@ export async function createFoodShoot(label = 'New Food Shoot') {
         label,
         createdAt: now,
         updatedAt: now,
-        images: []
+        frames: [] // Hierarchical: frames contain snapshots
     };
 
     const filePath = path.join(STORE_DIR, `${id}.json`);
@@ -249,11 +264,11 @@ export async function deleteFoodShoot(id) {
 
     try {
         // Delete all images associated with this shoot
-        const shoot = await getFoodShootById(id);
-        if (shoot && shoot.images) {
-            for (const img of shoot.images) {
-                await deleteImageFile(id, img.id);
-            }
+        const shootImgDir = path.join(IMAGES_DIR, id);
+        try {
+            await fs.rm(shootImgDir, { recursive: true });
+        } catch (e) {
+            // Ignore if dir doesn't exist
         }
 
         await fs.unlink(filePath);
@@ -271,16 +286,72 @@ export async function deleteFoodShoot(id) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// IMAGE MANAGEMENT
+// FRAME MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
 
-function buildImagePath(shootId, imageId) {
-    // Create shoot subdir for images to keep things organized
-    return path.join(IMAGES_DIR, shootId, `${imageId}.jpg`);
+/**
+ * Add a new Frame to a Shoot.
+ * @param {string} shootId 
+ * @param {object} params - Generation parameters for this frame
+ * @returns {object} The created frame
+ */
+export async function addFrame(shootId, params = {}) {
+    const shoot = await getFoodShootById(shootId);
+    if (!shoot) throw new Error(`Shoot ${shootId} not found`);
+
+    const frameId = `FRM_${Date.now()}_${randomBytes(2).toString('hex')}`;
+    const now = new Date().toISOString();
+
+    const frame = {
+        id: frameId,
+        createdAt: now,
+        params: params,
+        snapshots: []
+    };
+
+    if (!shoot.frames) shoot.frames = [];
+    shoot.frames.unshift(frame); // Newest first
+
+    await updateFoodShoot(shootId, { frames: shoot.frames });
+    console.log(`[FoodShootStore] Added frame ${frameId} to ${shootId}`);
+
+    return frame;
 }
 
-async function deleteImageFile(shootId, imageId) {
-    const p = buildImagePath(shootId, imageId);
+/**
+ * Delete a Frame and all its snapshots.
+ */
+export async function deleteFrame(shootId, frameId) {
+    const shoot = await getFoodShootById(shootId);
+    if (!shoot) throw new Error(`Shoot ${shootId} not found`);
+
+    const frameIndex = shoot.frames?.findIndex(f => f.id === frameId);
+    if (frameIndex < 0) throw new Error(`Frame ${frameId} not found`);
+
+    const frame = shoot.frames[frameIndex];
+
+    // Delete all snapshot image files
+    for (const snap of frame.snapshots || []) {
+        await deleteSnapshotFile(shootId, snap.id);
+    }
+
+    shoot.frames.splice(frameIndex, 1);
+    await updateFoodShoot(shootId, { frames: shoot.frames });
+
+    console.log(`[FoodShootStore] Deleted frame ${frameId}`);
+    return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SNAPSHOT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+function buildSnapshotPath(shootId, snapshotId) {
+    return path.join(IMAGES_DIR, shootId, `${snapshotId}.jpg`);
+}
+
+async function deleteSnapshotFile(shootId, snapshotId) {
+    const p = buildSnapshotPath(shootId, snapshotId);
     try {
         await fs.unlink(p);
     } catch (e) {
@@ -289,25 +360,33 @@ async function deleteImageFile(shootId, imageId) {
 }
 
 /**
- * Saves a generated image to the shoot.
+ * Add a Snapshot (image) to a Frame.
  * @param {string} shootId 
- * @param {string} base64Data - Raw base64 string (without data: prefix) or Data URL
- * @param {object} params - Generation parameters
+ * @param {string} frameId 
+ * @param {string} base64Data - Base64 image data
+ * @param {object} meta - Additional metadata
+ * @returns {object} The created snapshot
  */
-export async function addImageToFoodShoot(shootId, base64Data, params = {}) {
+export async function addSnapshot(shootId, frameId, base64Data, meta = {}) {
     await initStores();
-    console.log(`[FoodShootStore] Saving image to ${shootId}`);
+    console.log(`[FoodShootStore] Adding snapshot to frame ${frameId}`);
 
     if (!base64Data || base64Data.length < 100) {
         throw new Error('Invalid base64 data (too short)');
     }
 
+    const shoot = await getFoodShootById(shootId);
+    if (!shoot) throw new Error(`Shoot ${shootId} not found`);
+
+    const frame = shoot.frames?.find(f => f.id === frameId);
+    if (!frame) throw new Error(`Frame ${frameId} not found`);
+
     // Ensure shoot images dir exists
     const shootImgDir = path.join(IMAGES_DIR, shootId);
     await ensureDir(shootImgDir);
 
-    const imageId = `IMG_${Date.now()}`;
-    const imagePath = buildImagePath(shootId, imageId);
+    const snapshotId = `SNAP_${Date.now()}_${randomBytes(2).toString('hex')}`;
+    const snapshotPath = buildSnapshotPath(shootId, snapshotId);
 
     // Normalize Base64
     let cleanBase64 = base64Data;
@@ -316,33 +395,64 @@ export async function addImageToFoodShoot(shootId, base64Data, params = {}) {
     }
 
     // Save to disk
-    await fs.writeFile(imagePath, Buffer.from(cleanBase64, 'base64'));
+    await fs.writeFile(snapshotPath, Buffer.from(cleanBase64, 'base64'));
 
-    // Image Object
-    const imageEntry = {
-        id: imageId,
+    const snapshot = {
+        id: snapshotId,
         createdAt: new Date().toISOString(),
-        params: params,
-        imageUrl: `/api/food-shoots/${shootId}/images/${imageId}`, // Public URL
-        localPath: imagePath // Internal use
+        imageUrl: `/api/food-shoots/${shootId}/images/${snapshotId}`,
+        localPath: snapshotPath,
+        ...meta
     };
 
-    // Update Shoot
+    if (!frame.snapshots) frame.snapshots = [];
+    frame.snapshots.push(snapshot); // Order: oldest to newest (left to right)
+
+    await updateFoodShoot(shootId, { frames: shoot.frames });
+    console.log(`[FoodShootStore] Snapshot saved: ${snapshotId}`);
+
+    return snapshot;
+}
+
+/**
+ * Delete a single Snapshot from a Frame.
+ */
+export async function deleteSnapshot(shootId, frameId, snapshotId) {
     const shoot = await getFoodShootById(shootId);
-    if (!shoot) {
-        console.error(`[FoodShootStore] Shoot ${shootId} not found during image save!`);
-        throw new Error(`Shoot ${shootId} not found`);
-    }
+    if (!shoot) throw new Error(`Shoot ${shootId} not found`);
 
-    // Ensure images array exists
-    if (!shoot.images) shoot.images = [];
+    const frame = shoot.frames?.find(f => f.id === frameId);
+    if (!frame) throw new Error(`Frame ${frameId} not found`);
 
-    shoot.images.unshift(imageEntry); // Newest first
+    const snapIndex = frame.snapshots?.findIndex(s => s.id === snapshotId);
+    if (snapIndex < 0) throw new Error(`Snapshot ${snapshotId} not found`);
 
-    await updateFoodShoot(shootId, { images: shoot.images });
-    console.log(`[FoodShootStore] Image saved: ${imageId}`);
+    await deleteSnapshotFile(shootId, snapshotId);
+    frame.snapshots.splice(snapIndex, 1);
 
-    return imageEntry;
+    await updateFoodShoot(shootId, { frames: shoot.frames });
+    console.log(`[FoodShootStore] Deleted snapshot ${snapshotId}`);
+
+    return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEGACY COMPAT (for existing routes)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Legacy: Add image to shoot by creating a new auto-frame.
+ * Used by existing /generate endpoint.
+ */
+export async function addImageToFoodShoot(shootId, base64Data, params = {}) {
+    // Create a new frame with the provided params
+    const frame = await addFrame(shootId, params);
+    // Add the snapshot to this frame
+    const snapshot = await addSnapshot(shootId, frame.id, base64Data, {});
+    return {
+        ...snapshot,
+        frameId: frame.id
+    };
 }
 
 export default {
@@ -351,5 +461,12 @@ export default {
     createFoodShoot,
     updateFoodShoot,
     deleteFoodShoot,
+    // Frame operations
+    addFrame,
+    deleteFrame,
+    // Snapshot operations
+    addSnapshot,
+    deleteSnapshot,
+    // Legacy
     addImageToFoodShoot
 };
