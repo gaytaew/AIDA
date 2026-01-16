@@ -91,23 +91,47 @@ export const FOOD_COMPOSITION = {
 
 export const FOOD_DEPTH = {
     id: 'depth',
-    label: '💧 Глубина резкости',
-    description: 'Размытие фона (Боке)',
+    label: '💧 Диафрагма (Размытие)',
+    description: 'Глубина резкости',
     options: [
         {
             value: 'f2_8',
             label: 'f/2.8 (Soft Bokeh)',
-            spec: 'DEPTH OF FIELD: f/2.8 Shallow. Creamy bokeh, background melts away. Focus is razor sharp on the front of the food.'
+            spec: 'APERTURE: f/2.8 Shallow depth. Creamy bokeh, background melts away. Focus is razor sharp on the front of the food.'
         },
         {
             value: 'f5_6',
             label: 'f/5.6 (Balanced)',
-            spec: 'DEPTH OF FIELD: f/5.6 Balanced. Main subject fully sharp, background softly out of focus but recognizable.'
+            spec: 'APERTURE: f/5.6 Balanced. Main subject fully sharp, background softly out of focus but recognizable.'
         },
         {
             value: 'f11',
             label: 'f/11 (Deep Focus)',
-            spec: 'DEPTH OF FIELD: f/11 Deep Focus. Everything from front to back is sharp. Commercial catalog look.'
+            spec: 'APERTURE: f/11 Deep Focus. Everything from front to back is sharp. Commercial catalog look.'
+        }
+    ]
+};
+
+// NEW: Focus Point
+export const FOOD_FOCUS_POINT = {
+    id: 'focusPoint',
+    label: '🎯 Точка фокуса',
+    description: 'Куда смотрит камера',
+    options: [
+        {
+            value: 'front',
+            label: 'Передний план',
+            spec: 'FOCUS POINT: Front Focus. Sharpest focus on the nearest edge of the food, blurring into the background.'
+        },
+        {
+            value: 'center',
+            label: 'Центр блюда',
+            spec: 'FOCUS POINT: Center Focus. Main subject in the center is sharpest, edges fall off slightly.'
+        },
+        {
+            value: 'top_flat',
+            label: 'Flat Focus (Флэтлей)',
+            spec: 'FOCUS POINT: Top-Down Flat. Everything in the same focal plane (for flat lay shots). Evenly sharp.'
         }
     ]
 };
@@ -118,38 +142,164 @@ export const FOOD_DEPTH = {
 
 export const FOOD_LIGHTING = {
     id: 'lighting',
-    label: '💡 Освещение',
-    description: 'Световая схема',
+    label: '💡 Источник света',
+    description: 'Тип и качество света',
     options: [
         {
             value: 'natural_window',
-            label: 'Natural Window (Soft Side)',
-            spec: 'LIGHT: Soft directional window light from side. Gentle gradients, appetizing highlights, soft shadows.',
+            label: 'Окно (Soft)',
+            spec: 'LIGHT SOURCE: Soft directional window light. Gentle gradients, appetizing highlights.',
             constraints: { source: 'window', quality: 'soft' }
         },
         {
             value: 'hard_sun',
-            label: 'Hard Sun (Sharp Shadows)',
-            spec: 'LIGHT: Direct hard sunlight. Sharp, long shadows. High contrast, vibrant colors. Pop aesthetic.',
+            label: 'Прямое солнце (Hard)',
+            spec: 'LIGHT SOURCE: Direct hard sunlight. High contrast, vibrant colors. Pop aesthetic.',
             constraints: { source: 'sun', quality: 'hard' }
         },
         {
             value: 'dark_moody',
-            label: 'Dark & Moody (Chiaroscuro)',
-            spec: 'LIGHT: Low key, dramatic lighting. Subject highlighted, background falls into deep shadow. Rustic and emotional.',
+            label: 'Chiaroscuro (Moody)',
+            spec: 'LIGHT SOURCE: Low key, dramatic. Subject highlighted, background in deep shadow.',
             constraints: { source: 'controlled', quality: 'chiaroscuro' }
         },
         {
             value: 'studio_clean',
-            label: 'Studio Clean (Commercial)',
-            spec: 'LIGHT: Even, bright studio lighting. Minimal shadows, clean white/neutral background. Commercial catalog look.',
+            label: 'Студийный (Commercial)',
+            spec: 'LIGHT SOURCE: Even, bright studio lighting. Minimal shadows, clean background.',
             constraints: { source: 'studio_box', quality: 'even' }
         },
         {
-            value: 'backlight_rim',
-            label: 'Backlight (Rim Light)',
-            spec: 'LIGHT: Strong Backlight. Rim light catches steam and texture edges. Glowing silhouette effect, high drama.',
-            constraints: { source: 'back', quality: 'rim' }
+            value: 'candlelight',
+            label: 'Свечи (Warm Evening)',
+            spec: 'LIGHT SOURCE: Candlelight or firelight. Warm orange glow, deep shadows, intimate.',
+            constraints: { source: 'candle', quality: 'warm' }
+        }
+    ]
+};
+
+// NEW: Light Direction (Critical for food texture!)
+export const FOOD_LIGHT_DIRECTION = {
+    id: 'lightDirection',
+    label: '☀️ Направление света',
+    description: 'Откуда падает свет',
+    options: [
+        {
+            value: 'backlit',
+            label: 'Контровой (Backlit)',
+            spec: 'LIGHT DIRECTION: Strong Backlight. Rim light catches steam and texture edges. Glowing silhouette effect.'
+        },
+        {
+            value: 'side',
+            label: 'Боковой (Side)',
+            spec: 'LIGHT DIRECTION: Side Light (45°). Creates volume and dimension. Classic food photography direction.'
+        },
+        {
+            value: 'front',
+            label: 'Фронтальный (Front)',
+            spec: 'LIGHT DIRECTION: Front Light. Flat, even illumination. Minimal shadows. Clean commercial look.'
+        },
+        {
+            value: 'top_down',
+            label: 'Сверху (Top Down)',
+            spec: 'LIGHT DIRECTION: Top Down Light. For flat lay shots. Even lighting, minimal harsh shadows.'
+        }
+    ]
+};
+
+// NEW: Shadow Character
+export const FOOD_SHADOWS = {
+    id: 'shadows',
+    label: '🌑 Характер теней',
+    description: 'Мягкость и глубина теней',
+    options: [
+        {
+            value: 'soft_diffused',
+            label: 'Мягкие (Diffused)',
+            spec: 'SHADOWS: Soft, diffused shadows. Gentle gradients, no harsh edges. Feminine, delicate feel.'
+        },
+        {
+            value: 'hard_crisp',
+            label: 'Жёсткие (Crisp)',
+            spec: 'SHADOWS: Hard, crisp shadows. Sharp edges, graphic quality. Bold, pop aesthetic.'
+        },
+        {
+            value: 'deep_moody',
+            label: 'Глубокие (Deep Black)',
+            spec: 'SHADOWS: Deep, rich black shadows. High contrast. Dramatic, moody, editorial feel.'
+        },
+        {
+            value: 'minimal',
+            label: 'Минимальные (Clean)',
+            spec: 'SHADOWS: Minimal to no shadows. Bright, even lighting. Commercial catalog look.'
+        }
+    ]
+};
+
+// NEW: Haptics / Physical Effects
+export const FOOD_HAPTICS = {
+    id: 'haptics',
+    label: '♨️ Физика (Эффекты)',
+    description: 'Пар, капли, текстура',
+    options: [
+        {
+            value: 'clean',
+            label: 'Clean (Без эффектов)',
+            spec: 'PHYSICAL EFFECTS: Clean, pristine. No steam, no drips. Perfect styling.'
+        },
+        {
+            value: 'steam_hot',
+            label: 'Горячий пар (Steam)',
+            spec: 'PHYSICAL EFFECTS: Visible steam rising from hot food. Backlit to enhance visibility. Appetizing warmth.'
+        },
+        {
+            value: 'condensation_cold',
+            label: 'Капли/Конденсат (Cold)',
+            spec: 'PHYSICAL EFFECTS: Condensation droplets on cold surface. Dewy, refreshing. Good for drinks and cold dishes.'
+        },
+        {
+            value: 'glistening_oily',
+            label: 'Блеск/Глянец (Oily)',
+            spec: 'PHYSICAL EFFECTS: Glistening, glossy surface. Oil sheen, sauce highlights. Juicy and appetizing.'
+        },
+        {
+            value: 'crumbs_messy',
+            label: 'Крошки/Разлито (Messy)',
+            spec: 'PHYSICAL EFFECTS: Crumbs, spills, scattered elements. Lived-in, authentic, "in progress" eating feel.'
+        }
+    ]
+};
+
+// NEW: Film Stock / Color Grading
+export const FOOD_FILM_STOCK = {
+    id: 'filmStock',
+    label: '🎞️ Пленка (Look)',
+    description: 'Цветовая обработка',
+    options: [
+        {
+            value: 'digital_clean',
+            label: 'Digital Clean (Neutral)',
+            spec: 'FILM LOOK: Clean digital. True-to-life colors, no grain, high sharpness. Modern commercial.'
+        },
+        {
+            value: 'kodak_portra',
+            label: 'Kodak Portra (Warm Skin)',
+            spec: 'FILM LOOK: Kodak Portra 400 emulation. Warm skin tones, soft highlights, subtle grain. Advertising classic.'
+        },
+        {
+            value: 'fuji_velvia',
+            label: 'Fuji Velvia (Saturated)',
+            spec: 'FILM LOOK: Fuji Velvia emulation. High saturation, punchy colors, deep blacks. Dramatic landscape style.'
+        },
+        {
+            value: 'cinematic_teal',
+            label: 'Cinematic (Teal & Orange)',
+            spec: 'FILM LOOK: Cinematic Teal & Orange. Hollywood color grading. Warm highlights, cool shadows.'
+        },
+        {
+            value: 'vintage_faded',
+            label: 'Vintage Faded (70s)',
+            spec: 'FILM LOOK: Vintage faded. Lifted blacks, muted colors, slight color shift. Nostalgic, retro feel.'
         }
     ]
 };

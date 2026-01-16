@@ -15,17 +15,22 @@ import {
     FOOD_CAMERA,
     FOOD_ANGLE,
     FOOD_LIGHTING,
+    FOOD_LIGHT_DIRECTION,
+    FOOD_SHADOWS,
     FOOD_PLATING,
     FOOD_STATE,
     FOOD_COMPOSITION,
     FOOD_DEPTH,
+    FOOD_FOCUS_POINT,
     FOOD_COLOR,
     FOOD_TEXTURE,
     FOOD_DYNAMICS,
     FOOD_SURFACE,
     FOOD_CROCKERY,
     FOOD_MOOD,
-    validateFoodParams // NEW
+    FOOD_HAPTICS,
+    FOOD_FILM_STOCK,
+    validateFoodParams
 } from '../schema/foodShoot.js';
 
 // ... (imports remain same)
@@ -120,8 +125,9 @@ function buildFoodShootPromptDynamic(params, indexMap) {
     const {
         dishDescription,
         changesDescription,
-        camera, angle, lighting, plating, state,
-        composition, depth, color, texture, dynamics,
+        camera, angle, lighting, lightDirection, shadows,
+        plating, state, composition, depth, focusPoint,
+        color, texture, dynamics, haptics, filmStock,
         surface, crockery, mood,
         imageSize = '2k'
     } = params;
@@ -153,12 +159,20 @@ The user has requested specific changes. These options OVERRIDE all other defaul
 `);
     }
 
-    // Lookup Specs
+    // Lookup Specs - Camera & Optics
     const cameraSpec = FOOD_CAMERA.options.find(o => o.value === camera)?.spec || 'Standard Lens';
     const angleSpec = FOOD_ANGLE.options.find(o => o.value === angle)?.spec || '45 Degree Angle';
-    const lightingSpec = FOOD_LIGHTING.options.find(o => o.value === lighting)?.spec || 'Natural Light';
     const depthSpec = FOOD_DEPTH.options.find(o => o.value === depth)?.spec || 'Medium Depth';
+    const focusSpec = FOOD_FOCUS_POINT?.options?.find(o => o.value === focusPoint)?.spec || '';
+
+    // Lookup Specs - Lighting
+    const lightingSpec = FOOD_LIGHTING.options.find(o => o.value === lighting)?.spec || 'Natural Light';
+    const lightDirSpec = FOOD_LIGHT_DIRECTION?.options?.find(o => o.value === lightDirection)?.spec || '';
+    const shadowsSpec = FOOD_SHADOWS?.options?.find(o => o.value === shadows)?.spec || '';
+
+    // Lookup Specs - Color & Film
     const colorSpec = FOOD_COLOR.options.find(o => o.value === color)?.spec || 'Natural Color';
+    const filmSpec = FOOD_FILM_STOCK?.options?.find(o => o.value === filmStock)?.spec || '';
 
     // Stylist Specs
     const platingSpec = FOOD_PLATING.options.find(o => o.value === plating)?.spec || 'Standard Plating';
@@ -166,6 +180,7 @@ The user has requested specific changes. These options OVERRIDE all other defaul
     const compSpec = FOOD_COMPOSITION.options.find(o => o.value === composition)?.spec || 'Center Composition';
     const textureSpec = FOOD_TEXTURE.options.find(o => o.value === texture)?.spec || 'High Texture';
     const dynamicsSpec = FOOD_DYNAMICS.options.find(o => o.value === dynamics)?.spec || 'Still';
+    const hapticsSpec = FOOD_HAPTICS?.options?.find(o => o.value === haptics)?.spec || '';
     const surfaceSpec = FOOD_SURFACE.options.find(o => o.value === surface)?.spec || '';
     const crockerySpec = FOOD_CROCKERY.options.find(o => o.value === crockery)?.spec || '';
 
@@ -177,9 +192,17 @@ The user has requested specific changes. These options OVERRIDE all other defaul
     sections.push(`
 [TECHNICAL SPECIFICATIONS]:
 CAMERA & LENS: ${cameraSpec}
-LIGHTING SETUP: ${lightingSpec}
-COLOR GRADING: ${colorSpec}
-DEPTH OF FIELD: ${depthSpec}
+${focusSpec ? `FOCUS: ${focusSpec}` : ''}
+${depthSpec ? `APERTURE: ${depthSpec}` : ''}
+
+LIGHTING:
+${lightingSpec}
+${lightDirSpec ? lightDirSpec : ''}
+${shadowsSpec ? shadowsSpec : ''}
+
+COLOR & FILM:
+${colorSpec}
+${filmSpec ? filmSpec : ''}
 IMAGE FORMAT: ${params.aspectRatio || 'Standard'} aspect ratio, High Resolution.
 `);
 
@@ -192,8 +215,9 @@ STYLING DIRECTIVES:
 COMPOSITION: ${compSpec} | ${angleSpec}
 PLATING: ${platingSpec}
 FOOD STATE: ${stateSpec}
-JUXTAPOSITION: ${dynamicsSpec}
+DYNAMICS: ${dynamicsSpec}
 TEXTURE FOCUS: ${textureSpec}
+${hapticsSpec ? `PHYSICAL EFFECTS: ${hapticsSpec}` : ''}
 
 [SCENE ENVIRONMENT]:
 SURFACE: ${surfaceSpec || 'Neutral/Appropriate'}
