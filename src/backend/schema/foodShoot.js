@@ -404,6 +404,86 @@ export const FOOD_IMAGE_SIZE = {
 // SECTION 5: PRESETS
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+// ARTISTIC PARAMETERS (Narrative Based)
+// ═══════════════════════════════════════════════════════════════
+
+export const FOOD_MOOD = {
+    id: 'mood', // New parameter replacing generic Style or augmenting it
+    label: '✨ Атмосфера',
+    description: 'Настроение кадра',
+    options: [
+        {
+            value: 'morning_fresh',
+            label: 'Morning Freshness',
+            narrative: 'ATMOSPHERE: Morning Light. Fresh, optimistic, airy. The feeling of a new day. Cool shadows, warm highlights. Sensation of breakfast.',
+            constraints: { lighting: 'natural_window', color: 'natural_vibrant' }
+        },
+        {
+            value: 'evening_cozy',
+            label: 'Evening / Cozy / Hygge',
+            narrative: 'ATMOSPHERE: Evening Comfort. Warm, golden, cozy. Candlelight or fireplace vibes. Deep shadows, rich warm tones. Comfort food feeling.',
+            constraints: { lighting: 'dark_moody', color: 'warm_golden' }
+        },
+        {
+            value: 'commercial_pop',
+            label: 'Commercial Pop',
+            narrative: 'ATMOSPHERE: Commercial Pop. Bright, high-energy, saturated. No shadows or hard shadows. Advertising perfection. "Eat me now" appeal.',
+            constraints: { lighting: 'hard_sun', color: 'natural_vibrant' }
+        },
+        {
+            value: 'luxury_dark',
+            label: 'Dark Luxury',
+            narrative: 'ATMOSPHERE: Dark Luxury. Mysterious, expensive, sophisticated. Deep chiaroscuro, jewel tones. Fine dining elegance.',
+            constraints: { lighting: 'dark_moody', color: 'dark_rich' }
+        }
+    ]
+};
+
+// ═══════════════════════════════════════════════════════════════
+// VALIDATION & SANITIZATION LOGIC
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Validate and Auto-Correct Food Parameters
+ * Resolves physical contradictions like "Hard Light" + "Soft Shadows"
+ */
+export function validateFoodParams(params) {
+    const corrections = [];
+    const newParams = { ...params };
+
+    // 1. Lighting Coherence (Source vs Quality)
+    // Direct Sun cannot be Soft
+    if (newParams.lighting === 'hard_sun') {
+        // Enforce Hard Specs
+        // We don't have a separate 'lightQuality' param yet in Food, 
+        // but if we did, we'd fix it here. 
+        // For now, let's ensure the MOOD matches the Lighting.
+
+        // If Mood is "Evening Cozy" (Soft) but Lighting is "Hard Sun" -> Conflict
+        if (newParams.mood === 'evening_cozy') {
+            newParams.lighting = 'dark_moody';
+            corrections.push('Lighting changed to Dark/Moody to match Cozy Mood (Sun is too harsh)');
+        }
+    }
+
+    // 2. Camera vs Shot Size
+    // 100mm Macro cannot do "Wide Table" composition
+    if (newParams.camera === 'macro_100mm' && newParams.composition === 'minimal') {
+        newParams.composition = 'center';
+        corrections.push('Composition changed to Center for Macro Lens (Minimal requires wide FOV)');
+    }
+
+    // 3. Texture vs Light
+    // "Soft Dreamy" texture conflicts with "Hard Sun" lighting
+    if (newParams.texture === 'soft_dreamy' && newParams.lighting === 'hard_sun') {
+        newParams.lighting = 'natural_window';
+        corrections.push('Lighting changed to Window (Soft) to match Dreamy Texture');
+    }
+
+    return { params: newParams, corrections };
+}
+
 export const FOOD_PRESETS = [
     {
         id: 'commercial_fresh',
@@ -421,7 +501,8 @@ export const FOOD_PRESETS = [
             dynamics: 'still',
             state: 'perfect',
             surface: 'marble_white',
-            crockery: 'ceramic_white'
+            crockery: 'ceramic_white',
+            mood: 'commercial_pop'
         }
     },
     {
@@ -440,7 +521,8 @@ export const FOOD_PRESETS = [
             dynamics: 'still',
             state: 'perfect',
             surface: 'wood_rustic',
-            crockery: 'stoneware_dark'
+            crockery: 'stoneware_dark',
+            mood: 'luxury_dark'
         }
     },
     {
@@ -459,7 +541,8 @@ export const FOOD_PRESETS = [
             dynamics: 'still',
             state: 'perfect',
             surface: 'concrete',
-            crockery: 'ceramic_white'
+            crockery: 'ceramic_white',
+            mood: 'morning_fresh'
         }
     },
     {
@@ -475,10 +558,11 @@ export const FOOD_PRESETS = [
             color: 'warm_golden',
             plating: 'rustic_messy',
             texture: 'sharp_crisp',
-            dynamics: 'human_element', // Suggesting eating
+            dynamics: 'human_element',
             state: 'bitten',
             surface: 'slate_dark',
-            crockery: 'stoneware_dark'
+            crockery: 'stoneware_dark',
+            mood: 'commercial_pop'
         }
     }
 ];

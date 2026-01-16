@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIDA — Food Shoot Generator</title>
+    <title>AIDA — Food Shoot Generator (V8 SKETCH)</title>
     <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="../composer/shoot-composer-styles.css">
     <style>
@@ -144,7 +144,7 @@
         /* Legacy Ref Zones (keep for left panel) */
         .ref-zones {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 12px;
             margin-bottom: 24px;
         }
@@ -337,6 +337,11 @@
                             <span class="param-label" style="color: var(--color-accent);">🎨 Художественные параметры
                                 (Стилист)</span>
                             <div style="display: grid; gap: 12px;">
+                                <!-- Mood (Atmosphere) - NEW PHASE 7 -->
+                                <div>
+                                    <label class="form-label-mini">✨ Атмосфера / Настроение</label>
+                                    <select id="param-mood" class="form-select"></select>
+                                </div>
                                 <!-- Angle & Composition -->
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <div>
@@ -387,8 +392,7 @@
                         <!-- References -->
                         <div class="param-group">
                             <span class="param-label">Референсы</span>
-                            <div class="ref-zones">
-                                <!-- Slot 1: Subject -->
+                            <div class="ref-zones" style="grid-template-columns: 1fr 1fr !important;">
                                 <!-- Slot 1: Subject -->
                                 <div style="display: flex; flex-direction: column; gap: 8px;">
                                     <div class="ref-card" id="ref-subject">
@@ -418,6 +422,16 @@
                                     <input type="file" accept="image/*" hidden>
                                     <div class="ref-card-icon">🎨</div>
                                     <div class="ref-card-label">Стиль<br>(Optional)</div>
+                                    <div class="ref-content"></div>
+                                    <button class="ref-card-remove">×</button>
+                                </div>
+
+                                <!-- Slot 4: Sketch (New Phase 8) -->
+                                <div class="ref-card" id="ref-sketch"
+                                    style="border-color: var(--color-text-muted); border-style: dashed;">
+                                    <input type="file" accept="image/*" hidden>
+                                    <div class="ref-card-icon">✏️</div>
+                                    <div class="ref-card-label">Эскиз<br>(Geometry)</div>
                                     <div class="ref-content"></div>
                                     <button class="ref-card-remove">×</button>
                                 </div>

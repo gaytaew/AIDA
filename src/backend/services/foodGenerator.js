@@ -23,95 +23,12 @@ import {
     FOOD_TEXTURE,
     FOOD_DYNAMICS,
     FOOD_SURFACE,
-    FOOD_CROCKERY
+    FOOD_CROCKERY,
+    FOOD_MOOD,
+    validateFoodParams // NEW
 } from '../schema/foodShoot.js';
 
-// ═══════════════════════════════════════════════════════════════
-// PROMPT CONSTRUCTION
-// ═══════════════════════════════════════════════════════════════
-
-export function buildFoodShootPrompt({
-    dishDescription = '',
-    camera = 'standard_50mm',
-    angle = '45_degree',
-    lighting = 'natural_window',
-    plating = 'rustic_messy',
-    state = 'perfect',
-    hasSubjectRef = false,  // [$1] - Specific Dish Look
-    hasCrockeryRef = false, // [$2] - Plate/Bowl/Tableware
-    hasStyleRef = false     // [$3] - Visual Mood
-}) {
-
-    const sections = [];
-
-    // 1. ROLE
-    sections.push(`ROLE: World-class Food Photographer & Food Stylist.
-You are an expert in appetizing textures, lighting that enhances flavor cues, and professional plating.
-Generate a photorealistic food photograph.`);
-
-    // 2. TECH SPECS (From Schema)
-    const cameraSpec = FOOD_CAMERA.options.find(o => o.value === camera)?.spec || FOOD_CAMERA.options[1].spec;
-    const angleSpec = FOOD_ANGLE.options.find(o => o.value === angle)?.spec || FOOD_ANGLE.options[1].spec;
-    const lightingSpec = FOOD_LIGHTING.options.find(o => o.value === lighting)?.spec || FOOD_LIGHTING.options[0].spec;
-    const platingSpec = FOOD_PLATING.options.find(o => o.value === plating)?.spec || FOOD_PLATING.options[1].spec;
-    const stateSpec = FOOD_STATE.options.find(o => o.value === state)?.spec || FOOD_STATE.options[0].spec;
-
-    sections.push(`
-TECHNIQUE:
-- ${cameraSpec}
-- ${angleSpec}
-- ${lightingSpec}`);
-
-    // 3. MAIN SUBJECT & STATE
-    sections.push(`
-SUBJECT:
-${dishDescription}
-
-STYLING:
-- ${platingSpec}
-- ${stateSpec}`);
-
-    // 4. REFERENCES & RULES
-    const referenceRules = [];
-
-    if (hasSubjectRef) {
-        referenceRules.push(`REFERENCE [$1]: MAIN DISH VISUALS.
-    - Copy the appearance of the food from [$1].
-    - Maintain ingredients and approximate arrangement.`);
-    }
-
-    if (hasCrockeryRef) {
-        referenceRules.push(`REFERENCE [$2]: CROCKERY / VESSEL (CRITICAL).
-    - You MUST use the EXACT plate/bowl/cup pattern and shape from [$2].
-    - Place the food ON/IN this specific vessel.
-    - This is the anchor of the composition.`);
-    } else {
-        referenceRules.push(`NO CROCKERY REFERENCE: Use tableware appropriate for the "${plating}" style.`);
-    }
-
-    if (hasStyleRef) {
-        referenceRules.push(`REFERENCE [$3]: VISUAL STYLE / MOOD.
-    - Copy lighting vibe, color grading, and background texture from [$3].
-    - DO NOT copy the subject content, only the aesthetic.`);
-    }
-
-    if (referenceRules.length > 0) {
-        sections.push(`
-REFERENCES:
-${referenceRules.join('\n')}`);
-    }
-
-    // 5. HARD RULES (Standard AIDA quality)
-    sections.push(`
-HARD RULES:
-1. Photorealistic only. No CGI, no Illustration.
-2. Food must look appetizing (edible textures, moisture, freshness).
-3. If "steaming" is selected, steam must be subtle and backlit.
-4. No text, logos, or watermarks.
-5. High resolution textures.`);
-
-    return sections.join('\n');
-}
+// ... (imports remain same)
 
 // ═══════════════════════════════════════════════════════════════
 // GENERATION LOGIC
@@ -119,87 +36,69 @@ HARD RULES:
 
 export async function generateFoodShootFrame({
     params,
-    subjectImage = null,   // Slot 1
-    crockeryImage = null,  // Slot 2
-    styleImage = null,     // Slot 3
+    subjectImage = null,
+    crockeryImage = null,
+    styleImage = null,
+    sketchImage = null, // Phase 8
 }) {
     const genId = `food_${Date.now() % 100000}`;
     console.log(`[FoodGenerator] ${genId} Start`, params);
 
     try {
-        // 1. Pack references
-        // Max 3 images: Subject, Crockery, Style
-        const imagesToUpload = [];
-        const hasSubjectRef = !!subjectImage;
-        const hasCrockeryRef = !!crockeryImage;
-        const hasStyleRef = !!styleImage;
+        // 1. SANITIZE & VALIDATE PARAMS (V5 Logic)
+        // Fix contradictions like "Hard Sun" + "Soft Mood"
+        const { params: sanitizedParams, corrections } = validateFoodParams(params);
 
-        // Slot 1: Subject
-        if (hasSubjectRef) {
-            imagesToUpload.push({
-                base64: subjectImage.base64,
-                mimeType: subjectImage.mimeType
-            });
-        } else {
-            // Placeholder if we need to skip slots? 
-            // Actually standard AIDA logic usually just pushes them in order.
-            // But we referenced [$1], [$2], [$3] in prompt.
-            // We must ensure the Prompt indexes match the uploaded array order.
-            // For simplicity in this v1, let's just push what we have and dynamically adjust prompt text
-            // OR (better) strict slot mapping if the provider supports it? 
-            // Gemini just takes a list. So [$1] is the first image.
-
-            // Let's re-map the prompt logic in buildFoodShootPrompt to use dynamic indexes?
-            // No, simpler: WE MUST push placeholders or re-write the prompt.
-            // Re-writing prompt is better.
-            // Let's actually pass values to buildFoodShootPrompt to tell it which INDEX is which.
+        if (corrections.length > 0) {
+            console.log(`[FoodGenerator] ${genId} Auto-Corrections:`, corrections);
         }
 
-        // Let's refine the list construction to be robust:
+        // 2. Pack references
         const validImages = [];
-        const indexMap = {}; // type -> index (1-based)
+        const indexMap = {};
 
-        if (hasSubjectRef) {
+        if (subjectImage) {
             validImages.push(subjectImage);
             indexMap['subject'] = validImages.length;
         }
-        if (hasCrockeryRef) {
+        if (crockeryImage) {
             validImages.push(crockeryImage);
             indexMap['crockery'] = validImages.length;
         }
-        if (hasStyleRef) {
+        if (styleImage) {
             validImages.push(styleImage);
             indexMap['style'] = validImages.length;
         }
+        if (sketchImage) { // Phase 8
+            validImages.push(sketchImage);
+            indexMap['sketch'] = validImages.length;
+        }
 
-        // 2. Build Prompt
-        // We need to pass the mapped indexes so the prompt says "Ref [$1]" or "Ref [$2]" correctly
-        const promptText = buildFoodShootPromptDynamic(params, indexMap);
+        // 3. Build Prompt with Sanitized Params
+        const promptText = buildFoodShootPromptDynamic(sanitizedParams, indexMap);
 
         console.log(`[FoodGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 300)}...`);
 
-        // 3. Call AI
+        // 4. Call AI
         const result = await requestGeminiImage({
             prompt: promptText,
-            referenceImages: validImages, // FIXED: was 'images'
+            referenceImages: validImages,
             imageConfig: {
-                aspectRatio: params.aspectRatio || '3:4',
-                imageSize: params.imageSize || '2k' // Passed to provider
-            },
-            // safetySettings: 'relaxed' // Not used in refined client
+                aspectRatio: sanitizedParams.aspectRatio || '3:4',
+                imageSize: sanitizedParams.imageSize || '2k'
+            }
         });
 
         if (!result || !result.base64) {
             throw new Error('No image returned from AI');
         }
 
-        // 4. Return
         return {
             id: generateImageId(),
             base64: result.base64,
             mimeType: result.mimeType || 'image/jpeg',
             prompt: promptText,
-            params: params,
+            params: sanitizedParams, // Return corrected params
             createdAt: new Date().toISOString()
         };
 
@@ -216,40 +115,42 @@ function buildFoodShootPromptDynamic(params, indexMap) {
         changesDescription,
         camera, angle, lighting, plating, state,
         composition, depth, color, texture, dynamics,
-        surface, crockery, // NEW Phase 4
-        imageSize = '2k' // NEW Phase 5
+        surface, crockery, mood, // Mood is key now
+        imageSize = '2k'
     } = params;
 
     const sections = [];
 
-    // 1. HYPER-REALISM ROLE
     // 1. COLLABORATIVE ROLE
     sections.push(`ROLE: Collaborative Team of Two Experts.
 1. THE PHOTOGRAPHER (Technical): Responsible for Camera, Lighting, Depth, Color, and Image Quality.
-2. THE FOOD STYLIST (Artistic): Responsible for Plating, Composition, Props (Crockery/Surface), and Food State.
-GOAL: Combine technical perfection with artistic vision to create a hyper-realistic, appetizing food shot.`);
+2. THE FOOD STYLIST (Artistic): Responsible for Plating, Composition, Props, and Atmosphere.`);
 
-    // Lookup Specs (Fallback to sensible defaults if missing)
+    // Lookup Specs
     const cameraSpec = FOOD_CAMERA.options.find(o => o.value === camera)?.spec || 'Standard Lens';
     const angleSpec = FOOD_ANGLE.options.find(o => o.value === angle)?.spec || '45 Degree Angle';
     const lightingSpec = FOOD_LIGHTING.options.find(o => o.value === lighting)?.spec || 'Natural Light';
+    const depthSpec = FOOD_DEPTH.options.find(o => o.value === depth)?.spec || 'Medium Depth';
+    const colorSpec = FOOD_COLOR.options.find(o => o.value === color)?.spec || 'Natural Color';
+
+    // Stylist Specs
     const platingSpec = FOOD_PLATING.options.find(o => o.value === plating)?.spec || 'Standard Plating';
     const stateSpec = FOOD_STATE.options.find(o => o.value === state)?.spec || 'Perfect Condition';
-
-    // New Specs
-    const compSpec = FOOD_COMPOSITION.options.find(o => o.value === composition)?.spec || '';
-    const depthSpec = FOOD_DEPTH.options.find(o => o.value === depth)?.spec || '';
-    const colorSpec = FOOD_COLOR.options.find(o => o.value === color)?.spec || '';
-    const textureSpec = FOOD_TEXTURE.options.find(o => o.value === texture)?.spec || '';
-    const dynamicsSpec = FOOD_DYNAMICS.options.find(o => o.value === dynamics)?.spec || '';
+    const compSpec = FOOD_COMPOSITION.options.find(o => o.value === composition)?.spec || 'Center Composition';
+    const textureSpec = FOOD_TEXTURE.options.find(o => o.value === texture)?.spec || 'High Texture';
+    const dynamicsSpec = FOOD_DYNAMICS.options.find(o => o.value === dynamics)?.spec || 'Still';
     const surfaceSpec = FOOD_SURFACE.options.find(o => o.value === surface)?.spec || '';
     const crockerySpec = FOOD_CROCKERY.options.find(o => o.value === crockery)?.spec || '';
 
+    // NEW: Mood Narrative
+    const moodObj = FOOD_MOOD.options.find(o => o.value === mood);
+    const moodNarrative = moodObj ? moodObj.narrative : '';
+
     // 2. TECHNICAL SPECIFICATIONS (THE PHOTOGRAPHER)
-    // "How it is captured" - Camera, Lens, Lighting, Film Stock
+    // STRICT PHYSICS - "How it is captured"
     sections.push(`
 [TECHNICAL SPECIFICATIONS - THE PHOTOGRAPHER]:
-The following settings define the optical and technical properties of the shot.
+The following settings define the optical and technical properties.
 CAMERA & LENS: ${cameraSpec}
 LIGHTING SETUP: ${lightingSpec}
 COLOR GRADING: ${colorSpec}
@@ -257,23 +158,38 @@ DEPTH OF FIELD: ${depthSpec}
 IMAGE FORMAT: ${params.aspectRatio || 'Standard'} aspect ratio, High Resolution.
 `);
 
-    // 3. ARTISTIC DIRECTION (THE STYLIST)
-    // "What is seen" - Composition, Styling, Props, Atmosphere
+    // 2.1 SKETCH REFERENCE (GEOMETRY OVERRIDE) - Phase 8
+    if (indexMap.sketch) {
+        sections.push(`
+[SKETCH REFERENCE - HARD GEOMETRY] [$${indexMap.sketch}]:
+The user has provided a SKETCH or LAYOUT [$${indexMap.sketch}].
+You MUST follow the EXACT geometry and composition of this sketch.
+- IGNORE the "Composition" parameter below.
+- MATCH the position of every item from the sketch [$${indexMap.sketch}].
+- REPLACE the sketch's crude shapes with photorealistic food and props defined in Subject/Style.
+`);
+    }
+
+    // 3. ARTISTIC BRIEF (THE STYLIST)
+    // NARRATIVE - "What is felt"
     sections.push(`
-[ARTISTIC DIRECTION - THE STYLIST]:
-The following settings define the visual composition, mood, and styling.
-COMPOSITION & ANGLE: ${compSpec} | ${angleSpec}
-PLATING STYLE: ${platingSpec}
+[ARTISTIC BRIEF - THE STYLIST]:
+Use this narrative to guide the visual atmosphere and styling.
+${moodNarrative ? `MOOD & ATMOSPHERE: ${moodNarrative}` : 'ATMOSPHERE: Professional Food Photography.'}
+
+STYLING DIRECTIVES:
+COMPOSITION: ${compSpec} | ${angleSpec}
+PLATING: ${platingSpec}
 FOOD STATE: ${stateSpec}
-JUXTAPOSITION & DYNAMICS: ${dynamicsSpec}
-SURFACE TEXTURE: ${textureSpec}
+JUXTAPOSITION: ${dynamicsSpec}
+TEXTURE FOCUS: ${textureSpec}
 
 [SCENE ENVIRONMENT - HARD REQUIREMENTS]:
 SURFACE: ${surfaceSpec || 'Neutral/Appropriate'}
 CROCKERY: ${crockerySpec || 'Appropriate for dish'}
 `);
 
-    // 3. OTHER REFERENCES
+    // 4. REFERENCES
     const refLines = [];
 
     if (indexMap.crockery) {
@@ -281,7 +197,6 @@ CROCKERY: ${crockerySpec || 'Appropriate for dish'}
         - Use the EXACT plate/bowl/cup from [$${indexMap.crockery}].
         - Ignore any food inside the crockery reference; replace it with the SUBJECT.`);
     } else {
-        // Fallback to Crockery Param if no Ref
         if (crockerySpec) {
             refLines.push(`CROCKERY (NO REFERENCE):
         - ${crockerySpec}`);
@@ -290,7 +205,30 @@ CROCKERY: ${crockerySpec || 'Appropriate for dish'}
 
     if (indexMap.style) {
         refLines.push(`REFERENCE [$${indexMap.style}]: VISUAL STYLE / MOOD.
-        - Copy lighting, color grading, and background texture from [$${indexMap.style}].`);
+        - Copy lighting, color grading, and background texture from [$${indexMap.style}].
+        - DO NOT copy the subject content, only the aesthetic.`);
+    }
+
+    // SUBJECT LOGIC (Hybrid)
+    if (indexMap.subject) {
+        sections.push(`
+SUBJECT (HYBRID REFERENCE MATCH):
+The image must follow the GEOMETRY and ARRANGEMENT of Reference [$${indexMap.subject}], but match the DESCRIPTION below.
+
+DESCRIPTION (CONTENT):
+"${dishDescription}"
+
+REFERENCE GUIDANCE (STRUCTURE & FORM):
+1. MATCH: Geometric Shape & Form Factor from [$${indexMap.subject}] (CRITICAL).
+${changesDescription ?
+                `2. ADAPT: Ingredients & Arrangement MUST follow the "IMPORTANT EDITS".
+   - Priority: EDIT > DESCRIPTION > REFERENCE VISUALS.` :
+                `2. MATCH: Ingredient Arrangement, TEXTURE, and SPECIFIC INGREDIENTS from [$${indexMap.subject}].`}
+`);
+    } else {
+        sections.push(`
+SUBJECT (TEXT BASED):
+"${dishDescription}"`);
     }
 
     if (refLines.length > 0) {
@@ -299,29 +237,20 @@ REFERENCES:
 ${refLines.join('\n')}`);
     }
 
-    // 4. CRITICAL EDITS (High Priority)
+    // 5. CRITICAL EDITS
     if (changesDescription) {
         sections.push(`
 !!! IMPORTANT EDITS & MODIFICATIONS !!!
-The user has requested specific changes to the result. These must take precedence over references and standard descriptions:
-> "${changesDescription}"
-- IMPLEMENT THESE EDITS VISIBLY.
-- If they conflict with a reference, the EDIT WINS.`);
+The user has requested specific changes to the result. These must take precedence over references:
+> "${changesDescription}"`);
     }
 
-    // 5. HARD RULES (Updated for Hyper-realism)
+    // 6. HARD RULES
     sections.push(`
 HARD RULES:
 1. PHOTOREALISM IS PARAMOUNT. No plastic texture, no CGI look.
 2. EDIBLE TEXTURES: Moisture, steam (if hot), crumbs, imperfections must look real.
 3. No text, logos, or watermarks.`);
-
-    // Note: Quality logic removed, handled by imageSize resolution in requestGeminiImage
-
-    // Backup: Explicitly state format in text
-    if (params.aspectRatio) {
-        sections.push(`FORMAT: The output image must be in ${params.aspectRatio} aspect ratio.`);
-    }
 
     return sections.join('\n');
 }
