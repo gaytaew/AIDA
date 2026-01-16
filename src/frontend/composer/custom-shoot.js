@@ -13,7 +13,7 @@
 const state = {
   currentStep: 'shoot',
   currentShoot: null,
-  
+
   // Available entities (loaded from API)
   shoots: [],
   models: [],
@@ -21,18 +21,18 @@ const state = {
   locations: [],
   emotions: [],
   emotionCategories: [],
-  
+
   // Selected for current shoot
   selectedModels: [null, null, null],
   clothingByModel: [[], [], []],
-  
+
   // Generated frames history
   generatedFrames: [],
-  
+
   // Reference Locks state
   styleLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
   locationLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
-  
+
   // Generation settings (persisted per shoot)
   generationSettings: {}
 };
@@ -48,17 +48,17 @@ const elements = {};
 
 function initElements() {
   elements.serverStatus = document.getElementById('server-status');
-  
+
   // Step navigation
   elements.stepItems = document.querySelectorAll('.step-item');
   elements.stepPanels = document.querySelectorAll('.step-panel');
-  
+
   // Step 1: Shoot
   elements.shootsList = document.getElementById('shoots-list');
   elements.btnNewShoot = document.getElementById('btn-new-shoot');
   elements.btnNextToModels = document.getElementById('btn-next-to-models');
   elements.stepShootStatus = document.getElementById('step-shoot-status');
-  
+
   // Step 2: Models
   elements.modelSlots = document.getElementById('model-slots');
   elements.modelsGrid = document.getElementById('models-grid');
@@ -66,13 +66,13 @@ function initElements() {
   elements.btnBackToShoot = document.getElementById('btn-back-to-shoot');
   elements.btnNextToClothing = document.getElementById('btn-next-to-clothing');
   elements.stepModelsStatus = document.getElementById('step-models-status');
-  
+
   // Step 3: Clothing
   elements.clothingSections = document.getElementById('clothing-sections');
   elements.btnBackToModels = document.getElementById('btn-back-to-models');
   elements.btnNextToFrames = document.getElementById('btn-next-to-frames');
   elements.stepClothingStatus = document.getElementById('step-clothing-status');
-  
+
   // Step 4: Generate (frames are selected directly here)
   elements.btnBackToFrames = document.getElementById('btn-back-to-frames');
   elements.btnClearHistory = document.getElementById('btn-clear-history');
@@ -80,7 +80,7 @@ function initElements() {
   elements.generationCount = document.getElementById('generation-count');
   elements.framesToGenerate = document.getElementById('frames-to-generate');
   elements.stepGenerateStatus = document.getElementById('step-generate-status');
-  
+
   // Generation controls
   elements.genLocation = document.getElementById('gen-location');
   elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
@@ -92,7 +92,7 @@ function initElements() {
   elements.genImageSize = document.getElementById('gen-image-size');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
-  
+
   // NEW: 6-layer architecture controls
   elements.genShootType = document.getElementById('gen-shoot-type');
   elements.genCameraAesthetic = document.getElementById('gen-camera-aesthetic');
@@ -100,38 +100,38 @@ function initElements() {
   elements.genLightingQuality = document.getElementById('gen-lighting-quality');
   elements.shootTypeHint = document.getElementById('shoot-type-hint');
   elements.conflictWarnings = document.getElementById('conflict-warnings');
-  
+
   // Legacy hidden fields (for compatibility)
   elements.genCameraSignature = document.getElementById('gen-camera-signature');
   elements.genLight = document.getElementById('gen-light');
-  
+
   // Composition controls
   elements.genShotSize = document.getElementById('gen-shot-size');
   elements.genCameraAngle = document.getElementById('gen-camera-angle');
   elements.genFocusMode = document.getElementById('gen-focus-mode');
   elements.genLensFocal = document.getElementById('gen-lens-focal');
-  
+
   // Anti-AI
   elements.genAntiAiLevel = document.getElementById('gen-antiai-level');
-  
+
   // Model Behavior (Layer 7)
   elements.genModelBehavior = document.getElementById('gen-model-behavior');
   elements.modelBehaviorHint = document.getElementById('model-behavior-hint');
-  
+
   // Ambient controls (situational: weather, season, atmosphere)
   elements.ambientSection = document.getElementById('ambient-section');
   elements.genWeather = document.getElementById('gen-weather');
   elements.genTimeOfDay = document.getElementById('gen-time-of-day');
   elements.genSeason = document.getElementById('gen-season');
   elements.genAtmosphere = document.getElementById('gen-atmosphere');
-  
+
   // Lock controls
   elements.styleLockOff = document.getElementById('style-lock-off');
   elements.styleLockStrict = document.getElementById('style-lock-strict');
   elements.styleLockSoft = document.getElementById('style-lock-soft');
   elements.styleLockPreview = document.getElementById('style-lock-preview');
   elements.styleLockImg = document.getElementById('style-lock-img');
-  
+
   elements.locationLockOff = document.getElementById('location-lock-off');
   elements.locationLockStrict = document.getElementById('location-lock-strict');
   elements.locationLockSoft = document.getElementById('location-lock-soft');
@@ -152,32 +152,32 @@ function initEventListeners() {
       }
     });
   });
-  
+
   // Step 1: Shoot
   elements.btnNewShoot.addEventListener('click', createNewShoot);
   elements.btnNextToModels.addEventListener('click', () => goToStep('models'));
-  
+
   // Step 2: Models
   elements.btnBackToShoot.addEventListener('click', () => goToStep('shoot'));
   elements.btnNextToClothing.addEventListener('click', () => goToStep('clothing'));
-  
+
   // Step 3: Clothing (now goes directly to generate, skipping frames step)
   elements.btnBackToModels.addEventListener('click', () => goToStep('models'));
   elements.btnNextToFrames.addEventListener('click', () => goToStep('generate'));
-  
+
   // Step 4: Frames (kept for backward compatibility but not used in navigation)
   elements.btnBackToClothing?.addEventListener('click', () => goToStep('clothing'));
   elements.btnNextToGenerate?.addEventListener('click', () => goToStep('generate'));
-  
+
   // Step 5: Generate (now step 4)
   elements.btnBackToFrames.addEventListener('click', () => goToStep('clothing'));
   elements.btnClearHistory.addEventListener('click', clearGenerationHistory);
-  
+
   // Lock buttons
   elements.styleLockOff.addEventListener('click', () => setStyleLockMode('off'));
   elements.styleLockStrict.addEventListener('click', () => setStyleLockMode('strict'));
   elements.styleLockSoft.addEventListener('click', () => setStyleLockMode('soft'));
-  
+
   elements.locationLockOff.addEventListener('click', () => setLocationLockMode('off'));
   elements.locationLockStrict.addEventListener('click', () => setLocationLockMode('strict'));
   elements.locationLockSoft.addEventListener('click', () => setLocationLockMode('soft'));
@@ -189,7 +189,7 @@ function initEventListeners() {
 
 function goToStep(stepId) {
   state.currentStep = stepId;
-  
+
   // Update step items
   elements.stepItems.forEach(item => {
     item.classList.remove('active');
@@ -197,7 +197,7 @@ function goToStep(stepId) {
       item.classList.add('active');
     }
   });
-  
+
   // Update step panels
   elements.stepPanels.forEach(panel => {
     panel.classList.remove('active');
@@ -205,7 +205,7 @@ function goToStep(stepId) {
       panel.classList.add('active');
     }
   });
-  
+
   // Run step-specific logic
   switch (stepId) {
     case 'models':
@@ -219,7 +219,7 @@ function goToStep(stepId) {
       renderGeneratePage();
       break;
   }
-  
+
   updateStepStatuses();
 }
 
@@ -227,12 +227,12 @@ function updateStepStatuses() {
   const hasShoot = !!state.currentShoot;
   const hasModels = state.selectedModels.filter(m => m !== null).length > 0;
   const modelCount = state.selectedModels.filter(m => m !== null).length;
-  
+
   // Update step lock status
   elements.stepItems.forEach(item => {
     const step = item.dataset.step;
     let locked = false;
-    
+
     switch (step) {
       case 'shoot':
         locked = false;
@@ -247,10 +247,10 @@ function updateStepStatuses() {
         locked = !hasModels;
         break;
     }
-    
+
     item.classList.toggle('locked', locked);
   });
-  
+
   // Update status badges
   if (hasShoot) {
     elements.stepShootStatus.textContent = state.currentShoot.label;
@@ -259,19 +259,19 @@ function updateStepStatuses() {
     elements.stepShootStatus.textContent = 'Не выбрано';
     elements.stepShootStatus.className = 'step-status pending';
   }
-  
+
   elements.stepModelsStatus.textContent = `${modelCount} / 3`;
   elements.stepModelsStatus.className = modelCount > 0 ? 'step-status ready' : 'step-status pending';
-  
+
   const hasClothing = state.clothingByModel.some(c => c.length > 0);
   elements.stepClothingStatus.textContent = hasClothing ? 'Загружено' : 'Опционально';
   elements.stepClothingStatus.className = hasClothing ? 'step-status ready' : 'step-status pending';
-  
+
   // Generate step status - show frame count from catalog
   const frameCount = state.frames.length;
   elements.stepGenerateStatus.textContent = frameCount > 0 ? `${frameCount} кадров` : '—';
   elements.stepGenerateStatus.className = frameCount > 0 ? 'step-status ready' : 'step-status pending';
-  
+
   // Update navigation buttons
   elements.btnNextToModels.disabled = !hasShoot;
   elements.btnNextToClothing.disabled = !hasModels;
@@ -306,7 +306,7 @@ function renderShootsList() {
     `;
     return;
   }
-  
+
   elements.shootsList.innerHTML = state.shoots.map(shoot => `
     <div class="shoot-card ${state.currentShoot?.id === shoot.id ? 'selected' : ''}" 
          data-shoot-id="${shoot.id}">
@@ -326,7 +326,7 @@ function renderShootsList() {
       </button>
     </div>
   `).join('');
-  
+
   // Add click handlers
   elements.shootsList.querySelectorAll('.shoot-card').forEach(card => {
     card.addEventListener('click', (e) => {
@@ -334,7 +334,7 @@ function renderShootsList() {
       selectShoot(card.dataset.shootId);
     });
   });
-  
+
   // Add delete handlers
   elements.shootsList.querySelectorAll('.btn-delete-shoot').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -347,7 +347,7 @@ function renderShootsList() {
 async function createNewShoot() {
   const label = prompt('Название съёмки:', 'Custom Shoot');
   if (!label) return;
-  
+
   try {
     const res = await fetch('/api/custom-shoots', {
       method: 'POST',
@@ -391,7 +391,7 @@ async function selectShoot(shootId) {
 
 function loadShootState() {
   if (!state.currentShoot) return;
-  
+
   // Load models
   state.selectedModels = [null, null, null];
   if (state.currentShoot.models) {
@@ -401,7 +401,7 @@ function loadShootState() {
       }
     });
   }
-  
+
   // Load clothing
   state.clothingByModel = [[], [], []];
   if (state.currentShoot.clothing) {
@@ -411,7 +411,7 @@ function loadShootState() {
       }
     });
   }
-  
+
   // Load generated images
   state.generatedFrames = (state.currentShoot.generatedImages || []).map(img => ({
     ...img, // Load ALL saved properties (prompt, refs, composition, settings, etc.)
@@ -421,22 +421,22 @@ function loadShootState() {
     isStyleReference: !!img.isStyleReference,
     isLocationReference: !!img.isLocationReference
   }));
-  
+
   // Load locks
   state.styleLock = state.currentShoot.locks?.style || { enabled: false, mode: null, imageId: null, imageUrl: null };
   state.locationLock = state.currentShoot.locks?.location || { enabled: false, mode: null, imageId: null, imageUrl: null };
-  
+
   // Load generation settings
   state.generationSettings = state.currentShoot.generationSettings || {};
 }
 
 async function deleteShoot(shootId) {
   if (!confirm('Удалить этот Custom Shoot?')) return;
-  
+
   try {
     const res = await fetch(`/api/custom-shoots/${shootId}`, { method: 'DELETE' });
     const data = await res.json();
-    
+
     if (data.ok) {
       state.shoots = state.shoots.filter(s => s.id !== shootId);
       if (state.currentShoot?.id === shootId) {
@@ -471,10 +471,10 @@ async function loadModels() {
 
 function renderModelSlots() {
   const slots = elements.modelSlots.querySelectorAll('.model-slot');
-  
+
   slots.forEach((slot, index) => {
     const model = state.selectedModels[index];
-    
+
     if (model) {
       slot.classList.add('filled');
       slot.innerHTML = `
@@ -491,14 +491,14 @@ function renderModelSlots() {
         <div class="model-slot-label">Модель ${index + 1}${index > 0 ? ' (опц.)' : ''}</div>
       `;
     }
-    
+
     slot.onclick = () => {
       if (!state.selectedModels[index]) {
         showModelPicker(index);
       }
     };
   });
-  
+
   elements.modelSlots.querySelectorAll('.model-slot-remove').forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
@@ -521,12 +521,12 @@ function renderAvailableModels() {
     `;
     return;
   }
-  
+
   elements.availableModels.style.display = 'block';
-  
+
   const selectedIds = state.selectedModels.filter(m => m).map(m => m.id);
   const availableModels = state.models.filter(m => !selectedIds.includes(m.id));
-  
+
   if (availableModels.length === 0) {
     elements.modelsGrid.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 30px;">
@@ -535,7 +535,7 @@ function renderAvailableModels() {
     `;
     return;
   }
-  
+
   elements.modelsGrid.innerHTML = availableModels.map(m => `
     <div class="selection-card" data-model-id="${m.id}">
       ${m.previewSrc ? `
@@ -546,7 +546,7 @@ function renderAvailableModels() {
       <div class="selection-card-title">${escapeHtml(m.name)}</div>
     </div>
   `).join('');
-  
+
   elements.modelsGrid.querySelectorAll('.selection-card').forEach(card => {
     card.addEventListener('click', () => {
       const model = state.models.find(m => m.id === card.dataset.modelId);
@@ -558,12 +558,12 @@ function renderAvailableModels() {
 function showModelPicker(slotIndex) {
   const selectedIds = state.selectedModels.filter(m => m).map(m => m.id);
   const availableModels = state.models.filter(m => !selectedIds.includes(m.id));
-  
+
   if (availableModels.length === 0) {
     alert('Нет доступных моделей.');
     return;
   }
-  
+
   addModel(slotIndex, availableModels[0]);
 }
 
@@ -578,13 +578,13 @@ function addModelToFirstEmptySlot(model) {
 
 async function addModel(slotIndex, model) {
   if (!state.currentShoot) return;
-  
+
   // Update local state
   state.selectedModels[slotIndex] = model;
-  
+
   // Update on server
   await saveShootModels();
-  
+
   renderModelSlots();
   renderAvailableModels();
   updateStepStatuses();
@@ -593,9 +593,9 @@ async function addModel(slotIndex, model) {
 async function removeModel(slotIndex) {
   state.selectedModels[slotIndex] = null;
   state.clothingByModel[slotIndex] = [];
-  
+
   await saveShootModels();
-  
+
   renderModelSlots();
   renderAvailableModels();
   updateStepStatuses();
@@ -603,11 +603,11 @@ async function removeModel(slotIndex) {
 
 async function saveShootModels() {
   if (!state.currentShoot) return;
-  
+
   const models = state.selectedModels
     .filter(m => m !== null)
     .map(m => ({ modelId: m.id }));
-  
+
   try {
     await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
       method: 'PUT',
@@ -625,7 +625,7 @@ async function saveShootModels() {
 
 function renderClothingSections() {
   const activeModels = state.selectedModels.filter(m => m !== null);
-  
+
   if (activeModels.length === 0) {
     elements.clothingSections.innerHTML = `
       <div class="empty-state">
@@ -635,12 +635,12 @@ function renderClothingSections() {
     `;
     return;
   }
-  
+
   elements.clothingSections.innerHTML = state.selectedModels.map((model, index) => {
     if (!model) return '';
-    
+
     const clothing = state.clothingByModel[index] || [];
-    
+
     return `
       <div class="clothing-section" data-model-index="${index}">
         <div class="clothing-section-header">
@@ -678,19 +678,19 @@ function renderClothingSections() {
       </div>
     `;
   }).join('');
-  
+
   // Add event listeners
   elements.clothingSections.querySelectorAll('.clothing-input').forEach(input => {
     input.addEventListener('change', (e) => handleClothingUpload(e, parseInt(input.dataset.index)));
   });
-  
+
   elements.clothingSections.querySelectorAll('.image-thumb-remove').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       removeClothingItem(parseInt(btn.dataset.model), parseInt(btn.dataset.clothing));
     });
   });
-  
+
   // Description input handlers
   elements.clothingSections.querySelectorAll('.clothing-description').forEach(textarea => {
     textarea.addEventListener('input', debounce(() => {
@@ -706,16 +706,16 @@ function renderClothingSections() {
 
 async function handleClothingUpload(event, modelIndex) {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('image/'));
-  
+
   for (const file of files) {
     const dataUrl = await fileToDataUrl(file);
     state.clothingByModel[modelIndex].push({ url: dataUrl });
   }
-  
+
   await saveShootClothing();
   renderClothingSections();
   updateStepStatuses();
-  
+
   event.target.value = '';
 }
 
@@ -728,12 +728,12 @@ function removeClothingItem(modelIndex, clothingIndex) {
 
 async function saveShootClothing() {
   if (!state.currentShoot) return;
-  
+
   const clothing = state.clothingByModel.map((refs, index) => ({
     forModelIndex: index,
     refs: refs
   })).filter(c => c.refs.length > 0);
-  
+
   try {
     await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
       method: 'PUT',
@@ -807,42 +807,42 @@ function collectGenerationSettings() {
     cameraAesthetic: elements.genCameraAesthetic?.value || 'contax_t2',
     lightingSource: elements.genLightingSource?.value || 'natural_daylight',
     lightingQuality: elements.genLightingQuality?.value || 'soft_diffused',
-    
+
     // Legacy (still collected for compatibility)
     cameraSignature: elements.genCameraSignature?.value || 'contax_t2',
     light: elements.genLight?.value || 'natural_soft',
-    
+
     // Visual style
     captureStyle: elements.genCaptureStyle?.value || 'candid_aware',
     color: elements.genColor?.value || 'film_warm',
     skinTexture: elements.genSkinTexture?.value || 'natural_film',
     era: elements.genEra?.value || 'contemporary',
-    
+
     // Frame parameters
     locationId: elements.genLocation?.value || '',
     emotionId: elements.genEmotion?.value || '',
     aspectRatio: elements.genAspectRatio?.value || '3:4',
     imageSize: elements.genImageSize?.value || '2K',
     poseAdherence: elements.genPoseAdherence?.value || '2',
-    
+
     // Composition
     shotSize: elements.genShotSize?.value || 'default',
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
     focusMode: elements.genFocusMode?.value || 'shallow',
     lensFocalLength: elements.genLensFocal?.value || 'auto',
-    
+
     // Anti-AI
     antiAiLevel: elements.genAntiAiLevel?.value || 'medium',
-    
+
     // Model Behavior (Layer 7)
     modelBehavior: elements.genModelBehavior?.value || 'engaged',
-    
+
     // Ambient
     weather: elements.genWeather?.value || 'clear',
     timeOfDay: elements.genTimeOfDay?.value || 'any',
     season: elements.genSeason?.value || 'summer',
     atmosphere: elements.genAtmosphere?.value || 'neutral',
-    
+
     // Extra prompt
     extraPrompt: elements.genExtraPrompt?.value || ''
   };
@@ -853,7 +853,7 @@ function collectGenerationSettings() {
  */
 function applyGenerationSettings(settings) {
   if (!settings) return;
-  
+
   // NEW: 6-layer architecture settings
   if (settings.shootType && elements.genShootType) {
     elements.genShootType.value = settings.shootType;
@@ -867,7 +867,7 @@ function applyGenerationSettings(settings) {
   if (settings.lightingQuality && elements.genLightingQuality) {
     elements.genLightingQuality.value = settings.lightingQuality;
   }
-  
+
   // Legacy (hidden fields)
   if (settings.cameraSignature && elements.genCameraSignature) {
     elements.genCameraSignature.value = settings.cameraSignature;
@@ -875,7 +875,7 @@ function applyGenerationSettings(settings) {
   if (settings.light && elements.genLight) {
     elements.genLight.value = settings.light;
   }
-  
+
   // Visual style
   if (settings.captureStyle && elements.genCaptureStyle) {
     elements.genCaptureStyle.value = settings.captureStyle;
@@ -889,7 +889,7 @@ function applyGenerationSettings(settings) {
   if (settings.era && elements.genEra) {
     elements.genEra.value = settings.era;
   }
-  
+
   // Frame parameters
   if (settings.locationId !== undefined && elements.genLocation) {
     elements.genLocation.value = settings.locationId;
@@ -906,7 +906,7 @@ function applyGenerationSettings(settings) {
   if (settings.poseAdherence && elements.genPoseAdherence) {
     elements.genPoseAdherence.value = settings.poseAdherence;
   }
-  
+
   // Composition
   if (settings.shotSize && elements.genShotSize) {
     elements.genShotSize.value = settings.shotSize;
@@ -920,17 +920,17 @@ function applyGenerationSettings(settings) {
   if (settings.lensFocalLength && elements.genLensFocal) {
     elements.genLensFocal.value = settings.lensFocalLength;
   }
-  
+
   // Anti-AI
   if (settings.antiAiLevel && elements.genAntiAiLevel) {
     elements.genAntiAiLevel.value = settings.antiAiLevel;
   }
-  
+
   // Model Behavior
   if (settings.modelBehavior && elements.genModelBehavior) {
     elements.genModelBehavior.value = settings.modelBehavior;
   }
-  
+
   // Ambient
   if (settings.weather && elements.genWeather) {
     elements.genWeather.value = settings.weather;
@@ -944,15 +944,15 @@ function applyGenerationSettings(settings) {
   if (settings.atmosphere && elements.genAtmosphere) {
     elements.genAtmosphere.value = settings.atmosphere;
   }
-  
+
   // Extra prompt
   if (settings.extraPrompt !== undefined && elements.genExtraPrompt) {
     elements.genExtraPrompt.value = settings.extraPrompt;
   }
-  
+
   // Update ambient section visibility
   updateAmbientSectionVisibility();
-  
+
   // Check and display conflicts
   checkAndDisplayConflicts();
 }
@@ -963,24 +963,24 @@ function applyGenerationSettings(settings) {
 let saveSettingsTimeout = null;
 async function saveGenerationSettings() {
   if (!state.currentShoot) return;
-  
+
   // Debounce to avoid too many requests
   if (saveSettingsTimeout) {
     clearTimeout(saveSettingsTimeout);
   }
-  
+
   saveSettingsTimeout = setTimeout(async () => {
     const settings = collectGenerationSettings();
     state.generationSettings = settings;
-  
-  try {
-    await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+
+    try {
+      await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ generationSettings: settings })
-    });
+      });
       console.log('[CustomShoot] Settings saved');
-  } catch (e) {
+    } catch (e) {
       console.error('Error saving generation settings:', e);
     }
   }, 500); // 500ms debounce
@@ -1022,7 +1022,7 @@ function initSettingsAutoSave() {
     elements.genSeason,
     elements.genAtmosphere
   ];
-  
+
   // Add change listeners to all select elements
   settingsElements.forEach(el => {
     if (el) {
@@ -1032,22 +1032,22 @@ function initSettingsAutoSave() {
       });
     }
   });
-  
+
   // Add input listener to extra prompt (with debounce already in saveGenerationSettings)
   if (elements.genExtraPrompt) {
     elements.genExtraPrompt.addEventListener('input', saveGenerationSettings);
   }
-  
+
   // Add special listener for poseAdherence to update composition controls
   if (elements.genPoseAdherence) {
     elements.genPoseAdherence.addEventListener('change', updateCompositionControlsState);
   }
-  
+
   // Add special listener for shootType to apply defaults
   if (elements.genShootType) {
     elements.genShootType.addEventListener('change', handleShootTypeChange);
   }
-  
+
   // Add special listener for lightingSource to auto-set lightingQuality
   if (elements.genLightingSource) {
     elements.genLightingSource.addEventListener('change', handleLightingSourceChange);
@@ -1060,14 +1060,14 @@ function initSettingsAutoSave() {
 async function handleShootTypeChange() {
   const shootType = elements.genShootType?.value;
   if (!shootType) return;
-  
+
   try {
     const res = await fetch(`/api/custom-shoots/shoot-type-defaults/${shootType}`);
     const data = await res.json();
-    
+
     if (data.ok && data.defaults) {
       const defaults = data.defaults;
-      
+
       // Apply defaults (but don't override if user already set something different)
       if (defaults.captureStyle && elements.genCaptureStyle) {
         elements.genCaptureStyle.value = defaults.captureStyle;
@@ -1081,13 +1081,13 @@ async function handleShootTypeChange() {
       if (defaults.antiAi && elements.genAntiAiLevel) {
         elements.genAntiAiLevel.value = defaults.antiAi;
       }
-      
+
       // Show hint
       if (elements.shootTypeHint) {
         elements.shootTypeHint.innerHTML = `💡 Применены рекомендуемые настройки для типа "${getShootTypeLabel(shootType)}"`;
         elements.shootTypeHint.style.background = 'rgba(16, 185, 129, 0.1)';
         elements.shootTypeHint.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-        
+
         // Reset after 3 seconds
         setTimeout(() => {
           elements.shootTypeHint.innerHTML = '💡 Тип съёмки определяет допустимые комбинации параметров.';
@@ -1095,7 +1095,7 @@ async function handleShootTypeChange() {
           elements.shootTypeHint.style.borderColor = '';
         }, 3000);
       }
-      
+
       saveGenerationSettings();
       checkAndDisplayConflicts();
     }
@@ -1109,7 +1109,7 @@ async function handleShootTypeChange() {
  */
 function handleLightingSourceChange() {
   const source = elements.genLightingSource?.value;
-  
+
   // On-camera flash implies harsh direct lighting
   if (source === 'on_camera_flash' && elements.genLightingQuality) {
     elements.genLightingQuality.value = 'harsh_direct';
@@ -1119,7 +1119,7 @@ function handleLightingSourceChange() {
     elements.genLightingQuality.disabled = false;
     elements.genLightingQuality.title = '';
   }
-  
+
   checkAndDisplayConflicts();
 }
 
@@ -1128,7 +1128,7 @@ function handleLightingSourceChange() {
  */
 async function checkAndDisplayConflicts() {
   if (!elements.conflictWarnings) return;
-  
+
   // Gather all current parameters for validation
   const params = {
     shootType: elements.genShootType?.value || 'editorial',
@@ -1142,7 +1142,7 @@ async function checkAndDisplayConflicts() {
     spaceType: state.currentShoot?.location?.spaceType || 'mixed',
     captureStyle: elements.genCaptureStyle?.value || 'none'
   };
-  
+
   try {
     const res = await fetch('/api/custom-shoots/validate-params', {
       method: 'POST',
@@ -1150,13 +1150,13 @@ async function checkAndDisplayConflicts() {
       body: JSON.stringify({ params })
     });
     const data = await res.json();
-    
+
     if (data.ok) {
       const { conflicts, warnings, autoCorrections } = data;
-      
+
       // Build display content
       const sections = [];
-      
+
       // Critical conflicts (blocking)
       if (conflicts && conflicts.length > 0) {
         sections.push(`
@@ -1168,7 +1168,7 @@ async function checkAndDisplayConflicts() {
           </div>
         `);
       }
-      
+
       // Auto-corrections (informational)
       if (autoCorrections && Object.keys(autoCorrections).length > 0) {
         const paramLabels = {
@@ -1200,7 +1200,7 @@ async function checkAndDisplayConflicts() {
           const valueName = valueLabels[value] || value;
           return `<li>${paramName} → <strong>${valueName}</strong></li>`;
         }).join('');
-        
+
         sections.push(`
           <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
             <div style="font-weight: 600; color: #3B82F6; margin-bottom: 6px;">🔄 Авто-коррекции (будут применены):</div>
@@ -1210,7 +1210,7 @@ async function checkAndDisplayConflicts() {
           </div>
         `);
       }
-      
+
       // Warnings (non-blocking recommendations)
       if (warnings && warnings.length > 0) {
         sections.push(`
@@ -1222,7 +1222,7 @@ async function checkAndDisplayConflicts() {
           </div>
         `);
       }
-      
+
       if (sections.length > 0) {
         elements.conflictWarnings.style.display = 'block';
         elements.conflictWarnings.innerHTML = sections.join('');
@@ -1260,17 +1260,17 @@ function getShootTypeLabel(shootType) {
 function updateCompositionControlsState() {
   const adherence = parseInt(elements.genPoseAdherence?.value || '2');
   const isExact = adherence === 4;
-  
+
   // Get composition controls
   const compositionControls = [
     elements.genShotSize,
     elements.genCameraAngle,
     elements.genFocusMode
   ];
-  
+
   // Find or create the warning message
   let warningEl = document.getElementById('composition-locked-warning');
-  
+
   if (isExact) {
     // Disable composition controls
     compositionControls.forEach(el => {
@@ -1280,7 +1280,7 @@ function updateCompositionControlsState() {
         el.title = 'Заблокировано: точное следование эскизу (4) определяет кадрирование';
       }
     });
-    
+
     // Show warning
     if (!warningEl) {
       const compositionSection = elements.genShotSize?.closest('.form-group')?.parentElement;
@@ -1293,7 +1293,7 @@ function updateCompositionControlsState() {
       }
     }
     if (warningEl) warningEl.style.display = 'flex';
-    
+
   } else {
     // Enable composition controls
     compositionControls.forEach(el => {
@@ -1303,7 +1303,7 @@ function updateCompositionControlsState() {
         el.title = '';
       }
     });
-    
+
     // Hide warning
     if (warningEl) warningEl.style.display = 'none';
   }
@@ -1321,38 +1321,38 @@ function renderGeneratePage() {
     const spaceType = loc.spaceType || 'studio';
     elements.genLocation.innerHTML += `<option value="${loc.id}" data-space-type="${spaceType}">${escapeHtml(loc.label)}</option>`;
   });
-  
+
   // Add location change listener for ambient section visibility
   elements.genLocation.removeEventListener('change', handleLocationChange);
   elements.genLocation.addEventListener('change', handleLocationChange);
-  
+
   // Populate emotion dropdown
   elements.genEmotion.innerHTML = '<option value="">Нейтральная</option>';
   state.emotions.forEach(e => {
     elements.genEmotion.innerHTML += `<option value="${e.id}">${e.label}</option>`;
   });
-  
+
   // Apply saved generation settings AFTER populating dropdowns
   applyGenerationSettings(state.generationSettings);
-  
+
   // Update ambient section visibility (after settings applied)
   updateAmbientSectionVisibility();
-  
+
   // Update composition controls state based on poseAdherence
   updateCompositionControlsState();
-  
+
   // Check lighting source implications
   handleLightingSourceChange();
-  
+
   // Check and display conflicts
   checkAndDisplayConflicts();
-  
+
   // Update lock UI
   updateLockUI();
-  
+
   // Render frames to generate
   renderFramesToGenerate();
-  
+
   // Render history
   renderGeneratedHistory();
 }
@@ -1369,18 +1369,18 @@ function handleLocationChange() {
  */
 function updateAmbientSectionVisibility() {
   if (!elements.ambientSection) return;
-  
+
   const selectedOption = elements.genLocation?.selectedOptions[0];
   const spaceType = selectedOption?.dataset?.spaceType || '';
   const locationId = elements.genLocation?.value;
-  
+
   // Find location in state to check spaceType
   const location = state.locations.find(l => l.id === locationId);
   const effectiveSpaceType = location?.spaceType || spaceType || 'studio';
-  
+
   // Show ambient section for outdoor locations
   const isOutdoor = ['exterior_urban', 'exterior_nature', 'rooftop_terrace'].includes(effectiveSpaceType);
-  
+
   elements.ambientSection.style.display = isOutdoor ? 'block' : 'none';
 }
 
@@ -1389,19 +1389,19 @@ function updateLockUI() {
   elements.styleLockOff.classList.toggle('active', !state.styleLock.enabled);
   elements.styleLockStrict.classList.toggle('active', state.styleLock.enabled && state.styleLock.mode === 'strict');
   elements.styleLockSoft.classList.toggle('active-soft', state.styleLock.enabled && state.styleLock.mode === 'soft');
-  
+
   if (state.styleLock.imageUrl) {
     elements.styleLockImg.src = state.styleLock.imageUrl;
     elements.styleLockPreview.classList.add('active');
   } else {
     elements.styleLockPreview.classList.remove('active');
   }
-  
+
   // Location Lock
   elements.locationLockOff.classList.toggle('active', !state.locationLock.enabled);
   elements.locationLockStrict.classList.toggle('active', state.locationLock.enabled && state.locationLock.mode === 'strict');
   elements.locationLockSoft.classList.toggle('active-soft', state.locationLock.enabled && state.locationLock.mode === 'soft');
-  
+
   if (state.locationLock.imageUrl) {
     elements.locationLockImg.src = state.locationLock.imageUrl;
     elements.locationLockPreview.classList.add('active');
@@ -1428,7 +1428,7 @@ async function setStyleLockMode(mode) {
       const lastImage = state.generatedFrames[0];
       await setAsStyleRef(lastImage.id);
     }
-    
+
     if (state.styleLock.imageId) {
       // Update mode
       try {
@@ -1464,7 +1464,7 @@ async function setLocationLockMode(mode) {
       const lastImage = state.generatedFrames[0];
       await setAsLocationRef(lastImage.id);
     }
-    
+
     if (state.locationLock.imageId) {
       try {
         await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-location`, {
@@ -1487,9 +1487,9 @@ async function setLocationLockMode(mode) {
 async function setAsStyleRef(imageId) {
   const image = state.generatedFrames.find(f => f.id === imageId);
   if (!image) return;
-  
+
   const mode = state.styleLock.mode || 'strict';
-  
+
   try {
     const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, {
       method: 'POST',
@@ -1497,7 +1497,7 @@ async function setAsStyleRef(imageId) {
       body: JSON.stringify({ imageId, mode })
     });
     const data = await res.json();
-    
+
     if (data.ok) {
       state.styleLock = {
         enabled: true,
@@ -1505,15 +1505,15 @@ async function setAsStyleRef(imageId) {
         imageId,
         imageUrl: image.imageUrl
       };
-      
+
       // Update isStyleReference flags
       state.generatedFrames.forEach(f => {
         f.isStyleReference = f.id === imageId;
       });
-      
+
       // Apply style settings from reference frame to UI
       applySettingsFromFrame(image, 'style');
-      
+
       updateLockUI();
       renderGeneratedHistory();
     }
@@ -1529,9 +1529,9 @@ async function setAsStyleRef(imageId) {
  */
 function applySettingsFromFrame(frame, type) {
   if (!frame) return;
-  
+
   console.log(`[CustomShoot] Applying ${type} settings from frame:`, frame.frameLabel);
-  
+
   if (type === 'style') {
     // Apply visual style settings (these define the "look")
     if (frame.captureStyle && elements.genCaptureStyle) {
@@ -1543,7 +1543,7 @@ function applySettingsFromFrame(frame, type) {
     if (frame.skinTexture && elements.genSkinTexture) {
       elements.genSkinTexture.value = frame.skinTexture;
     }
-    
+
     // Apply presets (light, color, era)
     if (frame.presets) {
       if (frame.presets.light && elements.genLight) {
@@ -1556,19 +1556,19 @@ function applySettingsFromFrame(frame, type) {
         elements.genEra.value = frame.presets.era;
       }
     }
-    
+
     // Note: aspectRatio, imageSize, emotion, location are NOT copied
     // They can be different for each frame within the same style
-    
+
     console.log('[CustomShoot] Style settings applied from reference');
   }
-  
+
   if (type === 'location') {
     // For location lock, apply location-related settings
     if (frame.locationId && elements.genLocation) {
       elements.genLocation.value = frame.locationId;
     }
-    
+
     console.log('[CustomShoot] Location settings applied from reference');
   }
 }
@@ -1576,9 +1576,9 @@ function applySettingsFromFrame(frame, type) {
 async function setAsLocationRef(imageId) {
   const image = state.generatedFrames.find(f => f.id === imageId);
   if (!image) return;
-  
+
   const mode = state.locationLock.mode || 'strict';
-  
+
   try {
     const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/lock-location`, {
       method: 'POST',
@@ -1586,7 +1586,7 @@ async function setAsLocationRef(imageId) {
       body: JSON.stringify({ imageId, mode })
     });
     const data = await res.json();
-    
+
     if (data.ok) {
       state.locationLock = {
         enabled: true,
@@ -1594,14 +1594,14 @@ async function setAsLocationRef(imageId) {
         imageId,
         imageUrl: image.imageUrl
       };
-      
+
       state.generatedFrames.forEach(f => {
         f.isLocationReference = f.id === imageId;
       });
-      
+
       // Apply location settings from reference frame to UI
       applySettingsFromFrame(image, 'location');
-      
+
       updateLockUI();
       renderGeneratedHistory();
     }
@@ -1632,10 +1632,10 @@ function renderFramesToGenerate() {
   } else {
     // Show all frames from catalog
     const frameCards = state.frames.map((frame, idx) => {
-      const sketchImg = frame.sketchUrl 
+      const sketchImg = frame.sketchUrl
         ? `<img src="${frame.sketchUrl}" alt="sketch" style="width: 100%; height: 100%; object-fit: contain;">`
         : '<span style="font-size: 24px;">🖼️</span>';
-      
+
       return `
         <div class="frame-gen-card" data-frame-id="${frame.id}" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 8px;">
           <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden;">${sketchImg}</div>
@@ -1647,7 +1647,7 @@ function renderFramesToGenerate() {
         </div>
       `;
     }).join('');
-    
+
     elements.framesToGenerate.innerHTML = `
       <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
         <h4 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации (${state.frames.length})</h4>
@@ -1663,7 +1663,7 @@ function renderFramesToGenerate() {
       </div>
     `;
   }
-  
+
   // Add click handlers
   elements.framesToGenerate.querySelectorAll('.btn-gen-frame').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1675,26 +1675,26 @@ function renderFramesToGenerate() {
 
 async function generateFrame(frameId) {
   if (!state.currentShoot) return;
-  
+
   const modelCount = state.selectedModels.filter(m => m !== null).length;
   if (modelCount === 0) {
     alert('Сначала добавьте модель');
     return;
   }
-  
+
   // Get button and show loading
   const btn = elements.framesToGenerate.querySelector(`.btn-gen-frame[data-frame-id="${frameId || ''}"]`);
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ Генерация...';
-  
+
   // Get settings (NEW 6-layer architecture)
   const params = {
     frameId,
     locationId: elements.genLocation.value || null,
     emotionId: elements.genEmotion.value || null,
     extraPrompt: elements.genExtraPrompt.value.trim(),
-    
+
     // NEW: 6-layer architecture presets
     presets: {
       // Layer 1: Shoot Type
@@ -1715,35 +1715,35 @@ async function generateFrame(frameId) {
       camera: elements.genCameraSignature?.value || elements.genCameraAesthetic?.value || 'contax_t2',
       light: elements.genLight?.value || 'natural_soft'
     },
-    
+
     // Image format
     aspectRatio: elements.genAspectRatio?.value || '3:4',
     imageSize: elements.genImageSize?.value || '2K',
-    
+
     // Artistic controls
     captureStyle: elements.genCaptureStyle?.value || 'candid_aware',
     cameraSignature: elements.genCameraAesthetic?.value || 'contax_t2',
     skinTexture: elements.genSkinTexture?.value || 'natural_film',
     poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2,
-    
+
     // Composition
     composition: {
       shotSize: elements.genShotSize?.value || 'default',
       cameraAngle: elements.genCameraAngle?.value || 'eye_level',
       focusMode: elements.genFocusMode?.value || 'shallow'
     },
-    
+
     // Lens Focal Length
     lensFocalLength: elements.genLensFocal?.value || 'auto',
-    
+
     // Anti-AI
     antiAi: {
       level: elements.genAntiAiLevel?.value || 'medium'
     },
-    
+
     // Model Behavior (Layer 7) - how model interacts with camera
     modelBehavior: elements.genModelBehavior?.value || 'engaged',
-    
+
     // Ambient (situational conditions: weather, season, atmosphere)
     ambient: {
       weather: elements.genWeather?.value || 'clear',
@@ -1752,14 +1752,14 @@ async function generateFrame(frameId) {
       atmosphere: elements.genAtmosphere?.value || 'neutral'
     }
   };
-  
+
   // Update shoot with current presets first
   await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ presets: params.presets })
   });
-  
+
   // Add placeholder
   const placeholderId = `pending_${Date.now()}`;
   state.generatedFrames.unshift({
@@ -1768,7 +1768,7 @@ async function generateFrame(frameId) {
     timestamp: new Date().toISOString()
   });
   renderGeneratedHistory();
-  
+
   try {
     const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/generate`, {
       method: 'POST',
@@ -1794,12 +1794,12 @@ async function generateFrame(frameId) {
         ambient: params.ambient
       })
     });
-    
+
     const data = await res.json();
-    
+
     // Find and update placeholder
     const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
-    
+
     if (data.ok && data.image) {
       if (placeholderIndex >= 0) {
         state.generatedFrames[placeholderIndex] = {
@@ -1829,10 +1829,10 @@ async function generateFrame(frameId) {
           generationTime: data.image.generationTime || null
         };
       }
-      
+
       // Clear extra prompt
       elements.genExtraPrompt.value = '';
-      
+
       renderGeneratedHistory();
     } else {
       if (placeholderIndex >= 0) {
@@ -1860,7 +1860,7 @@ async function generateFrame(frameId) {
 function renderGeneratedHistory() {
   const readyCount = state.generatedFrames.filter(f => f.status !== 'generating' && f.status !== 'error').length;
   elements.generationCount.textContent = `${readyCount} изображений`;
-  
+
   if (state.generatedFrames.length === 0) {
     elements.imagesGallery.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
@@ -1871,10 +1871,10 @@ function renderGeneratedHistory() {
     `;
     return;
   }
-  
+
   elements.imagesGallery.innerHTML = state.generatedFrames.map((frame, idx) => {
     const timestamp = frame.timestamp ? new Date(frame.timestamp).toLocaleTimeString() : '';
-    
+
     // Generating placeholder
     if (frame.status === 'generating') {
       return `
@@ -1888,7 +1888,7 @@ function renderGeneratedHistory() {
         </div>
       `;
     }
-    
+
     // Error
     if (frame.status === 'error') {
       return `
@@ -1903,38 +1903,38 @@ function renderGeneratedHistory() {
         </div>
       `;
     }
-    
+
     // Ready frame
     const isStyleRef = frame.isStyleReference;
     const isLocationRef = frame.isLocationReference;
-    
+
     let borderColor = 'var(--color-border)';
     if (isStyleRef && isLocationRef) borderColor = '#8B5CF6';
     else if (isStyleRef) borderColor = '#F59E0B';
     else if (isLocationRef) borderColor = '#10B981';
-    
+
     // Build refs HTML with images (same as shoot-composer)
     const refs = frame.refs || [];
     const refsHtml = refs.length > 0
       ? `<div style="display:grid; grid-template-columns: repeat(${Math.min(refs.length, 3)}, 1fr); gap:8px; margin-top:8px;">
           ${refs.map(r => {
-            const url = r.previewUrl || '';
-            const label = r.label || r.kind || 'ref';
-            if (!url) return '';
-            return `
+        const url = r.previewUrl || '';
+        const label = r.label || r.kind || 'ref';
+        if (!url) return '';
+        return `
               <div style="text-align: center;">
                 <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${escapeHtml(label)}</div>
                 <img src="${url}" alt="${escapeHtml(label)}" 
                      style="width:100%; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--color-border);">
               </div>
             `;
-          }).join('')}
+      }).join('')}
         </div>`
       : '<div style="font-size:11px; color:var(--color-text-muted);">Нет референсов</div>';
-    
+
     // Build settings HTML (same as shoot-composer)
     const settingsHtml = buildFrameSettingsHtml(frame);
-    
+
     return `
       <div class="selection-card generated-frame-card" style="cursor: default; position: relative; border-color: ${borderColor};">
         <!-- Lock badges -->
@@ -1958,6 +1958,7 @@ function renderGeneratedHistory() {
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; gap: 8px;">
             <a href="${frame.imageUrl}" download="custom-shoot-${idx}.png" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾</a>
+            <button class="btn btn-secondary" onclick="loadParamsFromHistory(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Copy Parameters">♻️</button>
             <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock">🎨</button>
             <button class="btn btn-secondary btn-set-location-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Location Lock">🏠</button>
             <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>
@@ -1987,20 +1988,20 @@ function renderGeneratedHistory() {
       </div>
     `;
   }).join('');
-  
+
   // Attach handlers
   elements.imagesGallery.querySelectorAll('.btn-open-lightbox').forEach(btn => {
     btn.addEventListener('click', () => openLightbox(parseInt(btn.dataset.frameIndex)));
   });
-  
+
   elements.imagesGallery.querySelectorAll('.btn-set-style-ref').forEach(btn => {
     btn.addEventListener('click', () => setAsStyleRef(btn.dataset.imageId));
   });
-  
+
   elements.imagesGallery.querySelectorAll('.btn-set-location-ref').forEach(btn => {
     btn.addEventListener('click', () => setAsLocationRef(btn.dataset.imageId));
   });
-  
+
   elements.imagesGallery.querySelectorAll('[data-delete-frame]').forEach(btn => {
     btn.addEventListener('click', () => deleteFrame(parseInt(btn.dataset.deleteFrame)));
   });
@@ -2009,7 +2010,7 @@ function renderGeneratedHistory() {
 async function deleteFrame(index) {
   const frame = state.generatedFrames[index];
   if (!frame) return;
-  
+
   // Delete from server if has ID
   if (frame.id && !frame.id.startsWith('pending_')) {
     try {
@@ -2018,7 +2019,7 @@ async function deleteFrame(index) {
       console.error('Error deleting from server:', e);
     }
   }
-  
+
   state.generatedFrames.splice(index, 1);
   renderGeneratedHistory();
 }
@@ -2043,17 +2044,17 @@ const lightbox = {
 function initLightbox() {
   lightbox.overlay = document.getElementById('lightbox');
   lightbox.image = document.getElementById('lightbox-image');
-  
+
   if (!lightbox.overlay) return;
-  
+
   document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
   document.getElementById('lightbox-prev').addEventListener('click', () => navigateLightbox(-1));
   document.getElementById('lightbox-next').addEventListener('click', () => navigateLightbox(1));
-  
+
   lightbox.overlay.addEventListener('click', (e) => {
     if (e.target === lightbox.overlay) closeLightbox();
   });
-  
+
   document.addEventListener('keydown', (e) => {
     if (!lightbox.overlay.classList.contains('active')) return;
     if (e.key === 'Escape') closeLightbox();
@@ -2066,9 +2067,9 @@ function openLightbox(index) {
   lightbox.images = state.generatedFrames
     .filter(f => f.imageUrl && f.status !== 'generating' && f.status !== 'error')
     .map(f => f.imageUrl);
-  
+
   if (lightbox.images.length === 0) return;
-  
+
   lightbox.currentIndex = index;
   updateLightboxImage();
   lightbox.overlay.classList.add('active');
@@ -2089,12 +2090,60 @@ function updateLightboxImage() {
   lightbox.image.src = lightbox.images[lightbox.currentIndex] || '';
   document.getElementById('lightbox-info').textContent = `${lightbox.currentIndex + 1} / ${lightbox.images.length}`;
   document.getElementById('lightbox-prev').disabled = lightbox.currentIndex === 0;
-  document.getElementById('lightbox-next').disabled = lightbox.currentIndex === lightbox.images.length - 1;
+  document.getElementById('lightbox-next').disabled = lightbox.images.length <= 1 || lightbox.currentIndex === lightbox.images.length - 1;
 }
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
+
+window.loadParamsFromHistory = function (index) {
+  const frame = state.generatedFrames[index];
+  if (!frame) return;
+
+  if (confirm('Load parameters from this history item? Current settings will be overwritten.')) {
+    // 1. Artistic Controls
+    if (frame.captureStyle && elements.genCaptureStyle) elements.genCaptureStyle.value = frame.captureStyle;
+    if (frame.cameraSignature && elements.genCameraSignature) elements.genCameraSignature.value = frame.cameraSignature;
+    if (frame.skinTexture && elements.genSkinTexture) elements.genSkinTexture.value = frame.skinTexture;
+    if (frame.poseAdherence && elements.genPoseAdherence) elements.genPoseAdherence.value = frame.poseAdherence;
+    if (frame.modelBehavior && elements.genModelBehavior) elements.genModelBehavior.value = frame.modelBehavior;
+
+    // 2. Composition
+    if (frame.composition) {
+      if (frame.composition.shotSize && elements.genShotSize) elements.genShotSize.value = frame.composition.shotSize;
+      if (frame.composition.cameraAngle && elements.genCameraAngle) elements.genCameraAngle.value = frame.composition.cameraAngle;
+      if (frame.composition.focusMode && elements.genFocusMode) elements.genFocusMode.value = frame.composition.focusMode;
+    }
+
+    // 3. Technical
+    if (frame.aspectRatio && elements.genAspectRatio) elements.genAspectRatio.value = frame.aspectRatio;
+    if (frame.imageSize && elements.genImageSize) elements.genImageSize.value = frame.imageSize;
+
+    // 4. Presets (6-Layer Architecture)
+    if (frame.presets) {
+      if (frame.presets.shootType && elements.genShootType) elements.genShootType.value = frame.presets.shootType;
+      if (frame.presets.cameraAesthetic && elements.genCameraAesthetic) elements.genCameraAesthetic.value = frame.presets.cameraAesthetic;
+      if (frame.presets.lightingSource && elements.genLightingSource) elements.genLightingSource.value = frame.presets.lightingSource;
+      if (frame.presets.lightingQuality && elements.genLightingQuality) elements.genLightingQuality.value = frame.presets.lightingQuality;
+      if (frame.presets.color && elements.genColor) elements.genColor.value = frame.presets.color;
+      if (frame.presets.era && elements.genEra) elements.genEra.value = frame.presets.era;
+    }
+
+    // 5. Ambient
+    if (frame.ambient) { // Assuming we stored ambient in frame (we should check save logic)
+      if (frame.ambient.weather && elements.genWeather) elements.genWeather.value = frame.ambient.weather;
+      if (frame.ambient.timeOfDay && elements.genTimeOfDay) elements.genTimeOfDay.value = frame.ambient.timeOfDay;
+      if (frame.ambient.season && elements.genSeason) elements.genSeason.value = frame.ambient.season;
+      if (frame.ambient.atmosphere && elements.genAtmosphere) elements.genAtmosphere.value = frame.ambient.atmosphere;
+    }
+
+    // 6. Extra Prompt
+    if (frame.extraPrompt !== undefined && elements.genExtraPrompt) elements.genExtraPrompt.value = frame.extraPrompt;
+
+    alert('Parameters loaded!');
+  }
+};
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -2174,37 +2223,37 @@ const POSE_ADHERENCE_LABELS = {
 
 function buildFrameSettingsHtml(frame) {
   const items = [];
-  
+
   // Image format (aspect ratio + size)
   const aspectLabel = ASPECT_RATIO_LABELS[frame.aspectRatio] || frame.aspectRatio || '3:4';
   const sizeLabel = IMAGE_SIZE_LABELS[frame.imageSize] || frame.imageSize || '2K';
   items.push(`<div><strong>📐 Формат:</strong> ${aspectLabel}, ${sizeLabel}</div>`);
-  
+
   // Generation time
   if (frame.generationTime) {
     items.push(`<div><strong>⏱️ Время:</strong> ${frame.generationTime}s</div>`);
   }
-  
+
   // Capture style (same as shoot-composer)
   if (frame.captureStyle && frame.captureStyle !== 'none') {
     items.push(`<div><strong>📷 Захват:</strong> ${CAPTURE_STYLE_LABELS[frame.captureStyle] || frame.captureStyle}</div>`);
   }
-  
+
   // Camera signature (same as shoot-composer)
   if (frame.cameraSignature && frame.cameraSignature !== 'none') {
     items.push(`<div><strong>📸 Камера:</strong> ${CAMERA_SIGNATURE_LABELS[frame.cameraSignature] || frame.cameraSignature}</div>`);
   }
-  
+
   // Skin texture (same as shoot-composer)
   if (frame.skinTexture && frame.skinTexture !== 'none') {
     items.push(`<div><strong>✨ Кожа:</strong> ${SKIN_TEXTURE_LABELS[frame.skinTexture] || frame.skinTexture}</div>`);
   }
-  
+
   // Pose adherence (same as shoot-composer)
   if (frame.poseAdherence) {
     items.push(`<div><strong>🎯 Поза:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}</div>`);
   }
-  
+
   // Composition
   if (frame.composition) {
     const comp = frame.composition;
@@ -2212,18 +2261,18 @@ function buildFrameSettingsHtml(frame) {
     if (comp.shotSize && comp.shotSize !== 'default') itemsComp.push(`План: ${comp.shotSize}`);
     if (comp.cameraAngle && comp.cameraAngle !== 'eye_level') itemsComp.push(`Ракурс: ${comp.cameraAngle}`);
     if (comp.focusMode) itemsComp.push(`Фокус: ${comp.focusMode}`);
-    
+
     if (itemsComp.length > 0) {
       items.push(`<div><strong>🎥 Композиция:</strong> <span style="font-size:10px;">${itemsComp.join(', ')}</span></div>`);
     }
   }
-  
+
   // Anti-AI
   if (frame.antiAi?.level && frame.antiAi.level !== 'off') {
     const labels = { low: 'Низкий', medium: 'Средний', high: 'Высокий' };
     items.push(`<div><strong>🤖 Anti-AI:</strong> ${labels[frame.antiAi.level] || frame.antiAi.level}</div>`);
   }
-  
+
   // Presets (universe settings - unique to custom shoot)
   if (frame.presets) {
     const presetItems = [];
@@ -2234,23 +2283,23 @@ function buildFrameSettingsHtml(frame) {
       items.push(`<div><strong>🎨 Стиль:</strong> <span style="font-size:10px;">${presetItems.join(', ')}</span></div>`);
     }
   }
-  
+
   // Emotion
   if (frame.emotionId) {
     const emotion = state.emotions.find(e => e.id === frame.emotionId);
     items.push(`<div><strong>😊 Эмоция:</strong> ${emotion?.label || frame.emotionId}</div>`);
   }
-  
+
   // Location
   if (frame.locationLabel) {
     items.push(`<div><strong>📍 Локация:</strong> ${escapeHtml(frame.locationLabel)}</div>`);
   }
-  
+
   // Extra prompt
   if (frame.extraPrompt) {
     items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em>${escapeHtml(frame.extraPrompt)}</em></div>`);
   }
-  
+
   return items.join('');
 }
 
@@ -2282,9 +2331,9 @@ async function init() {
   initEventListeners();
   initLightbox();
   initSettingsAutoSave();
-  
+
   await checkServerStatus();
-  
+
   await Promise.all([
     loadShoots(),
     loadModels(),
@@ -2292,7 +2341,7 @@ async function init() {
     loadLocations(),
     loadEmotions()
   ]);
-  
+
   updateStepStatuses();
 }
 
