@@ -291,84 +291,34 @@
                             </select>
                         </div>
 
-                        <!-- Parameters -->
+                        <!-- Group 1: Technical (Photographer) -->
                         <div class="param-group">
-                            <span class="param-label">Настройки съемки</span>
-
+                            <span class="param-label" style="color: var(--color-primary);">📷 Технические параметры
+                                (Фотограф)</span>
                             <div style="display: grid; gap: 12px;">
-                                <!-- Row 1: Camera & Angle -->
+                                <!-- Camera & Lighting -->
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <div>
-                                        <label class="form-label-mini">Камера</label>
+                                        <label class="form-label-mini">Камера & Линза</label>
                                         <select id="param-camera" class="form-select"></select>
                                     </div>
                                     <div>
-                                        <label class="form-label-mini">Ракурс</label>
-                                        <select id="param-angle" class="form-select"></select>
+                                        <label class="form-label-mini">Схема Света</label>
+                                        <select id="param-lighting" class="form-select"></select>
                                     </div>
                                 </div>
-
-                                <!-- Row 2: Composition & Depth -->
+                                <!-- Color & Depth -->
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <div>
-                                        <label class="form-label-mini">Композиция</label>
-                                        <select id="param-composition" class="form-select"></select>
+                                        <label class="form-label-mini">Цвет / Грейдинг</label>
+                                        <select id="param-color" class="form-select"></select>
                                     </div>
                                     <div>
                                         <label class="form-label-mini">Глубина (Боке)</label>
                                         <select id="param-depth" class="form-select"></select>
                                     </div>
                                 </div>
-
-                                <!-- Row 3: Light & Color -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Свет</label>
-                                        <select id="param-lighting" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Цвет/Грейдинг</label>
-                                        <select id="param-color" class="form-select"></select>
-                                    </div>
-                                </div>
-
-                                <!-- Row 4: Plating & Texture -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Подача</label>
-                                        <select id="param-plating" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Фактура</label>
-                                        <select id="param-texture" class="form-select"></select>
-                                    </div>
-                                </div>
-
-                                <!-- Row 5: Surface & Crockery (NEW Phase 4) -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Поверхность</label>
-                                        <select id="param-surface" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Посуда</label>
-                                        <select id="param-crockery" class="form-select"></select>
-                                    </div>
-                                </div>
-
-                                <!-- Row 6: Dynamics & State -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Динамика</label>
-                                        <select id="param-dynamics" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Состояние</label>
-                                        <select id="param-state" class="form-select"></select>
-                                    </div>
-                                </div>
-
-                                <!-- Row 7: Format & Quality -->
+                                <!-- Format & Size -->
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <div>
                                         <label class="form-label-mini">Формат</label>
@@ -379,7 +329,58 @@
                                         <select id="param-imageSize" class="form-select"></select>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
+                        <!-- Group 2: Artistic (Stylist) -->
+                        <div class="param-group">
+                            <span class="param-label" style="color: var(--color-accent);">🎨 Художественные параметры
+                                (Стилист)</span>
+                            <div style="display: grid; gap: 12px;">
+                                <!-- Angle & Composition -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label class="form-label-mini">Ракурс</label>
+                                        <select id="param-angle" class="form-select"></select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label-mini">Композиция</label>
+                                        <select id="param-composition" class="form-select"></select>
+                                    </div>
+                                </div>
+                                <!-- Plating & State -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label class="form-label-mini">Стиль Подачи</label>
+                                        <select id="param-plating" class="form-select"></select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label-mini">Состояние Еды</label>
+                                        <select id="param-state" class="form-select"></select>
+                                    </div>
+                                </div>
+                                <!-- Surface & Crockery -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label class="form-label-mini">Поверхность</label>
+                                        <select id="param-surface" class="form-select"></select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label-mini">Посуда</label>
+                                        <select id="param-crockery" class="form-select"></select>
+                                    </div>
+                                </div>
+                                <!-- Texture & Dynamics -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label class="form-label-mini">Фактура</label>
+                                        <select id="param-texture" class="form-select"></select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label-mini">Динамика</label>
+                                        <select id="param-dynamics" class="form-select"></select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
