@@ -294,13 +294,18 @@ function renderOptions() {
     populate(els.selects.angle, state.options.angle);
     populate(els.selects.composition, state.options.composition);
     populate(els.selects.depth, state.options.depth);
+    populate(els.selects.focusPoint, state.options.focusPoint);
     populate(els.selects.lighting, state.options.lighting);
+    populate(els.selects.lightDirection, state.options.lightDirection);
+    populate(els.selects.shadows, state.options.shadows);
     populate(els.selects.color, state.options.color);
+    populate(els.selects.filmStock, state.options.filmStock);
     populate(els.selects.plating, state.options.plating);
     populate(els.selects.texture, state.options.texture);
     populate(els.selects.surface, state.options.surface);
     populate(els.selects.crockery, state.options.crockery);
     populate(els.selects.dynamics, state.options.dynamics);
+    populate(els.selects.haptics, state.options.haptics);
     populate(els.selects.state, state.options.state);
     populate(els.selects.mood, state.options.mood);
     populate(els.selects.aspectRatio, state.options.aspectRatio);

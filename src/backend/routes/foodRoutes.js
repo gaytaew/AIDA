@@ -20,7 +20,13 @@ import {
     FOOD_CROCKERY,
     FOOD_PRESETS,
     FOOD_IMAGE_SIZE,
-    FOOD_MOOD
+    FOOD_MOOD,
+    // New params
+    FOOD_FOCUS_POINT,
+    FOOD_LIGHT_DIRECTION,
+    FOOD_SHADOWS,
+    FOOD_HAPTICS,
+    FOOD_FILM_STOCK
 } from '../schema/foodShoot.js';
 import store from '../store/foodShootStore.js';
 
@@ -41,7 +47,6 @@ router.get('/options', (req, res) => {
             state: FOOD_STATE,
             aspectRatio: FOOD_ASPECT_RATIO,
             imageSize: FOOD_IMAGE_SIZE,
-            // New Params
             composition: FOOD_COMPOSITION,
             depth: FOOD_DEPTH,
             color: FOOD_COLOR,
@@ -50,10 +55,17 @@ router.get('/options', (req, res) => {
             surface: FOOD_SURFACE,
             crockery: FOOD_CROCKERY,
             presets: FOOD_PRESETS,
-            mood: FOOD_MOOD
+            mood: FOOD_MOOD,
+            // New params (Thin Tuning)
+            focusPoint: FOOD_FOCUS_POINT,
+            lightDirection: FOOD_LIGHT_DIRECTION,
+            shadows: FOOD_SHADOWS,
+            haptics: FOOD_HAPTICS,
+            filmStock: FOOD_FILM_STOCK
         }
     });
 });
+
 
 /**
  * POST /api/food/generate
