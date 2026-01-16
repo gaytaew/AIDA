@@ -41,6 +41,12 @@ const els = {
         aspectRatio: document.getElementById('param-aspectRatio'),
         imageSize: document.getElementById('param-imageSize')
     },
+    subContainers: {
+        camera: document.getElementById('sub-camera'),
+        angle: document.getElementById('sub-angle'),
+        lightDirection: document.getElementById('sub-lightDirection'),
+        haptics: document.getElementById('sub-haptics')
+    },
     refs: {
         subject: document.getElementById('ref-subject'),
         crockery: document.getElementById('ref-crockery'),
@@ -174,7 +180,9 @@ async function generate() {
                 mood: els.selects.mood?.value || '',
                 aspectRatio: els.selects.aspectRatio.value,
                 imageSize: els.selects.imageSize.value,
-                changesDescription: els.changesDesc ? els.changesDesc.value.trim() : ''
+                changesDescription: els.changesDesc ? els.changesDesc.value.trim() : '',
+                // Conditional sub-params
+                subParams: collectSubParams()
             },
             subjectImage: state.images.subject,
             crockeryImage: state.images.crockery,
@@ -234,6 +242,7 @@ async function init() {
     await loadOptions();
     setupUploads();
     setupShootsUI();
+    setupSubParams(); // NEW: Conditional parameters
 
     if (els.btnGenerate) {
         els.btnGenerate.addEventListener('click', generate);
@@ -257,6 +266,86 @@ async function init() {
         }
     }
 }
+
+/* Conditional Sub-Parameters */
+function setupSubParams() {
+    // Map of parent params to their schema key
+    const paramConfigs = {
+        camera: 'camera',
+        angle: 'angle',
+        lightDirection: 'lightDirection',
+        haptics: 'haptics'
+    };
+
+    Object.entries(paramConfigs).forEach(([paramKey, schemaKey]) => {
+        const select = els.selects[paramKey];
+        const container = els.subContainers[paramKey];
+        if (!select || !container) return;
+
+        select.addEventListener('change', () => {
+            updateSubParam(paramKey, schemaKey);
+        });
+
+        // Initial render
+        updateSubParam(paramKey, schemaKey);
+    });
+}
+
+function updateSubParam(paramKey, schemaKey) {
+    const select = els.selects[paramKey];
+    const container = els.subContainers[paramKey];
+    if (!select || !container || !state.options) return;
+
+    const selectedValue = select.value;
+    const schemaOptions = state.options[schemaKey]?.options || [];
+    const selectedOption = schemaOptions.find(o => o.value === selectedValue);
+
+    // Hide if no subParams
+    if (!selectedOption?.subParams?.length) {
+        container.classList.remove('visible');
+        container.innerHTML = '';
+        return;
+    }
+
+    // Build sub-select UI
+    let html = '';
+    selectedOption.subParams.forEach(subParam => {
+        html += `
+            <div class="sub-param-label">${subParam.label}</div>
+            <select id="sub-${paramKey}-${subParam.id}" class="form-select" style="font-size: 10px; width: 100%;">
+                ${subParam.options.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
+            </select>
+        `;
+    });
+
+    container.innerHTML = html;
+    container.classList.add('visible');
+}
+
+// Collect all visible sub-param values
+function collectSubParams() {
+    const result = {};
+
+    // Iterate through all sub-param containers
+    Object.entries(els.subContainers).forEach(([key, container]) => {
+        if (!container || !container.classList.contains('visible')) return;
+
+        // Find all selects in this container
+        const selects = container.querySelectorAll('select');
+        selects.forEach(sel => {
+            // Extract ID: sub-{parentKey}-{subParamId}
+            const idParts = sel.id.split('-');
+            if (idParts.length >= 3) {
+                const subParamId = idParts.slice(2).join('-');
+                result[subParamId] = sel.value;
+            }
+        });
+    });
+
+    return result;
+}
+
+
 
 async function loadOptions() {
     try {

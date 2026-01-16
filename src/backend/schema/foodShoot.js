@@ -18,7 +18,16 @@ export const FOOD_CAMERA = {
             value: 'macro_100mm',
             label: 'Macro 100mm (Ultra Detail)',
             spec: 'LENS: 100mm Macro. Extreme close-up, razor-thin depth of field. Focus on texture, droplets, crumbs. Background completely blurred.',
-            constraints: { shotSize: 'macro', dof: 'shallow' }
+            constraints: { shotSize: 'macro', dof: 'shallow' },
+            subParams: [{
+                id: 'macroDistance',
+                label: 'Дистанция',
+                options: [
+                    { value: '10cm', label: '10 см (Extreme)', spec: 'MACRO DISTANCE: 10cm. Extreme detail, single ingredient in frame.' },
+                    { value: '20cm', label: '20 см (Detail)', spec: 'MACRO DISTANCE: 20cm. Detailed view of main portion.' },
+                    { value: '30cm', label: '30 см (Soft Macro)', spec: 'MACRO DISTANCE: 30cm. Soft macro, entire dish visible with detail.' }
+                ]
+            }]
         },
         {
             value: 'standard_50mm',
@@ -35,6 +44,7 @@ export const FOOD_CAMERA = {
     ]
 };
 
+
 export const FOOD_ANGLE = {
     id: 'angle',
     label: '📐 Ракурс',
@@ -44,22 +54,50 @@ export const FOOD_ANGLE = {
             value: 'flat_lay',
             label: 'Flat Lay (90° Top Down)',
             spec: 'ANGLE: 90° Top Down (Flat Lay). Graphic, geometric composition. Everything in focus plane.',
-            constraints: { perspective: 'flat' }
+            constraints: { perspective: 'flat' },
+            subParams: [{
+                id: 'flatRotation',
+                label: 'Ориентация',
+                options: [
+                    { value: '0', label: '0°', spec: 'FLAT ROTATION: 0 degrees. Standard orientation.' },
+                    { value: '45', label: '45°', spec: 'FLAT ROTATION: 45 degrees. Diamond/diagonal composition.' },
+                    { value: '90', label: '90°', spec: 'FLAT ROTATION: 90 degrees. Rotated orientation.' }
+                ]
+            }]
         },
         {
             value: '45_degree',
             label: '45° (Diner\'s Eye)',
             spec: 'ANGLE: 45° Angle (Diner\'s View). The most appetizing angle, showing volume and depth of the dish.',
-            constraints: { perspective: 'natural' }
+            constraints: { perspective: 'natural' },
+            subParams: [{
+                id: 'horizontalOffset',
+                label: 'Смещение',
+                options: [
+                    { value: 'left', label: 'Левее', spec: 'CAMERA OFFSET: Slight offset to the left, asymmetric composition.' },
+                    { value: 'center', label: 'Центр', spec: 'CAMERA OFFSET: Centered shot, symmetric.' },
+                    { value: 'right', label: 'Правее', spec: 'CAMERA OFFSET: Slight offset to the right, asymmetric composition.' }
+                ]
+            }]
         },
         {
             value: 'eye_level',
             label: 'Eye Level (0° Side View)',
             spec: 'ANGLE: 0° Eye Level (Side View). Highlights height, layers, and vertical details (burgers, drinks, stacks).',
-            constraints: { perspective: 'side' }
+            constraints: { perspective: 'side' },
+            subParams: [{
+                id: 'horizontalOffset',
+                label: 'Смещение',
+                options: [
+                    { value: 'left', label: 'Левее', spec: 'CAMERA OFFSET: Slight offset to the left, asymmetric composition.' },
+                    { value: 'center', label: 'Центр', spec: 'CAMERA OFFSET: Centered shot, symmetric.' },
+                    { value: 'right', label: 'Правее', spec: 'CAMERA OFFSET: Slight offset to the right, asymmetric composition.' }
+                ]
+            }]
         }
     ]
 };
+
 
 export const FOOD_COMPOSITION = {
     id: 'composition',
@@ -187,7 +225,16 @@ export const FOOD_LIGHT_DIRECTION = {
         {
             value: 'backlit',
             label: 'Контровой (Backlit)',
-            spec: 'LIGHT DIRECTION: Strong Backlight. Rim light catches steam and texture edges. Glowing silhouette effect.'
+            spec: 'LIGHT DIRECTION: Strong Backlight. Rim light catches steam and texture edges. Glowing silhouette effect.',
+            subParams: [{
+                id: 'fillLight',
+                label: 'Заполнение',
+                options: [
+                    { value: 'none', label: 'Нет', spec: 'FILL LIGHT: None. Pure silhouette, dramatic.' },
+                    { value: 'minimal', label: 'Минимальное', spec: 'FILL LIGHT: Minimal. Subtle front texture visible.' },
+                    { value: 'strong', label: 'Сильное', spec: 'FILL LIGHT: Strong reflector fill. Backlit but front fully visible.' }
+                ]
+            }]
         },
         {
             value: 'side',
@@ -250,12 +297,29 @@ export const FOOD_HAPTICS = {
         {
             value: 'steam_hot',
             label: 'Горячий пар (Steam)',
-            spec: 'PHYSICAL EFFECTS: Visible steam rising from hot food. Backlit to enhance visibility. Appetizing warmth.'
+            spec: 'PHYSICAL EFFECTS: Visible steam rising from hot food. Backlit to enhance visibility. Appetizing warmth.',
+            subParams: [{
+                id: 'steamIntensity',
+                label: 'Количество',
+                options: [
+                    { value: 'light', label: 'Легкий', spec: 'STEAM: Light wisps of steam, subtle.' },
+                    { value: 'medium', label: 'Средний', spec: 'STEAM: Medium visible steam cloud.' },
+                    { value: 'heavy', label: 'Сильный', spec: 'STEAM: Heavy, dramatic steam billowing.' }
+                ]
+            }]
         },
         {
             value: 'condensation_cold',
             label: 'Капли/Конденсат (Cold)',
-            spec: 'PHYSICAL EFFECTS: Condensation droplets on cold surface. Dewy, refreshing. Good for drinks and cold dishes.'
+            spec: 'PHYSICAL EFFECTS: Condensation droplets on cold surface. Dewy, refreshing. Good for drinks and cold dishes.',
+            subParams: [{
+                id: 'condensationType',
+                label: 'Тип',
+                options: [
+                    { value: 'droplets', label: 'Только капли', spec: 'CONDENSATION: Individual water droplets on surface.' },
+                    { value: 'frosted', label: 'Запотевание', spec: 'CONDENSATION: Frosted, fogged surface with ice crystals.' }
+                ]
+            }]
         },
         {
             value: 'glistening_oily',
@@ -265,10 +329,11 @@ export const FOOD_HAPTICS = {
         {
             value: 'crumbs_messy',
             label: 'Крошки/Разлито (Messy)',
-            spec: 'PHYSICAL EFFECTS: Crumbs, spills, scattered elements. Lived-in, authentic, "in progress" eating feel.'
+            spec: 'PHYSICAL EFFECTS: Crumbs, spills, scattered elements. Lived-in, authentic, \"in progress\" eating feel.'
         }
     ]
 };
+
 
 // NEW: Film Stock / Color Grading
 export const FOOD_FILM_STOCK = {
