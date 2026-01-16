@@ -391,15 +391,15 @@ function renderFrameCard(item, idx, isMain) {
     return `
     <div class="${cardClass}">
         <div class="btn-open-lightbox" data-index="${idx}" style="cursor: pointer; margin-bottom: 8px;">
-            <img src="${imageUrl}" loading="lazy" alt="Food Shot" style="width: ${imgSize}; border-radius: 8px; display: block;">
+            <img src="${imageUrl}" loading="lazy" alt="Фуд-фото" style="width: ${imgSize}; border-radius: 8px; display: block;">
         </div>
-        <div style="font-size: ${isMain ? '13px' : '11px'}; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.dishDescription || 'Food Shot')}</div>
+        <div style="font-size: ${isMain ? '13px' : '11px'}; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.dishDescription || 'Фуд-фото')}</div>
         <div style="font-size: 10px; color: var(--color-text-muted); margin-bottom: 8px;">${dateStr}</div>
         
         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-            <button class="btn-mini" onclick="window.refineHistoryItem('${item.id}')" title="Modify" style="flex: 1;">✨</button>
-            <button class="btn-mini" onclick="window.setReferenceFromHistory('${item.id}', 'subject')" title="Pin as Subject" style="flex: 1;">📌</button>
-            <a href="${imageUrl}" download="food_${idx}.jpg" class="btn-mini" style="flex: 1; text-align: center; text-decoration: none;">💾</a>
+            <button class="btn-mini" onclick="window.refineHistoryItem('${item.id}')" title="Улучшить" style="flex: 1;">✨</button>
+            <button class="btn-mini" onclick="window.setReferenceFromHistory('${item.id}', 'subject')" title="Закрепить как референс" style="flex: 1;">📌</button>
+            <a href="${imageUrl}" download="food_${idx}.jpg" class="btn-mini" title="Скачать" style="flex: 1; text-align: center; text-decoration: none;">💾</a>
         </div>
     </div>
     `;
