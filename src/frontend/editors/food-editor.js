@@ -65,6 +65,7 @@ const els = {
     },
     changesDesc: document.getElementById('changes-desc'),
     btnGenerate: document.getElementById('btn-generate'),
+    btnAnalyzeStyle: document.getElementById('btn-analyze-style'),
     genStatus: document.getElementById('gen-status'),
     historyContainer: document.getElementById('history-container'),
     emptyState: document.getElementById('empty-state')
@@ -80,7 +81,7 @@ function setupUploads() {
         const removeBtn = card.querySelector('.ref-card-remove');
 
         card.addEventListener('click', (e) => {
-            if (e.target !== removeBtn) input.click();
+            if (e.target !== removeBtn && e.target !== els.btnAnalyzeStyle) input.click();
         });
 
         input.addEventListener('change', async (e) => {
@@ -97,6 +98,11 @@ function setupUploads() {
                 card.style.backgroundPosition = 'center';
                 card.querySelector('.ref-card-icon').style.display = 'none';
                 card.querySelector('.ref-card-label').style.display = 'none';
+
+                // Show analyze button when style image is uploaded
+                if (type === 'style' && els.btnAnalyzeStyle) {
+                    els.btnAnalyzeStyle.style.display = 'block';
+                }
             }
             input.value = '';
         });
@@ -110,9 +116,119 @@ function setupUploads() {
             card.style.backgroundImage = '';
             card.querySelector('.ref-card-icon').style.display = 'block';
             card.querySelector('.ref-card-label').style.display = 'block';
+
+            // Hide analyze button when style is removed
+            if (type === 'style' && els.btnAnalyzeStyle) {
+                els.btnAnalyzeStyle.style.display = 'none';
+            }
         });
     });
+
+    // Style Analyzer button
+    if (els.btnAnalyzeStyle) {
+        els.btnAnalyzeStyle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            analyzeStyleReference();
+        });
+    }
 }
+
+/* Style Analyzer */
+async function analyzeStyleReference() {
+    if (!state.images.style) {
+        alert('Сначала загрузи референс стиля');
+        return;
+    }
+
+    // Update button to show loading state
+    els.btnAnalyzeStyle.textContent = '⏳';
+    els.btnAnalyzeStyle.disabled = true;
+
+    try {
+        const res = await fetch('/api/food/analyze-style', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                image: {
+                    base64: state.images.style.base64,
+                    mimeType: state.images.style.mimeType
+                }
+            })
+        });
+
+        const result = await res.json();
+
+        if (result.ok) {
+            applyAnalyzedParams(result.data.params, result.data.confidence);
+
+            // Show summary
+            alert(`✅ Стиль распознан!\n\n${result.data.summary}\n\nПараметры применены автоматически.`);
+        } else {
+            alert(`❌ Ошибка анализа: ${result.error}`);
+        }
+
+    } catch (error) {
+        console.error('[StyleAnalyzer] Error:', error);
+        alert('Ошибка при анализе стиля');
+    } finally {
+        // Reset button
+        els.btnAnalyzeStyle.textContent = '🔍';
+        els.btnAnalyzeStyle.disabled = false;
+    }
+}
+
+function applyAnalyzedParams(params, confidence = {}) {
+    console.log('[StyleAnalyzer] Applying params:', params);
+
+    // Map of param keys to select elements
+    const paramToSelect = {
+        camera: els.selects.camera,
+        angle: els.selects.angle,
+        composition: els.selects.composition,
+        lighting: els.selects.lighting,
+        lightDirection: els.selects.lightDirection,
+        shadows: els.selects.shadows,
+        color: els.selects.color,
+        depth: els.selects.depth,
+        plating: els.selects.plating,
+        surface: els.selects.surface,
+        haptics: els.selects.haptics,
+        mood: els.selects.mood
+    };
+
+    for (const [key, value] of Object.entries(params)) {
+        const select = paramToSelect[key];
+        if (select && value) {
+            // Try to find matching option
+            const option = Array.from(select.options).find(opt => opt.value === value);
+            if (option) {
+                select.value = value;
+
+                // Visual feedback for confidence
+                const conf = confidence[key];
+                if (conf !== undefined) {
+                    // Add temporary style based on confidence
+                    if (conf >= 0.8) {
+                        select.style.borderColor = '#10B981'; // Green for high confidence
+                    } else if (conf >= 0.5) {
+                        select.style.borderColor = '#F59E0B'; // Orange for medium
+                    } else {
+                        select.style.borderColor = '#EF4444'; // Red for low
+                    }
+
+                    // Reset border after delay
+                    setTimeout(() => {
+                        select.style.borderColor = '';
+                    }, 5000);
+                }
+
+                // Trigger change event for sub-params
+                select.dispatchEvent(new Event('change'));
+            }
+        }
+    }
+}
+
 
 async function compressImage(file) {
     return new Promise((resolve) => {

@@ -514,11 +514,15 @@
                                             <button class="ref-card-remove">×</button>
                                         </div>
                                         <div class="ref-card" id="ref-style"
-                                            style="width: 60px; height: 60px; aspect-ratio: 1;">
+                                            style="width: 60px; height: 60px; aspect-ratio: 1; position: relative;">
                                             <input type="file" accept="image/*" hidden>
                                             <div class="ref-card-icon" style="font-size: 16px;">🎨</div>
                                             <div class="ref-card-label" style="font-size: 8px;">Стиль</div>
                                             <button class="ref-card-remove">×</button>
+                                            <button id="btn-analyze-style" title="Анализ стиля" style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); 
+                                                       font-size: 12px; background: var(--color-accent); border: none; 
+                                                       border-radius: 4px; padding: 2px 6px; cursor: pointer; color: white;
+                                                       display: none;">🔍</button>
                                         </div>
                                         <div class="ref-card" id="ref-sketch"
                                             style="width: 60px; height: 60px; aspect-ratio: 1; border-style: dashed;">

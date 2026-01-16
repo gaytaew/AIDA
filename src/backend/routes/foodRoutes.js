@@ -4,6 +4,7 @@
 
 import express from 'express';
 import { generateFoodShootFrame } from '../services/foodGenerator.js';
+import { analyzeStyleReference } from '../services/foodStyleAnalyzer.js';
 import {
     FOOD_CAMERA,
     FOOD_ANGLE,
@@ -31,6 +32,28 @@ import {
 import store from '../store/foodShootStore.js';
 
 const router = express.Router();
+
+/**
+ * POST /api/food/analyze-style
+ * Analyzes a reference image and extracts style parameters
+ */
+router.post('/analyze-style', async (req, res) => {
+    try {
+        const { image } = req.body;
+
+        if (!image?.base64) {
+            return res.status(400).json({ ok: false, error: 'No image provided' });
+        }
+
+        const result = await analyzeStyleReference(image);
+        res.json(result);
+
+    } catch (error) {
+        console.error('[FoodRoutes] analyze-style error:', error);
+        res.status(500).json({ ok: false, error: error.message || 'Analysis failed' });
+    }
+});
+
 
 /**
  * GET /api/food/options
