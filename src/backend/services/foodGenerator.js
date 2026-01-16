@@ -223,9 +223,11 @@ function buildFoodShootPromptDynamic(params, indexMap) {
     const sections = [];
 
     // 1. HYPER-REALISM ROLE
-    sections.push(`ROLE: World-class Food Photographer & Food Stylist.
-SPECIALTY: Hyper-realistic macro food photography.
-GOAL: Create an image indistinguishable from a real photo shot on a Phase One camera.`);
+    // 1. COLLABORATIVE ROLE
+    sections.push(`ROLE: Collaborative Team of Two Experts.
+1. THE PHOTOGRAPHER (Technical): Responsible for Camera, Lighting, Depth, Color, and Image Quality.
+2. THE FOOD STYLIST (Artistic): Responsible for Plating, Composition, Props (Crockery/Surface), and Food State.
+GOAL: Combine technical perfection with artistic vision to create a hyper-realistic, appetizing food shot.`);
 
     // Lookup Specs (Fallback to sensible defaults if missing)
     const cameraSpec = FOOD_CAMERA.options.find(o => o.value === camera)?.spec || 'Standard Lens';
@@ -243,70 +245,33 @@ GOAL: Create an image indistinguishable from a real photo shot on a Phase One ca
     const surfaceSpec = FOOD_SURFACE.options.find(o => o.value === surface)?.spec || '';
     const crockerySpec = FOOD_CROCKERY.options.find(o => o.value === crockery)?.spec || '';
 
-    // 2. MANDATORY ENVIRONMENT (IMMUTABLE)
-    // These settings MUST override any reference image content (e.g. background/plate)
+    // 2. TECHNICAL SPECIFICATIONS (THE PHOTOGRAPHER)
+    // "How it is captured" - Camera, Lens, Lighting, Film Stock
     sections.push(`
-MANDATORY SCENE CONFIG:
-The following environmental settings are HARD REQUIREMENTS.
-If a Reference Image shows a different background or plate, YOU MUST REPLACE IT with the settings below.
-
-SURFACE / BACKGROUND: ${surfaceSpec || 'Neutral'}
-CROCKERY / VESSEL: ${crockerySpec || 'Appropriate for dish'}
-LIGHTING: ${lightingSpec}
-CAMERA: ${cameraSpec}
-ANGLE: ${angleSpec}
+[TECHNICAL SPECIFICATIONS - THE PHOTOGRAPHER]:
+The following settings define the optical and technical properties of the shot.
+CAMERA & LENS: ${cameraSpec}
+LIGHTING SETUP: ${lightingSpec}
+COLOR GRADING: ${colorSpec}
+DEPTH OF FIELD: ${depthSpec}
+IMAGE FORMAT: ${params.aspectRatio || 'Standard'} aspect ratio, High Resolution.
 `);
 
-    // 3. SUBJECT LOGIC (Reference vs Description)
-    // The user wants the STRUCTURE from the reference, but the CONTENT from the text description?
-    // Or strictly the reference content?
-    // Based on "Ignore Prompt" report: The user typed a prompt but it was ignored because "if (indexMap.subject)" block didn't include ${dishDescription}.
-
-    if (indexMap.subject) {
-        // STRICT REFERENCE MODE
-        sections.push(`
-SUBJECT (HYBRID REFERENCE MATCH):
-The image must follow the GEOMETRY and ARRANGEMENT of Reference [$${indexMap.subject}], but match the DESCRIPTION below.
-
-DESCRIPTION (CONTENT):
-"${dishDescription}"
-
-REFERENCE GUIDANCE (STRUCTURE & FORM):
-1. MATCH: Geometric Shape & Form Factor from [$${indexMap.subject}] (CRITICAL).
-   - If Ref is RECTANGULAR, output RECTANGULAR.
-   - If Ref is SQUARE, output SQUARE.
-${changesDescription ?
-                `2. ADAPT: Ingredients & Arrangement MUST follow the "IMPORTANT EDITS" and "DESCRIPTION" below.
-   - You MUST REPLACE ingredients from the reference if the text description asks for something different.
-   - Example: If Ref shows "Sausage" but Description says "Pepperoni" -> MAKE PEPPERONI.
-   - Priority: EDIT > DESCRIPTION > REFERENCE VISUALS (for ingredients only).` :
-                `2. MATCH: Ingredient Arrangement, TEXTURE, and SPECIFIC INGREDIENTS from [$${indexMap.subject}].
-   - Do NOT replace unique ingredients with generic ones.
-   - Example: If Ref has "Rustic Chorizo" (irregular, chunky), DO NOT make "Perfect Round Pepperoni". Copy the REFERENCE visual exactly.`}
-3. BALANCE: The Description below sets the "Concept".
-   - IF EDITS ARE PRESENT: The Description dictates the CONTENT (what food is there). The Reference dictates the FORM (lighting, angle, shape).
-   - IF NO EDITS: Follow the Reference visuals strictly for both content and form.
-
-IMPORTANT OVERRIDES (ENVIRONMENT):
-- **BACKGROUND**: DO NOT COPY the background from Reference [$${indexMap.subject}]. Use the "SURFACE" specified above.
-- **PLATE/DISH**: DO NOT COPY the plate/dish from Reference [$${indexMap.subject}]. Use the "CROCKERY" specified above (or the Surface if appropriate).`);
-
-    } else {
-        // TEXT DESCRIPTION MODE
-        sections.push(`
-SUBJECT (TEXT BASED):
-"${dishDescription}"`);
-    }
-
+    // 3. ARTISTIC DIRECTION (THE STYLIST)
+    // "What is seen" - Composition, Styling, Props, Atmosphere
     sections.push(`
-STYLING DETAILS:
-- ${platingSpec}
-- ${stateSpec}
-- ${textureSpec}
-- ${dynamicsSpec}
-- ${compSpec}
-- ${depthSpec}
-- ${colorSpec}`);
+[ARTISTIC DIRECTION - THE STYLIST]:
+The following settings define the visual composition, mood, and styling.
+COMPOSITION & ANGLE: ${compSpec} | ${angleSpec}
+PLATING STYLE: ${platingSpec}
+FOOD STATE: ${stateSpec}
+JUXTAPOSITION & DYNAMICS: ${dynamicsSpec}
+SURFACE TEXTURE: ${textureSpec}
+
+[SCENE ENVIRONMENT - HARD REQUIREMENTS]:
+SURFACE: ${surfaceSpec || 'Neutral/Appropriate'}
+CROCKERY: ${crockerySpec || 'Appropriate for dish'}
+`);
 
     // 3. OTHER REFERENCES
     const refLines = [];
