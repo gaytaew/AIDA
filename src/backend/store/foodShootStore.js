@@ -56,6 +56,10 @@ async function initStores() {
             await ensureDir(STORE_DIR);
             await ensureDir(IMAGES_DIR);
             console.log('[FoodShootStore] Initialized successfully');
+
+            // Rebuild index on startup to ensure freshness
+            await rebuildIndex();
+            console.log('[FoodShootStore] Index rebuilt on startup');
         } catch (err) {
             console.error('[FoodShootStore] Failed to initialize directories:', err);
             throw err;
