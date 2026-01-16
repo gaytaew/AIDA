@@ -278,9 +278,12 @@ REFERENCE GUIDANCE (STRUCTURE & FORM):
 ${changesDescription ?
                 `2. ADAPT: Ingredient Arrangement from [$${indexMap.subject}] MUST be modified according to the "IMPORTANT EDITS" below.
    - You MUST deviate from the reference arrangement if the edits require it (e.g. moving toppings).` :
-                `2. MATCH: Ingredient Arrangement and Portion Size from [$${indexMap.subject}].`}
-3. IGNORE: The actual food content of [$${indexMap.subject}] IF it conflicts with the Description.
-   - NEW LOGIC: Use Ref for Lighting/Angle/Shape. Use Description for FOOD CONTENT.
+                `2. MATCH: Ingredient Arrangement, TEXTURE, and SPECIFIC INGREDIENTS from [$${indexMap.subject}].
+   - Do NOT replace unique ingredients with generic ones.
+   - Example: If Ref has "Rustic Chorizo" (irregular, chunky), DO NOT make "Perfect Round Pepperoni". Copy the REFERENCE visual exactly.`}
+3. BALANCE: The Description below sets the "Concept", but the Reference sets the "Reality".
+   - If Description says "Pizza", and Reference shows a specific rustic pizza, COPY THE REFERENCE'S VISUALS (crust char, topping irregularity, cheese melt style).
+   - Only use Description for missing details or context not visible in the reference.
 
 IMPORTANT OVERRIDES (ENVIRONMENT):
 - **BACKGROUND**: DO NOT COPY the background from Reference [$${indexMap.subject}]. Use the "SURFACE" specified above.
