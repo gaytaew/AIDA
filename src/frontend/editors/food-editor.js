@@ -586,13 +586,18 @@ async function reloadCurrentShoot() {
             const shoot = json.data;
 
             // Populate history from frames
-            state.history = (shoot.frames || []).map(frame => ({
-                id: frame.id,
-                params: frame.params,
-                createdAt: frame.createdAt,
-                ...(frame.snapshots?.[0] || {}),
-                children: (frame.snapshots || []).slice(1)
-            }));
+            state.history = (shoot.frames || []).map(frame => {
+                const firstSnapshot = frame.snapshots?.[0] || {};
+                return {
+                    frameId: frame.id,
+                    params: frame.params,
+                    createdAt: frame.createdAt,
+                    ...firstSnapshot,
+                    id: frame.id, // Override after spread
+                    snapshotId: firstSnapshot.id,
+                    children: (frame.snapshots || []).slice(1)
+                };
+            });
             renderHistory();
         }
     } catch (e) {
@@ -716,15 +721,22 @@ async function loadShoot(id) {
 
             // Populate history from frames (new hierarchical structure)
             // Frames become top-level items; snapshots are their children
-            state.history = (shoot.frames || []).map(frame => ({
-                id: frame.id,
-                params: frame.params,
-                createdAt: frame.createdAt,
-                // First snapshot image for the main card
-                ...(frame.snapshots?.[0] || {}),
-                // Rest of snapshots become children
-                children: (frame.snapshots || []).slice(1)
-            }));
+            state.history = (shoot.frames || []).map(frame => {
+                const firstSnapshot = frame.snapshots?.[0] || {};
+                return {
+                    // Frame data first
+                    frameId: frame.id, // Preserve frame ID for API calls
+                    params: frame.params,
+                    createdAt: frame.createdAt,
+                    // Merge first snapshot for display (imageUrl, etc.)
+                    ...firstSnapshot,
+                    // But override id with frameId so we can identify the frame
+                    id: frame.id,
+                    snapshotId: firstSnapshot.id, // Keep snapshot ID too
+                    // Rest of snapshots become children
+                    children: (frame.snapshots || []).slice(1)
+                };
+            });
             renderHistory();
 
             closeShootModal();
