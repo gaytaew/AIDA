@@ -201,7 +201,16 @@ async function generate() {
                 };
             }
 
-            addToHistory(newItem);
+            // Add to history (with parent link if refining)
+            addToHistory(newItem, state.refiningParentId || null);
+
+            // Reset refine mode
+            state.refiningParentId = null;
+            state.images.base = null;
+            if (els.btnGenerate) {
+                els.btnGenerate.innerHTML = '<span>📸 Сгенерировать</span>';
+                els.btnGenerate.style.background = '';
+            }
         } else {
             alert('Ошибка: ' + json.error);
         }
@@ -306,96 +315,82 @@ function applyPreset(presetId) {
     safeSet(s.mood, v.mood);
 }
 
-function addToHistory(data) {
-    state.history.unshift(data);
+function addToHistory(data, parentId = null) {
+    if (parentId) {
+        // Find parent and add to its children
+        const parent = state.history.find(item => item.id === parentId);
+        if (parent) {
+            if (!parent.children) parent.children = [];
+            parent.children.push(data);
+        }
+    } else {
+        // New root frame
+        state.history.unshift(data);
+    }
     renderHistory();
 }
 
 function renderHistory() {
     if (!els.historyContainer) return;
 
-    if (!state.currentShoot && state.history.length === 0) {
-        if (els.emptyState) els.emptyState.style.display = 'block';
+    if (state.history.length === 0) {
+        if (els.emptyState) els.emptyState.style.display = 'flex';
         els.historyContainer.innerHTML = '';
         els.historyContainer.appendChild(els.emptyState);
         return;
     }
+    if (els.emptyState) els.emptyState.style.display = 'none';
 
-    // Re-render
-    els.historyContainer.innerHTML = state.history.map((item, idx) => {
-        const p = item.params || {};
-        const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-        let imageUrl = item.imageUrl;
-        // Prefer base64 for immediate display to avoid broken images if server lag
-        if (item.base64) {
-            imageUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
-        } else if (imageUrl && !imageUrl.startsWith('data:')) {
-            // It's a URL
-        } else if (!imageUrl && item.base64) {
-            imageUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
-        }
-
-        // For download, if URL is available it is preferred, but make sure it works!
-        // But for safety, let's just use imageUrl if it exists, hoping it works. 
-        // If not, users can use lightbox?
-        const downloadUrl = item.imageUrl || imageUrl;
-
+    // Build HTML for horizontal tree
+    const html = state.history.map((item, idx) => {
+        const variations = item.children || [];
         return `
-    <div class="selection-card generated-frame-card" style="cursor: default; position: relative;">
-    <div class="history-lock-badges">
-        ${p.surface ? '<span class="history-lock-badge style" title="Surface Set">🪵</span>' : ''}
-        ${p.crockery ? '<span class="history-lock-badge location" title="Crockery Set">🥣</span>' : ''}
-    </div>
-    
-    <div class="selection-card-preview btn-open-lightbox" data-index="${idx}" style="cursor: pointer;" title="Клик для просмотра">
-        <img src="${imageUrl}" loading="lazy" alt="Food Shot" style="object-fit: contain; background: #000; pointer-events: none; width:100%; height: auto;">
-    </div>
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-        <div class="selection-card-title" style="margin: 0; font-size:14px;">${escapeHtml(p.dishDescription || 'Food Shot')}</div>
-        <span style="font-size: 11px; color: var(--color-text-muted);">${dateStr}</span>
-    </div>
-    
-    <div style="font-size: 11px; color: var(--color-text-muted); margin-bottom:8px;">
-        ${p.camera ? `📸 ${p.camera}` : ''} • ${p.lighting ? `💡 ${p.lighting}` : ''}
-    </div>
-
-    <!-- Actions -->
-    <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-        <div style="display: flex; gap: 8px;">
-        <button class="btn btn-secondary" onclick="window.refineHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 2; background: var(--color-accent); color: white;" title="Modify this image">✨ Refine</button>
+        <div class="food-frame-group" data-id="${item.id}">
+            ${renderFrameCard(item, idx, true)}
+            ${variations.length > 0 ? `
+            <div class="food-variations-col">
+                ${variations.map((v, vIdx) => renderFrameCard(v, `${idx}_${vIdx}`, false)).join('')}
+            </div>
+            ` : ''}
         </div>
-        <div style="display: flex; gap: 8px;">
-        <a href="${downloadUrl}" download="food_${idx}.jpg" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾 Save</a>
-        <button class="btn btn-secondary" onclick="window.loadParamsHistory(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Load Params Only">♻️ Load</button>
-        ${!state.currentShoot ?
-                `<button class="btn btn-secondary" onclick="window.deleteHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>` : ''
-            }
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
-        <button class="btn-mini" onclick="window.setReferenceFromHistory(${idx}, 'subject')" title="Use as Subject Ref" style="font-size:10px;">🍲 Ref</button>
-        <button class="btn-mini" onclick="window.setReferenceFromHistory(${idx}, 'crockery')" title="Use as Crockery Ref" style="font-size:10px;">🥣 Crockery</button>
-        <button class="btn-mini" onclick="window.setReferenceFromHistory(${idx}, 'style')" title="Use as Style Ref" style="font-size:10px;">🎨 Style</button>
-        </div>
-    </div>
-    
-    <details style="margin-top: 12px; width: 100%;">
-        <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
-        ⚙️ Детали и Настройки
-        </summary>
-        <div style="margin-top: 10px; text-align: left; font-size: 11px; background: var(--color-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--color-border);">
-        ${buildFoodSettingsHtml(p)}
-        </div>
-    </details>
-    </div>
-`;
+        `;
     }).join('');
 
-    // Attach Lightbox Handlers
+    els.historyContainer.innerHTML = html;
+
+    // Attach event handlers
     document.querySelectorAll('.btn-open-lightbox').forEach(btn => {
         btn.addEventListener('click', () => openLightbox(parseInt(btn.dataset.index)));
     });
+}
+
+function renderFrameCard(item, idx, isMain) {
+    const p = item.params || {};
+    const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+    let imageUrl = item.imageUrl;
+    if (item.base64) {
+        imageUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
+    }
+
+    const cardClass = isMain ? 'food-frame-main' : 'food-frame-variation';
+    const imgSize = isMain ? '100%' : '100%';
+
+    return `
+    <div class="${cardClass}">
+        <div class="btn-open-lightbox" data-index="${idx}" style="cursor: pointer; margin-bottom: 8px;">
+            <img src="${imageUrl}" loading="lazy" alt="Food Shot" style="width: ${imgSize}; border-radius: 8px; display: block;">
+        </div>
+        <div style="font-size: ${isMain ? '13px' : '11px'}; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.dishDescription || 'Food Shot')}</div>
+        <div style="font-size: 10px; color: var(--color-text-muted); margin-bottom: 8px;">${dateStr}</div>
+        
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            <button class="btn-mini" onclick="window.refineHistoryItem('${item.id}')" title="Modify" style="flex: 1;">✨</button>
+            <button class="btn-mini" onclick="window.setReferenceFromHistory('${item.id}', 'subject')" title="Pin as Subject" style="flex: 1;">📌</button>
+            <a href="${imageUrl}" download="food_${idx}.jpg" class="btn-mini" style="flex: 1; text-align: center; text-decoration: none;">💾</a>
+        </div>
+    </div>
+    `;
 }
 
 function buildFoodSettingsHtml(p) {
@@ -452,8 +447,8 @@ function loadParams(params) {
     alert('✅ Загружено из истории!');
 }
 
-window.setReferenceFromHistory = async (index, type) => {
-    const item = state.history[index];
+window.setReferenceFromHistory = async (itemId, type) => {
+    const item = findHistoryItemById(itemId);
     if (!item) return;
 
     // Support both base64 and URL
@@ -468,7 +463,7 @@ window.setReferenceFromHistory = async (index, type) => {
 
     try {
         const blob = await fetch(dataUrl).then(res => res.blob());
-        const file = new File([blob], `history_${index}.jpg`, { type: blob.type });
+        const file = new File([blob], `history_ref.jpg`, { type: blob.type });
         const compressed = await compressImage(file);
 
         state.images[type] = compressed;
@@ -484,15 +479,15 @@ window.setReferenceFromHistory = async (index, type) => {
             card.style.borderColor = '#ffffff';
             setTimeout(() => { card.style.borderColor = ''; }, 300);
         }
-        alert(`Reference [${type}] updated from history!`);
+        alert(`Reference [${type}] updated!`);
     } catch (e) {
         console.error('Failed to set reference', e);
         alert('Failed to load image for reference.');
     }
 };
 
-window.refineHistoryItem = async (index) => {
-    const item = state.history[index];
+window.refineHistoryItem = async (itemId) => {
+    const item = findHistoryItemById(itemId);
     if (!item) return;
 
     // Load Params
@@ -503,7 +498,6 @@ window.refineHistoryItem = async (index) => {
     if (item.base64) {
         base64 = item.base64;
     } else if (item.imageUrl) {
-        // Fetch URL and convert to base64
         try {
             const blob = await fetch(item.imageUrl).then(r => r.blob());
             const reader = new FileReader();
@@ -519,16 +513,29 @@ window.refineHistoryItem = async (index) => {
     }
 
     if (base64) {
-        state.images.base = { base64, mimeType: 'image/jpeg' }; // New state for base image
+        state.images.base = { base64, mimeType: 'image/jpeg' };
+        state.refiningParentId = itemId; // Track parent for tree insertion
         alert('✨ Режим улучшения активирован! Внеси правки и нажми Сгенерировать.');
 
-        // Visual indicator
         if (els.btnGenerate) {
-            els.btnGenerate.textContent = '✨ Refine / Modify';
+            els.btnGenerate.innerHTML = '<span>✨ Refine / Modify</span>';
             els.btnGenerate.style.background = 'var(--color-accent)';
         }
     }
 };
+
+// Helper to find item by ID in nested structure
+function findHistoryItemById(id) {
+    for (const item of state.history) {
+        if (item.id === id) return item;
+        if (item.children) {
+            for (const child of item.children) {
+                if (child.id === id) return child;
+            }
+        }
+    }
+    return null;
+}
 
 /* Shoots UI Logic */
 function setupShootsUI() {
@@ -540,6 +547,19 @@ function setupShootsUI() {
     els.shoot.modal.addEventListener('click', (e) => {
         if (e.target === els.shoot.modal) closeShootModal();
     });
+
+    // Toggle collapsible header
+    const toggleBtn = document.getElementById('toggle-controls');
+    const header = document.getElementById('controls-header');
+    const arrow = document.getElementById('toggle-arrow');
+    if (toggleBtn && header) {
+        toggleBtn.addEventListener('click', (e) => {
+            // Don't toggle if clicking on shoot buttons
+            if (e.target.closest('#btn-new-shoot') || e.target.closest('#btn-load-shoot')) return;
+            header.classList.toggle('collapsed');
+            if (arrow) arrow.textContent = header.classList.contains('collapsed') ? '▶' : '▼';
+        });
+    }
 }
 
 async function handleNewShoot() {

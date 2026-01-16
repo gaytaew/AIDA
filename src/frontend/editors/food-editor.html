@@ -9,11 +9,97 @@
     <link rel="stylesheet" href="../composer/shoot-composer-styles.css">
     <style>
         /* Specific styles for Food Editor */
-        .grid-Layout {
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 24px;
+        /* NEW LAYOUT: Header + Horizontal Stream */
+        .food-layout {
+            display: flex;
+            flex-direction: column;
             height: calc(100vh - 100px);
+            gap: 16px;
+        }
+
+        .food-controls-header {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--color-border);
+            flex-shrink: 0;
+        }
+
+        .food-controls-header.collapsed .header-body {
+            display: none;
+        }
+
+        .food-controls-header .header-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: 12px;
+        }
+
+        .food-controls-header.collapsed .header-toggle {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .food-stream-area {
+            flex: 1;
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .food-stream {
+            display: flex;
+            flex-direction: row;
+            gap: 24px;
+            min-height: 100%;
+            align-items: flex-start;
+            padding-bottom: 16px;
+            /* Scrollbar compensation */
+        }
+
+        .food-frame-group {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .food-frame-main {
+            width: 320px;
+            background: var(--color-surface);
+            border-radius: 12px;
+            border: 2px solid var(--color-accent);
+            padding: 12px;
+            flex-shrink: 0;
+        }
+
+        .food-frame-variation {
+            width: 200px;
+            background: var(--color-surface);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            padding: 8px;
+            flex-shrink: 0;
+            opacity: 0.85;
+        }
+
+        .food-frame-variation:hover {
+            opacity: 1;
+            border-color: var(--color-accent);
+        }
+
+        .food-variations-col {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .panel-scroll {
@@ -269,219 +355,155 @@
             </header>
 
             <div class="page-content" style="overflow: hidden;">
-                <div class="grid-Layout">
+                <div class="food-layout">
 
-                    <!-- LEFT: Controls -->
-                    <div class="panel-scroll">
-
-                        <!-- Shoot Manager (New) -->
-                        <div class="form-group"
-                            style="margin-bottom: 24px; background: rgba(34, 197, 94, 0.05); padding: 12px; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.1);">
-                            <label class="form-label"
-                                style="color: var(--color-success); display: flex; justify-content: space-between; align-items: center;">
-                                <span>📁 Съёмка / Сессия</span>
-                                <span id="current-shoot-label" style="font-weight: 400; opacity: 0.7;">(Не
+                    <!-- COLLAPSIBLE HEADER: Controls -->
+                    <div class="food-controls-header" id="controls-header">
+                        <div class="header-toggle" id="toggle-controls">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 18px;">⚙️</span>
+                                <span style="font-weight: 600;">Параметры Генерации</span>
+                                <span id="current-shoot-label"
+                                    style="font-size: 12px; opacity: 0.7; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;">(Не
                                     сохраняется)</span>
-                            </label>
-                            <div style="display: flex; gap: 8px; margin-top: 8px;">
-                                <button id="btn-new-shoot" class="btn-mini" style="flex: 1; padding: 8px;">+
-                                    Новая</button>
-                                <button id="btn-load-shoot" class="btn-mini" style="flex: 1; padding: 8px;">📂
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button id="btn-new-shoot" class="btn-mini" style="padding: 6px 12px;">+ Новая
+                                    съёмка</button>
+                                <button id="btn-load-shoot" class="btn-mini" style="padding: 6px 12px;">📂
                                     Открыть</button>
+                                <span id="toggle-arrow" style="font-size: 18px;">▼</span>
                             </div>
                         </div>
 
-                        <!-- Description -->
-                        <div class="form-group">
-                            <label class="form-label">Что готовим? (Блюдо)</label>
-                            <textarea id="dish-desc" class="form-input" rows="3"
-                                placeholder="Свежий круассан с миндалем и сахарной пудрой..."></textarea>
-                        </div>
+                        <div class="header-body">
+                            <!-- Main Form Grid -->
+                            <div
+                                style="display: grid; grid-template-columns: 1fr 1fr 1fr 300px; gap: 16px; align-items: start;">
 
-                        <!-- Presets -->
-                        <div class="form-group"
-                            style="margin-bottom: 24px; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
-                            <label class="form-label" style="color: var(--color-accent);">✨ Быстрый старт
-                                (Пресет)</label>
-                            <select id="param-preset" class="form-select">
-                                <option value="">-- Выберите стиль --</option>
-                            </select>
-                        </div>
-
-                        <!-- Group 1: Technical (Photographer) -->
-                        <div class="param-group">
-                            <span class="param-label" style="color: var(--color-primary);">📷 Технические параметры
-                                (Фотограф)</span>
-                            <div style="display: grid; gap: 12px;">
-                                <!-- Camera & Lighting -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Камера & Линза</label>
-                                        <select id="param-camera" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Схема Света</label>
-                                        <select id="param-lighting" class="form-select"></select>
-                                    </div>
-                                </div>
-                                <!-- Color & Depth -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Цвет / Грейдинг</label>
-                                        <select id="param-color" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Глубина (Боке)</label>
-                                        <select id="param-depth" class="form-select"></select>
-                                    </div>
-                                </div>
-                                <!-- Format & Size -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Формат</label>
-                                        <select id="param-aspectRatio" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Размер</label>
-                                        <select id="param-imageSize" class="form-select"></select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Group 2: Artistic (Stylist) -->
-                        <div class="param-group">
-                            <span class="param-label" style="color: var(--color-accent);">🎨 Художественные параметры
-                                (Стилист)</span>
-                            <div style="display: grid; gap: 12px;">
-                                <!-- Mood (Atmosphere) - NEW PHASE 7 -->
+                                <!-- Col 1: Dish + Preset -->
                                 <div>
-                                    <label class="form-label-mini">✨ Атмосфера / Настроение</label>
-                                    <select id="param-mood" class="form-select"></select>
-                                </div>
-                                <!-- Angle & Composition -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Ракурс</label>
-                                        <select id="param-angle" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Композиция</label>
-                                        <select id="param-composition" class="form-select"></select>
+                                    <label class="form-label" style="font-size: 11px;">Что готовим?</label>
+                                    <textarea id="dish-desc" class="form-input" rows="2"
+                                        placeholder="Свежий круассан..." style="font-size: 12px;"></textarea>
+                                    <div style="margin-top: 8px;">
+                                        <label class="form-label" style="font-size: 11px;">Пресет</label>
+                                        <select id="param-preset" class="form-select" style="font-size: 12px;">
+                                            <option value="">--</option>
+                                        </select>
                                     </div>
                                 </div>
-                                <!-- Plating & State -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Стиль Подачи</label>
-                                        <select id="param-plating" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Состояние Еды</label>
-                                        <select id="param-state" class="form-select"></select>
-                                    </div>
-                                </div>
-                                <!-- Surface & Crockery -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Поверхность</label>
-                                        <select id="param-surface" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Посуда</label>
-                                        <select id="param-crockery" class="form-select"></select>
-                                    </div>
-                                </div>
-                                <!-- Texture & Dynamics -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <div>
-                                        <label class="form-label-mini">Фактура</label>
-                                        <select id="param-texture" class="form-select"></select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label-mini">Динамика</label>
-                                        <select id="param-dynamics" class="form-select"></select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- References -->
-                        <div class="param-group">
-                            <span class="param-label">Референсы</span>
-                            <div class="ref-zones" style="grid-template-columns: 1fr 1fr !important;">
-                                <!-- Slot 1: Subject -->
-                                <div style="display: flex; flex-direction: column; gap: 8px;">
-                                    <div class="ref-card" id="ref-subject">
-                                        <input type="file" accept="image/*" hidden>
-                                        <div class="ref-card-icon">🍲</div>
-                                        <div class="ref-card-label">Блюдо<br>(Ref)</div>
-                                        <div class="ref-content"></div>
-                                        <button class="ref-card-remove">×</button>
+                                <!-- Col 2: Technical Params -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                    <div><label class="form-label" style="font-size: 10px;">Камера</label><select
+                                            id="param-camera" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Свет</label><select
+                                            id="param-lighting" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Цвет</label><select
+                                            id="param-color" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Глубина</label><select
+                                            id="param-depth" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Формат</label><select
+                                            id="param-aspectRatio" class="form-select"
+                                            style="font-size: 11px;"></select></div>
+                                    <div><label class="form-label" style="font-size: 10px;">Размер</label><select
+                                            id="param-imageSize" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                </div>
+
+                                <!-- Col 3: Artistic Params -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                    <div><label class="form-label" style="font-size: 10px;">Атмосфера</label><select
+                                            id="param-mood" class="form-select" style="font-size: 11px;"></select></div>
+                                    <div><label class="form-label" style="font-size: 10px;">Ракурс</label><select
+                                            id="param-angle" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Композиция</label><select
+                                            id="param-composition" class="form-select"
+                                            style="font-size: 11px;"></select></div>
+                                    <div><label class="form-label" style="font-size: 10px;">Подача</label><select
+                                            id="param-plating" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Поверхность</label><select
+                                            id="param-surface" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Посуда</label><select
+                                            id="param-crockery" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Фактура</label><select
+                                            id="param-texture" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Динамика</label><select
+                                            id="param-dynamics" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Состояние</label><select
+                                            id="param-state" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                </div>
+
+                                <!-- Col 4: References + Generate -->
+                                <div>
+                                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                        <div class="ref-card" id="ref-subject"
+                                            style="width: 60px; height: 60px; aspect-ratio: 1;">
+                                            <input type="file" accept="image/*" hidden>
+                                            <div class="ref-card-icon" style="font-size: 16px;">🍲</div>
+                                            <div class="ref-card-label" style="font-size: 8px;">Блюдо</div>
+                                            <button class="ref-card-remove">×</button>
+                                        </div>
+                                        <div class="ref-card" id="ref-crockery"
+                                            style="width: 60px; height: 60px; aspect-ratio: 1; border-color: var(--color-accent);">
+                                            <input type="file" accept="image/*" hidden>
+                                            <div class="ref-card-icon" style="font-size: 16px;">🍽️</div>
+                                            <div class="ref-card-label" style="font-size: 8px;">Посуда</div>
+                                            <button class="ref-card-remove">×</button>
+                                        </div>
+                                        <div class="ref-card" id="ref-style"
+                                            style="width: 60px; height: 60px; aspect-ratio: 1;">
+                                            <input type="file" accept="image/*" hidden>
+                                            <div class="ref-card-icon" style="font-size: 16px;">🎨</div>
+                                            <div class="ref-card-label" style="font-size: 8px;">Стиль</div>
+                                            <button class="ref-card-remove">×</button>
+                                        </div>
+                                        <div class="ref-card" id="ref-sketch"
+                                            style="width: 60px; height: 60px; aspect-ratio: 1; border-style: dashed;">
+                                            <input type="file" accept="image/*" hidden>
+                                            <div class="ref-card-icon" style="font-size: 16px;">✏️</div>
+                                            <div class="ref-card-label" style="font-size: 8px;">Эскиз</div>
+                                            <button class="ref-card-remove">×</button>
+                                        </div>
                                     </div>
                                     <input type="text" id="changes-desc" class="form-input"
-                                        style="font-size: 11px; padding: 4px;"
+                                        style="font-size: 11px; padding: 6px; margin-bottom: 8px;"
                                         placeholder="Что изменить? (напр. добавить пар)">
-                                </div>
-
-                                <!-- Slot 2: Crockery -->
-                                <div class="ref-card" id="ref-crockery"
-                                    style="border-color: var(--color-accent); background: rgba(139, 92, 246, 0.05);">
-                                    <input type="file" accept="image/*" hidden>
-                                    <div class="ref-card-icon">🍽️</div>
-                                    <div class="ref-card-label">Посуда<br>(Важно!)</div>
-                                    <div class="ref-content"></div>
-                                    <button class="ref-card-remove">×</button>
-                                </div>
-
-                                <!-- Slot 3: Style -->
-                                <div class="ref-card" id="ref-style">
-                                    <input type="file" accept="image/*" hidden>
-                                    <div class="ref-card-icon">🎨</div>
-                                    <div class="ref-card-label">Стиль<br>(Optional)</div>
-                                    <div class="ref-content"></div>
-                                    <button class="ref-card-remove">×</button>
-                                </div>
-
-                                <!-- Slot 4: Sketch (New Phase 8) -->
-                                <div class="ref-card" id="ref-sketch"
-                                    style="border-color: var(--color-text-muted); border-style: dashed;">
-                                    <input type="file" accept="image/*" hidden>
-                                    <div class="ref-card-icon">✏️</div>
-                                    <div class="ref-card-label">Эскиз<br>(Geometry)</div>
-                                    <div class="ref-content"></div>
-                                    <button class="ref-card-remove">×</button>
+                                    <button id="btn-generate" class="btn btn-primary btn-full" style="padding: 10px;">
+                                        <span>📸 Сгенерировать</span>
+                                    </button>
+                                    <div id="gen-status"
+                                        style="text-align: center; margin-top: 6px; font-size: 11px; color: var(--color-text-muted); display: none;">
+                                        <span class="spinner"></span> Генерирую...
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="actions">
-                            <button id="btn-generate" class="btn btn-primary btn-full btn-lg">
-                                <span>📸 Сгенерировать</span>
-                            </button>
-                            <div id="gen-status"
-                                style="text-align: center; margin-top: 10px; font-size: 13px; color: var(--color-text-muted); display: none;">
-                                <span class="spinner"></span> Генерирую...
-                            </div>
-                        </div>
-
                     </div>
 
-                    <!-- RIGHT: Gallery -->
-                    <div class="panel-scroll"
-                        style="background: var(--color-bg-secondary); border-radius: 12px; padding: 24px;">
-
-                        <div id="history-container"
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                    <!-- HORIZONTAL STREAM: Results -->
+                    <div class="food-stream-area">
+                        <div class="food-stream" id="history-container">
                             <!-- Empty State -->
                             <div class="empty-state" id="empty-state"
-                                style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--color-text-muted);">
+                                style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-muted); min-width: 300px;">
                                 <div style="font-size: 48px; margin-bottom: 16px;">🍔</div>
                                 <h3>История генераций</h3>
-                                <p>Результаты будут появляться здесь</p>
+                                <p>Результаты будут появляться здесь →</p>
                             </div>
                         </div>
-
                     </div>
 
                 </div>
