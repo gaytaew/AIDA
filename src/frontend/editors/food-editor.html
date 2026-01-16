@@ -49,18 +49,14 @@
             background: var(--color-bg-secondary);
             border-radius: 12px;
             padding: 16px;
-            overflow-x: auto;
-            /* Allow horizontal scroll for wide content */
+            /* No overflow here, let content determine height */
         }
 
         .food-stream {
             display: flex;
-            flex-direction: row;
-            gap: 24px;
-            min-height: 100%;
-            align-items: flex-start;
-            padding-bottom: 16px;
-            /* Scrollbar compensation */
+            flex-direction: column;
+            /* Stack frame groups vertically */
+            gap: 16px;
         }
 
         .food-frame-group {
@@ -68,26 +64,34 @@
             flex-direction: row;
             align-items: flex-start;
             gap: 12px;
-            flex-shrink: 0;
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--color-border);
+            overflow-x: auto;
+            /* Internal horizontal scroll */
+            overflow-y: hidden;
         }
 
         .food-frame-main {
-            width: 320px;
-            background: var(--color-surface);
-            border-radius: 12px;
+            width: 280px;
+            min-width: 280px;
+            background: var(--color-surface-elevated);
+            border-radius: 8px;
             border: 2px solid var(--color-accent);
             padding: 12px;
             flex-shrink: 0;
         }
 
         .food-frame-variation {
-            width: 200px;
-            background: var(--color-surface);
+            width: 180px;
+            min-width: 180px;
+            background: var(--color-surface-elevated);
             border-radius: 8px;
             border: 1px solid var(--color-border);
             padding: 8px;
             flex-shrink: 0;
-            opacity: 0.85;
+            opacity: 0.9;
         }
 
         .food-frame-variation:hover {
@@ -95,10 +99,11 @@
             border-color: var(--color-accent);
         }
 
-        .food-variations-col {
+        .food-variations-row {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 8px;
+            align-items: flex-start;
         }
 
         .panel-scroll {

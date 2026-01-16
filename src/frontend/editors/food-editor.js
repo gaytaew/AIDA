@@ -348,7 +348,7 @@ function renderHistory() {
         <div class="food-frame-group" data-id="${item.id}">
             ${renderFrameCard(item, idx, true)}
             ${variations.length > 0 ? `
-            <div class="food-variations-col">
+            <div class="food-variations-row">
                 ${variations.map((v, vIdx) => renderFrameCard(v, `${idx}_${vIdx}`, false)).join('')}
             </div>
             ` : ''}
