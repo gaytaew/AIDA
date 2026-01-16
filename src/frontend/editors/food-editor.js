@@ -188,12 +188,13 @@ async function generate() {
                 // even if the file isn't served correctly yet
                 newItem = {
                     ...json.data.savedImage,
-                    base64: json.data.image ? json.data.image.base64 : null,
+                    base64: json.data.base64 || (json.data.image ? json.data.image.base64 : null),
                     mimeType: 'image/jpeg'
                 };
             } else {
+                // Fallback for non-shoot generation
                 newItem = {
-                    ...json.data.image,
+                    ...json.data, // json.data IS the image object
                     params: json.data.params,
                     createdAt: new Date().toISOString()
                 };
