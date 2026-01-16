@@ -44,6 +44,8 @@ const els = {
     subContainers: {
         camera: document.getElementById('sub-camera'),
         angle: document.getElementById('sub-angle'),
+        composition: document.getElementById('sub-composition'),
+        lighting: document.getElementById('sub-lighting'),
         lightDirection: document.getElementById('sub-lightDirection'),
         haptics: document.getElementById('sub-haptics')
     },
@@ -273,6 +275,8 @@ function setupSubParams() {
     const paramConfigs = {
         camera: 'camera',
         angle: 'angle',
+        composition: 'composition',
+        lighting: 'lighting',
         lightDirection: 'lightDirection',
         haptics: 'haptics'
     };

@@ -19,15 +19,39 @@ export const FOOD_CAMERA = {
             label: 'Macro 100mm (Ultra Detail)',
             spec: 'LENS: 100mm Macro. Extreme close-up, razor-thin depth of field. Focus on texture, droplets, crumbs. Background completely blurred.',
             constraints: { shotSize: 'macro', dof: 'shallow' },
-            subParams: [{
-                id: 'macroDistance',
-                label: 'Дистанция',
-                options: [
-                    { value: '10cm', label: '10 см (Extreme)', spec: 'MACRO DISTANCE: 10cm. Extreme detail, single ingredient in frame.' },
-                    { value: '20cm', label: '20 см (Detail)', spec: 'MACRO DISTANCE: 20cm. Detailed view of main portion.' },
-                    { value: '30cm', label: '30 см (Soft Macro)', spec: 'MACRO DISTANCE: 30cm. Soft macro, entire dish visible with detail.' }
-                ]
-            }]
+            subParams: [
+                {
+                    id: 'macroDistance',
+                    label: 'Дистанция',
+                    options: [
+                        { value: '10cm', label: '10 см (Extreme)', spec: 'MACRO DISTANCE: 10cm. Extreme detail, single ingredient in frame.' },
+                        { value: '20cm', label: '20 см (Detail)', spec: 'MACRO DISTANCE: 20cm. Detailed view of main portion.' },
+                        { value: '30cm', label: '30 см (Soft Macro)', spec: 'MACRO DISTANCE: 30cm. Soft macro, entire dish visible with detail.' }
+                    ]
+                },
+                {
+                    id: 'focusZone',
+                    label: 'Зона фокуса',
+                    options: [
+                        { value: 'center', label: 'Центр', spec: 'FOCUS ZONE: Center of dish, main element in sharp focus.' },
+                        { value: 'edge', label: 'Край', spec: 'FOCUS ZONE: Edge of dish, rim or border detail.' },
+                        { value: 'filling', label: 'Начинка', spec: 'FOCUS ZONE: Inner filling or stuffing, layer detail.' },
+                        { value: 'topping', label: 'Топпинг', spec: 'FOCUS ZONE: Top garnish, drizzle, or decorative element.' },
+                        { value: 'texture', label: 'Текстура', spec: 'FOCUS ZONE: Surface texture, crust, crumb, or grain detail.' }
+                    ]
+                },
+                {
+                    id: 'framePosition',
+                    label: 'Позиция кадра',
+                    options: [
+                        { value: 'center', label: 'Центр', spec: 'FRAME POSITION: Centered framing.' },
+                        { value: 'top_left', label: 'Лево-верх', spec: 'FRAME POSITION: Camera focused on top-left area of subject.' },
+                        { value: 'top_right', label: 'Право-верх', spec: 'FRAME POSITION: Camera focused on top-right area of subject.' },
+                        { value: 'bottom_left', label: 'Лево-низ', spec: 'FRAME POSITION: Camera focused on bottom-left area of subject.' },
+                        { value: 'bottom_right', label: 'Право-низ', spec: 'FRAME POSITION: Camera focused on bottom-right area of subject.' }
+                    ]
+                }
+            ]
         },
         {
             value: 'standard_50mm',
@@ -112,12 +136,32 @@ export const FOOD_COMPOSITION = {
         {
             value: 'rule_of_thirds',
             label: 'Правило третей',
-            spec: 'COMPOSITION: Rule of Thirds. Subject placed off-center at intersection points. Dynamic negative space.'
+            spec: 'COMPOSITION: Rule of Thirds. Subject placed off-center at intersection points. Dynamic negative space.',
+            subParams: [{
+                id: 'thirdsPoint',
+                label: 'Точка интереса',
+                options: [
+                    { value: 'top_left', label: 'Лево-верх', spec: 'THIRDS POINT: Subject at top-left intersection.' },
+                    { value: 'top_right', label: 'Право-верх', spec: 'THIRDS POINT: Subject at top-right intersection.' },
+                    { value: 'bottom_left', label: 'Лево-низ', spec: 'THIRDS POINT: Subject at bottom-left intersection.' },
+                    { value: 'bottom_right', label: 'Право-низ', spec: 'THIRDS POINT: Subject at bottom-right intersection.' }
+                ]
+            }]
         },
         {
             value: 'minimal',
             label: 'Минимализм (Negative Space)',
-            spec: 'COMPOSITION: Minimalist. Huge negative space, small subject. Clean, airy, elegant.'
+            spec: 'COMPOSITION: Minimalist. Huge negative space, small subject. Clean, airy, elegant.',
+            subParams: [{
+                id: 'negativeSpace',
+                label: 'Пространство',
+                options: [
+                    { value: 'top', label: 'Сверху', spec: 'NEGATIVE SPACE: Large empty area above subject.' },
+                    { value: 'bottom', label: 'Снизу', spec: 'NEGATIVE SPACE: Large empty area below subject.' },
+                    { value: 'left', label: 'Слева', spec: 'NEGATIVE SPACE: Large empty area to the left of subject.' },
+                    { value: 'right', label: 'Справа', spec: 'NEGATIVE SPACE: Large empty area to the right of subject.' }
+                ]
+            }]
         },
         {
             value: 'knolling',
@@ -126,6 +170,7 @@ export const FOOD_COMPOSITION = {
         }
     ]
 };
+
 
 export const FOOD_DEPTH = {
     id: 'depth',
@@ -187,19 +232,46 @@ export const FOOD_LIGHTING = {
             value: 'natural_window',
             label: 'Окно (Soft)',
             spec: 'LIGHT SOURCE: Soft directional window light. Gentle gradients, appetizing highlights.',
-            constraints: { source: 'window', quality: 'soft' }
+            constraints: { source: 'window', quality: 'soft' },
+            subParams: [{
+                id: 'timeOfDay',
+                label: 'Время суток',
+                options: [
+                    { value: 'morning', label: 'Утро', spec: 'TIME OF DAY: Morning golden light, warm soft glow.' },
+                    { value: 'midday', label: 'День', spec: 'TIME OF DAY: Midday neutral white light, crisp and clean.' },
+                    { value: 'sunset', label: 'Закат', spec: 'TIME OF DAY: Sunset warm orange-red light, romantic atmosphere.' }
+                ]
+            }]
         },
         {
             value: 'hard_sun',
             label: 'Прямое солнце (Hard)',
             spec: 'LIGHT SOURCE: Direct hard sunlight. High contrast, vibrant colors. Pop aesthetic.',
-            constraints: { source: 'sun', quality: 'hard' }
+            constraints: { source: 'sun', quality: 'hard' },
+            subParams: [{
+                id: 'sunIntensity',
+                label: 'Интенсивность',
+                options: [
+                    { value: 'soft', label: 'Мягче', spec: 'SUN INTENSITY: Slightly diffused, less harsh shadows.' },
+                    { value: 'standard', label: 'Стандарт', spec: 'SUN INTENSITY: Standard direct sunlight.' },
+                    { value: 'bright', label: 'Ярче', spec: 'SUN INTENSITY: Extra bright, high contrast, vivid colors.' }
+                ]
+            }]
         },
         {
             value: 'dark_moody',
             label: 'Chiaroscuro (Moody)',
             spec: 'LIGHT SOURCE: Low key, dramatic. Subject highlighted, background in deep shadow.',
-            constraints: { source: 'controlled', quality: 'chiaroscuro' }
+            constraints: { source: 'controlled', quality: 'chiaroscuro' },
+            subParams: [{
+                id: 'shadowDepth',
+                label: 'Глубина теней',
+                options: [
+                    { value: 'medium', label: 'Средняя', spec: 'SHADOW DEPTH: Medium shadows, some background detail visible.' },
+                    { value: 'deep', label: 'Глубокая', spec: 'SHADOW DEPTH: Deep shadows, minimal background visibility.' },
+                    { value: 'absolute', label: 'Абсолютная', spec: 'SHADOW DEPTH: Near-black background, dramatic isolation.' }
+                ]
+            }]
         },
         {
             value: 'studio_clean',
@@ -211,10 +283,20 @@ export const FOOD_LIGHTING = {
             value: 'candlelight',
             label: 'Свечи (Warm Evening)',
             spec: 'LIGHT SOURCE: Candlelight or firelight. Warm orange glow, deep shadows, intimate.',
-            constraints: { source: 'candle', quality: 'warm' }
+            constraints: { source: 'candle', quality: 'warm' },
+            subParams: [{
+                id: 'candleCount',
+                label: 'Количество',
+                options: [
+                    { value: 'one', label: 'Одна', spec: 'CANDLES: Single candle, focused warm glow.' },
+                    { value: 'few', label: 'Несколько', spec: 'CANDLES: Multiple candles, richer ambient light.' },
+                    { value: 'many', label: 'Много', spec: 'CANDLES: Many candles, festive, bright warm atmosphere.' }
+                ]
+            }]
         }
     ]
 };
+
 
 // NEW: Light Direction (Critical for food texture!)
 export const FOOD_LIGHT_DIRECTION = {
