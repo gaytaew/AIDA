@@ -16,13 +16,36 @@ const state = {
 
 // Elements
 const els = {
-    // ... (existing elements)
+    dishDesc: document.getElementById('dish-desc'),
+    selects: {
+        preset: document.getElementById('param-preset'),
+        camera: document.getElementById('param-camera'),
+        angle: document.getElementById('param-angle'),
+        composition: document.getElementById('param-composition'),
+        depth: document.getElementById('param-depth'),
+        lighting: document.getElementById('param-lighting'),
+        color: document.getElementById('param-color'),
+        plating: document.getElementById('param-plating'),
+        texture: document.getElementById('param-texture'),
+        surface: document.getElementById('param-surface'),
+        crockery: document.getElementById('param-crockery'),
+        dynamics: document.getElementById('param-dynamics'),
+        state: document.getElementById('param-state'),
+        mood: document.getElementById('param-mood'),
+        aspectRatio: document.getElementById('param-aspectRatio'),
+        imageSize: document.getElementById('param-imageSize')
+    },
     refs: {
         subject: document.getElementById('ref-subject'),
         crockery: document.getElementById('ref-crockery'),
         style: document.getElementById('ref-style'),
-        sketch: document.getElementById('ref-sketch') // Phase 8
-    }
+        sketch: document.getElementById('ref-sketch')
+    },
+    changesDesc: document.getElementById('changes-desc'),
+    btnGenerate: document.getElementById('btn-generate'),
+    genStatus: document.getElementById('gen-status'),
+    historyContainer: document.getElementById('history-container'),
+    emptyState: document.getElementById('empty-state')
 };
 
 // ...
