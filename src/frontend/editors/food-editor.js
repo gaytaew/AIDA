@@ -240,6 +240,18 @@ async function init() {
             applyPreset(e.target.value);
         });
     }
+
+    // Auto-load last active shoot from localStorage
+    const lastShootId = localStorage.getItem('food_currentShootId');
+    if (lastShootId) {
+        try {
+            await loadShoot(lastShootId);
+            console.log('[FoodEditor] Auto-loaded last shoot:', lastShootId);
+        } catch (e) {
+            console.warn('[FoodEditor] Failed to auto-load shoot, clearing:', e);
+            localStorage.removeItem('food_currentShootId');
+        }
+    }
 }
 
 async function loadOptions() {
@@ -670,6 +682,9 @@ function setCurrentShoot(shoot) {
     els.shoot.label.textContent = shoot.label;
     els.shoot.label.style.fontWeight = 'bold';
     els.shoot.label.style.opacity = '1';
+
+    // Persist to localStorage for page refresh
+    localStorage.setItem('food_currentShootId', shoot.id);
 }
 
 /* Lightbox Logic */
