@@ -5,7 +5,8 @@
 // State
 const state = {
     options: null,
-    history: [], // Array of generated results
+    history: [], // Array of generated results ({ params, base64/imageUrl, ... })
+    currentShoot: null, // { id, label }
     images: {
         subject: null,
         crockery: null,
@@ -41,14 +42,20 @@ const els = {
         style: document.getElementById('ref-style'),
         sketch: document.getElementById('ref-sketch')
     },
+    shoot: {
+        label: document.getElementById('current-shoot-label'),
+        btnNew: document.getElementById('btn-new-shoot'),
+        btnLoad: document.getElementById('btn-load-shoot'),
+        modal: document.getElementById('shoot-modal'),
+        modalList: document.getElementById('shoot-list'),
+        modalClose: document.getElementById('close-shoot-modal')
+    },
     changesDesc: document.getElementById('changes-desc'),
     btnGenerate: document.getElementById('btn-generate'),
     genStatus: document.getElementById('gen-status'),
     historyContainer: document.getElementById('history-container'),
     emptyState: document.getElementById('empty-state')
 };
-
-// ...
 
 /* 3. File Upload Logic */
 function setupUploads() {
@@ -161,7 +168,8 @@ async function generate() {
             subjectImage: state.images.subject,
             crockeryImage: state.images.crockery,
             styleImage: state.images.style,
-            sketchImage: state.images.sketch
+            sketchImage: state.images.sketch,
+            shootId: state.currentShoot?.id
         };
 
         const res = await fetch('/api/food/generate', {
@@ -173,7 +181,19 @@ async function generate() {
         const json = await res.json();
 
         if (json.ok) {
-            addToHistory(json.data);
+            // If savedImage is returned (persistence active), use it.
+            let newItem;
+            if (json.data.savedImage) {
+                newItem = json.data.savedImage;
+            } else {
+                newItem = {
+                    ...json.data.image,
+                    params: json.data.params,
+                    createdAt: new Date().toISOString()
+                };
+            }
+
+            addToHistory(newItem);
         } else {
             alert('Ошибка: ' + json.error);
         }
@@ -192,6 +212,7 @@ async function generate() {
 async function init() {
     await loadOptions();
     setupUploads();
+    setupShootsUI();
 
     if (els.btnGenerate) {
         els.btnGenerate.addEventListener('click', generate);
@@ -285,7 +306,7 @@ function addToHistory(data) {
 function renderHistory() {
     if (!els.historyContainer) return;
 
-    if (state.history.length === 0) {
+    if (!state.currentShoot && state.history.length === 0) {
         if (els.emptyState) els.emptyState.style.display = 'block';
         els.historyContainer.innerHTML = '';
         els.historyContainer.appendChild(els.emptyState);
@@ -296,7 +317,11 @@ function renderHistory() {
     els.historyContainer.innerHTML = state.history.map((item, idx) => {
         const p = item.params || {};
         const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        const imageUrl = `data:${item.mimeType};base64,${item.base64}`;
+
+        let imageUrl = item.imageUrl;
+        if (!imageUrl && item.base64) {
+            imageUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
+        }
 
         return `
     <div class="selection-card generated-frame-card" style="cursor: default; position: relative;">
@@ -306,7 +331,7 @@ function renderHistory() {
     </div>
     
     <div class="selection-card-preview btn-open-lightbox" data-index="${idx}" style="cursor: pointer;" title="Клик для просмотра">
-        <img src="${imageUrl}" alt="Food Shot" style="object-fit: contain; background: #000; pointer-events: none; width:100%; height: auto;">
+        <img src="${imageUrl}" loading="lazy" alt="Food Shot" style="object-fit: contain; background: #000; pointer-events: none; width:100%; height: auto;">
     </div>
     
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
@@ -323,7 +348,9 @@ function renderHistory() {
         <div style="display: flex; gap: 8px;">
         <a href="${imageUrl}" download="food_${idx}.jpg" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾 Save</a>
         <button class="btn btn-secondary" onclick="window.loadParamsHistory(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Load Params">♻️ Load</button>
-        <button class="btn btn-secondary" onclick="window.deleteHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>
+        ${!state.currentShoot ?
+                `<button class="btn btn-secondary" onclick="window.deleteHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>` : ''
+            }
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
         <button class="btn-mini" onclick="window.setReferenceFromHistory(${idx}, 'subject')" title="Use as Subject Ref" style="font-size:10px;">🍲 Ref</button>
@@ -407,25 +434,163 @@ function loadParams(params) {
 window.setReferenceFromHistory = async (index, type) => {
     const item = state.history[index];
     if (!item) return;
-    const dataUrl = `data:${item.mimeType};base64,${item.base64}`;
-    const blob = await fetch(dataUrl).then(res => res.blob());
-    const file = new File([blob], `history_${index}.jpg`, { type: item.mimeType });
-    const compressed = await compressImage(file);
-    state.images[type] = compressed;
-    const card = els.refs[type];
-    if (card) {
-        card.classList.add('has-image');
-        card.style.backgroundImage = `url(${compressed.dataUrl})`;
-        card.style.backgroundSize = 'cover';
-        card.style.backgroundPosition = 'center';
-        card.querySelector('.ref-card-icon').style.display = 'none';
-        card.querySelector('.ref-card-label').style.display = 'none';
-        card.style.transition = 'border-color 0.2s';
-        card.style.borderColor = '#ffffff';
-        setTimeout(() => { card.style.borderColor = ''; }, 300);
+
+    // Support both base64 and URL
+    let dataUrl;
+    if (item.base64) {
+        dataUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
+    } else if (item.imageUrl) {
+        dataUrl = item.imageUrl;
+    } else {
+        return;
     }
-    alert(`Reference [${type}] updated from history!`);
+
+    try {
+        const blob = await fetch(dataUrl).then(res => res.blob());
+        const file = new File([blob], `history_${index}.jpg`, { type: blob.type });
+        const compressed = await compressImage(file);
+
+        state.images[type] = compressed;
+        const card = els.refs[type];
+        if (card) {
+            card.classList.add('has-image');
+            card.style.backgroundImage = `url(${compressed.dataUrl})`;
+            card.style.backgroundSize = 'cover';
+            card.style.backgroundPosition = 'center';
+            card.querySelector('.ref-card-icon').style.display = 'none';
+            card.querySelector('.ref-card-label').style.display = 'none';
+            card.style.transition = 'border-color 0.2s';
+            card.style.borderColor = '#ffffff';
+            setTimeout(() => { card.style.borderColor = ''; }, 300);
+        }
+        alert(`Reference [${type}] updated from history!`);
+    } catch (e) {
+        console.error('Failed to set reference', e);
+        alert('Failed to load image for reference.');
+    }
 };
+
+/* Shoots UI Logic */
+function setupShootsUI() {
+    if (els.shoot.btnNew) els.shoot.btnNew.addEventListener('click', handleNewShoot);
+    if (els.shoot.btnLoad) els.shoot.btnLoad.addEventListener('click', openShootModal);
+    if (els.shoot.modalClose) els.shoot.modalClose.addEventListener('click', closeShootModal);
+
+    // Close modal on outside click
+    els.shoot.modal.addEventListener('click', (e) => {
+        if (e.target === els.shoot.modal) closeShootModal();
+    });
+}
+
+async function handleNewShoot() {
+    const name = prompt('Введите название съёмки/сессии:', `Session ${new Date().toLocaleDateString()}`);
+    if (!name) return;
+
+    try {
+        const res = await fetch('/api/food-shoots', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ label: name })
+        });
+        const json = await res.json();
+
+        if (json.ok) {
+            setCurrentShoot(json.data);
+            state.history = []; // Clear current history
+            renderHistory();
+        } else {
+            alert('Error: ' + json.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Connection error');
+    }
+}
+
+async function openShootModal() {
+    els.shoot.modal.classList.add('active');
+    els.shoot.modalList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--color-text-muted);">Загрузка...</div>';
+
+    try {
+        const res = await fetch('/api/food-shoots');
+        const json = await res.json();
+
+        if (json.ok) {
+            renderShootList(json.data);
+        } else {
+            els.shoot.modalList.innerHTML = `<div style="color:red; padding:20px;">Error: ${json.error}</div>`;
+        }
+    } catch (e) {
+        els.shoot.modalList.innerHTML = `<div style="color:red; padding:20px;">Connection Error</div>`;
+    }
+}
+
+function renderShootList(shoots) {
+    if (!shoots || shoots.length === 0) {
+        els.shoot.modalList.innerHTML = '<div style="padding: 20px; text-align: center;">Нет сохраненных съёмок</div>';
+        return;
+    }
+
+    els.shoot.modalList.innerHTML = shoots.map(s => `
+        <div class="shoot-item" data-id="${s.id}" style="
+            padding: 12px; 
+            border: 1px solid var(--color-border); 
+            border-radius: 8px; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 8px;
+        ">
+            <div>
+                <div style="font-weight: 600;">${escapeHtml(s.label)}</div>
+                <div style="font-size: 11px; color: var(--color-text-muted);">
+                    ${s.imageCount} фото • ${new Date(s.updatedAt).toLocaleDateString()}
+                </div>
+            </div>
+            <button style="background:none; border:none; color: var(--color-accent);">Select ➜</button>
+        </div>
+    `).join('');
+
+    // Attach handlers
+    els.shoot.modalList.querySelectorAll('.shoot-item').forEach(item => {
+        item.addEventListener('click', () => loadShoot(item.dataset.id));
+    });
+}
+
+function closeShootModal() {
+    els.shoot.modal.classList.remove('active');
+}
+
+async function loadShoot(id) {
+    try {
+        const res = await fetch(`/api/food-shoots/${id}`);
+        const json = await res.json();
+
+        if (json.ok) {
+            const shoot = json.data;
+            setCurrentShoot(shoot);
+
+            // Populate history
+            state.history = shoot.images || [];
+            renderHistory();
+
+            closeShootModal();
+        } else {
+            alert('Error loading shoot: ' + json.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Connection error loading shoot');
+    }
+}
+
+function setCurrentShoot(shoot) {
+    state.currentShoot = shoot;
+    els.shoot.label.textContent = shoot.label;
+    els.shoot.label.style.fontWeight = 'bold';
+    els.shoot.label.style.opacity = '1';
+}
 
 /* Lightbox Logic */
 const lightbox = {
@@ -462,7 +627,13 @@ function initLightbox() {
 
 function openLightbox(index) {
     if (!lightbox.overlay) initLightbox();
-    lightbox.images = state.history.map(item => `data:${item.mimeType};base64,${item.base64}`);
+
+    // Map history to URLs
+    lightbox.images = state.history.map(item => {
+        if (item.imageUrl) return item.imageUrl;
+        return `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
+    });
+
     lightbox.currentIndex = index;
     updateLightboxImage();
     lightbox.overlay.classList.add('active');

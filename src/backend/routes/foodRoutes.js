@@ -22,6 +22,7 @@ import {
     FOOD_IMAGE_SIZE,
     FOOD_MOOD
 } from '../schema/foodShoot.js';
+import store from '../store/foodShootStore.js';
 
 const router = express.Router();
 
@@ -64,7 +65,8 @@ router.post('/generate', async (req, res) => {
             params,
             subjectImage,
             crockeryImage,
-            styleImage
+            styleImage,
+            shootId
         } = req.body;
 
         if (!params || !params.dishDescription) {
@@ -77,6 +79,14 @@ router.post('/generate', async (req, res) => {
             crockeryImage,
             styleImage
         });
+
+        // If shootId provided, save the result
+        if (shootId && result.image && result.image.base64) {
+            const savedImage = await store.addImageToFoodShoot(shootId, result.image.base64, params);
+            // Return the saved image data (including public URL) instead of raw base64 to save bandwidth/client memory
+            // OR return both. For now, let's append saved info.
+            result.savedImage = savedImage;
+        }
 
         res.json({
             ok: true,
