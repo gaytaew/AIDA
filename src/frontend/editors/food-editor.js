@@ -169,6 +169,7 @@ async function generate() {
             crockeryImage: state.images.crockery,
             styleImage: state.images.style,
             sketchImage: state.images.sketch,
+            baseImage: state.images.base, // Pass base image if present
             shootId: state.currentShoot?.id
         };
 
@@ -363,8 +364,11 @@ function renderHistory() {
     <!-- Actions -->
     <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="window.refineHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 2; background: var(--color-accent); color: white;" title="Modify this image">✨ Refine</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
         <a href="${downloadUrl}" download="food_${idx}.jpg" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾 Save</a>
-        <button class="btn btn-secondary" onclick="window.loadParamsHistory(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Load Params">♻️ Load</button>
+        <button class="btn btn-secondary" onclick="window.loadParamsHistory(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Load Params Only">♻️ Load</button>
         ${!state.currentShoot ?
                 `<button class="btn btn-secondary" onclick="window.deleteHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>` : ''
             }
@@ -484,6 +488,45 @@ window.setReferenceFromHistory = async (index, type) => {
     } catch (e) {
         console.error('Failed to set reference', e);
         alert('Failed to load image for reference.');
+    }
+};
+
+window.refineHistoryItem = async (index) => {
+    const item = state.history[index];
+    if (!item) return;
+
+    // Load Params
+    loadParams(item.params);
+
+    // Set Base Image for Refinement
+    let base64;
+    if (item.base64) {
+        base64 = item.base64;
+    } else if (item.imageUrl) {
+        // Fetch URL and convert to base64
+        try {
+            const blob = await fetch(item.imageUrl).then(r => r.blob());
+            const reader = new FileReader();
+            base64 = await new Promise(resolve => {
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.error(e);
+            alert("Could not load base image for refinement.");
+            return;
+        }
+    }
+
+    if (base64) {
+        state.images.base = { base64, mimeType: 'image/jpeg' }; // New state for base image
+        alert('✨ Режим улучшения активирован! Внеси правки и нажми Сгенерировать.');
+
+        // Visual indicator
+        if (els.btnGenerate) {
+            els.btnGenerate.textContent = '✨ Refine / Modify';
+            els.btnGenerate.style.background = 'var(--color-accent)';
+        }
     }
 };
 

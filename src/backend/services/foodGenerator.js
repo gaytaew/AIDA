@@ -34,19 +34,20 @@ import {
 // GENERATION LOGIC
 // ═══════════════════════════════════════════════════════════════
 
+// ... (imports remain same)
 export async function generateFoodShootFrame({
     params,
     subjectImage = null,
     crockeryImage = null,
     styleImage = null,
     sketchImage = null, // Phase 8
+    baseImage = null    // NEW: For Image-to-Image refinement
 }) {
     const genId = `food_${Date.now() % 100000}`;
     console.log(`[FoodGenerator] ${genId} Start`, params);
 
     try {
-        // 1. SANITIZE & VALIDATE PARAMS (V5 Logic)
-        // Fix contradictions like "Hard Sun" + "Soft Mood"
+        // 1. SANITIZE & VALIDATE PARAMS
         const { params: sanitizedParams, corrections } = validateFoodParams(params);
 
         if (corrections.length > 0) {
@@ -56,6 +57,12 @@ export async function generateFoodShootFrame({
         // 2. Pack references
         const validImages = [];
         const indexMap = {};
+
+        // REFINEMENT LOGIC: If baseImage is present, it becomes the primary reference [$1]
+        if (baseImage) {
+            validImages.push(baseImage);
+            indexMap['base'] = validImages.length;
+        }
 
         if (subjectImage) {
             validImages.push(subjectImage);
@@ -69,7 +76,7 @@ export async function generateFoodShootFrame({
             validImages.push(styleImage);
             indexMap['style'] = validImages.length;
         }
-        if (sketchImage) { // Phase 8
+        if (sketchImage) {
             validImages.push(sketchImage);
             indexMap['sketch'] = validImages.length;
         }
@@ -115,7 +122,7 @@ function buildFoodShootPromptDynamic(params, indexMap) {
         changesDescription,
         camera, angle, lighting, plating, state,
         composition, depth, color, texture, dynamics,
-        surface, crockery, mood, // Mood is key now
+        surface, crockery, mood,
         imageSize = '2k'
     } = params;
 
@@ -125,6 +132,26 @@ function buildFoodShootPromptDynamic(params, indexMap) {
     sections.push(`ROLE: Collaborative Team of Two Experts.
 1. THE PHOTOGRAPHER (Technical): Responsible for Camera, Lighting, Depth, Color, and Image Quality.
 2. THE FOOD STYLIST (Artistic): Responsible for Plating, Composition, Props, and Atmosphere.`);
+
+    // 2. PRIMARY DIRECTIVE (REFINEMENT vs GENERATION)
+    if (indexMap.base) {
+        sections.push(`
+[TASK: IMAGE REFINEMENT / MODIFICATION]
+You are provided with a BASE IMAGE (Reference [$${indexMap.base}]).
+your goal is to MODIFY this image according to the instructions below.
+- KEEP the core subject identity and general composition of [$${indexMap.base}] unless told otherwise.
+- ADJUST technical or stylistic parameters as requested.
+`);
+    }
+
+    // 3. CRITICAL EDITS (High Priority - Moved to Top)
+    if (changesDescription) {
+        sections.push(`
+[!!! IMPORTANT MODIFICATIONS !!!]
+The user has requested specific changes. These options OVERRIDE all other defaults:
+> CHANGE REQUEST: "${changesDescription}"
+`);
+    }
 
     // Lookup Specs
     const cameraSpec = FOOD_CAMERA.options.find(o => o.value === camera)?.spec || 'Standard Lens';
@@ -146,11 +173,9 @@ function buildFoodShootPromptDynamic(params, indexMap) {
     const moodObj = FOOD_MOOD.options.find(o => o.value === mood);
     const moodNarrative = moodObj ? moodObj.narrative : '';
 
-    // 2. TECHNICAL SPECIFICATIONS (THE PHOTOGRAPHER)
-    // STRICT PHYSICS - "How it is captured"
+    // 4. TECHNICAL SPECIFICATIONS (THE PHOTOGRAPHER)
     sections.push(`
-[TECHNICAL SPECIFICATIONS - THE PHOTOGRAPHER]:
-The following settings define the optical and technical properties.
+[TECHNICAL SPECIFICATIONS]:
 CAMERA & LENS: ${cameraSpec}
 LIGHTING SETUP: ${lightingSpec}
 COLOR GRADING: ${colorSpec}
@@ -158,24 +183,10 @@ DEPTH OF FIELD: ${depthSpec}
 IMAGE FORMAT: ${params.aspectRatio || 'Standard'} aspect ratio, High Resolution.
 `);
 
-    // 2.1 SKETCH REFERENCE (GEOMETRY OVERRIDE) - Phase 8
-    if (indexMap.sketch) {
-        sections.push(`
-[SKETCH REFERENCE - HARD GEOMETRY] [$${indexMap.sketch}]:
-The user has provided a SKETCH or LAYOUT [$${indexMap.sketch}].
-You MUST follow the EXACT geometry and composition of this sketch.
-- IGNORE the "Composition" parameter below.
-- MATCH the position of every item from the sketch [$${indexMap.sketch}].
-- REPLACE the sketch's crude shapes with photorealistic food and props defined in Subject/Style.
-`);
-    }
-
-    // 3. ARTISTIC BRIEF (THE STYLIST)
-    // NARRATIVE - "What is felt"
+    // 5. ARTISTIC BRIEF (THE STYLIST)
     sections.push(`
-[ARTISTIC BRIEF - THE STYLIST]:
-Use this narrative to guide the visual atmosphere and styling.
-${moodNarrative ? `MOOD & ATMOSPHERE: ${moodNarrative}` : 'ATMOSPHERE: Professional Food Photography.'}
+[ARTISTIC BRIEF]:
+${moodNarrative ? `MOOD: ${moodNarrative}` : 'ATMOSPHERE: Professional Food Photography.'}
 
 STYLING DIRECTIVES:
 COMPOSITION: ${compSpec} | ${angleSpec}
@@ -184,23 +195,18 @@ FOOD STATE: ${stateSpec}
 JUXTAPOSITION: ${dynamicsSpec}
 TEXTURE FOCUS: ${textureSpec}
 
-[SCENE ENVIRONMENT - HARD REQUIREMENTS]:
+[SCENE ENVIRONMENT]:
 SURFACE: ${surfaceSpec || 'Neutral/Appropriate'}
 CROCKERY: ${crockerySpec || 'Appropriate for dish'}
 `);
 
-    // 4. REFERENCES
+    // 6. REFERENCES & REFERENCES LOGIC
     const refLines = [];
 
     if (indexMap.crockery) {
         refLines.push(`REFERENCE [$${indexMap.crockery}]: CROCKERY / VESSEL (MANDATORY).
         - Use the EXACT plate/bowl/cup from [$${indexMap.crockery}].
         - Ignore any food inside the crockery reference; replace it with the SUBJECT.`);
-    } else {
-        if (crockerySpec) {
-            refLines.push(`CROCKERY (NO REFERENCE):
-        - ${crockerySpec}`);
-        }
     }
 
     if (indexMap.style) {
@@ -209,22 +215,30 @@ CROCKERY: ${crockerySpec || 'Appropriate for dish'}
         - DO NOT copy the subject content, only the aesthetic.`);
     }
 
-    // SUBJECT LOGIC (Hybrid)
+    // SUBJECT LOGIC (Hybrid: Strict vs Adaptive)
     if (indexMap.subject) {
-        sections.push(`
-SUBJECT (HYBRID REFERENCE MATCH):
-The image must follow the GEOMETRY and ARRANGEMENT of Reference [$${indexMap.subject}], but match the DESCRIPTION below.
+        // If we are doing a refinement (base) or have specific changes, we relax strictness
+        const isAdaptive = !!(indexMap.base || changesDescription);
 
-DESCRIPTION (CONTENT):
-"${dishDescription}"
-
-REFERENCE GUIDANCE (STRUCTURE & FORM):
-1. MATCH: Geometric Shape & Form Factor from [$${indexMap.subject}] (CRITICAL).
-${changesDescription ?
-                `2. ADAPT: Ingredients & Arrangement MUST follow the "IMPORTANT EDITS".
-   - Priority: EDIT > DESCRIPTION > REFERENCE VISUALS.` :
-                `2. MATCH: Ingredient Arrangement, TEXTURE, and SPECIFIC INGREDIENTS from [$${indexMap.subject}].`}
+        if (isAdaptive) {
+            sections.push(`
+SUBJECT (ADAPTIVE REFERENCE MATCH):
+The image should include the subject from Reference [$${indexMap.subject}], but ADAPT it to the new requirements.
+- Identity: KEEP the subject ingredients and look.
+- Geometry: ADAPT the shape/angle/composition to match the [Technical Specifications] and [Change Request].
+- DO NOT rigidly lock to the reference pixels if they conflict with the requested changes.
 `);
+        } else {
+            sections.push(`
+SUBJECT (STRICT GEOMETRY MATCH):
+The image must follow the GEOMETRY and ARRANGEMENT of Reference [$${indexMap.subject}].
+1. MATCH: Geometric Shape & Form Factor from [$${indexMap.subject}] (CRITICAL).
+2. MATCH: Ingredient Arrangement, TEXTURE, and SPECIFIC INGREDIENTS from [$${indexMap.subject}].
+`);
+        }
+
+        sections.push(`DESCRIPTION (CONTENT): "${dishDescription}"`);
+
     } else {
         sections.push(`
 SUBJECT (TEXT BASED):
@@ -237,20 +251,12 @@ REFERENCES:
 ${refLines.join('\n')}`);
     }
 
-    // 5. CRITICAL EDITS
-    if (changesDescription) {
-        sections.push(`
-!!! IMPORTANT EDITS & MODIFICATIONS !!!
-The user has requested specific changes to the result. These must take precedence over references:
-> "${changesDescription}"`);
-    }
-
-    // 6. HARD RULES
+    // 7. HARD RULES
     sections.push(`
 HARD RULES:
-1. PHOTOREALISM IS PARAMOUNT. No plastic texture, no CGI look.
-2. EDIBLE TEXTURES: Moisture, steam (if hot), crumbs, imperfections must look real.
-3. No text, logos, or watermarks.`);
+1. PHOTOREALISM IS PARAMOUNT.
+2. EDIBLE TEXTURES: Moisture, steam, crumbs must look real.
+3. No text, logs, or watermarks.`);
 
     return sections.join('\n');
 }

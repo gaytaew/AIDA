@@ -66,7 +66,8 @@ router.post('/generate', async (req, res) => {
             subjectImage,
             crockeryImage,
             styleImage,
-            shootId
+            shootId,
+            baseImage // NEW: Support modification workflow
         } = req.body;
 
         if (!params || !params.dishDescription) {
@@ -77,7 +78,8 @@ router.post('/generate', async (req, res) => {
             params,
             subjectImage,
             crockeryImage,
-            styleImage
+            styleImage,
+            baseImage // NEW: Pass base image for refinement
         });
 
         // If shootId provided, save the result
