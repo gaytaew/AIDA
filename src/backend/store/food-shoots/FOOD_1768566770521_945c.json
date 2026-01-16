@@ -1,0 +1,17 @@
+{
+  "id": "FOOD_1768566770521_945c",
+  "label": "Test Debug Shoot",
+  "createdAt": "2026-01-16T12:32:50.521Z",
+  "updatedAt": "2026-01-16T12:32:50.523Z",
+  "images": [
+    {
+      "id": "IMG_1768566770522",
+      "createdAt": "2026-01-16T12:32:50.522Z",
+      "params": {
+        "test": true
+      },
+      "imageUrl": "/api/food-shoots/FOOD_1768566770521_945c/images/IMG_1768566770522",
+      "localPath": "/Users/roman/Desktop/Проекты/MIX/aida/src/backend/store/food-shoot-images/FOOD_1768566770521_945c/IMG_1768566770522.jpg"
+    }
+  ]
+}

@@ -181,10 +181,16 @@ async function generate() {
         const json = await res.json();
 
         if (json.ok) {
-            // If savedImage is returned (persistence active), use it.
+            // If savedImage is returned, use it. Otherwise construct from valid response.
             let newItem;
             if (json.data.savedImage) {
-                newItem = json.data.savedImage;
+                // Merge base64 back into savedImage so we can display it immediately
+                // even if the file isn't served correctly yet
+                newItem = {
+                    ...json.data.savedImage,
+                    base64: json.data.image ? json.data.image.base64 : null,
+                    mimeType: 'image/jpeg'
+                };
             } else {
                 newItem = {
                     ...json.data.image,
@@ -319,9 +325,19 @@ function renderHistory() {
         const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
         let imageUrl = item.imageUrl;
-        if (!imageUrl && item.base64) {
+        // Prefer base64 for immediate display to avoid broken images if server lag
+        if (item.base64) {
+            imageUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
+        } else if (imageUrl && !imageUrl.startsWith('data:')) {
+            // It's a URL
+        } else if (!imageUrl && item.base64) {
             imageUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
         }
+
+        // For download, if URL is available it is preferred, but make sure it works!
+        // But for safety, let's just use imageUrl if it exists, hoping it works. 
+        // If not, users can use lightbox?
+        const downloadUrl = item.imageUrl || imageUrl;
 
         return `
     <div class="selection-card generated-frame-card" style="cursor: default; position: relative;">
@@ -346,7 +362,7 @@ function renderHistory() {
     <!-- Actions -->
     <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; gap: 8px;">
-        <a href="${imageUrl}" download="food_${idx}.jpg" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾 Save</a>
+        <a href="${downloadUrl}" download="food_${idx}.jpg" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">💾 Save</a>
         <button class="btn btn-secondary" onclick="window.loadParamsHistory(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Load Params">♻️ Load</button>
         ${!state.currentShoot ?
                 `<button class="btn btn-secondary" onclick="window.deleteHistoryItem(${idx})" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);">✕</button>` : ''

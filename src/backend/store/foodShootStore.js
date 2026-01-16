@@ -31,6 +31,7 @@ async function ensureDir(dir) {
     try {
         await fs.access(dir);
     } catch {
+        console.log(`[FoodShootStore] Creating directory: ${dir}`);
         await fs.mkdir(dir, { recursive: true });
     }
 }
@@ -45,11 +46,26 @@ async function atomicWriteFile(filePath, content) {
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
+let initPromise = null;
+
 async function initStores() {
-    await ensureDir(STORE_DIR);
-    await ensureDir(IMAGES_DIR);
+    if (initPromise) return initPromise;
+
+    initPromise = (async () => {
+        try {
+            await ensureDir(STORE_DIR);
+            await ensureDir(IMAGES_DIR);
+            console.log('[FoodShootStore] Initialized successfully');
+        } catch (err) {
+            console.error('[FoodShootStore] Failed to initialize directories:', err);
+            throw err;
+        }
+    })();
+
+    return initPromise;
 }
 
+// Force init immediately
 initStores().catch(console.error);
 
 // ═══════════════════════════════════════════════════════════════
@@ -70,7 +86,8 @@ async function readIndex() {
         if (err.code === 'ENOENT') {
             return await rebuildIndex();
         }
-        throw err;
+        console.error('[FoodShootStore] Error reading index:', err);
+        return { shoots: [], rebuiltAt: new Date().toISOString() };
     }
 }
 
@@ -83,7 +100,17 @@ async function writeIndex(index) {
 async function rebuildIndex() {
     console.log('[FoodShootStore] Rebuilding index...');
 
-    const files = await fs.readdir(STORE_DIR);
+    // Ensure dir exists before listing
+    await initStores();
+
+    let files = [];
+    try {
+        files = await fs.readdir(STORE_DIR);
+    } catch (e) {
+        console.error('[FoodShootStore] Failed to read dir for index:', e);
+        return { shoots: [], rebuiltAt: new Date().toISOString() };
+    }
+
     const jsonFiles = files.filter(f => f.endsWith('.json') && !f.startsWith('_'));
 
     const shoots = [];
@@ -153,6 +180,7 @@ export async function getAllFoodShoots() {
         const index = await readIndex();
         return index.shoots || [];
     } catch (err) {
+        console.error('[FoodShootStore] getAll failed:', err);
         return [];
     }
 }
@@ -170,6 +198,8 @@ export async function getFoodShootById(id) {
 
 export async function createFoodShoot(label = 'New Food Shoot') {
     await initStores();
+    console.log(`[FoodShootStore] Creating shoot: ${label}`);
+
     const id = `FOOD_${Date.now()}_${randomBytes(2).toString('hex')}`;
     const now = new Date().toISOString();
 
@@ -185,6 +215,7 @@ export async function createFoodShoot(label = 'New Food Shoot') {
     await atomicWriteFile(filePath, JSON.stringify(shoot, null, 2));
     await updateIndexEntry(shoot);
 
+    console.log(`[FoodShootStore] Created: ${id}`);
     return shoot;
 }
 
@@ -265,6 +296,11 @@ async function deleteImageFile(shootId, imageId) {
  */
 export async function addImageToFoodShoot(shootId, base64Data, params = {}) {
     await initStores();
+    console.log(`[FoodShootStore] Saving image to ${shootId}`);
+
+    if (!base64Data || base64Data.length < 100) {
+        throw new Error('Invalid base64 data (too short)');
+    }
 
     // Ensure shoot images dir exists
     const shootImgDir = path.join(IMAGES_DIR, shootId);
@@ -293,11 +329,18 @@ export async function addImageToFoodShoot(shootId, base64Data, params = {}) {
 
     // Update Shoot
     const shoot = await getFoodShootById(shootId);
-    if (!shoot) throw new Error(`Shoot ${shootId} not found`);
+    if (!shoot) {
+        console.error(`[FoodShootStore] Shoot ${shootId} not found during image save!`);
+        throw new Error(`Shoot ${shootId} not found`);
+    }
+
+    // Ensure images array exists
+    if (!shoot.images) shoot.images = [];
 
     shoot.images.unshift(imageEntry); // Newest first
 
     await updateFoodShoot(shootId, { images: shoot.images });
+    console.log(`[FoodShootStore] Image saved: ${imageId}`);
 
     return imageEntry;
 }
