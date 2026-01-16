@@ -13,8 +13,8 @@
         .food-layout {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 100px);
             gap: 16px;
+            /* Remove fixed height to allow page scroll */
         }
 
         .food-controls-header {
@@ -46,14 +46,11 @@
         }
 
         .food-stream-area {
-            flex: 1;
-            min-height: 0;
-            /* Critical for flex child to shrink */
             background: var(--color-bg-secondary);
             border-radius: 12px;
             padding: 16px;
-            overflow: auto;
-            /* Allow both scrolls */
+            overflow-x: auto;
+            /* Allow horizontal scroll for wide content */
         }
 
         .food-stream {
