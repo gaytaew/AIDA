@@ -276,14 +276,16 @@ REFERENCE GUIDANCE (STRUCTURE & FORM):
    - If Ref is RECTANGULAR, output RECTANGULAR.
    - If Ref is SQUARE, output SQUARE.
 ${changesDescription ?
-                `2. ADAPT: Ingredient Arrangement from [$${indexMap.subject}] MUST be modified according to the "IMPORTANT EDITS" below.
-   - You MUST deviate from the reference arrangement if the edits require it (e.g. moving toppings).` :
+                `2. ADAPT: Ingredients & Arrangement MUST follow the "IMPORTANT EDITS" and "DESCRIPTION" below.
+   - You MUST REPLACE ingredients from the reference if the text description asks for something different.
+   - Example: If Ref shows "Sausage" but Description says "Pepperoni" -> MAKE PEPPERONI.
+   - Priority: EDIT > DESCRIPTION > REFERENCE VISUALS (for ingredients only).` :
                 `2. MATCH: Ingredient Arrangement, TEXTURE, and SPECIFIC INGREDIENTS from [$${indexMap.subject}].
    - Do NOT replace unique ingredients with generic ones.
    - Example: If Ref has "Rustic Chorizo" (irregular, chunky), DO NOT make "Perfect Round Pepperoni". Copy the REFERENCE visual exactly.`}
-3. BALANCE: The Description below sets the "Concept", but the Reference sets the "Reality".
-   - If Description says "Pizza", and Reference shows a specific rustic pizza, COPY THE REFERENCE'S VISUALS (crust char, topping irregularity, cheese melt style).
-   - Only use Description for missing details or context not visible in the reference.
+3. BALANCE: The Description below sets the "Concept".
+   - IF EDITS ARE PRESENT: The Description dictates the CONTENT (what food is there). The Reference dictates the FORM (lighting, angle, shape).
+   - IF NO EDITS: Follow the Reference visuals strictly for both content and form.
 
 IMPORTANT OVERRIDES (ENVIRONMENT):
 - **BACKGROUND**: DO NOT COPY the background from Reference [$${indexMap.subject}]. Use the "SURFACE" specified above.
