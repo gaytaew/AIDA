@@ -19,7 +19,8 @@ import {
     FOOD_SURFACE,
     FOOD_CROCKERY,
     FOOD_PRESETS,
-    FOOD_IMAGE_SIZE
+    FOOD_IMAGE_SIZE,
+    FOOD_MOOD
 } from '../schema/foodShoot.js';
 
 const router = express.Router();
@@ -47,7 +48,8 @@ router.get('/options', (req, res) => {
             dynamics: FOOD_DYNAMICS,
             surface: FOOD_SURFACE,
             crockery: FOOD_CROCKERY,
-            presets: FOOD_PRESETS
+            presets: FOOD_PRESETS,
+            mood: FOOD_MOOD
         }
     });
 });
