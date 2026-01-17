@@ -13,7 +13,7 @@ const LOOKS_API = '/api/looks';
 // STATE
 // ═══════════════════════════════════════════════════════════════
 
-let uploadedImage = null;
+let uploadedImages = [];  // Changed to array for multiple images
 let currentAnalysis = null;
 let currentPreset = null;
 let allPresets = [];
@@ -128,12 +128,12 @@ function initEventListeners() {
         e.preventDefault();
         elements.uploadZone.classList.remove('dragover');
         if (e.dataTransfer.files.length > 0) {
-            handleFileUpload(e.dataTransfer.files[0]);
+            handleFilesUpload(Array.from(e.dataTransfer.files));
         }
     });
     elements.fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
-            handleFileUpload(e.target.files[0]);
+            handleFilesUpload(Array.from(e.target.files));
         }
     });
 
@@ -141,15 +141,16 @@ function initEventListeners() {
     document.addEventListener('paste', (e) => {
         const items = e.clipboardData?.items;
         if (!items) return;
+        const imageFiles = [];
         for (const item of items) {
             if (item.type.startsWith('image/')) {
                 const file = item.getAsFile();
-                if (file) {
-                    e.preventDefault();
-                    handleFileUpload(file);
-                    break;
-                }
+                if (file) imageFiles.push(file);
             }
+        }
+        if (imageFiles.length > 0) {
+            e.preventDefault();
+            handleFilesUpload(imageFiles);
         }
     });
 
@@ -170,25 +171,69 @@ function initEventListeners() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FILE HANDLING
+// FILE HANDLING (Multiple Images)
 // ═══════════════════════════════════════════════════════════════
 
-async function handleFileUpload(file) {
-    if (!file.type.startsWith('image/')) return;
+async function handleFilesUpload(files) {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
 
-    try {
-        const compressed = await compressImage(file);
-        uploadedImage = compressed;
+    for (const file of imageFiles) {
+        try {
+            const compressed = await compressImage(file);
+            uploadedImages.push(compressed);
+            console.log(`[StyleEditor] Added: ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
+        } catch (e) {
+            console.error('Failed to process image:', e);
+        }
+    }
 
-        // Update UI
-        elements.uploadZone.innerHTML = `<img src="${compressed.previewUrl}" alt="Reference">`;
-        elements.uploadZone.classList.add('has-image');
-        elements.btnAnalyze.disabled = false;
+    renderImagesPreview();
+    elements.btnAnalyze.disabled = uploadedImages.length === 0;
+}
 
-        console.log(`[StyleEditor] Uploaded: ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
-    } catch (e) {
-        console.error('Failed to process image:', e);
-        showStatus('statusAnalyze', `❌ Ошибка: ${e.message}`, 'error');
+function renderImagesPreview() {
+    if (uploadedImages.length === 0) {
+        elements.uploadZone.innerHTML = `
+            <div class="upload-zone-icon">📷</div>
+            <div class="upload-zone-title">Загрузи референсы</div>
+            <div class="upload-zone-hint">Перетащи изображения или кликни для выбора (можно несколько)</div>
+        `;
+        elements.uploadZone.classList.remove('has-images');
+        return;
+    }
+
+    elements.uploadZone.classList.add('has-images');
+    elements.uploadZone.innerHTML = `
+        <div class="images-preview-grid">
+            ${uploadedImages.map((img, idx) => `
+                <div class="image-thumb" data-index="${idx}">
+                    <img src="${img.previewUrl}" alt="Ref ${idx + 1}">
+                    <button class="image-thumb-remove" data-index="${idx}">✕</button>
+                </div>
+            `).join('')}
+            <div class="upload-zone-add" title="Добавить ещё">+</div>
+        </div>
+    `;
+
+    // Remove handlers
+    elements.uploadZone.querySelectorAll('.image-thumb-remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(e.target.dataset.index);
+            uploadedImages.splice(idx, 1);
+            renderImagesPreview();
+            elements.btnAnalyze.disabled = uploadedImages.length === 0;
+        });
+    });
+
+    // Add more button
+    const addBtn = elements.uploadZone.querySelector('.upload-zone-add');
+    if (addBtn) {
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            elements.fileInput.click();
+        });
     }
 }
 
@@ -276,23 +321,29 @@ async function loadModelsAndLooks() {
 }
 
 async function analyzeStyle() {
-    if (!uploadedImage) {
-        showStatus('statusAnalyze', 'Загрузите изображение', 'error');
+    if (uploadedImages.length === 0) {
+        showStatus('statusAnalyze', 'Загрузите хотя бы одно изображение', 'error');
         return;
     }
 
-    showStatus('statusAnalyze', '🔮 Анализируем с GPT-5.2...', 'loading');
+    showStatus('statusAnalyze', `🔮 Анализируем ${uploadedImages.length} изображение(й) с GPT-5.2...`, 'loading');
     elements.btnAnalyze.disabled = true;
 
     try {
+        // Send first image for now (backend can be extended to handle multiple)
         const response = await fetch(`${API_BASE}/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 image: {
-                    mimeType: uploadedImage.mimeType,
-                    base64: uploadedImage.base64
-                }
+                    mimeType: uploadedImages[0].mimeType,
+                    base64: uploadedImages[0].base64
+                },
+                // Send additional images as references
+                additionalImages: uploadedImages.slice(1).map(img => ({
+                    mimeType: img.mimeType,
+                    base64: img.base64
+                }))
             })
         });
 
@@ -392,9 +443,10 @@ async function savePreset() {
                 technicalParams: currentAnalysis.technicalParams,
                 naturalPrompt: currentAnalysis.naturalPrompt,
                 antiAiDirectives: currentAnalysis.antiAiDirectives,
-                referenceImage: uploadedImage ? {
-                    mimeType: uploadedImage.mimeType,
-                    base64: uploadedImage.base64
+                // Save first image as reference
+                referenceImage: uploadedImages.length > 0 ? {
+                    mimeType: uploadedImages[0].mimeType,
+                    base64: uploadedImages[0].base64
                 } : null
             })
         });
@@ -555,7 +607,7 @@ function showAnalysisResult(analysis) {
 }
 
 function resetToUploadState() {
-    uploadedImage = null;
+    uploadedImages = [];
     currentAnalysis = null;
     currentPreset = null;
 
@@ -566,10 +618,10 @@ function resetToUploadState() {
 
     elements.uploadZone.innerHTML = `
     <div class="upload-zone-icon">📷</div>
-    <div class="upload-zone-title">Загрузи референс</div>
-    <div class="upload-zone-hint">Перетащи изображение или кликни для выбора</div>
+    <div class="upload-zone-title">Загрузи референсы</div>
+    <div class="upload-zone-hint">Перетащи изображения или кликни для выбора (можно несколько)</div>
   `;
-    elements.uploadZone.classList.remove('has-image');
+    elements.uploadZone.classList.remove('has-images');
     elements.btnAnalyze.disabled = true;
     elements.presetName.value = '';
     elements.refineInput.value = '';
