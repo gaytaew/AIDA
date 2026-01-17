@@ -1352,7 +1352,7 @@ async function loadStylePresets() {
     const res = await fetchWithTimeout('/api/styles', {}, 10000);
     const data = await res.json();
     if (data.ok) {
-      state.stylePresets = data.presets || [];
+      state.stylePresets = data.data || [];
       console.log('[LoadStylePresets] Loaded', state.stylePresets.length, 'presets');
     }
   } catch (e) {
