@@ -14,7 +14,8 @@ const NAV_ITEMS = [
       { href: '/composer/custom-shoot.html', icon: '✨', label: 'Custom Shoot' },
 
       { href: '/composer/custom-shoot-4.html', icon: '🧬', label: 'Custom Shoot 4' },
-      { href: '/composer/custom-shoot-5.html', icon: '🏔️', label: 'Custom Shoot 5', style: 'background: #e0e7ff;' }
+      { href: '/composer/custom-shoot-5.html', icon: '🏔️', label: 'Custom Shoot 5' },
+      { href: '/composer/custom-shoot-v6.html', icon: '🎬', label: 'Custom Shoot V6', style: 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' }
     ]
   },
   {

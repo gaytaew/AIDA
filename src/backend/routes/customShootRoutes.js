@@ -479,6 +479,12 @@ router.post('/:id/generate', async (req, res) => {
       universeParams, // Full universe configuration for Custom Shoot 4
 
       // ═══════════════════════════════════════════════════════════════
+      // V6: Style Preset Parameters (AI Director mode)
+      // ═══════════════════════════════════════════════════════════════
+      v6Mode,         // Boolean flag for V6 mode
+      styleParams,    // { presetId, naturalPrompt, antiAiDirectives, technicalParams }
+
+      // ═══════════════════════════════════════════════════════════════
       // Virtual Studio Parameters (legacy)
       // ═══════════════════════════════════════════════════════════════
       virtualCamera,  // { focalLength, aperture, shutterSpeed }
@@ -747,6 +753,12 @@ router.post('/:id/generate', async (req, res) => {
       // Universe Parameters (Custom Shoot 4 architecture)
       // ═══════════════════════════════════════════════════════════════
       universeParams,
+
+      // ═══════════════════════════════════════════════════════════════
+      // V6: Style Preset Parameters (AI Director mode)
+      // ═══════════════════════════════════════════════════════════════
+      v6Mode,
+      styleParams,
 
       // ═══════════════════════════════════════════════════════════════
       // Virtual Studio Parameters (legacy architecture)

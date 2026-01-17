@@ -171,6 +171,158 @@ The specific space can be different. Model position is free.`;
 }
 
 // ═══════════════════════════════════════════════════════════════
+// V6 STYLE PRESET PROMPT BUILDER (AI Director mode)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build prompt for V6 mode using AI Director style preset
+ * Uses naturalPrompt and antiAiDirectives from the preset
+ */
+export function buildV6StylePrompt({
+  styleParams,
+  extraPrompt = '',
+  hasIdentityRefs = false,
+  hasClothingRefs = false,
+  hasStyleRef = false,
+  hasLocationSketch = false,
+  hasPoseSketch = false,
+  poseAdherence = 2,
+  lookPrompt = '',
+  clothingItemPrompts = [],
+  clothingDescriptions = []
+}) {
+  const sections = [];
+
+  // Header
+  sections.push(`═══════════════════════════════════════════════════════════════
+V6 AI DIRECTOR STYLE GENERATION
+Style Preset: ${styleParams.presetId || 'Custom'}
+═══════════════════════════════════════════════════════════════`);
+
+  // Natural prompt from preset (the core of V6)
+  if (styleParams.naturalPrompt) {
+    sections.push(`
+=== VISUAL STYLE (from AI Director) ===
+
+${styleParams.naturalPrompt}`);
+  }
+
+  // Anti-AI directives from preset (becomes negative prompt elements)
+  if (styleParams.antiAiDirectives && styleParams.antiAiDirectives.length > 0) {
+    sections.push(`
+=== AUTHENTICITY REQUIREMENTS (Anti-AI) ===
+
+MUST INCLUDE:
+${styleParams.antiAiDirectives.map(d => '• ' + d).join('\n')}
+
+The image must feel like genuine professional photography, not AI-generated.`);
+  }
+
+  // Identity preservation (if refs provided)
+  if (hasIdentityRefs) {
+    sections.push(`
+=== IDENTITY PRESERVATION (CRITICAL — [$1]) ===
+
+The generated image MUST show the EXACT SAME person as in reference [$1].
+
+FACIAL STRUCTURE (must match exactly):
+- Face shape, eyes, nose, lips: identical to reference
+- Jawline and cheekbones: same definition
+
+FORBIDDEN:
+- Do NOT beautify or idealize the face
+- Do NOT change eye color
+- Do NOT make face more symmetrical`);
+  }
+
+  // Clothing (if refs provided)
+  if (hasClothingRefs) {
+    let clothingSection = `
+=== CLOTHING ACCURACY (CRITICAL — [$3], [$4]) ===
+
+Recreate garments from reference images with MAXIMUM accuracy.`;
+
+    if (lookPrompt && lookPrompt.trim()) {
+      clothingSection += `
+
+OUTFIT STYLE:
+${lookPrompt.trim()}`;
+    }
+
+    if (clothingItemPrompts && clothingItemPrompts.length > 0) {
+      clothingSection += `
+
+CLOTHING ITEMS:`;
+      clothingItemPrompts.forEach((item, i) => {
+        const name = item.name ? `${item.name}: ` : `Item ${i + 1}: `;
+        clothingSection += `
+• ${name}${item.prompt}`;
+      });
+    } else if (clothingDescriptions.length > 0) {
+      clothingSection += `
+
+USER DESCRIPTIONS:
+${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`;
+    }
+
+    sections.push(clothingSection);
+  }
+
+  // Style Lock reference
+  if (hasStyleRef) {
+    sections.push(`
+=== STYLE LOCK REFERENCE ([$2]) ===
+
+Copy the following from the style reference:
+- Color grading
+- Lighting setup
+- Overall mood and atmosphere
+- Location/background`);
+  }
+
+  // Pose sketch (if provided)
+  if (hasPoseSketch) {
+    const POSE_ADHERENCE_MAP = {
+      1: { label: 'Creative Freedom', instruction: 'Use pose as loose inspiration only.' },
+      2: { label: 'Natural Variation', instruction: 'Follow general pose but allow natural adjustments.' },
+      3: { label: 'Structured Match', instruction: 'Match pose closely with minor variations.' },
+      4: { label: 'Strict Match', instruction: 'Copy pose exactly from sketch.' }
+    };
+
+    const adherence = POSE_ADHERENCE_MAP[poseAdherence] || POSE_ADHERENCE_MAP[2];
+    sections.push(`
+=== POSE REFERENCE ([$6]) ===
+
+ADHERENCE LEVEL: ${poseAdherence}/4 (${adherence.label})
+${adherence.instruction}`);
+  }
+
+  // Extra instructions
+  if (extraPrompt) {
+    sections.push(`
+=== ADDITIONAL INSTRUCTIONS ===
+
+${extraPrompt}`);
+  }
+
+  const prompt = sections.join('\n');
+
+  const promptJson = {
+    format: 'v6_style_preset',
+    generatedAt: new Date().toISOString(),
+    presetId: styleParams.presetId,
+    hasIdentityRefs,
+    hasClothingRefs,
+    hasStyleRef,
+    hasLocationSketch,
+    hasPoseSketch,
+    poseAdherence
+  };
+
+  return { prompt, promptJson };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN PROMPT BUILDER (Updated for Virtual Studio)
 // ═══════════════════════════════════════════════════════════════
 
@@ -744,6 +896,10 @@ export async function generateCustomShootFrame({
   // Universe parameters (Custom Shoot 4)
   universeParams = null,
 
+  // V6 Style Preset mode (AI Director)
+  v6Mode = false,
+  styleParams = null,  // { presetId, naturalPrompt, antiAiDirectives, technicalParams }
+
   // Legacy parameters (kept for compatibility)
   captureStyle = null,
   cameraSignature = null,
@@ -767,11 +923,13 @@ export async function generateCustomShootFrame({
   try {
     const useUniverse = universeParams != null;
     const useVirtualStudio = virtualCamera != null;
+    const useV6Style = v6Mode && styleParams != null;
 
     log('START', {
-      mode: useUniverse ? 'Universe (CS4)' : useVirtualStudio ? 'Virtual Studio' : 'Legacy',
+      mode: useV6Style ? 'V6 Style Preset' : useUniverse ? 'Universe (CS4)' : useVirtualStudio ? 'Virtual Studio' : 'Legacy',
       identityImages: identityImages.length,
-      clothingImages: clothingImages.length
+      clothingImages: clothingImages.length,
+      presetId: styleParams?.presetId || null
     });
 
     const { locks, globalSettings } = shoot;
@@ -858,33 +1016,56 @@ export async function generateCustomShootFrame({
     });
 
     // Build prompt
-    const { prompt, promptJson } = buildCustomShootPrompt({
-      virtualCamera: useVirtualStudio ? virtualCamera : null,
-      lighting: useVirtualStudio ? lighting : null,
-      universeParams,
-      customUniverse: shoot.customUniverse,
-      locks,
-      frame,
-      location,
-      emotionId,
-      extraPrompt,
-      modelDescription: '',
-      clothingDescriptions,
-      clothingItemPrompts,  // NEW: structured prompts per clothing item
-      lookPrompt,           // NEW: overall outfit style
-      hasIdentityRefs: identityImages.length > 0,
-      hasClothingRefs: clothingImages.length > 0,
-      hasStyleRef: !!styleRefImage && locks?.style?.enabled,
-      // hasLocationRef removed - location is implied in Style Lock
-      hasLocationSketch: !!locationSketchImage && !hasStyleLock, // only true when Style Lock is OFF
-      hasPoseSketch: !!poseSketchImage,
-      poseAdherence,
-      composition,
-      qualityMode,
-      mood
-    });
+    let prompt, promptJson;
 
-    console.log('[CustomShootGenerator] Prompt built, length:', prompt.length);
+    if (useV6Style) {
+      // V6 Mode: Build prompt from AI Director style preset
+      const v6Result = buildV6StylePrompt({
+        styleParams,
+        extraPrompt,
+        hasIdentityRefs: identityImages.length > 0,
+        hasClothingRefs: clothingImages.length > 0,
+        hasStyleRef: !!styleRefImage && locks?.style?.enabled,
+        hasLocationSketch: !!locationSketchImage && !hasStyleLock,
+        hasPoseSketch: !!poseSketchImage,
+        poseAdherence,
+        lookPrompt,
+        clothingItemPrompts,
+        clothingDescriptions
+      });
+      prompt = v6Result.prompt;
+      promptJson = v6Result.promptJson;
+      console.log('[CustomShootGenerator] V6 Style Prompt built, length:', prompt.length);
+    } else {
+      // V5/Legacy Mode: Build prompt using universe params or virtual studio
+      const result = buildCustomShootPrompt({
+        virtualCamera: useVirtualStudio ? virtualCamera : null,
+        lighting: useVirtualStudio ? lighting : null,
+        universeParams,
+        customUniverse: shoot.customUniverse,
+        locks,
+        frame,
+        location,
+        emotionId,
+        extraPrompt,
+        modelDescription: '',
+        clothingDescriptions,
+        clothingItemPrompts,
+        lookPrompt,
+        hasIdentityRefs: identityImages.length > 0,
+        hasClothingRefs: clothingImages.length > 0,
+        hasStyleRef: !!styleRefImage && locks?.style?.enabled,
+        hasLocationSketch: !!locationSketchImage && !hasStyleLock,
+        hasPoseSketch: !!poseSketchImage,
+        poseAdherence,
+        composition,
+        qualityMode,
+        mood
+      });
+      prompt = result.prompt;
+      promptJson = result.promptJson;
+      console.log('[CustomShootGenerator] Prompt built, length:', prompt.length);
+    }
 
     // Get quality settings
     const quality = QUALITY_MODES[qualityMode] || QUALITY_MODES.DRAFT;
