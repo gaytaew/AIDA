@@ -229,6 +229,11 @@ FACIAL STRUCTURE (must match exactly):
 - Face shape, eyes, nose, lips: identical to reference
 - Jawline and cheekbones: same definition
 
+STRICT STYLE ISOLATION:
+- EXTRACT ONLY the physical facial structure/features from [$1].
+- IGNORE ALL lighting, color grading, shadows, and artistic style from [$1].
+- The image MUST use the lighting/style defined in the STYLE PRESET, NOT the reference.
+
 FORBIDDEN:
 - Do NOT beautify or idealize the face
 - Do NOT change eye color
@@ -240,7 +245,12 @@ FORBIDDEN:
     let clothingSection = `
 === CLOTHING ACCURACY (CRITICAL — [$3], [$4]) ===
 
-Recreate garments from reference images with MAXIMUM accuracy.`;
+Recreate garments from reference images with MAXIMUM accuracy.
+
+STRICT ISOLATION:
+- Use references [$3], [$4] ONLY for garment structure, cut, and texture.
+- IGNORE lighting and color casting from these references.
+- Integrate the clothing naturally into the new scene's lighting.`;
 
     if (lookPrompt && lookPrompt.trim()) {
       clothingSection += `
@@ -742,6 +752,11 @@ FACIAL STRUCTURE (must match exactly):
 - Lips: same fullness, shape, proportions
 - Jawline and cheekbones: same definition
 
+STRICT STYLE ISOLATION:
+- EXTRACT ONLY the physical facial structure/features from [$1].
+- IGNORE ALL lighting, color grading, shadows, and artistic style from [$1].
+- The image MUST use the lighting/style defined in the main prompt, NOT the reference.
+
 FORBIDDEN:
 - Do NOT beautify or idealize the face
 - Do NOT change eye color
@@ -767,7 +782,14 @@ MUST MATCH:
 - Exact proportions and lengths
 - Exact colors and patterns
 - Construction details (seams, buttons, pockets)
-- Fabric behavior (structured vs flowing)`;
+- Exact colors and patterns
+- Construction details (seams, buttons, pockets)
+- Fabric behavior (structured vs flowing)
+
+STRICT SENSOR ISOLATION:
+- Use references [$3], [$4] ONLY for garment structure/texture.
+- IGNORE lighting and color casting from these references.
+- Integrate the clothing naturally into the new scene's lighting.`;
 
     // Add overall look/outfit style if provided
     if (lookPrompt && lookPrompt.trim()) {
