@@ -69,13 +69,19 @@ const ANALYSIS_SYSTEM_PROMPT = `Ты — AI-эксперт по анализу �
   },
   "naturalPrompt": "[Полное описание для генерации, 2-3 предложения на английском]",
   "antiAiDirectives": ["Avoid plastic skin", "No perfect symmetry", "Maintain micro-texture"],
-  "suggestedName": "[Краткое название стиля на русском, 2-4 слова]"
+  "suggestedName": "[Краткое название стиля на русском, 2-4 слова]",
+  "variations": [
+    { "id": "bw", "label": "Ч/Б", "promptSuffix": "black and white, desaturated, high contrast" },
+    { "id": "warm", "label": "Тёплый", "promptSuffix": "warm color temperature, golden hour tones" },
+    { "id": "cold", "label": "Холодный", "promptSuffix": "cool blue tones, winter atmosphere" }
+  ]
 }
 
 ## ВАЖНО
 - Отвечай ТОЛЬКО в формате JSON.
 - naturalPrompt должен быть на АНГЛИЙСКОМ языке (для генерации изображений).
 - suggestedName должен быть на РУССКОМ языке (для UI).
+- variations — массив из 2-4 вариаций стиля. Каждая вариация: id (латиница), label (русский), promptSuffix (английский модификатор).
 - Если какой-то параметр неопределим — укажи "indeterminate" и предположительный диапазон.
 - Всегда включай раздел antiAiDirectives.`;
 
@@ -164,7 +170,8 @@ export async function analyzeStyle(image) {
                 technicalParams: result.technicalParams || {},
                 naturalPrompt: result.naturalPrompt || '',
                 antiAiDirectives: result.antiAiDirectives || [],
-                suggestedName: result.suggestedName || 'Новый стиль'
+                suggestedName: result.suggestedName || 'Новый стиль',
+                variations: result.variations || []  // V6: Auto-generated variations
             }
         };
 

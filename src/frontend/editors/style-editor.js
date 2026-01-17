@@ -619,6 +619,16 @@ function showAnalysisResult(analysis) {
     elements.antiAiBadges.innerHTML = directives.map(d =>
         `<span class="anti-ai-badge">🛡️ ${escapeHtml(d)}</span>`
     ).join('');
+
+    // V6: Auto-generated variations from AI
+    if (analysis.variations && Array.isArray(analysis.variations)) {
+        currentVariations = analysis.variations.map((v, i) => ({
+            id: v.id || `var_${i}_${Date.now().toString(36)}`,
+            label: v.label || '',
+            promptSuffix: v.promptSuffix || ''
+        }));
+        renderVariations();
+    }
 }
 
 function resetToUploadState() {
