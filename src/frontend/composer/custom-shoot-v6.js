@@ -174,6 +174,8 @@ function initElements() {
   elements.genImageSize = document.getElementById('gen-image-size');
   elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
   elements.genEmotion = document.getElementById('gen-emotion');
+  elements.genVariation = document.getElementById('gen-variation');
+  elements.variationSelectorGroup = document.getElementById('variation-selector-group');
 
   // Composition controls (per-frame: shot size and camera angle)
   elements.genShotSize = document.getElementById('gen-shot-size');
@@ -1415,6 +1417,19 @@ function selectStylePreset(presetId) {
 
   console.log('[SelectStylePreset]', state.selectedPreset?.name);
 
+  // Populate variations dropdown
+  if (elements.genVariation && state.selectedPreset) {
+    const variations = state.selectedPreset.variations || [];
+    if (variations.length > 0) {
+      elements.genVariation.innerHTML = '<option value="">Базовый стиль</option>' +
+        variations.map(v => `<option value="${v.id}">${escapeHtml(v.label || v.id)}</option>`).join('');
+      if (elements.variationSelectorGroup) elements.variationSelectorGroup.style.display = '';
+    } else {
+      elements.genVariation.innerHTML = '<option value="">Базовый стиль</option>';
+      if (elements.variationSelectorGroup) elements.variationSelectorGroup.style.display = 'none';
+    }
+  }
+
   // Re-render to show selection
   renderStylePresetsGrid();
 
@@ -2461,7 +2476,10 @@ async function generateFrame(frameId) {
       poseAdherence: params.poseAdherence,
       // V6: Send styleParams instead of universeParams
       styleParams: params.styleParams,
-      v6Mode: true  // Flag to tell backend to use V6 mode
+      v6Mode: true,  // Flag to tell backend to use V6 mode
+      // V6: Variation and Emotion support
+      variationId: elements.genVariation?.value || null,
+      emotionId: elements.genEmotion?.value || null
     };
 
     const bodySize = JSON.stringify(requestBody).length;

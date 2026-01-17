@@ -189,7 +189,9 @@ export function buildV6StylePrompt({
   poseAdherence = 2,
   lookPrompt = '',
   clothingItemPrompts = [],
-  clothingDescriptions = []
+  clothingDescriptions = [],
+  variationId = null,   // V6: Selected variation ID
+  emotionId = null      // Selected emotion ID
 }) {
   const sections = [];
 
@@ -201,10 +203,20 @@ Style Preset: ${styleParams.presetId || 'Custom'}
 
   // Natural prompt from preset (the core of V6)
   if (styleParams.naturalPrompt) {
+    let prompt = styleParams.naturalPrompt;
+
+    // Apply variation suffix if selected
+    if (variationId && styleParams.variations && Array.isArray(styleParams.variations)) {
+      const variation = styleParams.variations.find(v => v.id === variationId);
+      if (variation && variation.promptSuffix) {
+        prompt += `\n\nVARIATION (${variation.label || variationId}): ${variation.promptSuffix}`;
+      }
+    }
+
     sections.push(`
 === VISUAL STYLE (from AI Director) ===
 
-${styleParams.naturalPrompt}`);
+${prompt}`);
   }
 
   // Anti-AI directives from preset (becomes negative prompt elements)
@@ -305,6 +317,19 @@ Copy the following from the style reference:
 
 ADHERENCE LEVEL: ${poseAdherence}/4 (${adherence.label})
 ${adherence.instruction}`);
+  }
+
+  // Emotion (if specified)
+  if (emotionId) {
+    const emotion = getEmotionById(emotionId);
+    if (emotion) {
+      sections.push(`
+=== EMOTION / EXPRESSION ===
+The model MUST show "${emotion.label}" emotion.
+
+${emotion.physicalHints ? `Physical cues: ${Array.isArray(emotion.physicalHints) ? emotion.physicalHints.join(', ') : emotion.physicalHints}` : ''}
+${emotion.avoid ? `AVOID: ${Array.isArray(emotion.avoid) ? emotion.avoid.join(', ') : emotion.avoid}` : ''}`);
+    }
   }
 
   // Extra instructions
@@ -920,7 +945,8 @@ export async function generateCustomShootFrame({
 
   // V6 Style Preset mode (AI Director)
   v6Mode = false,
-  styleParams = null,  // { presetId, naturalPrompt, antiAiDirectives, technicalParams }
+  styleParams = null,  // { presetId, naturalPrompt, antiAiDirectives, technicalParams, variations }
+  variationId = null,  // V6: Selected variation (sub-preset) ID
 
   // Legacy parameters (kept for compatibility)
   captureStyle = null,

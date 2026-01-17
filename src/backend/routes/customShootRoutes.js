@@ -483,6 +483,8 @@ router.post('/:id/generate', async (req, res) => {
       // ═══════════════════════════════════════════════════════════════
       v6Mode,         // Boolean flag for V6 mode
       styleParams,    // { presetId, naturalPrompt, antiAiDirectives, technicalParams }
+      variationId,    // V6: Selected variation (sub-preset) ID
+      // Note: emotionId is already extracted above in common params
 
       // ═══════════════════════════════════════════════════════════════
       // Virtual Studio Parameters (legacy)
@@ -759,6 +761,7 @@ router.post('/:id/generate', async (req, res) => {
       // ═══════════════════════════════════════════════════════════════
       v6Mode,
       styleParams,
+      variationId,  // V6: Selected variation (sub-preset) ID
 
       // ═══════════════════════════════════════════════════════════════
       // Virtual Studio Parameters (legacy architecture)

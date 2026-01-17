@@ -202,6 +202,7 @@ export async function createPreset(presetData, referenceImage = null) {
         technicalParams: presetData.technicalParams || {},
         naturalPrompt: presetData.naturalPrompt || '',
         antiAiDirectives: presetData.antiAiDirectives || [],
+        variations: presetData.variations || [], // V6: Sub-presets (style variations)
         referenceImagePath: null,
         version: 1,
         createdAt: now,
@@ -260,6 +261,7 @@ export async function updatePreset(id, updates) {
         technicalParams: updates.technicalParams ?? existingPreset.technicalParams,
         naturalPrompt: updates.naturalPrompt ?? existingPreset.naturalPrompt,
         antiAiDirectives: updates.antiAiDirectives ?? existingPreset.antiAiDirectives,
+        variations: updates.variations ?? existingPreset.variations ?? [], // V6: Sub-presets
         version: (existingPreset.version || 1) + 1,
         updatedAt: new Date().toISOString()
     };

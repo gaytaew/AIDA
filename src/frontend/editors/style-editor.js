@@ -16,6 +16,7 @@ const LOOKS_API = '/api/looks';
 let uploadedImages = [];  // Changed to array for multiple images
 let currentAnalysis = null;
 let currentPreset = null;
+let currentVariations = []; // V6: Style variations
 let allPresets = [];
 let allModels = [];
 let allLooks = [];
@@ -62,7 +63,11 @@ const elements = {
 
     // Header
     serverStatus: null,
-    btnClearAnalysis: null
+    btnClearAnalysis: null,
+
+    // Variations (V6 Sub-presets)
+    btnAddVariation: null,
+    variationsList: null
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -109,6 +114,10 @@ function initElements() {
 
     elements.serverStatus = document.getElementById('server-status');
     elements.btnClearAnalysis = document.getElementById('btn-clear-analysis');
+
+    // Variations
+    elements.btnAddVariation = document.getElementById('btn-add-variation');
+    elements.variationsList = document.getElementById('variations-list');
 }
 
 function initEventListeners() {
@@ -168,6 +177,11 @@ function initEventListeners() {
 
     // Generate
     elements.btnGenerate.addEventListener('click', generateShoot);
+
+    // Variations
+    if (elements.btnAddVariation) {
+        elements.btnAddVariation.addEventListener('click', addVariation);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -443,6 +457,7 @@ async function savePreset() {
                 technicalParams: currentAnalysis.technicalParams,
                 naturalPrompt: currentAnalysis.naturalPrompt,
                 antiAiDirectives: currentAnalysis.antiAiDirectives,
+                variations: currentVariations, // V6: Include variations
                 // Save first image as reference
                 referenceImage: uploadedImages.length > 0 ? {
                     mimeType: uploadedImages[0].mimeType,
@@ -643,6 +658,63 @@ function populateSelects() {
     // Looks
     elements.selectLook.innerHTML = '<option value="">Выберите лук...</option>' +
         allLooks.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VARIATIONS (V6 Sub-presets)
+// ═══════════════════════════════════════════════════════════════
+
+function addVariation() {
+    const id = 'var_' + Date.now().toString(36);
+    currentVariations.push({
+        id,
+        label: '',
+        promptSuffix: ''
+    });
+    renderVariations();
+}
+
+function removeVariation(varId) {
+    currentVariations = currentVariations.filter(v => v.id !== varId);
+    renderVariations();
+}
+
+function updateVariation(varId, field, value) {
+    const variation = currentVariations.find(v => v.id === varId);
+    if (variation) {
+        variation[field] = value;
+    }
+}
+
+function renderVariations() {
+    if (!elements.variationsList) return;
+
+    if (currentVariations.length === 0) {
+        elements.variationsList.innerHTML = `
+            <div class="empty-variations" style="font-size: 12px; color: var(--color-text-muted); padding: 12px; background: var(--color-bg-secondary); border-radius: 8px; text-align: center;">
+                Вариаций пока нет. Добавьте вариации для разных версий стиля (Ч/Б, День, Вечер и т.д.)
+            </div>
+        `;
+        return;
+    }
+
+    elements.variationsList.innerHTML = currentVariations.map(v => `
+        <div class="variation-item" data-id="${v.id}" style="background: var(--color-bg-secondary); border-radius: 8px; padding: 12px; display: flex; gap: 12px; align-items: flex-start;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                <input type="text" class="variation-label form-input" placeholder="Название (напр. Ч/Б)" value="${escapeHtml(v.label || '')}" style="font-size: 12px; padding: 6px 10px;">
+                <input type="text" class="variation-suffix form-input" placeholder="Модификатор промпта (напр. black and white, high contrast)" value="${escapeHtml(v.promptSuffix || '')}" style="font-size: 11px; padding: 6px 10px;">
+            </div>
+            <button class="btn-remove-variation" style="background: none; border: none; color: var(--color-error); cursor: pointer; font-size: 16px; padding: 4px;">×</button>
+        </div>
+    `).join('');
+
+    // Attach event listeners
+    elements.variationsList.querySelectorAll('.variation-item').forEach(item => {
+        const id = item.dataset.id;
+        item.querySelector('.variation-label').addEventListener('input', (e) => updateVariation(id, 'label', e.target.value));
+        item.querySelector('.variation-suffix').addEventListener('input', (e) => updateVariation(id, 'promptSuffix', e.target.value));
+        item.querySelector('.btn-remove-variation').addEventListener('click', () => removeVariation(id));
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
