@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIDA — V6 AI-Режиссёр | Библиотека Стилей</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        /* V6 Style Editor Layout */
+        .style-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 24px;
+            height: calc(100vh - 120px);
+        }
+
+        /* Left Panel: Preset Library */
+        .preset-library {
+            background: var(--color-surface);
+            border-radius: 12px;
+            border: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .library-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .library-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .library-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .preset-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-card:hover {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .preset-card.selected {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .preset-card-preview {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: var(--color-bg);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .preset-card-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preset-card-name {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .preset-card-meta {
+            font-size: 11px;
+            color: var(--color-text-muted);
+        }
+
+        /* Right Panel: Workbench */
+        .workbench {
+            background: var(--color-surface);
+            border-radius: 12px;
+            border: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workbench-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .workbench-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--color-border);
+            border-radius: 12px;
+            padding: 48px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 24px;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .upload-zone-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .upload-zone-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .upload-zone-hint {
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+
+        .upload-zone.has-image {
+            padding: 0;
+            border-style: solid;
+        }
+
+        .upload-zone.has-image img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+        }
+
+        /* Analysis Result */
+        .analysis-section {
+            display: none;
+        }
+
+        .analysis-section.visible {
+            display: block;
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .analysis-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .tech-params-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tech-param-card {
+            background: var(--color-bg-secondary);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .tech-param-label {
+            font-size: 10px;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .tech-param-value {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .natural-prompt-box {
+            background: var(--color-bg-secondary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .natural-prompt-label {
+            font-size: 10px;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .natural-prompt-text {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* AI Refiner */
+        .refiner-section {
+            margin-bottom: 24px;
+        }
+
+        .refiner-input-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .refiner-input {
+            flex: 1;
+        }
+
+        /* Anti-AI Badges */
+        .anti-ai-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .anti-ai-badge {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #EF4444;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        /* Generation Section */
+        .generation-section {
+            display: none;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .generation-section.visible {
+            display: block;
+        }
+
+        .generation-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .generation-selects {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 64px;
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-state-text {
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+
+        /* Status messages */
+        .status-message {
+            display: none;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+
+        .status-message.visible {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-message.loading {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--color-accent);
+        }
+
+        .status-message.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10B981;
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+        }
+
+        /* Preset Name Input */
+        .preset-name-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .preset-name-input {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="logo">
+                    <div class="logo-icon">A</div>
+                    <div class="logo-text">AIDA</div>
+                </a>
+            </div>
+            <nav class="sidebar-nav" id="sidebar-nav"></nav>
+            <script src="/shared/sidebar-nav.js"></script>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="page-header">
+                <h1 class="page-title">🎬 V6 AI-Режиссёр | Библиотека Стилей</h1>
+                <div class="header-actions">
+                    <span id="server-status" class="status-badge">Загрузка...</span>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <div class="style-layout">
+
+                    <!-- Left Panel: Preset Library -->
+                    <div class="preset-library">
+                        <div class="library-header">
+                            <span class="library-title">📁 Мои пресеты</span>
+                            <button id="btn-new-preset" class="btn btn-sm btn-primary">+ Новый</button>
+                        </div>
+                        <div class="library-list" id="preset-list">
+                            <!-- Populated by JS -->
+                            <div class="empty-state" style="padding: 24px;">
+                                <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;">🎨</div>
+                                <div style="font-size: 12px; color: var(--color-text-muted);">Пресетов пока нет</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Workbench -->
+                    <div class="workbench">
+                        <div class="workbench-header">
+                            <span id="workbench-title" style="font-weight: 600;">Создание нового пресета</span>
+                            <div id="workbench-actions" style="display: flex; gap: 8px;">
+                                <!-- Actions dynamically added -->
+                            </div>
+                        </div>
+
+                        <div class="workbench-body" id="workbench-body">
+                            <!-- STATE 1: Upload -->
+                            <div id="state-upload">
+                                <div class="upload-zone" id="upload-zone">
+                                    <input type="file" id="file-input" accept="image/*" hidden>
+                                    <div class="upload-zone-icon">📷</div>
+                                    <div class="upload-zone-title">Загрузи референс</div>
+                                    <div class="upload-zone-hint">Перетащи изображение или кликни для выбора</div>
+                                </div>
+
+                                <div id="status-analyze" class="status-message"></div>
+
+                                <button id="btn-analyze" class="btn btn-primary btn-full" disabled>
+                                    <span>✨ Анализировать стиль (GPT-5.2)</span>
+                                </button>
+                            </div>
+
+                            <!-- STATE 2: Analysis Result -->
+                            <div id="state-analysis" class="analysis-section">
+                                <div class="analysis-header">
+                                    <span class="analysis-title">📊 Результат анализа</span>
+                                    <button id="btn-clear-analysis" class="btn btn-sm">🔄 Заново</button>
+                                </div>
+
+                                <!-- Preset Name -->
+                                <div class="preset-name-row">
+                                    <input type="text" id="preset-name" class="form-input preset-name-input"
+                                        placeholder="Название пресета">
+                                </div>
+
+                                <!-- Technical Parameters -->
+                                <div class="tech-params-grid" id="tech-params-grid">
+                                    <!-- Populated by JS -->
+                                </div>
+
+                                <!-- Natural Prompt -->
+                                <div class="natural-prompt-box">
+                                    <div class="natural-prompt-label">💬 Промпт для генерации</div>
+                                    <div class="natural-prompt-text" id="natural-prompt-text">...</div>
+                                </div>
+
+                                <!-- Anti-AI Directives -->
+                                <div class="anti-ai-badges" id="anti-ai-badges">
+                                    <!-- Populated by JS -->
+                                </div>
+
+                                <!-- AI Refiner -->
+                                <div class="refiner-section">
+                                    <label class="form-label">💬 Уточнить через AI</label>
+                                    <div class="refiner-input-row">
+                                        <input type="text" id="refine-input" class="form-input refiner-input"
+                                            placeholder="Сделай свет более драматичным...">
+                                        <button id="btn-refine" class="btn btn-secondary">🔄 Применить</button>
+                                    </div>
+                                </div>
+
+                                <div id="status-refine" class="status-message"></div>
+
+                                <!-- Save Button -->
+                                <button id="btn-save-preset" class="btn btn-primary btn-full">
+                                    💾 Сохранить пресет
+                                </button>
+
+                                <div id="status-save" class="status-message"></div>
+
+                                <!-- Generation Section (after save) -->
+                                <div id="generation-section" class="generation-section">
+                                    <div class="generation-title">🎬 Сгенерировать съёмку</div>
+                                    <div class="generation-selects">
+                                        <div>
+                                            <label class="form-label">Модель</label>
+                                            <select id="select-model" class="form-select">
+                                                <option value="">Выберите модель...</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="form-label">Одежда</label>
+                                            <select id="select-look" class="form-select">
+                                                <option value="">Выберите лук...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button id="btn-generate" class="btn btn-accent btn-full">
+                                        🎬 Сгенерировать съёмку
+                                    </button>
+                                    <div id="status-generate" class="status-message"></div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="style-editor.js"></script>
+</body>
+
+</html>

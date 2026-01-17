@@ -26,6 +26,7 @@ import customShootRoutes from './routes/customShootRoutes.js';
 import lookRoutes from './routes/lookRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
 import foodShootRoutes from './routes/foodShootRoutes.js';
+import stylesRoutes from './routes/stylesRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -150,6 +151,11 @@ app.use('/api/custom-shoots', customShootRoutes);
 app.use('/api/looks', lookRoutes);
 app.use('/api/food', foodRoutes);
 app.use('/api/food-shoots', foodShootRoutes);
+app.use('/api/styles', stylesRoutes);
+
+// Static files (style preset images)
+const stylesStorePath = path.resolve(__dirname, 'store/style-presets');
+app.use('/api/styles/images', express.static(stylesStorePath));
 
 // Static files (look images)
 const looksStorePath = path.resolve(__dirname, 'store/looks');
