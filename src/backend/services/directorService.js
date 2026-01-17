@@ -138,7 +138,7 @@ export async function analyzeStyle(image) {
                     ]
                 }
             ],
-            max_tokens: 2000,
+            max_completion_tokens: 2000,
             temperature: 0.3 // Lower for consistent technical analysis
         });
 
@@ -215,7 +215,7 @@ export async function refineStyle(currentPreset, instruction) {
                     content: `Текущий стиль:\n\`\`\`json\n${JSON.stringify(currentState, null, 2)}\n\`\`\`\n\nИнструкция пользователя: "${instruction}"\n\nПримени изменения и верни обновлённый JSON.`
                 }
             ],
-            max_tokens: 2000,
+            max_completion_tokens: 2000,
             temperature: 0.4 // Slightly higher for creative interpretation
         });
 
