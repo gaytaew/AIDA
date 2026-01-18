@@ -8,7 +8,7 @@
 import { requestGeminiImage } from '../providers/geminiClient.js';
 import { generateImageId } from '../schema/customShoot.js';
 
-// Импорт схемы
+// Импорт схемы V1 (legacy)
 import {
     PRODUCT_CATEGORY,
     PRODUCT_PRESENTATION,
@@ -25,6 +25,9 @@ import {
     PRODUCT_SHOW_DETAILS,
     validateProductParams
 } from '../schema/productShoot.js';
+
+// Импорт V2 prompt builder
+import { buildProductPromptV2 } from '../params/productPromptV2.js';
 
 // ═══════════════════════════════════════════════════════════════
 // PROMPT BUILDER
@@ -345,14 +348,23 @@ export async function generateProductShootFrame({
             indexMap['style'] = validImages.length;
         }
 
-        // 3. Build Prompt
-        let promptText = buildProductPrompt(sanitizedParams, indexMap);
+        // 3. Build Prompt — V2 или Legacy
+        let promptText;
+        const isV2Mode = ['catalog', 'flatlay', 'lifestyle', 'custom'].includes(params.mode);
 
-        // 4. PERSPECTIVE RESET (для flat_lay, overhead, top_down)
-        const needsPerspectiveReset = ['flat_lay', 'overhead', 'top_down'].includes(sanitizedParams.angle);
+        if (isV2Mode) {
+            // NEW V2 режим — минималистичный prompt builder
+            console.log(`[ProductGenerator] ${genId} Using V2 mode: ${params.mode}`);
+            promptText = buildProductPromptV2(params, indexMap);
+        } else {
+            // Legacy режим для обратной совместимости
+            promptText = buildProductPrompt(sanitizedParams, indexMap);
 
-        if (needsPerspectiveReset) {
-            promptText += `
+            // 4. PERSPECTIVE RESET (только для legacy)
+            const needsPerspectiveReset = ['flat_lay', 'overhead', 'top_down'].includes(sanitizedParams.angle);
+
+            if (needsPerspectiveReset) {
+                promptText += `
 
 [PERSPECTIVE RESET - CRITICAL]
 The input product images are ISOLATED REFERENCES taken from random angles (often eye-level or 3/4 view).
@@ -375,11 +387,11 @@ COMMON MISTAKES TO AVOID:
 ✅ CORRECT: Imagine you are looking DOWN at objects lying on a table/floor
 ✅ SHADOWS: Cast directly beneath objects (for overhead lighting)
 ✅ SCALE: Maintain realistic proportions between objects`;
-        }
+            }
 
-        // 5. LOCATION/SURFACE - теперь как ВДОХНОВЕНИЕ, не композитинг
-        if (indexMap.location) {
-            promptText += `
+            // 5. LOCATION/SURFACE - теперь как ВДОХНОВЕНИЕ, не композитинг
+            if (indexMap.location) {
+                promptText += `
 
 [SCENE INSPIRATION - REFERENCE [$${indexMap.location}]]
 This image shows the TYPE of environment/setting for your photograph.
@@ -399,30 +411,30 @@ PRODUCT PLACEMENT:
 - Clothing: Neatly folded or naturally draped, showing texture
 - Shoes: Placed casually but artfully, maybe one slightly tilted
 - Everything should cast appropriate, soft shadows`;
-        }
+            }
 
-        // 6. Multi-product instructions with per-item params
-        if (additionalIndexes.length > 0) {
-            const positionLabels = { auto: 'arrange naturally', left: 'left side of frame', center: 'center of composition', right: 'right side of frame' };
-            const scaleLabels = { small: 'small, as accent', medium: 'medium, balanced size', large: 'large, prominent' };
-            const orientLabels = { auto: 'natural placement', folded: 'neatly folded', flat: 'spread flat', standing: 'standing upright', tilted: 'casually tilted' };
-            const roleLabels = { hero: 'MAIN focus, most prominent', supporting: 'complementary item' };
+            // 6. Multi-product instructions with per-item params
+            if (additionalIndexes.length > 0) {
+                const positionLabels = { auto: 'arrange naturally', left: 'left side of frame', center: 'center of composition', right: 'right side of frame' };
+                const scaleLabels = { small: 'small, as accent', medium: 'medium, balanced size', large: 'large, prominent' };
+                const orientLabels = { auto: 'natural placement', folded: 'neatly folded', flat: 'spread flat', standing: 'standing upright', tilted: 'casually tilted' };
+                const roleLabels = { hero: 'MAIN focus, most prominent', supporting: 'complementary item' };
 
-            const multiProdLines = additionalIndexes.map(p => {
-                const params = p.params || {};
-                const pos = positionLabels[params.position] || 'arrange naturally';
-                const scale = scaleLabels[params.scale] || 'medium, balanced size';
-                const orient = orientLabels[params.orientation] || 'natural placement';
-                const role = roleLabels[params.role] || 'complementary item';
+                const multiProdLines = additionalIndexes.map(p => {
+                    const params = p.params || {};
+                    const pos = positionLabels[params.position] || 'arrange naturally';
+                    const scale = scaleLabels[params.scale] || 'medium, balanced size';
+                    const orient = orientLabels[params.orientation] || 'natural placement';
+                    const role = roleLabels[params.role] || 'complementary item';
 
-                return `PRODUCT "${p.name}" [Reference $${p.index}]:
+                    return `PRODUCT "${p.name}" [Reference $${p.index}]:
 - Position: ${pos}
 - Scale: ${scale}
 - Orientation: ${orient}
 - Role: ${role}`;
-            }).join('\n\n');
+                }).join('\n\n');
 
-            promptText += `
+                promptText += `
 
 [MULTI-PRODUCT SCENE]
 ${multiProdLines}
@@ -432,7 +444,8 @@ LAYOUT RULES:
 - Hero items should be more prominent and visually dominant
 - Supporting items complement but don't overshadow hero items
 - Maintain realistic proportions between all items`;
-        }
+            }
+        } // END of else (legacy mode)
 
         console.log(`[ProductGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 500)}...`);
 
@@ -441,8 +454,8 @@ LAYOUT RULES:
             prompt: promptText,
             referenceImages: validImages,
             imageConfig: {
-                aspectRatio: sanitizedParams.aspectRatio || '1:1',
-                imageSize: sanitizedParams.imageSize || '2k'
+                aspectRatio: params.aspectRatio || sanitizedParams.aspectRatio || '1:1',
+                imageSize: params.quality || sanitizedParams.imageSize || '2k'
             }
         });
 
@@ -455,7 +468,7 @@ LAYOUT RULES:
             base64: result.base64,
             mimeType: result.mimeType || 'image/jpeg',
             prompt: promptText,
-            params: sanitizedParams,
+            params: isV2Mode ? params : sanitizedParams,
             createdAt: new Date().toISOString()
         };
 
@@ -469,5 +482,3 @@ export default {
     generateProductShootFrame,
     buildProductPrompt
 };
-
-

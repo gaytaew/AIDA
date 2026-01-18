@@ -5,13 +5,25 @@
 // State
 const state = {
     options: null,
+    optionsV2: null,  // NEW: V2 параметры
     history: [],
     currentShoot: null,
+    // V2 Mode
+    v2Mode: 'flatlay',  // catalog | flatlay | lifestyle | custom
+    v2Params: {
+        background: 'white',      // для catalog
+        surface: 'wood_light',    // для flatlay
+        surfaceCustom: '',
+        arrangement: 'natural',
+        atmosphere: 'warm',       // для lifestyle
+        customPrompt: '',         // для custom
+        aspectRatio: '1:1'
+    },
     images: {
         subject: null,
         style: null,
         base: null,
-        location: null  // NEW: Референс локации/поверхности
+        location: null  // Референс локации/поверхности
     },
     products: []  // Multi-product: [{id, name, photos: [{base64, mimeType, dataUrl}]}]
 };
@@ -100,11 +112,20 @@ async function init() {
 
 async function loadOptions() {
     try {
+        // Load legacy V1 options
         const res = await fetch('/api/product/options');
         const json = await res.json();
         if (json.ok) {
             state.options = json.data;
             renderOptions();
+        }
+
+        // Load V2 options
+        const resV2 = await fetch('/api/product/options-v2');
+        const jsonV2 = await resV2.json();
+        if (jsonV2.ok) {
+            state.optionsV2 = jsonV2.data;
+            setupV2UI();
         }
     } catch (e) {
         console.error('Failed to load options', e);
@@ -152,6 +173,144 @@ function renderOptions() {
         ).join('');
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// V2 UI SETUP
+// ═══════════════════════════════════════════════════════════════
+
+function setupV2UI() {
+    const v2Container = document.getElementById('v2-mode-container');
+    if (!v2Container || !state.optionsV2) return;
+
+    const { modes, catalog, flatlay, lifestyle, global, presets, defaults } = state.optionsV2;
+
+    // Render mode tabs
+    const modesHtml = Object.values(modes).map(m => `
+        <button class="v2-mode-btn ${m.id === state.v2Mode ? 'active' : ''}" 
+                data-mode="${m.id}" 
+                onclick="window.setV2Mode('${m.id}')">
+            <span class="v2-mode-icon">${m.icon}</span>
+            <span class="v2-mode-label">${m.label}</span>
+        </button>
+    `).join('');
+
+    // Render presets
+    const presetsHtml = presets.map(p => `
+        <button class="v2-preset-btn" data-preset="${p.id}" onclick="window.applyV2Preset('${p.id}')">
+            ${p.icon} ${p.label}
+        </button>
+    `).join('');
+
+    v2Container.innerHTML = `
+        <div class="v2-section">
+            <div class="v2-label">Режим съёмки</div>
+            <div class="v2-modes">${modesHtml}</div>
+        </div>
+        <div class="v2-section">
+            <div class="v2-label">Пресеты</div>
+            <div class="v2-presets">${presetsHtml}</div>
+        </div>
+        <div class="v2-section" id="v2-mode-params">
+            <!-- Conditional params render here -->
+        </div>
+        <div class="v2-section">
+            <div class="v2-label">Формат</div>
+            <select id="v2-aspectRatio" onchange="state.v2Params.aspectRatio = this.value">
+                ${global.aspectRatio.map(o => `<option value="${o.id}" ${o.id === state.v2Params.aspectRatio ? 'selected' : ''}>${o.label}</option>`).join('')}
+            </select>
+        </div>
+    `;
+
+    renderV2ModeParams();
+}
+
+function renderV2ModeParams() {
+    const container = document.getElementById('v2-mode-params');
+    if (!container || !state.optionsV2) return;
+
+    const { catalog, flatlay, lifestyle } = state.optionsV2;
+    let html = '';
+
+    switch (state.v2Mode) {
+        case 'catalog':
+            html = `
+                <div class="v2-label">Фон</div>
+                <select id="v2-background" onchange="state.v2Params.background = this.value">
+                    ${catalog.background.map(o => `<option value="${o.id}" ${o.id === state.v2Params.background ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+            `;
+            break;
+
+        case 'flatlay':
+            html = `
+                <div class="v2-label">Поверхность</div>
+                <select id="v2-surface" onchange="state.v2Params.surface = this.value; document.getElementById('v2-surface-custom').style.display = this.value === 'custom' ? 'block' : 'none'">
+                    ${flatlay.surface.map(o => `<option value="${o.id}" ${o.id === state.v2Params.surface ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+                <input type="text" id="v2-surface-custom" placeholder="Опиши поверхность..." 
+                    style="display: ${state.v2Params.surface === 'custom' ? 'block' : 'none'}; margin-top: 8px;"
+                    value="${state.v2Params.surfaceCustom || ''}"
+                    onchange="state.v2Params.surfaceCustom = this.value">
+                <div class="v2-label" style="margin-top: 12px;">Укладка</div>
+                <select id="v2-arrangement" onchange="state.v2Params.arrangement = this.value">
+                    ${flatlay.arrangement.map(o => `<option value="${o.id}" ${o.id === state.v2Params.arrangement ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+            `;
+            break;
+
+        case 'lifestyle':
+            html = `
+                <div class="v2-label">Атмосфера</div>
+                <select id="v2-atmosphere" onchange="state.v2Params.atmosphere = this.value">
+                    ${lifestyle.atmosphere.map(o => `<option value="${o.id}" ${o.id === state.v2Params.atmosphere ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+                <div class="v2-note" style="margin-top: 8px; font-size: 11px; color: var(--color-text-muted);">
+                    ⚠️ Загрузите референс локации для лучшего результата
+                </div>
+            `;
+            break;
+
+        case 'custom':
+            html = `
+                <div class="v2-label">Свой промпт</div>
+                <textarea id="v2-custom-prompt" rows="5" 
+                    placeholder="Опиши желаемый кадр подробно..."
+                    onchange="state.v2Params.customPrompt = this.value">${state.v2Params.customPrompt || ''}</textarea>
+            `;
+            break;
+    }
+
+    container.innerHTML = html;
+}
+
+window.setV2Mode = function (mode) {
+    state.v2Mode = mode;
+    // Update active button
+    document.querySelectorAll('.v2-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    renderV2ModeParams();
+};
+
+window.applyV2Preset = function (presetId) {
+    const preset = state.optionsV2?.presets.find(p => p.id === presetId);
+    if (!preset) return;
+
+    state.v2Mode = preset.mode;
+    Object.assign(state.v2Params, preset.values);
+
+    // Re-render UI
+    document.querySelectorAll('.v2-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === state.v2Mode);
+    });
+    renderV2ModeParams();
+
+    // Update aspect ratio select if exists
+    const arSelect = document.getElementById('v2-aspectRatio');
+    if (arSelect && preset.values.aspectRatio) {
+        arSelect.value = preset.values.aspectRatio;
+    }
+};
 
 // ═══════════════════════════════════════════════════════════════
 // SUB-PARAMETERS
@@ -301,11 +460,7 @@ async function compressImage(file) {
 // ═══════════════════════════════════════════════════════════════
 
 async function generate() {
-    const subjectDescription = els.subjectDesc.value.trim();
-    if (!subjectDescription) {
-        alert('Опиши предмет!');
-        return;
-    }
+    const subjectDescription = els.subjectDesc?.value?.trim() || '';
 
     els.btnGenerate.disabled = true;
     els.genStatus.style.display = 'block';
@@ -327,11 +482,22 @@ async function generate() {
         const productsPayload = state.products.filter(p => p.photos.length > 0).map(p => ({
             name: p.name,
             photos: p.photos.slice(0, MAX_PHOTOS_PER_PRODUCT).map(photo => ({ base64: photo.base64, mimeType: photo.mimeType })),
-            params: p.params || {}  // NEW: передаём параметры предмета
+            params: p.params || {}
         }));
 
+        // Определяем используем ли V2 режим
+        const useV2 = state.optionsV2 && state.v2Mode;
+
         const payload = {
-            params: {
+            params: useV2 ? {
+                // V2 параметры
+                mode: state.v2Mode,
+                ...state.v2Params,
+                subjectDescription,
+                // Названия продуктов для промпта
+                products: productsPayload.map(p => ({ name: p.name }))
+            } : {
+                // Legacy V1 параметры
                 subjectDescription,
                 category: els.selects.category?.value || '',
                 presentation: els.selects.presentation?.value || '',
@@ -354,8 +520,8 @@ async function generate() {
             subjectImage: state.images.subject,
             styleImage: state.images.style,
             baseImage: state.images.base,
-            locationImage: state.images.location,  // NEW: референс локации
-            products: productsPayload,  // Multi-product support
+            locationImage: state.images.location,
+            products: productsPayload,
             shootId: state.currentShoot?.id,
             frameId: state.refiningFrameId || null
         };

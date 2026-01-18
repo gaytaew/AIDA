@@ -8,6 +8,108 @@
     <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="../composer/shoot-composer-styles.css">
     <style>
+        /* V2 Mode UI */
+        .v2-section {
+            margin-bottom: 16px;
+        }
+
+        .v2-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .v2-modes {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .v2-mode-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 20px;
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 90px;
+        }
+
+        .v2-mode-btn:hover {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .v2-mode-btn.active {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .v2-mode-icon {
+            font-size: 24px;
+        }
+
+        .v2-mode-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .v2-presets {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .v2-preset-btn {
+            padding: 6px 12px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .v2-preset-btn:hover {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        #v2-mode-params select,
+        #v2-mode-params input,
+        #v2-mode-params textarea {
+            width: 100%;
+            max-width: 300px;
+            padding: 8px 12px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            color: var(--color-text);
+            font-size: 12px;
+        }
+
+        #v2-mode-params textarea {
+            max-width: 100%;
+            resize: vertical;
+        }
+
+        #v2-aspectRatio {
+            padding: 8px 12px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            color: var(--color-text);
+            font-size: 12px;
+            max-width: 150px;
+        }
+
         /* Layout */
         .product-layout {
             display: flex;
@@ -480,9 +582,12 @@
                         </div>
 
                         <div class="header-body">
-                            <!-- Main Form Grid -->
-                            <div
-                                style="display: grid; grid-template-columns: 1fr 1fr 1fr 300px; gap: 16px; align-items: start;">
+                            <!-- V2 Mode UI -->
+                            <div id="v2-mode-container" style="margin-bottom: 16px;"></div>
+
+                            <!-- Legacy Form Grid (будет скрыт когда V2 активен) -->
+                            <div id="legacy-params" style="display: none;">
+                                <!-- Main Form Grid -->
 
                                 <!-- Col 1: Subject Description + Category + Preset -->
                                 <div>

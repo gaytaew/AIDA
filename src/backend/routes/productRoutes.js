@@ -27,11 +27,22 @@ import {
 } from '../schema/productShoot.js';
 import store from '../store/productShootStore.js';
 
+// V2 параметры
+import {
+    SHOT_MODES,
+    CATALOG_OPTIONS,
+    FLATLAY_OPTIONS,
+    LIFESTYLE_OPTIONS,
+    GLOBAL_OPTIONS,
+    PRESETS,
+    DEFAULTS
+} from '../params/productParamsV2.js';
+
 const router = express.Router();
 
 /**
  * GET /api/product/options
- * Возвращает все опции схемы для фронтенда
+ * Возвращает все опции схемы для фронтенда (legacy V1)
  */
 router.get('/options', (req, res) => {
     res.json({
@@ -53,6 +64,25 @@ router.get('/options', (req, res) => {
             aspectRatio: PRODUCT_ASPECT_RATIO,
             imageSize: PRODUCT_IMAGE_SIZE,
             presets: PRODUCT_PRESETS
+        }
+    });
+});
+
+/**
+ * GET /api/product/options-v2
+ * Возвращает новую V2 схему параметров
+ */
+router.get('/options-v2', (req, res) => {
+    res.json({
+        ok: true,
+        data: {
+            modes: SHOT_MODES,
+            catalog: CATALOG_OPTIONS,
+            flatlay: FLATLAY_OPTIONS,
+            lifestyle: LIFESTYLE_OPTIONS,
+            global: GLOBAL_OPTIONS,
+            presets: PRESETS,
+            defaults: DEFAULTS
         }
     });
 });
