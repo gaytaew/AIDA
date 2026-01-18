@@ -245,16 +245,41 @@ ${refLines.join('\n')}`);
 2. Preserve fabric texture and weave — no plastic/glossy artificial look.
 3. Sharp focus on main subject, natural depth of field.
 4. No distorted proportions, no unnatural symmetry.
-5. LOGO RULES — CRITICAL:
-5. TEXT AND LOGOS — ABSOLUTE PROHIBITION:
-   - Generate products with ZERO visible text, logos, or brand names
-   - Do NOT add ANY text to clothing, shoes, or accessories
-   - Products must appear UNBRANDED — plain, clean surfaces
-   - Even if source image has a logo, do NOT reproduce it (AI hallucinations make logos wrong)
-   - Treat all products as generic, high-quality items without branding
+5. LOGO PLACEMENT RULES:
+   - If the source image has a logo, keep it in the EXACT SAME position
+   - Logo on collar = logo on collar. Logo on heel = logo on heel.
+   - NEVER duplicate logos (one logo only, same spot as original)
+   - NEVER invent new brand names or logos
+   - If source has no logo, output should have no logo
 6. No humans, faces, or hands unless explicitly requested.
-7. No AI-generated text, watermarks, or inscriptions of any kind.
-8. If you feel the urge to add text — DON'T. Leave surfaces clean.`);
+7. No AI-generated watermarks or artificial text.`);
+
+    // 11. ANTI-AI / REALISM REQUIREMENTS
+    sections.push(`
+[CRITICAL: AVOID AI-LOOK]
+This image should look like a REAL PHOTOGRAPH, not AI-generated.
+
+ADD NATURAL IMPERFECTIONS:
+- Subtle fabric wrinkles and creases (real clothes are never perfectly flat)
+- Slight variations in lighting (not uniformly perfect)
+- Minor dust particles or fabric fibers visible on close items
+- Natural shadow falloff with soft edges
+- Micro-texture variations in materials
+
+AVOID THESE AI TELLS:
+❌ Overly smooth, plastic-looking surfaces
+❌ Too-perfect symmetry
+❌ Unnaturally vibrant or saturated colors
+❌ Perfectly even lighting without any variation
+❌ Objects looking "floating" or without proper weight
+❌ Unrealistic depth of field (too sharp everywhere)
+
+REALISM DETAILS:
+- Wood should have grain, scratches, weathering
+- Snow should have footprints, uneven texture
+- Fabric should show natural drape and fold patterns
+- Shadows should have realistic soft edges
+- Overall image should have slight warmth, not clinical coolness`);
 
     return sections.join('\n');
 }
