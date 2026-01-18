@@ -72,6 +72,7 @@ import {
   LIGHTING_QUALITIES
 } from '../services/promptBuilderV3.js';
 import { requestGeminiImage } from '../providers/geminiClient.js';
+import sharp from 'sharp';
 
 const router = express.Router();
 
@@ -1003,9 +1004,6 @@ router.delete('/:id/images/:imageId', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // UPSCALE ENDPOINT (Nano Banana Pro — Texture Enhancement)
 // ═══════════════════════════════════════════════════════════════
-
-import sharp from 'sharp';
-import { requestGeminiImage } from '../providers/geminiClient.js';
 
 /**
  * Upscale prompt for Nano Banana Pro - photorealistic texture enhancement
