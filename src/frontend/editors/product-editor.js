@@ -11,7 +11,8 @@ const state = {
         subject: null,
         style: null,
         base: null
-    }
+    },
+    products: []  // Multi-product: [{id, name, photos: [{base64, mimeType, dataUrl}]}]
 };
 
 // Elements
@@ -68,6 +69,7 @@ async function init() {
     setupShootsUI();
     setupSubParams();
     setupCollapsible();
+    setupProductsUI();
 
     if (els.btnGenerate) {
         els.btnGenerate.addEventListener('click', generate);
@@ -313,6 +315,12 @@ async function generate() {
     });
 
     try {
+        // Подготавливаем products для отправки
+        const productsPayload = state.products.filter(p => p.photos.length > 0).map(p => ({
+            name: p.name,
+            photos: p.photos.map(photo => ({ base64: photo.base64, mimeType: photo.mimeType }))
+        }));
+
         const payload = {
             params: {
                 subjectDescription,
@@ -337,6 +345,7 @@ async function generate() {
             subjectImage: state.images.subject,
             styleImage: state.images.style,
             baseImage: state.images.base,
+            products: productsPayload,  // Multi-product support
             shootId: state.currentShoot?.id,
             frameId: state.refiningFrameId || null
         };
@@ -716,6 +725,127 @@ function findHistoryItemById(id) {
         }
     }
     return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MULTI-PRODUCT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+function setupProductsUI() {
+    const addBtn = document.getElementById('btn-add-product');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => addNewProduct());
+    }
+}
+
+window.addNewProduct = function () {
+    const id = `prod_${Date.now()}`;
+    const product = {
+        id,
+        name: `Предмет ${state.products.length + 1}`,
+        photos: []
+    };
+    state.products.push(product);
+    renderProductsList();
+};
+
+window.removeProduct = function (productId) {
+    state.products = state.products.filter(p => p.id !== productId);
+    renderProductsList();
+};
+
+window.updateProductName = function (productId, name) {
+    const product = state.products.find(p => p.id === productId);
+    if (product) {
+        product.name = name;
+    }
+};
+
+window.removeProductPhoto = function (productId, photoIndex) {
+    const product = state.products.find(p => p.id === productId);
+    if (product) {
+        product.photos.splice(photoIndex, 1);
+        renderProductsList();
+    }
+};
+
+function renderProductsList() {
+    const container = document.getElementById('products-list');
+    const countEl = document.getElementById('products-count');
+    if (!container) return;
+
+    if (countEl) {
+        countEl.textContent = `(${state.products.length})`;
+    }
+
+    let html = state.products.map(product => `
+        <div class="product-item" data-id="${product.id}">
+            <div class="product-item-header">
+                <input type="text" class="product-item-name" value="${escapeHtml(product.name)}" 
+                    onchange="window.updateProductName('${product.id}', this.value)">
+                <button class="product-item-remove" onclick="window.removeProduct('${product.id}')">×</button>
+            </div>
+            <div class="product-photos-grid">
+                ${product.photos.map((photo, idx) => `
+                    <div class="product-photo">
+                        <img src="${photo.dataUrl}" alt="Фото ${idx + 1}">
+                        <button class="product-photo-remove" onclick="window.removeProductPhoto('${product.id}', ${idx})">×</button>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="product-upload-zone" 
+                onclick="window.triggerProductUpload('${product.id}')"
+                ondragover="event.preventDefault(); this.classList.add('dragover');"
+                ondragleave="this.classList.remove('dragover');"
+                ondrop="window.handleProductDrop(event, '${product.id}'); this.classList.remove('dragover');">
+                <input type="file" id="upload-${product.id}" multiple accept="image/*" hidden
+                    onchange="window.handleProductFiles(event, '${product.id}')">
+                <div class="product-upload-zone-text">📷 Загрузить фото (drag-drop)</div>
+            </div>
+        </div>
+    `).join('');
+
+    // Add placeholder button
+    html += `
+        <div class="product-add-btn" onclick="window.addNewProduct()">
+            <span style="font-size: 32px;">+</span>
+            <span style="font-size: 11px; margin-top: 8px;">Добавить предмет</span>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+window.triggerProductUpload = function (productId) {
+    const input = document.getElementById(`upload-${productId}`);
+    if (input) input.click();
+};
+
+window.handleProductFiles = async function (event, productId) {
+    const files = Array.from(event.target.files);
+    await processProductFiles(productId, files);
+    event.target.value = '';
+};
+
+window.handleProductDrop = async function (event, productId) {
+    event.preventDefault();
+    const files = Array.from(event.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    await processProductFiles(productId, files);
+};
+
+async function processProductFiles(productId, files) {
+    const product = state.products.find(p => p.id === productId);
+    if (!product) return;
+
+    for (const file of files) {
+        try {
+            const compressed = await compressImage(file);
+            product.photos.push(compressed);
+        } catch (e) {
+            console.error('Failed to process file:', e);
+        }
+    }
+    renderProductsList();
 }
 
 // ═══════════════════════════════════════════════════════════════

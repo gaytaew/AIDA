@@ -208,7 +208,8 @@ export async function generateProductShootFrame({
     params,
     subjectImage = null,
     styleImage = null,
-    baseImage = null
+    baseImage = null,
+    additionalProducts = []  // NEW: дополнительные предметы
 }) {
     const genId = `product_${Date.now() % 100000}`;
     console.log(`[ProductGenerator] ${genId} Start`, params);
@@ -235,13 +236,39 @@ export async function generateProductShootFrame({
             indexMap['subject'] = validImages.length;
         }
 
+        // Добавляем дополнительные предметы
+        const additionalIndexes = [];
+        for (const product of additionalProducts) {
+            if (product.base64) {
+                validImages.push(product);
+                additionalIndexes.push({
+                    index: validImages.length,
+                    name: product.name || `Product ${additionalIndexes.length + 2}`
+                });
+            }
+        }
+
         if (styleImage) {
             validImages.push(styleImage);
             indexMap['style'] = validImages.length;
         }
 
         // 3. Build Prompt
-        const promptText = buildProductPrompt(sanitizedParams, indexMap);
+        let promptText = buildProductPrompt(sanitizedParams, indexMap);
+
+        // Добавляем инструкции для multi-product
+        if (additionalIndexes.length > 0) {
+            const multiProdLines = additionalIndexes.map(p =>
+                `REFERENCE [$${p.index}]: ADDITIONAL PRODUCT "${p.name}".\n- Include this product in the scene alongside the main subject.`
+            ).join('\n');
+
+            promptText += `\n\n[MULTI-PRODUCT SCENE]
+${multiProdLines}
+
+IMPORTANT: Arrange all products harmoniously in one scene.
+- Maintain visual balance and proper scaling.
+- Each product should be clearly visible and identifiable.`;
+        }
 
         console.log(`[ProductGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 400)}...`);
 
@@ -278,3 +305,4 @@ export default {
     generateProductShootFrame,
     buildProductPrompt
 };
+

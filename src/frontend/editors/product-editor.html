@@ -243,6 +243,159 @@
             opacity: 1;
             visibility: visible;
         }
+
+        /* Multi-product section */
+        .products-section {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--color-border);
+            margin-bottom: 16px;
+        }
+
+        .products-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .products-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .product-item {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 12px;
+            width: 200px;
+            min-height: 180px;
+        }
+
+        .product-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .product-item-name {
+            font-size: 12px;
+            font-weight: 600;
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: white;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .product-item-name:focus {
+            background: var(--color-surface);
+            outline: 1px solid var(--color-accent);
+        }
+
+        .product-item-remove {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .product-photos-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .product-photo {
+            aspect-ratio: 1;
+            background: var(--color-surface);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .product-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-photo-remove {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .product-photo:hover .product-photo-remove {
+            display: block;
+        }
+
+        .product-upload-zone {
+            border: 2px dashed var(--color-border);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .product-upload-zone:hover,
+        .product-upload-zone.dragover {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .product-upload-zone-text {
+            font-size: 10px;
+            color: var(--color-text-muted);
+        }
+
+        .product-collage-preview {
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .product-collage-preview img {
+            max-width: 100%;
+            border-radius: 4px;
+            border: 1px solid var(--color-accent);
+        }
+
+        .product-add-btn {
+            width: 200px;
+            min-height: 180px;
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: transparent;
+            color: var(--color-text-muted);
+            transition: all 0.2s;
+        }
+
+        .product-add-btn:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
     </style>
 </head>
 
@@ -409,6 +562,26 @@
                                         <span class="spinner"></span> Генерирую...
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MULTI-PRODUCT SECTION -->
+                    <div class="products-section" id="products-section">
+                        <div class="products-header">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 16px;">👕</span>
+                                <span style="font-weight: 600;">Предметы для съёмки</span>
+                                <span id="products-count" style="font-size: 11px; opacity: 0.7;">(0)</span>
+                            </div>
+                            <button id="btn-add-product" class="btn-mini" style="padding: 6px 12px;">+ Добавить
+                                предмет</button>
+                        </div>
+                        <div class="products-list" id="products-list">
+                            <!-- Dynamic products -->
+                            <div class="product-add-btn" id="product-add-placeholder" onclick="window.addNewProduct()">
+                                <span style="font-size: 32px;">+</span>
+                                <span style="font-size: 11px; margin-top: 8px;">Добавить предмет</span>
                             </div>
                         </div>
                     </div>
