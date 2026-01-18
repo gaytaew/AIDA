@@ -1105,6 +1105,7 @@ export async function generateCustomShootFrame({
         lookPrompt,
         hasIdentityRefs: identityImages.length > 0,
         hasClothingRefs: clothingImages.length > 0,
+        styleRefParams, // CRITICAL FIX: pass reference params for Variation Mode
         hasStyleRef: !!styleRefImage && locks?.style?.enabled,
         hasLocationSketch: !!locationSketchImage && !hasStyleLock,
         hasPoseSketch: !!poseSketchImage,
