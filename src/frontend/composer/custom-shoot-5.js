@@ -2920,6 +2920,7 @@ async function deleteFrame(index) {
 
 /**
  * Upscale a frame to 4K with texture enhancement via Nano Banana Pro
+ * Adds upscaled image as a NEW card (doesn't replace original)
  */
 async function upscaleFrame(frameIndex) {
   const frame = state.generatedFrames[frameIndex];
@@ -2941,10 +2942,40 @@ async function upscaleFrame(frameIndex) {
   }
 
   try {
-    // Extract base64 from data URL
-    const match = frame.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (!match) {
-      throw new Error('Неверный формат изображения');
+    let imageBase64, mimeType;
+
+    // Check if imageUrl is a data URL or a file path
+    if (frame.imageUrl.startsWith('data:')) {
+      // Data URL - extract base64 directly
+      const match = frame.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) {
+        throw new Error('Неверный формат data URL');
+      }
+      mimeType = match[1];
+      imageBase64 = match[2];
+    } else {
+      // URL path - need to fetch and convert to base64
+      showToast('⬆️ Загрузка изображения...');
+
+      const response = await fetch(frame.imageUrl);
+      if (!response.ok) {
+        throw new Error('Не удалось загрузить изображение');
+      }
+
+      const blob = await response.blob();
+      mimeType = blob.type || 'image/jpeg';
+
+      // Convert blob to base64
+      imageBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result;
+          const base64 = dataUrl.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
     }
 
     showToast('⬆️ Апскейл 4K + улучшение текстур...');
@@ -2953,8 +2984,8 @@ async function upscaleFrame(frameIndex) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        imageBase64: match[2],
-        mimeType: match[1],
+        imageBase64,
+        mimeType,
         targetSize: '4K'
       })
     });
@@ -2962,16 +2993,25 @@ async function upscaleFrame(frameIndex) {
     const data = await res.json();
 
     if (data.ok && data.data) {
-      // Update frame with upscaled image
-      state.generatedFrames[frameIndex] = {
-        ...frame,
+      // Add upscaled image as NEW card at the beginning (newest first)
+      const upscaledFrame = {
+        id: `upscaled_${Date.now()}`,
         imageUrl: data.data.imageUrl,
+        frameId: frame.frameId,
+        frameLabel: (frame.frameLabel || 'Кадр') + ' (4K)',
+        locationId: frame.locationId,
+        locationLabel: frame.locationLabel,
+        emotionId: frame.emotionId,
+        status: 'ready',
         upscaled: true,
         upscaleMethod: data.data.method,
         upscaleWidth: data.data.width,
-        upscaleHeight: data.data.height
+        upscaleHeight: data.data.height,
+        sourceFrameIndex: frameIndex,
+        timestamp: new Date().toISOString()
       };
 
+      state.generatedFrames.unshift(upscaledFrame);
       renderGeneratedHistory();
       showToast(`✅ Апскейл выполнен! ${data.data.width}x${data.data.height}`);
     } else {
