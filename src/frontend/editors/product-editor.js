@@ -10,7 +10,8 @@ const state = {
     images: {
         subject: null,
         style: null,
-        base: null
+        base: null,
+        location: null  // NEW: Референс локации/поверхности
     },
     products: []  // Multi-product: [{id, name, photos: [{base64, mimeType, dataUrl}]}]
 };
@@ -41,7 +42,8 @@ const els = {
     },
     refs: {
         subject: document.getElementById('ref-subject'),
-        style: document.getElementById('ref-style')
+        style: document.getElementById('ref-style'),
+        location: document.getElementById('ref-location')  // NEW
     },
     showDetailsGroup: document.getElementById('show-details-group'),
     shoot: {
@@ -223,7 +225,7 @@ function collectSubParams() {
 // ═══════════════════════════════════════════════════════════════
 
 function setupUploads() {
-    ['subject', 'style'].forEach(type => {
+    ['subject', 'style', 'location'].forEach(type => {
         const card = els.refs[type];
         if (!card) return;
 
@@ -351,6 +353,7 @@ async function generate() {
             subjectImage: state.images.subject,
             styleImage: state.images.style,
             baseImage: state.images.base,
+            locationImage: state.images.location,  // NEW: референс локации
             products: productsPayload,  // Multi-product support
             shootId: state.currentShoot?.id,
             frameId: state.refiningFrameId || null

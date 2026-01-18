@@ -110,6 +110,7 @@ router.post('/generate', async (req, res) => {
             subjectImage,
             styleImage,
             baseImage,
+            locationImage,  // NEW: референс локации/поверхности
             products,  // NEW: массив предметов с коллажами
             shootId,
             frameId
@@ -162,6 +163,7 @@ router.post('/generate', async (req, res) => {
             subjectImage: productImages.length > 0 ? productImages[0] : subjectImage,
             styleImage,
             baseImage,
+            locationImage,  // NEW
             additionalProducts: productImages.slice(1) // Дополнительные предметы
         });
 

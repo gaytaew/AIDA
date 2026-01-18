@@ -209,7 +209,8 @@ export async function generateProductShootFrame({
     subjectImage = null,
     styleImage = null,
     baseImage = null,
-    additionalProducts = []  // NEW: дополнительные предметы
+    locationImage = null,      // NEW: референс локации/поверхности
+    additionalProducts = []    // дополнительные предметы
 }) {
     const genId = `product_${Date.now() % 100000}`;
     console.log(`[ProductGenerator] ${genId} Start`, params);
@@ -248,6 +249,12 @@ export async function generateProductShootFrame({
             }
         }
 
+        // NEW: Location reference
+        if (locationImage) {
+            validImages.push(locationImage);
+            indexMap['location'] = validImages.length;
+        }
+
         if (styleImage) {
             validImages.push(styleImage);
             indexMap['style'] = validImages.length;
@@ -256,13 +263,65 @@ export async function generateProductShootFrame({
         // 3. Build Prompt
         let promptText = buildProductPrompt(sanitizedParams, indexMap);
 
-        // Добавляем инструкции для multi-product
+        // 4. PERSPECTIVE RESET (для flat_lay, overhead, top_down)
+        const needsPerspectiveReset = ['flat_lay', 'overhead', 'top_down'].includes(sanitizedParams.angle);
+
+        if (needsPerspectiveReset) {
+            promptText += `
+
+[PERSPECTIVE RESET - CRITICAL]
+The input product images are ISOLATED REFERENCES taken from random angles (often eye-level or 3/4 view).
+
+YOU MUST MENTALLY ROTATE each object to match the TARGET PERSPECTIVE: TOP-DOWN / FLAT LAY VIEW.
+
+PHYSICS RULES:
+1. Objects MUST appear to REST on the surface due to gravity
+2. Shoes: Lying on their side or sole, NOT standing upright
+3. Clothing: Spread flat or naturally draped, NOT hanging vertically
+4. Accessories: Placed flat, NOT propped up
+5. NO "floating" artifacts — every object touches the surface
+
+COMMON MISTAKES TO AVOID:
+❌ Copying the standing/upright orientation from source photos
+❌ Objects appearing to defy gravity
+❌ Shadows going in wrong direction for top-down view
+❌ Items looking "pasted on" instead of naturally placed
+
+✅ CORRECT: Imagine you are looking DOWN at objects lying on a table/floor
+✅ SHADOWS: Cast directly beneath objects (for overhead lighting)
+✅ SCALE: Maintain realistic proportions between objects`;
+        }
+
+        // 5. LOCATION/SURFACE INTEGRATION
+        if (indexMap.location) {
+            promptText += `
+
+[LOCATION/SURFACE REFERENCE - MANDATORY]
+REFERENCE [$${indexMap.location}] shows the EXACT surface and environment for this shoot.
+
+INTEGRATION RULES:
+1. Place all objects DIRECTLY onto this surface — they must appear to REST on it
+2. Match the lighting direction and quality from the location reference
+3. Add appropriate shadows that blend with existing shadows in location
+4. Maintain the texture and material feel of the surface
+5. Objects should look like they BELONG in this environment, not composited
+6. DO NOT alter the location background — only add objects to it
+
+LIGHTING COHERENCE:
+- Analyze light direction in location reference
+- Apply consistent lighting to all objects
+- Shadows must fall in the same direction as location shadows`;
+        }
+
+        // 6. Multi-product instructions
         if (additionalIndexes.length > 0) {
             const multiProdLines = additionalIndexes.map(p =>
                 `REFERENCE [$${p.index}]: ADDITIONAL PRODUCT "${p.name}".\n- Include this product in the scene alongside the main subject.`
             ).join('\n');
 
-            promptText += `\n\n[MULTI-PRODUCT SCENE]
+            promptText += `
+
+[MULTI-PRODUCT SCENE]
 ${multiProdLines}
 
 IMPORTANT: Arrange all products harmoniously in one scene.
@@ -270,9 +329,9 @@ IMPORTANT: Arrange all products harmoniously in one scene.
 - Each product should be clearly visible and identifiable.`;
         }
 
-        console.log(`[ProductGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 400)}...`);
+        console.log(`[ProductGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 500)}...`);
 
-        // 4. Call AI
+        // 7. Call AI
         const result = await requestGeminiImage({
             prompt: promptText,
             referenceImages: validImages,
@@ -305,4 +364,5 @@ export default {
     generateProductShootFrame,
     buildProductPrompt
 };
+
 
