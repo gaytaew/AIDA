@@ -173,7 +173,9 @@ IMAGE FORMAT: ${params.aspectRatio || '1:1'} aspect ratio, ${params.imageSize ||
     if (indexMap.subject) {
         refLines.push(`REFERENCE [$${indexMap.subject}]: PRODUCT REFERENCE (MANDATORY).
 - Match the EXACT product from [$${indexMap.subject}].
-- Preserve shape, color, texture, and proportions.`);
+- Preserve shape, color, texture, and proportions.
+- CRITICAL: Preserve ALL logos, prints, labels, and branding marks in their EXACT original positions.
+- Logos must remain on the same part of the product (e.g., if logo is on the heel, it stays on the heel).`);
     }
     if (indexMap.style) {
         refLines.push(`REFERENCE [$${indexMap.style}]: STYLE REFERENCE.
@@ -194,8 +196,12 @@ ${refLines.join('\n')}`);
 2. Preserve fabric texture and weave — no plastic/glossy artificial look.
 3. Sharp focus on main subject, natural depth of field.
 4. No distorted proportions, no unnatural symmetry.
-5. No text, logos, or watermarks unless specified.
-6. No humans, faces, or hands unless explicitly requested.`);
+5. PRESERVE ALL LOGOS, PRINTS, AND BRANDING from source images:
+   - Keep logos in their EXACT original position on the product
+   - Do NOT move, resize, or distort logos
+   - Do NOT add new logos or remove existing ones
+6. No humans, faces, or hands unless explicitly requested.
+7. No AI-generated watermarks or text overlays.`);
 
     return sections.join('\n');
 }
