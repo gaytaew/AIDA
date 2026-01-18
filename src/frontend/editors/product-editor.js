@@ -307,6 +307,7 @@ async function generate() {
 
     els.btnGenerate.disabled = true;
     els.genStatus.style.display = 'block';
+    els.genStatus.innerHTML = '<span class="spinner"></span> Генерирую... (может занять до 2 минут)';
 
     // Collect showDetails checkboxes
     const showDetails = [];
@@ -314,11 +315,16 @@ async function generate() {
         showDetails.push(cb.value);
     });
 
+    // AbortController для таймаута
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 минуты
+
     try {
-        // Подготавливаем products для отправки
+        // Подготавливаем products для отправки (макс 6 фото на предмет)
+        const MAX_PHOTOS_PER_PRODUCT = 6;
         const productsPayload = state.products.filter(p => p.photos.length > 0).map(p => ({
             name: p.name,
-            photos: p.photos.map(photo => ({ base64: photo.base64, mimeType: photo.mimeType }))
+            photos: p.photos.slice(0, MAX_PHOTOS_PER_PRODUCT).map(photo => ({ base64: photo.base64, mimeType: photo.mimeType }))
         }));
 
         const payload = {
@@ -353,9 +359,11 @@ async function generate() {
         const res = await fetch('/api/product/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const json = await res.json();
 
         if (json.ok) {
@@ -382,8 +390,13 @@ async function generate() {
         }
 
     } catch (e) {
+        clearTimeout(timeoutId);
         console.error(e);
-        alert('Ошибка соединения');
+        if (e.name === 'AbortError') {
+            alert('Таймаут запроса (3 минуты). Попробуй с меньшим количеством фото.');
+        } else {
+            alert('Ошибка соединения');
+        }
     } finally {
         els.btnGenerate.disabled = false;
         els.genStatus.style.display = 'none';
