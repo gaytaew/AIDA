@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIDA — Предметная Съёмка (Product Shoot)</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../composer/shoot-composer-styles.css">
+    <style>
+        /* Layout */
+        .product-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .product-controls-header {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--color-border);
+            flex-shrink: 0;
+        }
+
+        .product-controls-header.collapsed .header-body {
+            display: none;
+        }
+
+        .product-controls-header .header-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: 12px;
+        }
+
+        .product-controls-header.collapsed .header-toggle {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .product-stream-area {
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .product-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .product-frame-group {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 12px;
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--color-border);
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .product-frame-main {
+            width: 280px;
+            min-width: 280px;
+            background: var(--color-surface-elevated);
+            border-radius: 8px;
+            border: 2px solid var(--color-accent);
+            padding: 12px;
+            flex-shrink: 0;
+        }
+
+        .product-frame-variation {
+            width: 180px;
+            min-width: 180px;
+            background: var(--color-surface-elevated);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            padding: 8px;
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
+
+        .product-frame-variation:hover {
+            opacity: 1;
+            border-color: var(--color-accent);
+        }
+
+        .product-variations-row {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        /* Sub-parameters */
+        .sub-param-container {
+            display: none;
+            margin-top: 4px;
+        }
+
+        .sub-param-container.visible {
+            display: block;
+        }
+
+        .sub-param-container select {
+            font-size: 10px !important;
+            padding: 4px 6px;
+            background: var(--color-accent-faded);
+            border: 1px solid var(--color-accent);
+        }
+
+        .sub-param-label {
+            font-size: 9px;
+            color: var(--color-accent);
+            margin-bottom: 2px;
+        }
+
+        /* Reference cards */
+        .ref-card {
+            background: var(--color-bg-secondary);
+            border: 1px dashed var(--color-border);
+            border-radius: 8px;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .ref-card:hover {
+            border-color: var(--color-accent);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .ref-card.has-image {
+            border-style: solid;
+            border-color: var(--color-border);
+            padding: 0;
+        }
+
+        .ref-card-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .ref-card-label {
+            font-size: 11px;
+            color: var(--color-text-muted);
+            font-weight: 500;
+        }
+
+        .ref-card-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .ref-card.has-image:hover .ref-card-remove {
+            display: flex;
+        }
+
+        .btn-mini {
+            padding: 6px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: 1px solid var(--color-border);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-mini:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Checkboxes group */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            background: var(--color-bg-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .checkbox-group input {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Lightbox */
+        .lightbox-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+
+        .lightbox-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="logo">
+                    <div class="logo-icon">A</div>
+                    <div class="logo-text">AIDA</div>
+                </a>
+            </div>
+            <nav class="sidebar-nav" id="sidebar-nav"></nav>
+            <script src="/shared/sidebar-nav.js"></script>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="page-header">
+                <h1 class="page-title">📦 Предметная Съёмка</h1>
+                <div class="header-actions">
+                    <div id="status-text" class="status-badge" style="display:none;">Загрузка...</div>
+                </div>
+            </header>
+
+            <div class="page-content" style="overflow: hidden;">
+                <div class="product-layout">
+
+                    <!-- COLLAPSIBLE HEADER: Controls -->
+                    <div class="product-controls-header" id="controls-header">
+                        <div class="header-toggle" id="toggle-controls">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 18px;">⚙️</span>
+                                <span style="font-weight: 600;">Параметры Генерации</span>
+                                <span id="current-shoot-label"
+                                    style="font-size: 12px; opacity: 0.7; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;">(Не
+                                    сохраняется)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button id="btn-new-shoot" class="btn-mini" style="padding: 6px 12px;">+ Новая
+                                    съёмка</button>
+                                <button id="btn-load-shoot" class="btn-mini" style="padding: 6px 12px;">📂
+                                    Открыть</button>
+                                <span id="toggle-arrow" style="font-size: 18px;">▼</span>
+                            </div>
+                        </div>
+
+                        <div class="header-body">
+                            <!-- Main Form Grid -->
+                            <div
+                                style="display: grid; grid-template-columns: 1fr 1fr 1fr 300px; gap: 16px; align-items: start;">
+
+                                <!-- Col 1: Subject Description + Category + Preset -->
+                                <div>
+                                    <label class="form-label" style="font-size: 11px;">Что снимаем?</label>
+                                    <textarea id="subject-desc" class="form-input" rows="2"
+                                        placeholder="Белая шёлковая блузка..." style="font-size: 12px;"></textarea>
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px;">
+                                        <div>
+                                            <label class="form-label" style="font-size: 10px;">Категория</label>
+                                            <select id="param-category" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" style="font-size: 10px;">Пресет</label>
+                                            <select id="param-preset" class="form-select" style="font-size: 11px;">
+                                                <option value="">--</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Col 2: Composition -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                    <div><label class="form-label" style="font-size: 10px;">Подача</label>
+                                        <select id="param-presentation" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                        <div id="sub-presentation" class="sub-param-container"></div>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Ракурс</label>
+                                        <select id="param-angle" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Кадрирование</label>
+                                        <select id="param-framing" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Фон</label>
+                                        <select id="param-background" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Поверхность</label>
+                                        <select id="param-surface" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Тень</label>
+                                        <select id="param-shadow" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                </div>
+
+                                <!-- Col 3: Lighting & Style -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                    <div><label class="form-label" style="font-size: 10px;">Освещение</label>
+                                        <select id="param-lighting" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                        <div id="sub-lighting" class="sub-param-container"></div>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Направление</label>
+                                        <select id="param-lightDirection" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Стиль</label>
+                                        <select id="param-mood" class="form-select" style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Цвет</label>
+                                        <select id="param-colorGrade" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Детализация</label>
+                                        <select id="param-detailLevel" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Формат</label>
+                                        <select id="param-aspectRatio" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                    </div>
+                                    <div><label class="form-label" style="font-size: 10px;">Качество</label>
+                                        <select id="param-imageSize" class="form-select"
+                                            style="font-size: 11px;"></select>
+                                    </div>
+                                    <div style="grid-column: span 2;">
+                                        <label class="form-label" style="font-size: 10px;">Показать детали</label>
+                                        <div class="checkbox-group" id="show-details-group">
+                                            <!-- Dynamic checkboxes -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Col 4: References + Generate -->
+                                <div>
+                                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                        <div class="ref-card" id="ref-subject" style="width: 80px; height: 80px;">
+                                            <input type="file" accept="image/*" hidden>
+                                            <div class="ref-card-icon" style="font-size: 20px;">📷</div>
+                                            <div class="ref-card-label" style="font-size: 9px;">Товар</div>
+                                            <button class="ref-card-remove">×</button>
+                                        </div>
+                                        <div class="ref-card" id="ref-style" style="width: 80px; height: 80px;">
+                                            <input type="file" accept="image/*" hidden>
+                                            <div class="ref-card-icon" style="font-size: 20px;">🎨</div>
+                                            <div class="ref-card-label" style="font-size: 9px;">Стиль</div>
+                                            <button class="ref-card-remove">×</button>
+                                        </div>
+                                    </div>
+                                    <input type="text" id="changes-desc" class="form-input"
+                                        style="font-size: 11px; padding: 6px; margin-bottom: 8px;"
+                                        placeholder="Что изменить? (напр. добавить тень)">
+                                    <button id="btn-generate" class="btn btn-primary btn-full" style="padding: 10px;">
+                                        <span>📸 Сгенерировать</span>
+                                    </button>
+                                    <div id="gen-status"
+                                        style="text-align: center; margin-top: 6px; font-size: 11px; color: var(--color-text-muted); display: none;">
+                                        <span class="spinner"></span> Генерирую...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HORIZONTAL STREAM: Results -->
+                    <div class="product-stream-area">
+                        <div class="product-stream" id="history-container">
+                            <!-- Empty State -->
+                            <div class="empty-state" id="empty-state"
+                                style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-muted); min-width: 300px;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+                                <h3>История генераций</h3>
+                                <p>Результаты будут появляться здесь →</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+
+        <!-- Shoot Load Modal -->
+        <div id="shoot-modal" class="lightbox-overlay">
+            <div
+                style="background: var(--color-surface); padding: 24px; border-radius: 12px; width: 500px; max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0;">📂 Открыть съёмку</h3>
+                    <button id="close-shoot-modal"
+                        style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">×</button>
+                </div>
+                <div id="shoot-list"
+                    style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="padding: 20px; text-align: center; color: var(--color-text-muted);">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="product-editor.js"></script>
+</body>
+
+</html>

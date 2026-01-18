@@ -27,6 +27,7 @@ const NAV_ITEMS = [
       { href: '/editors/model-editor.html', icon: '👤', label: 'Модели' },
       { href: '/editors/look-editor.html', icon: '👔', label: 'Образы (Looks)' },
       { href: '/editors/food-editor.html', icon: '🍔', label: 'Food Shoot' },
+      { href: '/editors/product-editor.html', icon: '📦', label: 'Предметная съёмка' },
       { href: '/editors/style-editor.html', icon: '🎬', label: 'V6 AI-Режиссёр', style: 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' }
     ]
   }

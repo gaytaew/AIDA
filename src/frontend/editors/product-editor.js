@@ -1,0 +1,725 @@
+/**
+ * Product Shoot Editor Logic
+ */
+
+// State
+const state = {
+    options: null,
+    history: [],
+    currentShoot: null,
+    images: {
+        subject: null,
+        style: null,
+        base: null
+    }
+};
+
+// Elements
+const els = {
+    subjectDesc: document.getElementById('subject-desc'),
+    selects: {
+        preset: document.getElementById('param-preset'),
+        category: document.getElementById('param-category'),
+        presentation: document.getElementById('param-presentation'),
+        angle: document.getElementById('param-angle'),
+        framing: document.getElementById('param-framing'),
+        background: document.getElementById('param-background'),
+        surface: document.getElementById('param-surface'),
+        shadow: document.getElementById('param-shadow'),
+        lighting: document.getElementById('param-lighting'),
+        lightDirection: document.getElementById('param-lightDirection'),
+        mood: document.getElementById('param-mood'),
+        colorGrade: document.getElementById('param-colorGrade'),
+        detailLevel: document.getElementById('param-detailLevel'),
+        aspectRatio: document.getElementById('param-aspectRatio'),
+        imageSize: document.getElementById('param-imageSize')
+    },
+    subContainers: {
+        presentation: document.getElementById('sub-presentation'),
+        lighting: document.getElementById('sub-lighting')
+    },
+    refs: {
+        subject: document.getElementById('ref-subject'),
+        style: document.getElementById('ref-style')
+    },
+    showDetailsGroup: document.getElementById('show-details-group'),
+    shoot: {
+        label: document.getElementById('current-shoot-label'),
+        btnNew: document.getElementById('btn-new-shoot'),
+        btnLoad: document.getElementById('btn-load-shoot'),
+        modal: document.getElementById('shoot-modal'),
+        modalList: document.getElementById('shoot-list'),
+        modalClose: document.getElementById('close-shoot-modal')
+    },
+    changesDesc: document.getElementById('changes-desc'),
+    btnGenerate: document.getElementById('btn-generate'),
+    genStatus: document.getElementById('gen-status'),
+    historyContainer: document.getElementById('history-container'),
+    emptyState: document.getElementById('empty-state')
+};
+
+// ═══════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+async function init() {
+    await loadOptions();
+    setupUploads();
+    setupShootsUI();
+    setupSubParams();
+    setupCollapsible();
+
+    if (els.btnGenerate) {
+        els.btnGenerate.addEventListener('click', generate);
+    }
+
+    if (els.selects.preset) {
+        els.selects.preset.addEventListener('change', (e) => {
+            applyPreset(e.target.value);
+        });
+    }
+
+    // Auto-load last shoot
+    const lastShootId = localStorage.getItem('product_currentShootId');
+    if (lastShootId) {
+        try {
+            await loadShoot(lastShootId);
+        } catch (e) {
+            localStorage.removeItem('product_currentShootId');
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OPTIONS LOADING
+// ═══════════════════════════════════════════════════════════════
+
+async function loadOptions() {
+    try {
+        const res = await fetch('/api/product/options');
+        const json = await res.json();
+        if (json.ok) {
+            state.options = json.data;
+            renderOptions();
+        }
+    } catch (e) {
+        console.error('Failed to load options', e);
+    }
+}
+
+function renderOptions() {
+    if (!state.options) return;
+
+    const populate = (select, data) => {
+        if (!select) return;
+        if (Array.isArray(data)) {
+            select.innerHTML += data.map(o =>
+                `<option value="${o.id}">${o.label}</option>`
+            ).join('');
+            return;
+        }
+        if (data && data.options) {
+            select.innerHTML = data.options.map(o =>
+                `<option value="${o.value}">${o.label}</option>`
+            ).join('');
+        }
+    };
+
+    populate(els.selects.preset, state.options.presets);
+    populate(els.selects.category, state.options.category);
+    populate(els.selects.presentation, state.options.presentation);
+    populate(els.selects.angle, state.options.angle);
+    populate(els.selects.framing, state.options.framing);
+    populate(els.selects.background, state.options.background);
+    populate(els.selects.surface, state.options.surface);
+    populate(els.selects.shadow, state.options.shadow);
+    populate(els.selects.lighting, state.options.lighting);
+    populate(els.selects.lightDirection, state.options.lightDirection);
+    populate(els.selects.mood, state.options.mood);
+    populate(els.selects.colorGrade, state.options.colorGrade);
+    populate(els.selects.detailLevel, state.options.detailLevel);
+    populate(els.selects.aspectRatio, state.options.aspectRatio);
+    populate(els.selects.imageSize, state.options.imageSize);
+
+    // Render showDetails checkboxes
+    if (els.showDetailsGroup && state.options.showDetails?.options) {
+        els.showDetailsGroup.innerHTML = state.options.showDetails.options.map(o =>
+            `<label><input type="checkbox" name="showDetails" value="${o.value}"> ${o.label}</label>`
+        ).join('');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUB-PARAMETERS
+// ═══════════════════════════════════════════════════════════════
+
+function setupSubParams() {
+    const paramConfigs = {
+        presentation: 'presentation',
+        lighting: 'lighting'
+    };
+
+    Object.entries(paramConfigs).forEach(([paramKey, schemaKey]) => {
+        const select = els.selects[paramKey];
+        const container = els.subContainers[paramKey];
+        if (!select || !container) return;
+
+        select.addEventListener('change', () => {
+            updateSubParam(paramKey, schemaKey);
+        });
+        updateSubParam(paramKey, schemaKey);
+    });
+}
+
+function updateSubParam(paramKey, schemaKey) {
+    const select = els.selects[paramKey];
+    const container = els.subContainers[paramKey];
+    if (!select || !container || !state.options) return;
+
+    const selectedValue = select.value;
+    const schemaOptions = state.options[schemaKey]?.options || [];
+    const selectedOption = schemaOptions.find(o => o.value === selectedValue);
+
+    if (!selectedOption?.subParams?.length) {
+        container.classList.remove('visible');
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+    selectedOption.subParams.forEach(subParam => {
+        html += `
+            <div class="sub-param-label">${subParam.label}</div>
+            <select id="sub-${paramKey}-${subParam.id}" class="form-select" style="font-size: 10px; width: 100%;">
+                ${subParam.options.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
+            </select>
+        `;
+    });
+
+    container.innerHTML = html;
+    container.classList.add('visible');
+}
+
+function collectSubParams() {
+    const result = {};
+    Object.entries(els.subContainers).forEach(([key, container]) => {
+        if (!container || !container.classList.contains('visible')) return;
+        const selects = container.querySelectorAll('select');
+        selects.forEach(sel => {
+            const idParts = sel.id.split('-');
+            if (idParts.length >= 3) {
+                const subParamId = idParts.slice(2).join('-');
+                result[subParamId] = sel.value;
+            }
+        });
+    });
+    return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILE UPLOADS
+// ═══════════════════════════════════════════════════════════════
+
+function setupUploads() {
+    ['subject', 'style'].forEach(type => {
+        const card = els.refs[type];
+        if (!card) return;
+
+        const input = card.querySelector('input');
+        const removeBtn = card.querySelector('.ref-card-remove');
+
+        card.addEventListener('click', (e) => {
+            if (e.target !== removeBtn) input.click();
+        });
+
+        input.addEventListener('change', async (e) => {
+            if (e.target.files?.[0]) {
+                const file = e.target.files[0];
+                const compressed = await compressImage(file);
+
+                state.images[type] = compressed;
+
+                card.classList.add('has-image');
+                card.style.backgroundImage = `url(${compressed.dataUrl})`;
+                card.style.backgroundSize = 'cover';
+                card.style.backgroundPosition = 'center';
+                card.querySelector('.ref-card-icon').style.display = 'none';
+                card.querySelector('.ref-card-label').style.display = 'none';
+            }
+            input.value = '';
+        });
+
+        removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.images[type] = null;
+            card.classList.remove('has-image');
+            card.style.backgroundImage = '';
+            card.querySelector('.ref-card-icon').style.display = 'block';
+            card.querySelector('.ref-card-label').style.display = 'block';
+        });
+    });
+}
+
+async function compressImage(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX = 1024;
+                let w = img.width;
+                let h = img.height;
+
+                if (w > h) {
+                    if (w > MAX) { h *= MAX / w; w = MAX; }
+                } else {
+                    if (h > MAX) { w *= MAX / h; h = MAX; }
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                const base64 = dataUrl.split(',')[1];
+                resolve({ base64, mimeType: 'image/jpeg', dataUrl });
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENERATION
+// ═══════════════════════════════════════════════════════════════
+
+async function generate() {
+    const subjectDescription = els.subjectDesc.value.trim();
+    if (!subjectDescription) {
+        alert('Опиши предмет!');
+        return;
+    }
+
+    els.btnGenerate.disabled = true;
+    els.genStatus.style.display = 'block';
+
+    // Collect showDetails checkboxes
+    const showDetails = [];
+    document.querySelectorAll('input[name="showDetails"]:checked').forEach(cb => {
+        showDetails.push(cb.value);
+    });
+
+    try {
+        const payload = {
+            params: {
+                subjectDescription,
+                category: els.selects.category?.value || '',
+                presentation: els.selects.presentation?.value || '',
+                angle: els.selects.angle?.value || '',
+                framing: els.selects.framing?.value || '',
+                background: els.selects.background?.value || '',
+                surface: els.selects.surface?.value || '',
+                shadow: els.selects.shadow?.value || '',
+                lighting: els.selects.lighting?.value || '',
+                lightDirection: els.selects.lightDirection?.value || '',
+                mood: els.selects.mood?.value || '',
+                colorGrade: els.selects.colorGrade?.value || '',
+                detailLevel: els.selects.detailLevel?.value || '',
+                aspectRatio: els.selects.aspectRatio?.value || '1:1',
+                imageSize: els.selects.imageSize?.value || '2k',
+                showDetails,
+                changesDescription: els.changesDesc?.value?.trim() || '',
+                subParams: collectSubParams()
+            },
+            subjectImage: state.images.subject,
+            styleImage: state.images.style,
+            baseImage: state.images.base,
+            shootId: state.currentShoot?.id,
+            frameId: state.refiningFrameId || null
+        };
+
+        const res = await fetch('/api/product/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+
+        if (json.ok) {
+            if (state.currentShoot?.id) {
+                await reloadCurrentShoot();
+            } else {
+                const newItem = {
+                    ...json.data,
+                    params: json.data.params,
+                    createdAt: new Date().toISOString()
+                };
+                addToHistory(newItem, null);
+            }
+
+            // Reset refine mode
+            state.refiningFrameId = null;
+            state.images.base = null;
+            if (els.btnGenerate) {
+                els.btnGenerate.innerHTML = '<span>📸 Сгенерировать</span>';
+                els.btnGenerate.style.background = '';
+            }
+        } else {
+            alert('Ошибка: ' + json.error);
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert('Ошибка соединения');
+    } finally {
+        els.btnGenerate.disabled = false;
+        els.genStatus.style.display = 'none';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HISTORY RENDERING
+// ═══════════════════════════════════════════════════════════════
+
+function addToHistory(data, parentId = null) {
+    if (parentId) {
+        const parent = state.history.find(item => item.id === parentId);
+        if (parent) {
+            if (!parent.children) parent.children = [];
+            parent.children.push(data);
+        }
+    } else {
+        state.history.unshift(data);
+    }
+    renderHistory();
+}
+
+function renderHistory() {
+    if (!els.historyContainer) return;
+
+    if (state.history.length === 0) {
+        if (els.emptyState) els.emptyState.style.display = 'flex';
+        els.historyContainer.innerHTML = '';
+        els.historyContainer.appendChild(els.emptyState);
+        return;
+    }
+    if (els.emptyState) els.emptyState.style.display = 'none';
+
+    const html = state.history.map((item, idx) => {
+        const variations = item.children || [];
+        return `
+        <div class="product-frame-group" data-id="${item.id}">
+            ${renderFrameCard(item, idx, true)}
+            ${variations.length > 0 ? `
+            <div class="product-variations-row">
+                ${variations.map((v, vIdx) => renderFrameCard(v, `${idx}_${vIdx}`, false)).join('')}
+            </div>
+            ` : ''}
+        </div>
+        `;
+    }).join('');
+
+    els.historyContainer.innerHTML = html;
+}
+
+function renderFrameCard(item, idx, isMain) {
+    const p = item.params || {};
+    const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+    let imageUrl = item.imageUrl;
+    if (item.base64) {
+        imageUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
+    }
+
+    const cardClass = isMain ? 'product-frame-main' : 'product-frame-variation';
+
+    return `
+    <div class="${cardClass}">
+        <div style="cursor: pointer; margin-bottom: 8px;" onclick="window.openLightbox('${imageUrl}')">
+            <img src="${imageUrl}" loading="lazy" alt="Продукт" style="width: 100%; border-radius: 8px; display: block;">
+        </div>
+        <div style="font-size: ${isMain ? '13px' : '11px'}; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.subjectDescription || 'Продукт')}</div>
+        <div style="font-size: 10px; color: var(--color-text-muted); margin-bottom: 8px;">${dateStr}</div>
+        
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            <button class="btn-mini" onclick="window.refineHistoryItem('${item.id}')" title="Улучшить" style="flex: 1;">✨</button>
+            <button class="btn-mini" onclick="window.setReferenceFromHistory('${item.id}', 'subject')" title="Как референс" style="flex: 1;">📌</button>
+            <a href="${imageUrl}" download="product_${idx}.jpg" class="btn-mini" title="Скачать" style="flex: 1; text-align: center; text-decoration: none;">💾</a>
+        </div>
+    </div>
+    `;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SHOOTS MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+function setupShootsUI() {
+    if (els.shoot.btnNew) {
+        els.shoot.btnNew.addEventListener('click', async () => {
+            const label = prompt('Название съёмки:', 'Новая съёмка');
+            if (!label) return;
+
+            try {
+                const res = await fetch('/api/product-shoots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ label })
+                });
+                const json = await res.json();
+                if (json.ok) {
+                    state.currentShoot = { id: json.data.id, label: json.data.label };
+                    state.history = [];
+                    localStorage.setItem('product_currentShootId', json.data.id);
+                    if (els.shoot.label) els.shoot.label.textContent = json.data.label;
+                    renderHistory();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    if (els.shoot.btnLoad) {
+        els.shoot.btnLoad.addEventListener('click', openShootModal);
+    }
+
+    if (els.shoot.modalClose) {
+        els.shoot.modalClose.addEventListener('click', closeShootModal);
+    }
+}
+
+async function openShootModal() {
+    els.shoot.modal.classList.add('active');
+    els.shoot.modalList.innerHTML = '<div style="padding: 20px; text-align: center;">Загрузка...</div>';
+
+    try {
+        const res = await fetch('/api/product-shoots');
+        const json = await res.json();
+
+        if (json.ok && json.data.length > 0) {
+            els.shoot.modalList.innerHTML = json.data.map(s => `
+                <div onclick="window.selectShoot('${s.id}')" style="padding: 12px; background: var(--color-bg-secondary); border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600;">${escapeHtml(s.label)}</div>
+                        <div style="font-size: 11px; color: var(--color-text-muted);">${s.frameCount || 0} кадров</div>
+                    </div>
+                    <div style="font-size: 11px; color: var(--color-text-muted);">${new Date(s.updatedAt).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        } else {
+            els.shoot.modalList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--color-text-muted);">Нет сохранённых съёмок</div>';
+        }
+    } catch (e) {
+        els.shoot.modalList.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">Ошибка загрузки</div>';
+    }
+}
+
+function closeShootModal() {
+    els.shoot.modal.classList.remove('active');
+}
+
+window.selectShoot = async (id) => {
+    closeShootModal();
+    await loadShoot(id);
+};
+
+async function loadShoot(id) {
+    try {
+        const res = await fetch(`/api/product-shoots/${id}`);
+        const json = await res.json();
+
+        if (json.ok) {
+            const shoot = json.data;
+            state.currentShoot = { id: shoot.id, label: shoot.label };
+            localStorage.setItem('product_currentShootId', shoot.id);
+            if (els.shoot.label) els.shoot.label.textContent = shoot.label;
+
+            // Load history from frames
+            state.history = (shoot.frames || []).map(frame => {
+                const firstSnapshot = frame.snapshots?.[0] || {};
+                return {
+                    id: frame.id,
+                    params: frame.params,
+                    imageUrl: firstSnapshot.imageUrl,
+                    createdAt: frame.createdAt,
+                    children: (frame.snapshots || []).slice(1).map(s => ({
+                        id: s.id,
+                        imageUrl: s.imageUrl,
+                        createdAt: s.createdAt,
+                        params: frame.params
+                    }))
+                };
+            });
+
+            renderHistory();
+        }
+    } catch (e) {
+        console.error('Failed to load shoot', e);
+    }
+}
+
+async function reloadCurrentShoot() {
+    if (state.currentShoot?.id) {
+        await loadShoot(state.currentShoot.id);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRESETS
+// ═══════════════════════════════════════════════════════════════
+
+function applyPreset(presetId) {
+    if (!presetId || !state.options) return;
+    const preset = state.options.presets.find(p => p.id === presetId);
+    if (!preset || !preset.values) return;
+
+    const v = preset.values;
+    const s = els.selects;
+    const safeSet = (el, val) => { if (el && val) el.value = val; };
+
+    safeSet(s.presentation, v.presentation);
+    safeSet(s.angle, v.angle);
+    safeSet(s.framing, v.framing);
+    safeSet(s.background, v.background);
+    safeSet(s.surface, v.surface);
+    safeSet(s.shadow, v.shadow);
+    safeSet(s.lighting, v.lighting);
+    safeSet(s.lightDirection, v.lightDirection);
+    safeSet(s.mood, v.mood);
+    safeSet(s.colorGrade, v.colorGrade);
+    safeSet(s.detailLevel, v.detailLevel);
+
+    // Trigger sub-params update
+    if (s.presentation) s.presentation.dispatchEvent(new Event('change'));
+    if (s.lighting) s.lighting.dispatchEvent(new Event('change'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COLLAPSIBLE HEADER
+// ═══════════════════════════════════════════════════════════════
+
+function setupCollapsible() {
+    const header = document.getElementById('controls-header');
+    const toggle = document.getElementById('toggle-controls');
+    const arrow = document.getElementById('toggle-arrow');
+
+    if (toggle && header) {
+        toggle.addEventListener('click', (e) => {
+            // Don't collapse when clicking buttons
+            if (e.target.tagName === 'BUTTON') return;
+
+            header.classList.toggle('collapsed');
+            arrow.textContent = header.classList.contains('collapsed') ? '▶' : '▼';
+        });
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+window.openLightbox = (url) => {
+    window.open(url, '_blank');
+};
+
+window.refineHistoryItem = async (itemId) => {
+    const item = findHistoryItemById(itemId);
+    if (!item) return;
+
+    // Load params
+    if (item.params) {
+        els.subjectDesc.value = item.params.subjectDescription || '';
+        if (els.changesDesc) els.changesDesc.value = '';
+    }
+
+    // Set base image
+    let base64;
+    if (item.base64) {
+        base64 = item.base64;
+    } else if (item.imageUrl) {
+        try {
+            const blob = await fetch(item.imageUrl).then(r => r.blob());
+            const reader = new FileReader();
+            base64 = await new Promise(resolve => {
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            alert('Не удалось загрузить изображение');
+            return;
+        }
+    }
+
+    if (base64) {
+        state.images.base = { base64, mimeType: 'image/jpeg' };
+        state.refiningFrameId = itemId;
+        alert('✨ Режим улучшения! Внеси правки и нажми Сгенерировать.');
+
+        if (els.btnGenerate) {
+            els.btnGenerate.innerHTML = '<span>✨ Вариация</span>';
+            els.btnGenerate.style.background = 'var(--color-accent)';
+        }
+    }
+};
+
+window.setReferenceFromHistory = async (itemId, type) => {
+    const item = findHistoryItemById(itemId);
+    if (!item) return;
+
+    let dataUrl;
+    if (item.base64) {
+        dataUrl = `data:${item.mimeType || 'image/jpeg'};base64,${item.base64}`;
+    } else if (item.imageUrl) {
+        dataUrl = item.imageUrl;
+    } else {
+        return;
+    }
+
+    try {
+        const blob = await fetch(dataUrl).then(res => res.blob());
+        const file = new File([blob], `ref.jpg`, { type: blob.type });
+        const compressed = await compressImage(file);
+
+        state.images[type] = compressed;
+        const card = els.refs[type];
+        if (card) {
+            card.classList.add('has-image');
+            card.style.backgroundImage = `url(${compressed.dataUrl})`;
+            card.style.backgroundSize = 'cover';
+            card.style.backgroundPosition = 'center';
+            card.querySelector('.ref-card-icon').style.display = 'none';
+            card.querySelector('.ref-card-label').style.display = 'none';
+        }
+        alert(`Референс [${type}] обновлён!`);
+    } catch (e) {
+        console.error('Failed to set reference', e);
+    }
+};
+
+function findHistoryItemById(id) {
+    for (const frame of state.history) {
+        if (frame.id === id) return frame;
+        if (frame.children) {
+            for (const child of frame.children) {
+                if (child.id === id) return child;
+            }
+        }
+    }
+    return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════════════
+
+init();
