@@ -587,183 +587,192 @@
 
                             <!-- Legacy Form Grid (будет скрыт когда V2 активен) -->
                             <div id="legacy-params" style="display: none;">
-                                <!-- Main Form Grid -->
+                                <!-- Legacy Grid (Col 1-3) -->
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start;">
 
-                                <!-- Col 1: Subject Description + Category + Preset -->
-                                <div>
-                                    <label class="form-label" style="font-size: 11px;">Что снимаем?</label>
-                                    <textarea id="subject-desc" class="form-input" rows="2"
-                                        placeholder="Белая шёлковая блузка..." style="font-size: 12px;"></textarea>
-                                    <div
-                                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px;">
-                                        <div>
-                                            <label class="form-label" style="font-size: 10px;">Категория</label>
-                                            <select id="param-category" class="form-select"
+                                    <!-- Col 1: Subject Description + Category + Preset -->
+                                    <div>
+                                        <label class="form-label" style="font-size: 11px;">Что снимаем?</label>
+                                        <textarea id="subject-desc" class="form-input" rows="2"
+                                            placeholder="Белая шёлковая блузка..." style="font-size: 12px;"></textarea>
+                                        <div
+                                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px;">
+                                            <div>
+                                                <label class="form-label" style="font-size: 10px;">Категория</label>
+                                                <select id="param-category" class="form-select"
+                                                    style="font-size: 11px;"></select>
+                                            </div>
+                                            <div>
+                                                <label class="form-label" style="font-size: 10px;">Пресет</label>
+                                                <select id="param-preset" class="form-select" style="font-size: 11px;">
+                                                    <option value="">--</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Col 2: Composition -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                        <div><label class="form-label" style="font-size: 10px;">Подача</label>
+                                            <select id="param-presentation" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                            <div id="sub-presentation" class="sub-param-container"></div>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Ракурс</label>
+                                            <select id="param-angle" class="form-select"
                                                 style="font-size: 11px;"></select>
                                         </div>
-                                        <div>
-                                            <label class="form-label" style="font-size: 10px;">Пресет</label>
-                                            <select id="param-preset" class="form-select" style="font-size: 11px;">
-                                                <option value="">--</option>
-                                            </select>
+                                        <div><label class="form-label" style="font-size: 10px;">Кадрирование</label>
+                                            <select id="param-framing" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Фон</label>
+                                            <select id="param-background" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Поверхность</label>
+                                            <select id="param-surface" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Тень</label>
+                                            <select id="param-shadow" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Col 3: Lighting & Style -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                        <div><label class="form-label" style="font-size: 10px;">Освещение</label>
+                                            <select id="param-lighting" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                            <div id="sub-lighting" class="sub-param-container"></div>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Направление</label>
+                                            <select id="param-lightDirection" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Стиль</label>
+                                            <select id="param-mood" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Цвет</label>
+                                            <select id="param-colorGrade" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Детализация</label>
+                                            <select id="param-detailLevel" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Формат</label>
+                                            <select id="param-aspectRatio" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div><label class="form-label" style="font-size: 10px;">Качество</label>
+                                            <select id="param-imageSize" class="form-select"
+                                                style="font-size: 11px;"></select>
+                                        </div>
+                                        <div style="grid-column: span 2;">
+                                            <label class="form-label" style="font-size: 10px;">Показать детали</label>
+                                            <div class="checkbox-group" id="show-details-group">
+                                                <!-- Dynamic checkboxes -->
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                            </div> <!-- Close Grid -->
+                        </div> <!-- Close Legacy Params -->
 
-                                <!-- Col 2: Composition -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                                    <div><label class="form-label" style="font-size: 10px;">Подача</label>
-                                        <select id="param-presentation" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                        <div id="sub-presentation" class="sub-param-container"></div>
+                        <!-- COMMON CONTROLS (Always Visible) -->
+                        <div style="margin-top: 16px; border-top: 1px solid var(--color-border); padding-top: 16px;">
+                            <!-- References + Generate -->
+                            <div>
+                                <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                                    <div class="ref-card" id="ref-subject" style="width: 70px; height: 70px;">
+                                        <input type="file" accept="image/*" hidden>
+                                        <div class="ref-card-icon" style="font-size: 18px;">📷</div>
+                                        <div class="ref-card-label" style="font-size: 8px;">Товар</div>
+                                        <button class="ref-card-remove">×</button>
                                     </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Ракурс</label>
-                                        <select id="param-angle" class="form-select" style="font-size: 11px;"></select>
+                                    <div class="ref-card" id="ref-location" style="width: 70px; height: 70px;">
+                                        <input type="file" accept="image/*" hidden>
+                                        <div class="ref-card-icon" style="font-size: 18px;">🏔️</div>
+                                        <div class="ref-card-label" style="font-size: 8px;">Локация</div>
+                                        <button class="ref-card-remove">×</button>
                                     </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Кадрирование</label>
-                                        <select id="param-framing" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Фон</label>
-                                        <select id="param-background" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Поверхность</label>
-                                        <select id="param-surface" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Тень</label>
-                                        <select id="param-shadow" class="form-select" style="font-size: 11px;"></select>
+                                    <div class="ref-card" id="ref-style" style="width: 70px; height: 70px;">
+                                        <input type="file" accept="image/*" hidden>
+                                        <div class="ref-card-icon" style="font-size: 18px;">🎨</div>
+                                        <div class="ref-card-label" style="font-size: 8px;">Стиль</div>
+                                        <button class="ref-card-remove">×</button>
                                     </div>
                                 </div>
-
-                                <!-- Col 3: Lighting & Style -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                                    <div><label class="form-label" style="font-size: 10px;">Освещение</label>
-                                        <select id="param-lighting" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                        <div id="sub-lighting" class="sub-param-container"></div>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Направление</label>
-                                        <select id="param-lightDirection" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Стиль</label>
-                                        <select id="param-mood" class="form-select" style="font-size: 11px;"></select>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Цвет</label>
-                                        <select id="param-colorGrade" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Детализация</label>
-                                        <select id="param-detailLevel" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Формат</label>
-                                        <select id="param-aspectRatio" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                    </div>
-                                    <div><label class="form-label" style="font-size: 10px;">Качество</label>
-                                        <select id="param-imageSize" class="form-select"
-                                            style="font-size: 11px;"></select>
-                                    </div>
-                                    <div style="grid-column: span 2;">
-                                        <label class="form-label" style="font-size: 10px;">Показать детали</label>
-                                        <div class="checkbox-group" id="show-details-group">
-                                            <!-- Dynamic checkboxes -->
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Col 4: References + Generate -->
-                                <div>
-                                    <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-                                        <div class="ref-card" id="ref-subject" style="width: 70px; height: 70px;">
-                                            <input type="file" accept="image/*" hidden>
-                                            <div class="ref-card-icon" style="font-size: 18px;">📷</div>
-                                            <div class="ref-card-label" style="font-size: 8px;">Товар</div>
-                                            <button class="ref-card-remove">×</button>
-                                        </div>
-                                        <div class="ref-card" id="ref-location" style="width: 70px; height: 70px;">
-                                            <input type="file" accept="image/*" hidden>
-                                            <div class="ref-card-icon" style="font-size: 18px;">🏔️</div>
-                                            <div class="ref-card-label" style="font-size: 8px;">Локация</div>
-                                            <button class="ref-card-remove">×</button>
-                                        </div>
-                                        <div class="ref-card" id="ref-style" style="width: 70px; height: 70px;">
-                                            <input type="file" accept="image/*" hidden>
-                                            <div class="ref-card-icon" style="font-size: 18px;">🎨</div>
-                                            <div class="ref-card-label" style="font-size: 8px;">Стиль</div>
-                                            <button class="ref-card-remove">×</button>
-                                        </div>
-                                    </div>
-                                    <input type="text" id="changes-desc" class="form-input"
-                                        style="font-size: 11px; padding: 6px; margin-bottom: 8px;"
-                                        placeholder="Что изменить? (напр. добавить тень)">
-                                    <button id="btn-generate" class="btn btn-primary btn-full" style="padding: 10px;">
-                                        <span>📸 Сгенерировать</span>
-                                    </button>
-                                    <div id="gen-status"
-                                        style="text-align: center; margin-top: 6px; font-size: 11px; color: var(--color-text-muted); display: none;">
-                                        <span class="spinner"></span> Генерирую...
-                                    </div>
+                                <input type="text" id="changes-desc" class="form-input"
+                                    style="font-size: 11px; padding: 6px; margin-bottom: 8px;"
+                                    placeholder="Что изменить? (напр. добавить тень)">
+                                <button id="btn-generate" class="btn btn-primary btn-full" style="padding: 10px;">
+                                    <span>📸 Сгенерировать</span>
+                                </button>
+                                <div id="gen-status"
+                                    style="text-align: center; margin-top: 6px; font-size: 11px; color: var(--color-text-muted); display: none;">
+                                    <span class="spinner"></span> Генерирую...
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- MULTI-PRODUCT SECTION -->
-                    <div class="products-section" id="products-section">
-                        <div class="products-header">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 16px;">👕</span>
-                                <span style="font-weight: 600;">Предметы для съёмки</span>
-                                <span id="products-count" style="font-size: 11px; opacity: 0.7;">(0)</span>
-                            </div>
-                            <button id="btn-add-product" class="btn-mini" style="padding: 6px 12px;">+ Добавить
-                                предмет</button>
-                        </div>
-                        <div class="products-list" id="products-list">
-                            <!-- Dynamic products -->
-                            <div class="product-add-btn" id="product-add-placeholder" onclick="window.addNewProduct()">
-                                <span style="font-size: 32px;">+</span>
-                                <span style="font-size: 11px; margin-top: 8px;">Добавить предмет</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- HORIZONTAL STREAM: Results -->
-                    <div class="product-stream-area">
-                        <div class="product-stream" id="history-container">
-                            <!-- Empty State -->
-                            <div class="empty-state" id="empty-state"
-                                style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-muted); min-width: 300px;">
-                                <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
-                                <h3>История генераций</h3>
-                                <p>Результаты будут появляться здесь →</p>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
+
+                <!-- MULTI-PRODUCT SECTION -->
+                <div class="products-section" id="products-section">
+                    <div class="products-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 16px;">👕</span>
+                            <span style="font-weight: 600;">Предметы для съёмки</span>
+                            <span id="products-count" style="font-size: 11px; opacity: 0.7;">(0)</span>
+                        </div>
+                        <button id="btn-add-product" class="btn-mini" style="padding: 6px 12px;">+ Добавить
+                            предмет</button>
+                    </div>
+                    <div class="products-list" id="products-list">
+                        <!-- Dynamic products -->
+                        <div class="product-add-btn" id="product-add-placeholder" onclick="window.addNewProduct()">
+                            <span style="font-size: 32px;">+</span>
+                            <span style="font-size: 11px; margin-top: 8px;">Добавить предмет</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HORIZONTAL STREAM: Results -->
+                <div class="product-stream-area">
+                    <div class="product-stream" id="history-container">
+                        <!-- Empty State -->
+                        <div class="empty-state" id="empty-state"
+                            style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-muted); min-width: 300px;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+                            <h3>История генераций</h3>
+                            <p>Результаты будут появляться здесь →</p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </main>
+    </div>
+    </main>
 
-        <!-- Shoot Load Modal -->
-        <div id="shoot-modal" class="lightbox-overlay">
-            <div
-                style="background: var(--color-surface); padding: 24px; border-radius: 12px; width: 500px; max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3 style="margin: 0;">📂 Открыть съёмку</h3>
-                    <button id="close-shoot-modal"
-                        style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">×</button>
-                </div>
-                <div id="shoot-list"
-                    style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="padding: 20px; text-align: center; color: var(--color-text-muted);">Загрузка...</div>
-                </div>
+    <!-- Shoot Load Modal -->
+    <div id="shoot-modal" class="lightbox-overlay">
+        <div
+            style="background: var(--color-surface); padding: 24px; border-radius: 12px; width: 500px; max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0;">📂 Открыть съёмку</h3>
+                <button id="close-shoot-modal"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">×</button>
+            </div>
+            <div id="shoot-list" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                <div style="padding: 20px; text-align: center; color: var(--color-text-muted);">Загрузка...</div>
             </div>
         </div>
+    </div>
     </div>
 
     <script type="module" src="product-editor.js"></script>

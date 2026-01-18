@@ -613,8 +613,19 @@ router.post('/:id/generate', async (req, res) => {
 
     // Prepare style reference image
     let styleRefImage = null;
+    let styleRefParams = null; // NEW: Params of the reference frame
+
     if (shoot.locks?.style?.enabled && shoot.locks.style.sourceImageUrl) {
       styleRefImage = await prepareImageFromUrl(shoot.locks.style.sourceImageUrl);
+
+      // Also fetch the paramsSnapshot from the source image
+      if (shoot.locks.style.sourceImageId) {
+        const sourceImg = shoot.generatedImages?.find(img => img.id === shoot.locks.style.sourceImageId);
+        if (sourceImg && sourceImg.paramsSnapshot) {
+          styleRefParams = sourceImg.paramsSnapshot;
+          console.log('[CustomShootRoutes] Found params snapshot for style reference:', Object.keys(styleRefParams));
+        }
+      }
     }
 
     // Location Lock removed - location is now implied in Style Lock
@@ -725,6 +736,7 @@ router.post('/:id/generate', async (req, res) => {
       clothingItemPrompts,  // NEW: prompts grouped by clothing item
       lookPrompt,           // NEW: overall outfit style prompt
       styleRefImage,
+      styleRefParams, // NEW: pass reference params
       // locationRefImage removed - Location Lock functionality removed, location implied in Style Lock
       locationSketchImage,
       poseSketchImage,

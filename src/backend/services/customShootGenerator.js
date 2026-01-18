@@ -387,6 +387,7 @@ export function buildCustomShootPrompt({
   hasIdentityRefs = false,
   hasClothingRefs = false,
   hasStyleRef = false,
+  styleRefParams = null, // NEW
   // hasLocationRef removed - Location Lock removed, location is implied in Style Lock
   hasLocationSketch = false, // true if location sketch is being passed (only when Style Lock is OFF)
   hasPoseSketch = false,
@@ -455,6 +456,7 @@ export function buildCustomShootPrompt({
       hasIdentityRefs: hasIdentityRefs,
       hasClothingRefs: hasClothingRefs,
       hasStyleRef: hasStyleRef,
+      styleRefParams: styleRefParams, // NEW
       hasPoseSketch: hasPoseSketch
     };
 
@@ -923,6 +925,7 @@ export async function generateCustomShootFrame({
   clothingItemPrompts = [], // NEW: prompts grouped by clothing item [{ name, prompt }]
   lookPrompt = '',          // NEW: overall outfit style prompt
   styleRefImage = null,
+  styleRefParams = null,    // NEW: Params of the reference frame
   // locationRefImage removed - Location Lock removed, location is implied in Style Lock
   locationSketchImage = null,
   poseSketchImage = null,

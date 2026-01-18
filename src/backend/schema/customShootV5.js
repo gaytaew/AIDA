@@ -1273,6 +1273,122 @@ export function getLockedValue(field, currentParams) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * Calculate differences between current params and reference params
+ * Returns an array of human-readable changes
+ */
+function calculateParamDiffs(current, reference) {
+  const diffs = [];
+  const allParams = getAllV5Params();
+
+  // Helper to find label for a value
+  const getLabel = (category, key, value) => {
+    const paramDef = allParams[category][key];
+    if (!paramDef) return value;
+    const option = paramDef.options.find(o => o.value === value);
+    return option ? option.label : value;
+  };
+
+  // Check Technical Params
+  for (const key of Object.keys(TECHNICAL_PARAMS)) {
+    if (current[key] !== reference[key]) {
+      const from = getLabel('technical', key, reference[key]);
+      const to = getLabel('technical', key, current[key]);
+      diffs.push({ category: 'TECHNICAL', param: TECHNICAL_PARAMS[key].label, from, to, key });
+    }
+  }
+
+  // Check Artistic Params
+  for (const key of Object.keys(ARTISTIC_PARAMS)) {
+    if (current[key] !== reference[key]) {
+      const from = getLabel('artistic', key, reference[key]);
+      const to = getLabel('artistic', key, current[key]);
+      diffs.push({ category: 'ARTISTIC', param: ARTISTIC_PARAMS[key].label, from, to, key });
+    }
+  }
+
+  // Check Context Params
+  for (const key of Object.keys(CONTEXT_PARAMS)) {
+    if (current[key] !== reference[key]) {
+      const from = getLabel('context', key, reference[key]);
+      const to = getLabel('context', key, current[key]);
+      diffs.push({ category: 'CONTEXT', param: CONTEXT_PARAMS[key].label, from, to, key });
+    }
+  }
+
+  return diffs;
+}
+
+/**
+ * Build a "Variation Mode" prompt that uses the Style Reference as a base
+ * and explicitly calls out what changed.
+ */
+function buildV5VariationPrompt(params, scene, referenceParams) {
+  const diffs = calculateParamDiffs(params, referenceParams);
+
+  // If no diffs, this is an exact reproduction request
+  const isExactReproduction = diffs.length === 0;
+
+  // Build Technical Specs (only for changed items or critical ones)
+  const techSpecs = buildTechnicalSpecs(params);
+
+  const sections = [];
+
+  sections.push(`ROLE: Expert Digital Retoucher & Photographer.
+TASK: Generate a VARIATION of the reference image [$2].
+
+═══════════════════════════════════════════════════════════════
+SOURCE MATERIAL: REFERENCE [$2]
+═══════════════════════════════════════════════════════════════
+The reference image [$2] is the AUTHORITY for:
+- Overall visual style and mood
+- Color grading and white balance
+- Lighting quality and direction
+- Global atmosphere`);
+
+  if (isExactReproduction) {
+    sections.push(`
+═══════════════════════════════════════════════════════════════
+INSTRUCTION: EXACT STYLE MATCH
+═══════════════════════════════════════════════════════════════
+- COPY the visual style of [$2] completely.
+- Maintain the same lighting, color, and mood.
+- Apply this style to the new SUBJECT/POSE defined below.`);
+  } else {
+    sections.push(`
+═══════════════════════════════════════════════════════════════
+INSTRUCTION: VARIATION MODE (Style Lock + Modifications)
+═══════════════════════════════════════════════════════════════
+You must maintain the general "feel" of [$2] but apply these SPECIFIC MODIFICATIONS:
+
+${diffs.map(d => `• CHANGE ${d.param}: from "${d.from}" to "${d.to}"`).join('\n')}
+
+⚠️ CRITICAL:
+- Keep everything else consistent with [$2].
+- Only change the specific parameters listed above.
+- If a parameter conflicts (e.g. changing Day to Night), the modification WINS.`);
+  }
+
+  // Add scene details (Location, Pose, etc.)
+  sections.push(`
+═══════════════════════════════════════════════════════════════
+SCENE CONTENT (New Geometry)
+═══════════════════════════════════════════════════════════════
+${buildSceneDescription(scene, params)}`);
+
+  // Identity Rules
+  if (scene.hasIdentityRefs) {
+    sections.push(`
+═══════════════════════════════════════════════════════════════
+IDENTITY (Strict Adherence: [$1])
+═══════════════════════════════════════════════════════════════
+- The person MUST match reference [$1] exactly (Face/Body/Skin).
+- BUT lit/styled according to the Style Reference [$2] (and modifications).`);
+  }
+
+  return sections.join('\n\n');
+}
+
+/**
  * Build the V5 prompt with clear Technical/Artistic separation
  */
 export function buildV5Prompt(params, scene = {}) {
@@ -1283,6 +1399,13 @@ export function buildV5Prompt(params, scene = {}) {
   const { params: resolvedParams, applied } = applyDependencies(params);
 
   console.log('[buildV5Prompt] Resolved params:', JSON.stringify(resolvedParams, null, 2));
+
+  // Check if we are in "Variation Mode" (Style Lock with known reference params)
+  if (scene.hasStyleRef && scene.styleRefParams) {
+    console.log('[buildV5Prompt] Detected Style Lock with Reference Params -> Using Variation Mode');
+    const prompt = buildV5VariationPrompt(resolvedParams, scene, scene.styleRefParams);
+    return { prompt, resolvedParams, corrections: applied };
+  }
 
   // Build Technical Specifications block
   const techSpecs = buildTechnicalSpecs(resolvedParams);
