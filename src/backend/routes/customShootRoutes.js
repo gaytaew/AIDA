@@ -871,6 +871,8 @@ router.post('/:id/generate', async (req, res) => {
       // Each base64 preview is ~800KB, causing 120MB+ JSON files
       refs: refs.map(r => ({ kind: r.kind, label: r.label })),
       generationTime: genDuration,
+      // CRITICAL: Save paramsSnapshot with resolvedV5Params for Style Lock Variation Mode
+      paramsSnapshot: result.paramsSnapshot || null,
       // Universe params snapshot for "copy settings" feature
       // PREFER resolvedParams from V5 engine (includes defaults), fallback to input params
       universeParams: result.promptJson?.resolvedParams || universeParams || null
