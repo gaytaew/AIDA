@@ -16,22 +16,22 @@ export const AVATAR_SHOTS = [
   {
     id: 'left-profile-90',
     label: 'Left profile (90°)',
-    shot: 'SHOT: Full left profile (90° turn). Head level, eyes looking forward, ear fully visible. REMEMBER: This is the SAME person as in the reference — same age, same features, same skin texture. Only the angle changes.'
+    shot: 'SHOT: Full left profile (90° turn). Head level, eyes looking forward, ear fully visible. Preserve ALL micro-details: skin pores, fine wrinkles, vellus hair on cheek and jaw. Render ear with anatomical precision (cartilage texture, inner shadow). IDENTITY LOCK: SAME person, SAME age, SAME skin texture. Only the viewing angle changes.'
   },
   {
     id: 'three-quarter-left',
     label: '3/4 left',
-    shot: 'SHOT: Three-quarter left view (45° turn left). Slight head turn, eyes looking slightly past camera. REMEMBER: IDENTICAL person as reference — preserve exact age, skin, and all facial features.'
+    shot: 'SHOT: Three-quarter left view (45° turn left). Slight head turn, eyes looking slightly past camera. Preserve ALL micro-details: pores, asymmetries, iris texture, lash separation. Render eye/cheek transition with correct subsurface scattering. IDENTITY LOCK: IDENTICAL person — preserve exact age, skin materiality, and all facial features.'
   },
   {
     id: 'straight-on-front',
     label: 'Straight-on front',
-    shot: 'SHOT: Straight-on front view (0°). Symmetrical framing, direct gaze to camera. REMEMBER: This must look EXACTLY like the person in the reference — same age, same skin texture, same features.'
+    shot: 'SHOT: Straight-on front view (0°). Symmetrical framing, direct gaze to camera. This is the PRIMARY identity anchor — maximize micro-detail: pores, texture variations, natural asymmetry between left/right face, iris patterns, individual lash separation. IDENTITY LOCK: EXACTLY the person in reference — same age, same skin texture, same features.'
   },
   {
     id: 'three-quarter-right',
     label: '3/4 right',
-    shot: 'SHOT: Three-quarter right view (45° turn right). Slight head turn, eyes looking slightly past camera. REMEMBER: Generate the SAME individual — no age change, no beautification.'
+    shot: 'SHOT: Three-quarter right view (45° turn right). Slight head turn, eyes looking slightly past camera. Preserve ALL micro-details: skin texture variations, matte/oily zones, micro-shadows in expression lines. IDENTITY LOCK: Generate the SAME individual — no age change, no beautification, no smoothing.'
   }
 ];
 
@@ -39,65 +39,104 @@ export const AVATAR_SHOTS = [
 // MASTER PROMPT (Nano Banana Pro style)
 // ═══════════════════════════════════════════════════════════════
 
-const MASTER_PROMPT = `CRITICAL IDENTITY PRESERVATION (READ CAREFULLY):
+const MASTER_PROMPT = `CRITICAL IDENTITY PRESERVATION (STRICT BIOMETRIC MODE):
 
 You are generating MULTIPLE ANGLES of THE EXACT SAME PERSON from the reference photo(s).
 This is NOT a "similar looking person" — it MUST be the IDENTICAL individual.
 
-STEP 1 — ANALYZE THE REFERENCE:
-Before generating, carefully study the reference photo(s) and mentally note:
+STEP 1 — DEEP FACIAL ANALYSIS:
+Before generating, study the reference photo(s) with forensic precision and memorize:
 - EXACT age appearance (wrinkles, skin condition, neck aging signs)
-- EXACT face shape (oval, square, heart, round, long)
-- EXACT nose shape and size (bridge width, tip shape, nostril visibility)
-- EXACT eye shape, size, spacing, eyelid type
-- EXACT eyebrow shape, thickness, arch position
-- EXACT lip shape and thickness (upper vs lower lip ratio)
-- EXACT jawline and chin shape
-- EXACT skin texture (freckles, moles, pores, lines, spots — preserve ALL)
-- EXACT hair color, texture, hairline, and style
-- ANY asymmetries or unique marks — these are CRITICAL identity markers
+- EXACT face structure (skull shape, bone prominence, fat distribution)
+- EXACT nose geometry (bridge width, tip shape, nostril visibility, profile angle)
+- EXACT eye shape, size, spacing, eyelid type, orbital depth
+- EXACT eyebrow shape, thickness, arch position, hair direction
+- EXACT lip shape + thickness (upper vs lower lip ratio, vermillion border)
+- EXACT jawline, chin shape, and neck definition
+- ALL skin texture details: freckles, moles, pores, fine lines, spots, scars
+- ANY asymmetries or unique marks — these are CRITICAL identity anchors
+- EXACT hair color, texture, hairline position, density, and style
 
 STEP 2 — GENERATE WITH IDENTITY LOCK:
-Generate the SAME person from a different angle. Every facial feature must match.
-If the reference shows a 40-year-old with specific wrinkles and skin texture — generate a 40-year-old with the SAME wrinkles.
-If the reference shows a 25-year-old with smooth skin — generate a 25-year-old with smooth skin.
-NEVER change the apparent age. NEVER make them younger or older.
+Generate THE SAME person from a different angle. Every facial feature MUST match.
+If reference shows 40-year-old with specific wrinkles — generate with SAME wrinkles.
+If reference shows 25-year-old with smooth skin — generate with smooth skin.
+NEVER modify the apparent age. NO rejuvenation. NO aging.
+
+HYPER-REALISTIC SKIN RENDERING (CRITICAL):
+Amplify all facial imperfections with high micro-detail accuracy:
+- AUTHENTIC pores with natural depth and distribution
+- SUBTLE texture variations across skin zones
+- FINE wrinkles and micro-creases (expression lines)
+- NATURAL asymmetry (left/right side differences)
+- BARELY visible scars, birthmarks, sun damage
+- FRECKLES in exact original positions and density
+- VELLUS HAIR (peach fuzz) on cheeks, forehead, upper lip
+- REAL surface irregularities — skin is NOT smooth plastic
+
+SKIN MATERIAL RESPONSE (CRITICAL):
+Apply realistic skin materiality:
+- MATTE/OILY zone separation (T-zone vs cheeks)
+- NATURAL specularity (subtle highlights, not glossy)
+- MICRO-SHADOWS in pores and fine lines
+- SUBSURFACE SCATTERING on thinner skin areas (ears, nose tip, eyelids)
+- NO smoothing, NO softening, NO plastic artifacts
+- Correct only elements that appear broken or AI-distorted
+STRICTLY PRESERVE original color grading exactly as input.
+
+HYPER-REALISTIC EYE RENDERING (CRITICAL):
+Amplify eyes with high micro-detail fidelity:
+- SHARP iris texture with visible collagen fibers
+- NATURAL radial patterns unique to this person's iris
+- SUBTLE chromatic variations (not uniform color)
+- CORRECT subsurface light response (depth, glow)
+- PROPER limbal ring definition
+- Render eyelids, lashes, tear ducts with ANATOMICAL precision:
+  * INDIVIDUAL lash separation (not clumps)
+  * NATURAL moisture level (not dry, not wet)
+  * MICRO-SHADOWS on eyelid creases
+  * REALISTIC translucency (blood vessels visible where natural)
+- PRESERVE authentic asymmetry of eyes
+- NO artificial glow, NO over-sharpening, NO plastic shine
+- Correct only distorted/broken elements
+STRICTLY PRESERVE original color grading exactly as input.
 
 IDENTITY ANCHORS (non-negotiable):
 - Face proportions: IDENTICAL to reference
-- Age appearance: IDENTICAL to reference (do NOT rejuvenate)
+- Age appearance: IDENTICAL to reference (NO rejuvenation)
 - Skin texture/marks: PRESERVE ALL (freckles, moles, lines, pores)
 - Hair: SAME color, texture, style, length
 - Eye color: EXACT match
-- Asymmetries: PRESERVE (they are identity markers)
+- Asymmetries: PRESERVE (they ARE identity markers)
 
 MULTI-VIEW REFERENCE HANDLING:
-If reference is a collage/grid of multiple photos — these are ALL the SAME person from different angles.
+If reference is a collage/grid of multiple photos — these are ALL the SAME person.
 Study ALL tiles to understand the complete 3D structure of this specific face.
-Use information from every tile to maintain consistency.
+Use information from every tile to maintain consistency across angles.
 
 STYLE:
 Clean casting/editorial studio portrait on neutral off-white seamless background.
 Soft, even, daylight-balanced studio lighting, minimal shadows.
-Realistic skin with natural texture (NO smoothing, NO plastic look).
-Sharp detailed eyes. Natural pores visible.
+Photo-realistic skin with full natural texture (NO smoothing, NO airbrushing).
+Sharp detailed eyes with natural catchlights.
 Plain dark crewneck t-shirt.
-Hair exactly as in reference (same color, length, style).
+Hair exactly as in reference.
 
 CAMERA:
 Head-and-shoulders portrait, tight crop, centered.
 85mm lens perspective, no wide-angle distortion.
-High resolution, natural perspective.
+2K resolution output. Natural perspective. Tack-sharp focus on face.
 
 ABSOLUTE PROHIBITIONS:
 - NO age change (do NOT make younger or older)
 - NO face reshaping or "improvement"
-- NO skin smoothing or beautification
-- NO symmetry correction (asymmetry = identity)
-- NO changing skin texture, marks, or freckles
-- NO changing hair color or style
-- NO HDR, no glossy AI look
-- NO cartoon/CGI/stylization`;
+- NO skin smoothing, softening, or plastic look
+- NO symmetry correction — asymmetry IS identity
+- NO changing skin texture, marks, freckles position
+- NO changing hair color, texture, or style
+- NO HDR or glossy AI look
+- NO cartoon/CGI/stylization
+- NO artificial catchlight enhancement`;
 
 // ═══════════════════════════════════════════════════════════════
 // PROMPT BUILDER
@@ -151,7 +190,7 @@ export async function generateAvatarShots(identityImages, options = {}) {
         referenceImages: identityImages,
         imageConfig: {
           aspectRatio: '1:1',
-          imageSize: '1K'
+          imageSize: '2K'
         }
       });
 
@@ -237,7 +276,7 @@ export async function generateSingleShot(identityImages, shotId, options = {}) {
     referenceImages: identityImages,
     imageConfig: {
       aspectRatio: '1:1',
-      imageSize: '1K'
+      imageSize: '2K'
     }
   });
 
