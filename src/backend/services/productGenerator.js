@@ -57,10 +57,30 @@ function buildProductPrompt(params, indexMap = {}) {
 
     const sections = [];
 
-    // 1. ROLE
-    sections.push(`ROLE: Professional Product Photographer
+    // Определяем режим: есть ли location reference?
+    const hasLocationRef = !!indexMap.location;
+
+    // 1. ROLE - разный для разных режимов
+    if (hasLocationRef) {
+        sections.push(`ROLE: Professional Lifestyle Product Photographer
+
+CRITICAL TASK: Generate a NEW, ORIGINAL photograph from scratch.
+
+You are creating a BRAND NEW image that shows products in a lifestyle setting.
+DO NOT copy-paste or composite objects. Generate the entire scene organically.
+
+The reference images show:
+- What TYPE of products to include (similar items, not exact copies)
+- What TYPE of environment/surface to use (similar setting, not exact copy)
+- The overall MOOD and STYLE to achieve
+
+Generate a cohesive, natural-looking photograph as if taken by a professional photographer.
+Products must look like they NATURALLY BELONG in the scene, not pasted onto it.`);
+    } else {
+        sections.push(`ROLE: Professional Product Photographer
 Create a high-end e-commerce / catalog product photograph.
 Focus on accurate representation, texture visibility, and commercial appeal.`);
+    }
 
     // 2. REFINEMENT MODE (если есть base image)
     if (indexMap.base) {
@@ -168,14 +188,25 @@ ${detailSpec}
 ${showDetailsSpecs}
 IMAGE FORMAT: ${params.aspectRatio || '1:1'} aspect ratio, ${params.imageSize || '2k'} resolution.`);
 
-    // 9. REFERENCES
+    // 9. REFERENCES — разные инструкции для lifestyle vs catalog
     const refLines = [];
     if (indexMap.subject) {
-        refLines.push(`REFERENCE [$${indexMap.subject}]: PRODUCT REFERENCE (MANDATORY).
+        if (hasLocationRef) {
+            // Lifestyle mode: продукт как вдохновение
+            refLines.push(`REFERENCE [$${indexMap.subject}]: PRODUCT TYPE REFERENCE.
+- Generate a product SIMILAR to this (same type, style, color palette).
+- Match the general appearance: material, texture, design aesthetic.
+- You may adapt proportions and exact details for natural placement.
+- Preserve the BRAND IDENTITY if visible (logo position, branding style).
+- The product should look like a real item from the same collection.`);
+        } else {
+            // Catalog mode: точное копирование
+            refLines.push(`REFERENCE [$${indexMap.subject}]: PRODUCT REFERENCE (MANDATORY).
 - Match the EXACT product from [$${indexMap.subject}].
 - Preserve shape, color, texture, and proportions.
 - CRITICAL: Preserve ALL logos, prints, labels, and branding marks in their EXACT original positions.
 - Logos must remain on the same part of the product (e.g., if logo is on the heel, it stays on the heel).`);
+        }
     }
     if (indexMap.style) {
         refLines.push(`REFERENCE [$${indexMap.style}]: STYLE REFERENCE.
@@ -298,25 +329,28 @@ COMMON MISTAKES TO AVOID:
 ✅ SCALE: Maintain realistic proportions between objects`;
         }
 
-        // 5. LOCATION/SURFACE INTEGRATION
+        // 5. LOCATION/SURFACE - теперь как ВДОХНОВЕНИЕ, не композитинг
         if (indexMap.location) {
             promptText += `
 
-[LOCATION/SURFACE REFERENCE - MANDATORY]
-REFERENCE [$${indexMap.location}] shows the EXACT surface and environment for this shoot.
+[SCENE INSPIRATION - REFERENCE [$${indexMap.location}]]
+This image shows the TYPE of environment/setting for your photograph.
 
-INTEGRATION RULES:
-1. Place all objects DIRECTLY onto this surface — they must appear to REST on it
-2. Match the lighting direction and quality from the location reference
-3. Add appropriate shadows that blend with existing shadows in location
-4. Maintain the texture and material feel of the surface
-5. Objects should look like they BELONG in this environment, not composited
-6. DO NOT alter the location background — only add objects to it
+USE THIS AS INSPIRATION:
+- Generate a SIMILAR environment (wooden sled in snow, vintage surface, etc.)
+- Match the overall MOOD, lighting quality, and atmosphere
+- Create a surface with similar texture and character
+- Achieve similar color palette and seasonal feeling
 
-LIGHTING COHERENCE:
-- Analyze light direction in location reference
-- Apply consistent lighting to all objects
-- Shadows must fall in the same direction as location shadows`;
+DO NOT literally copy this background. Create a NEW, original scene that captures the same essence.
+The final image should look like it was shot in a similar location, not composited onto it.
+
+PRODUCT PLACEMENT:
+- Products should look NATURALLY ARRANGED as if by a stylist
+- Items should interact with the surface organically (slight wrinkles, natural folds)
+- Clothing: Neatly folded or naturally draped, showing texture
+- Shoes: Placed casually but artfully, maybe one slightly tilted
+- Everything should cast appropriate, soft shadows`;
         }
 
         // 6. Multi-product instructions
