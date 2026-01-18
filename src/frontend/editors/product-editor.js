@@ -17,6 +17,10 @@ const state = {
         arrangement: 'natural',
         atmosphere: 'warm',       // для lifestyle
         customPrompt: '',         // для custom
+        // NEW V2.1
+        sceneContext: '',         // "Wooden sled", "Marble table", etc.
+        lighting: 'window',       // освещение
+        shadow: 'soft',           // тень
         aspectRatio: '1:1'
     },
     images: {
@@ -214,10 +218,35 @@ function setupV2UI() {
             <!-- Conditional params render here -->
         </div>
         <div class="v2-section">
-            <div class="v2-label">Формат</div>
-            <select id="v2-aspectRatio" onchange="state.v2Params.aspectRatio = this.value">
-                ${global.aspectRatio.map(o => `<option value="${o.id}" ${o.id === state.v2Params.aspectRatio ? 'selected' : ''}>${o.label}</option>`).join('')}
-            </select>
+            <div class="v2-label">Сцена / Контекст (опционально)</div>
+            <input type="text" id="v2-sceneContext" 
+                placeholder="Например: Wooden sled, Marble table, Beach towel..."
+                value="${state.v2Params.sceneContext || ''}"
+                onchange="state.v2Params.sceneContext = this.value"
+                style="width: 100%; max-width: 400px;">
+            <div style="font-size: 10px; color: var(--color-text-muted); margin-top: 4px;">
+                💡 Если загружен референс локации — укажи тут что на нём (санки, стол и т.д.)
+            </div>
+        </div>
+        <div class="v2-section" style="display: flex; gap: 24px; flex-wrap: wrap;">
+            <div>
+                <div class="v2-label">Освещение</div>
+                <select id="v2-lighting" onchange="state.v2Params.lighting = this.value">
+                    ${global.lighting.map(o => `<option value="${o.id}" ${o.id === state.v2Params.lighting ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <div class="v2-label">Тень</div>
+                <select id="v2-shadow" onchange="state.v2Params.shadow = this.value">
+                    ${global.shadow.map(o => `<option value="${o.id}" ${o.id === state.v2Params.shadow ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <div class="v2-label">Формат</div>
+                <select id="v2-aspectRatio" onchange="state.v2Params.aspectRatio = this.value">
+                    ${global.aspectRatio.map(o => `<option value="${o.id}" ${o.id === state.v2Params.aspectRatio ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+            </div>
         </div>
     `;
 

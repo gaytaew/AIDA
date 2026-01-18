@@ -67,8 +67,23 @@ export const LIFESTYLE_OPTIONS = {
     ]
 };
 
-// Глобальные параметры
+// Глобальные параметры (для всех режимов)
 export const GLOBAL_OPTIONS = {
+    // Освещение
+    lighting: [
+        { id: 'window', label: '🪟 Окно', prompt: 'soft natural window light, diffused daylight from side' },
+        { id: 'studio', label: '💡 Студия', prompt: 'professional studio lighting, softbox, clean even light' },
+        { id: 'sun', label: '☀️ Прямое солнце', prompt: 'direct sunlight with hard shadows, outdoor daylight' },
+        { id: 'overcast', label: '☁️ Пасмурно', prompt: 'soft overcast lighting, no harsh shadows, diffused' },
+        { id: 'golden', label: '🌅 Золотой час', prompt: 'warm golden hour sunlight, long soft shadows' }
+    ],
+    // Тень (для Каталога особенно важно)
+    shadow: [
+        { id: 'soft', label: 'Мягкая', prompt: 'soft diffused shadow' },
+        { id: 'hard', label: 'Жёсткая', prompt: 'sharp defined shadow' },
+        { id: 'none', label: 'Без тени', prompt: 'no visible shadow, floating look' },
+        { id: 'contact', label: 'Контактная', prompt: 'contact shadow only, grounded appearance' }
+    ],
     aspectRatio: [
         { id: '1:1', label: '1:1 Квадрат' },
         { id: '4:5', label: '4:5 Instagram' },

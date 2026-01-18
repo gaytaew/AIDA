@@ -6,7 +6,8 @@
 import {
     CATALOG_OPTIONS,
     FLATLAY_OPTIONS,
-    LIFESTYLE_OPTIONS
+    LIFESTYLE_OPTIONS,
+    GLOBAL_OPTIONS
 } from './productParamsV2.js';
 
 /**
@@ -25,7 +26,11 @@ export function buildProductPromptV2(params, indexMap = {}) {
         arrangement,
         atmosphere,
         customPrompt,
+        // NEW: Сцена/Контекст
+        sceneContext,
         // Global
+        lighting,
+        shadow,
         aspectRatio = '1:1'
     } = params;
 
@@ -45,13 +50,21 @@ export function buildProductPromptV2(params, indexMap = {}) {
     // 3. MODE-SPECIFIC SETTINGS
     sections.push(getModeBlock(mode, params));
 
-    // 4. REFERENCE RULES (всегда)
-    sections.push(getReferenceRulesBlock(indexMap));
+    // 4. SCENE CONTEXT (если указан)
+    if (sceneContext) {
+        sections.push(`SCENE/CONTEXT: Place products ON or IN: ${sceneContext}`);
+    }
 
-    // 5. REALISM (всегда)
+    // 5. LIGHTING & SHADOW
+    sections.push(getLightingBlock(params));
+
+    // 6. REFERENCE RULES (всегда)
+    sections.push(getReferenceRulesBlock(indexMap, params));
+
+    // 7. REALISM (всегда)
     sections.push(getRealismBlock());
 
-    // 6. FORMAT
+    // 8. FORMAT
     sections.push(`FORMAT: ${aspectRatio} aspect ratio`);
 
     return sections.filter(Boolean).join('\n\n');
@@ -126,7 +139,23 @@ ${locationNote}`.trim();
     }
 }
 
-function getReferenceRulesBlock(indexMap) {
+function getLightingBlock(params) {
+    const lines = [];
+
+    if (params.lighting) {
+        const light = GLOBAL_OPTIONS.lighting?.find(l => l.id === params.lighting);
+        if (light) lines.push(`LIGHTING: ${light.prompt}`);
+    }
+
+    if (params.shadow) {
+        const shad = GLOBAL_OPTIONS.shadow?.find(s => s.id === params.shadow);
+        if (shad) lines.push(`SHADOW: ${shad.prompt}`);
+    }
+
+    return lines.length > 0 ? lines.join('\n') : '';
+}
+
+function getReferenceRulesBlock(indexMap, params = {}) {
     const rules = [];
 
     if (indexMap.subject) {
@@ -138,11 +167,14 @@ function getReferenceRulesBlock(indexMap) {
     }
 
     if (indexMap.location) {
-        rules.push(`LOCATION REFERENCE [$${indexMap.location}]:
-- Use as INSPIRATION for atmosphere and color palette
-- Generate SIMILAR scene, not pixel-copy
-- Match lighting mood and environmental feel
-- Products should look natural in this type of setting`);
+        // ИСПРАВЛЕНО: теперь интегрируем предмет В сцену, а не просто берём атмосферу
+        const sceneHint = params.sceneContext ? ` (${params.sceneContext})` : '';
+        rules.push(`LOCATION/SCENE REFERENCE [$${indexMap.location}]:
+- INTEGRATE products INTO this specific scene${sceneHint}
+- Use the SAME OBJECT from reference as surface/placement (e.g., same wooden sled, same marble table)
+- Match the exact environment, textures, and spatial context
+- Products should look PLACED ON the object visible in reference image
+- Preserve lighting direction and atmosphere from this reference`);
     }
 
     if (indexMap.style) {

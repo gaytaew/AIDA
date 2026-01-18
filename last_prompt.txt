@@ -1,0 +1,51 @@
+ROLE: Expert Digital Retoucher & Photographer.
+TASK: Generate a VARIATION of the reference image [$2].
+
+═══════════════════════════════════════════════════════════════
+SOURCE MATERIAL: REFERENCE [$2]
+═══════════════════════════════════════════════════════════════
+The reference image [$2] is the AUTHORITY for:
+- Overall visual style and mood
+- Color grading and white balance
+- Lighting quality and direction
+- Global atmosphere
+
+
+═══════════════════════════════════════════════════════════════
+INSTRUCTION: VARIATION MODE (Style Lock + Modifications)
+═══════════════════════════════════════════════════════════════
+You must maintain the general "feel" of [$2] but apply these SPECIFIC MODIFICATIONS:
+
+• CHANGE 🕐 Время суток: from "Вторая половина дня" to "Ночь"
+
+⚠️ CRITICAL:
+- Keep everything else consistent with [$2].
+- Only change the specific parameters listed above.
+- If a parameter conflicts (e.g. changing Day to Night), the modification WINS.
+
+
+═══════════════════════════════════════════════════════════════
+SCENE CONTENT (New Geometry)
+═══════════════════════════════════════════════════════════════
+
+REFERENCES:
+• Identity reference images provided [$1]
+• Clothing reference images provided
+• Style reference image provided [$2] — match its visual style
+POSE ADHERENCE (2/4): NATURAL VARIATION (Medium Adherence): Follow the general idea but change specific limbs to look more relaxed. Avoid stiff 'copied' look.
+
+
+═══════════════════════════════════════════════════════════════
+IDENTITY (Strict Adherence: [$1])
+═══════════════════════════════════════════════════════════════
+- The person MUST match reference [$1] exactly (Face/Body/Skin).
+- BUT lit/styled according to the Style Reference [$2] (and modifications).
+
+
+═══════════════════════════════════════════════════════════════
+CLOTHING (Strict Adherence)
+═══════════════════════════════════════════════════════════════
+- You MUST reproduce the clothing from the provided reference images.
+- Ignore the clothing in the Style Reference [$2] if it differs.
+- The Style Reference [$2] provides the LIGHTING/VIBE.
+- The Clothing Reference provides the OUTFIT contents.
