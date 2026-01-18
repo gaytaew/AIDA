@@ -84,8 +84,14 @@ SCALE & PROPORTIONS - CRITICAL:
 STYLING DETAILS:
 - Clothing: Neatly but naturally folded, showing beautiful texture
 - Visible quality of materials (cashmere softness, leather grain, sherpa texture)
-- Subtle environmental details (pine needles, snow crystals, wood grain)
+- Clean, minimal styling — NO extra props or decorations
 - Everything looks expensive and desirable
+
+STRICT PROHIBITION:
+- Do NOT add pine cones, pine needles, branches, leaves, or any decorative props
+- Do NOT add candles, cups, books, or lifestyle accessories not specified
+- ONLY include the exact products requested, nothing else
+- Keep the scene CLEAN and focused on the products
 
 Generate as if shot by a professional photographer for a luxury brand lookbook.`);
     } else {
