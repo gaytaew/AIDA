@@ -137,6 +137,7 @@ router.post('/generate', async (req, res) => {
                     if (collage) {
                         productImages.push({
                             name: product.name,
+                            params: product.params || {},  // NEW: параметры предмета
                             ...collage
                         });
                     }
@@ -144,6 +145,7 @@ router.post('/generate', async (req, res) => {
                     // Уже готовый коллаж
                     productImages.push({
                         name: product.name,
+                        params: product.params || {},  // NEW
                         ...product.collage
                     });
                 }

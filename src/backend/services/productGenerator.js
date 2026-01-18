@@ -296,7 +296,8 @@ export async function generateProductShootFrame({
                 validImages.push(product);
                 additionalIndexes.push({
                     index: validImages.length,
-                    name: product.name || `Product ${additionalIndexes.length + 2}`
+                    name: product.name || `Product ${additionalIndexes.length + 2}`,
+                    params: product.params || {}  // NEW: параметры предмета
                 });
             }
         }
@@ -368,20 +369,37 @@ PRODUCT PLACEMENT:
 - Everything should cast appropriate, soft shadows`;
         }
 
-        // 6. Multi-product instructions
+        // 6. Multi-product instructions with per-item params
         if (additionalIndexes.length > 0) {
-            const multiProdLines = additionalIndexes.map(p =>
-                `REFERENCE [$${p.index}]: ADDITIONAL PRODUCT "${p.name}".\n- Include this product in the scene alongside the main subject.`
-            ).join('\n');
+            const positionLabels = { auto: 'arrange naturally', left: 'left side of frame', center: 'center of composition', right: 'right side of frame' };
+            const scaleLabels = { small: 'small, as accent', medium: 'medium, balanced size', large: 'large, prominent' };
+            const orientLabels = { auto: 'natural placement', folded: 'neatly folded', flat: 'spread flat', standing: 'standing upright', tilted: 'casually tilted' };
+            const roleLabels = { hero: 'MAIN focus, most prominent', supporting: 'complementary item' };
+
+            const multiProdLines = additionalIndexes.map(p => {
+                const params = p.params || {};
+                const pos = positionLabels[params.position] || 'arrange naturally';
+                const scale = scaleLabels[params.scale] || 'medium, balanced size';
+                const orient = orientLabels[params.orientation] || 'natural placement';
+                const role = roleLabels[params.role] || 'complementary item';
+
+                return `PRODUCT "${p.name}" [Reference $${p.index}]:
+- Position: ${pos}
+- Scale: ${scale}
+- Orientation: ${orient}
+- Role: ${role}`;
+            }).join('\n\n');
 
             promptText += `
 
 [MULTI-PRODUCT SCENE]
 ${multiProdLines}
 
-IMPORTANT: Arrange all products harmoniously in one scene.
-- Maintain visual balance and proper scaling.
-- Each product should be clearly visible and identifiable.`;
+LAYOUT RULES:
+- Respect the specified positions and roles for each item
+- Hero items should be more prominent and visually dominant
+- Supporting items complement but don't overshadow hero items
+- Maintain realistic proportions between all items`;
         }
 
         console.log(`[ProductGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 500)}...`);

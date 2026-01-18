@@ -326,7 +326,8 @@ async function generate() {
         const MAX_PHOTOS_PER_PRODUCT = 6;
         const productsPayload = state.products.filter(p => p.photos.length > 0).map(p => ({
             name: p.name,
-            photos: p.photos.slice(0, MAX_PHOTOS_PER_PRODUCT).map(photo => ({ base64: photo.base64, mimeType: photo.mimeType }))
+            photos: p.photos.slice(0, MAX_PHOTOS_PER_PRODUCT).map(photo => ({ base64: photo.base64, mimeType: photo.mimeType })),
+            params: p.params || {}  // NEW: передаём параметры предмета
         }));
 
         const payload = {
@@ -759,7 +760,13 @@ window.addNewProduct = function () {
     const product = {
         id,
         name: `Предмет ${state.products.length + 1}`,
-        photos: []
+        photos: [],
+        params: {
+            position: 'auto',
+            scale: 'medium',
+            orientation: 'auto',
+            role: 'hero'
+        }
     };
     state.products.push(product);
     renderProductsList();
@@ -774,6 +781,13 @@ window.updateProductName = function (productId, name) {
     const product = state.products.find(p => p.id === productId);
     if (product) {
         product.name = name;
+    }
+};
+
+window.updateProductParam = function (productId, paramName, value) {
+    const product = state.products.find(p => p.id === productId);
+    if (product && product.params) {
+        product.params[paramName] = value;
     }
 };
 
@@ -794,7 +808,9 @@ function renderProductsList() {
         countEl.textContent = `(${state.products.length})`;
     }
 
-    let html = state.products.map(product => `
+    let html = state.products.map(product => {
+        const p = product.params || {};
+        return `
         <div class="product-item" data-id="${product.id}">
             <div class="product-item-header">
                 <input type="text" class="product-item-name" value="${escapeHtml(product.name)}" 
@@ -816,10 +832,42 @@ function renderProductsList() {
                 ondrop="window.handleProductDrop(event, '${product.id}'); this.classList.remove('dragover');">
                 <input type="file" id="upload-${product.id}" multiple accept="image/*" hidden
                     onchange="window.handleProductFiles(event, '${product.id}')">
-                <div class="product-upload-zone-text">📷 Загрузить фото (drag-drop)</div>
+                <div class="product-upload-zone-text">📷 Загрузить фото</div>
+            </div>
+            <div class="product-params">
+                <div class="product-param-row">
+                    <label>Позиция:</label>
+                    <select onchange="window.updateProductParam('${product.id}', 'position', this.value)">
+                        <option value="auto" ${p.position === 'auto' ? 'selected' : ''}>Авто</option>
+                        <option value="left" ${p.position === 'left' ? 'selected' : ''}>Слева</option>
+                        <option value="center" ${p.position === 'center' ? 'selected' : ''}>Центр</option>
+                        <option value="right" ${p.position === 'right' ? 'selected' : ''}>Справа</option>
+                    </select>
+                    <label>Размер:</label>
+                    <select onchange="window.updateProductParam('${product.id}', 'scale', this.value)">
+                        <option value="small" ${p.scale === 'small' ? 'selected' : ''}>Маленький</option>
+                        <option value="medium" ${p.scale === 'medium' ? 'selected' : ''}>Средний</option>
+                        <option value="large" ${p.scale === 'large' ? 'selected' : ''}>Крупный</option>
+                    </select>
+                </div>
+                <div class="product-param-row">
+                    <label>Ориентация:</label>
+                    <select onchange="window.updateProductParam('${product.id}', 'orientation', this.value)">
+                        <option value="auto" ${p.orientation === 'auto' ? 'selected' : ''}>Авто</option>
+                        <option value="folded" ${p.orientation === 'folded' ? 'selected' : ''}>Сложен</option>
+                        <option value="flat" ${p.orientation === 'flat' ? 'selected' : ''}>Разложен</option>
+                        <option value="standing" ${p.orientation === 'standing' ? 'selected' : ''}>Стоит</option>
+                        <option value="tilted" ${p.orientation === 'tilted' ? 'selected' : ''}>Наклонён</option>
+                    </select>
+                    <label>Роль:</label>
+                    <select onchange="window.updateProductParam('${product.id}', 'role', this.value)">
+                        <option value="hero" ${p.role === 'hero' ? 'selected' : ''}>Главный</option>
+                        <option value="supporting" ${p.role === 'supporting' ? 'selected' : ''}>Второстепенный</option>
+                    </select>
+                </div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 
     // Add placeholder button
     html += `
