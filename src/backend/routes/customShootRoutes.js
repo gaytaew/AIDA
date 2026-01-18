@@ -1109,7 +1109,8 @@ router.post('/:id/upscale', async (req, res) => {
           imageUrl: outputUrl,
           width: newWidth,
           height: newHeight,
-          method: 'sharp_fallback'
+          method: 'sharp_fallback',
+          prompt: 'Sharp Lanczos3 upscale (fallback)'
         }
       });
     }
@@ -1128,7 +1129,8 @@ router.post('/:id/upscale', async (req, res) => {
         imageUrl: outputUrl,
         width: upscaledMeta.width,
         height: upscaledMeta.height,
-        method: 'gemini'
+        method: 'gemini',
+        prompt: UPSCALE_TEXTURE_PROMPT
       }
     });
 

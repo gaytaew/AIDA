@@ -3008,7 +3008,8 @@ async function upscaleFrame(frameIndex) {
         upscaleWidth: data.data.width,
         upscaleHeight: data.data.height,
         sourceFrameIndex: frameIndex,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        prompt: data.data.prompt || 'Nano Banana Pro Upscale'
       };
 
       state.generatedFrames.unshift(upscaledFrame);
