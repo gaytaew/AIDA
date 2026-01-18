@@ -462,6 +462,7 @@ function renderFrameCard(item, idx, isMain) {
     }
 
     const cardClass = isMain ? 'product-frame-main' : 'product-frame-variation';
+    const hasPrompt = !!item.prompt;
 
     return `
     <div class="${cardClass}">
@@ -474,10 +475,52 @@ function renderFrameCard(item, idx, isMain) {
         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
             <button class="btn-mini" onclick="window.refineHistoryItem('${item.id}')" title="Улучшить" style="flex: 1;">✨</button>
             <button class="btn-mini" onclick="window.setReferenceFromHistory('${item.id}', 'subject')" title="Как референс" style="flex: 1;">📌</button>
+            ${hasPrompt ? `<button class="btn-mini" onclick="window.viewPrompt('${item.id}')" title="Посмотреть промпт" style="flex: 1;">📝</button>` : ''}
             <a href="${imageUrl}" download="product_${idx}.jpg" class="btn-mini" title="Скачать" style="flex: 1; text-align: center; text-decoration: none;">💾</a>
         </div>
     </div>
     `;
+}
+
+// Просмотр промпта
+window.viewPrompt = function (itemId) {
+    const item = findHistoryItem(itemId);
+    if (!item || !item.prompt) {
+        alert('Промпт недоступен');
+        return;
+    }
+
+    // Создаём модальное окно
+    const modal = document.createElement('div');
+    modal.className = 'lightbox-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div style="background: var(--color-surface); padding: 24px; border-radius: 12px; max-width: 800px; max-height: 80vh; overflow: auto; position: relative;">
+            <button onclick="this.closest('.lightbox-overlay').remove()" 
+                style="position: absolute; top: 12px; right: 12px; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">×</button>
+            <h3 style="margin: 0 0 16px 0;">📝 Финальный промпт</h3>
+            <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 12px; line-height: 1.5; background: var(--color-bg); padding: 16px; border-radius: 8px; max-height: 60vh; overflow: auto;">${escapeHtml(item.prompt)}</pre>
+            <div style="margin-top: 16px; display: flex; gap: 8px;">
+                <button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.querySelector('.lightbox-overlay pre').textContent); this.textContent = '✓ Скопировано';">📋 Скопировать</button>
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+    document.body.appendChild(modal);
+};
+
+// Поиск элемента в истории
+function findHistoryItem(itemId) {
+    for (const item of state.history) {
+        if (item.id === itemId) return item;
+        if (item.children) {
+            const child = item.children.find(c => c.id === itemId);
+            if (child) return child;
+        }
+    }
+    return null;
 }
 
 function escapeHtml(str) {
