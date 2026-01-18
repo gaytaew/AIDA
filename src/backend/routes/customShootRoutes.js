@@ -621,6 +621,11 @@ router.post('/:id/generate', async (req, res) => {
       // Also fetch the paramsSnapshot from the source image
       if (shoot.locks.style.sourceImageId) {
         const sourceImg = shoot.generatedImages?.find(img => img.id === shoot.locks.style.sourceImageId);
+        console.log('[CustomShootRoutes] Style Lock source image:', {
+          found: !!sourceImg,
+          hasParamsSnapshot: !!sourceImg?.paramsSnapshot,
+          hasResolvedV5Params: !!sourceImg?.paramsSnapshot?.resolvedV5Params
+        });
         if (sourceImg?.paramsSnapshot?.resolvedV5Params) {
           styleRefParams = sourceImg.paramsSnapshot.resolvedV5Params;
           console.log('[CustomShootRoutes] Found V5 params snapshot for style reference:', Object.keys(styleRefParams));

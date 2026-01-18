@@ -1412,6 +1412,13 @@ export function buildV5Prompt(params, scene = {}) {
 
   console.log('[buildV5Prompt] Resolved params:', JSON.stringify(resolvedParams, null, 2));
 
+  // DEBUG: Log style ref params status
+  console.log('[buildV5Prompt] Style Lock Check:', {
+    hasStyleRef: scene.hasStyleRef,
+    styleRefParamsExists: !!scene.styleRefParams,
+    styleRefParamsKeys: scene.styleRefParams ? Object.keys(scene.styleRefParams) : null
+  });
+
   // Check if we are in "Variation Mode" (Style Lock with known reference params)
   if (scene.hasStyleRef && scene.styleRefParams) {
     console.log('[buildV5Prompt] Detected Style Lock with Reference Params -> Using Variation Mode');
