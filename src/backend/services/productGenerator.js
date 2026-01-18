@@ -62,20 +62,32 @@ function buildProductPrompt(params, indexMap = {}) {
 
     // 1. ROLE - разный для разных режимов
     if (hasLocationRef) {
-        sections.push(`ROLE: Professional Lifestyle Product Photographer
+        sections.push(`ROLE: High-End Fashion Editorial Photographer
 
-CRITICAL TASK: Generate a NEW, ORIGINAL photograph from scratch.
+CRITICAL TASK: Create a stunning, magazine-quality lifestyle photograph.
 
-You are creating a BRAND NEW image that shows products in a lifestyle setting.
-DO NOT copy-paste or composite objects. Generate the entire scene organically.
+QUALITY STANDARD: This must look like a professional fashion editorial or luxury brand campaign.
+Think Loro Piana, Brunello Cucinelli, or high-end catalog photography.
 
-The reference images show:
-- What TYPE of products to include (similar items, not exact copies)
-- What TYPE of environment/surface to use (similar setting, not exact copy)
-- The overall MOOD and STYLE to achieve
+ATMOSPHERE REQUIREMENTS:
+- Warm, inviting, COZY lighting (golden hour feel, soft natural light)
+- Rich textures that you want to touch
+- Lifestyle feeling — as if someone just set these items down
+- Editorial quality composition with intentional styling
 
-Generate a cohesive, natural-looking photograph as if taken by a professional photographer.
-Products must look like they NATURALLY BELONG in the scene, not pasted onto it.`);
+SCALE & PROPORTIONS - CRITICAL:
+- All items MUST be in realistic, accurate proportions to each other
+- Adult shoes are typically 25-30cm long
+- Adult sweater folded is roughly 40-50cm wide
+- Items should look like they could be picked up and worn
+
+STYLING DETAILS:
+- Clothing: Neatly but naturally folded, showing beautiful texture
+- Visible quality of materials (cashmere softness, leather grain, sherpa texture)
+- Subtle environmental details (pine needles, snow crystals, wood grain)
+- Everything looks expensive and desirable
+
+Generate as if shot by a professional photographer for a luxury brand lookbook.`);
     } else {
         sections.push(`ROLE: Professional Product Photographer
 Create a high-end e-commerce / catalog product photograph.
