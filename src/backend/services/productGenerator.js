@@ -246,14 +246,15 @@ ${refLines.join('\n')}`);
 3. Sharp focus on main subject, natural depth of field.
 4. No distorted proportions, no unnatural symmetry.
 5. LOGO RULES — CRITICAL:
-   - If source image has ONE logo, output must have exactly ONE logo in same position
-   - NEVER duplicate logos (no logo on collar AND chest — only ONE)
-   - NEVER invent new brand names or logos
-   - NEVER add logos to items that didn't have them
-   - If unsure, prefer NO visible logos over made-up ones
+5. TEXT AND LOGOS — ABSOLUTE PROHIBITION:
+   - Generate products with ZERO visible text, logos, or brand names
+   - Do NOT add ANY text to clothing, shoes, or accessories
+   - Products must appear UNBRANDED — plain, clean surfaces
+   - Even if source image has a logo, do NOT reproduce it (AI hallucinations make logos wrong)
+   - Treat all products as generic, high-quality items without branding
 6. No humans, faces, or hands unless explicitly requested.
-7. No AI-generated text, watermarks, or brand names.
-8. Products should have ZERO visible text unless clearly shown in reference.`);
+7. No AI-generated text, watermarks, or inscriptions of any kind.
+8. If you feel the urge to add text — DON'T. Leave surfaces clean.`);
 
     return sections.join('\n');
 }

@@ -619,16 +619,40 @@ async function loadShoot(id) {
                 return {
                     id: frame.id,
                     params: frame.params,
+                    prompt: frame.prompt || firstSnapshot.prompt,  // NEW: сохраняем prompt
                     imageUrl: firstSnapshot.imageUrl,
                     createdAt: frame.createdAt,
                     children: (frame.snapshots || []).slice(1).map(s => ({
                         id: s.id,
                         imageUrl: s.imageUrl,
                         createdAt: s.createdAt,
-                        params: frame.params
+                        params: frame.params,
+                        prompt: s.prompt  // NEW
                     }))
                 };
             });
+
+            // NEW: Восстанавливаем последние параметры в UI
+            const lastFrame = shoot.frames?.[0];
+            if (lastFrame?.params) {
+                const p = lastFrame.params;
+                const s = els.selects;
+                const safeSet = (el, val) => { if (el && val) el.value = val; };
+
+                if (els.subjectDesc && p.subjectDescription) els.subjectDesc.value = p.subjectDescription;
+                safeSet(s.category, p.category);
+                safeSet(s.presentation, p.presentation);
+                safeSet(s.angle, p.angle);
+                safeSet(s.framing, p.framing);
+                safeSet(s.background, p.background);
+                safeSet(s.surface, p.surface);
+                safeSet(s.shadow, p.shadow);
+                safeSet(s.lighting, p.lighting);
+                safeSet(s.lightDirection, p.lightDirection);
+                safeSet(s.mood, p.mood);
+                safeSet(s.colorGrade, p.colorGrade);
+                safeSet(s.detailLevel, p.detailLevel);
+            }
 
             renderHistory();
         }
