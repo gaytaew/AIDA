@@ -1195,7 +1195,9 @@ export async function generateCustomShootFrame({
               aspectRatio: effectiveAspectRatio,
               poseAdherence,
               referenceCount: referenceImages.length,
-              provider: 'vertex_fallback'
+              provider: 'vertex_fallback',
+              // CRITICAL: V5 params for Style Lock Variation Mode
+              resolvedV5Params: promptJson?.resolvedParams || null
             }
           };
         } else {
@@ -1237,7 +1239,9 @@ export async function generateCustomShootFrame({
         qualityMode,
         aspectRatio: effectiveAspectRatio,
         poseAdherence,
-        referenceCount: referenceImages.length
+        referenceCount: referenceImages.length,
+        // CRITICAL: V5 params for Style Lock Variation Mode
+        resolvedV5Params: promptJson?.resolvedParams || null
       }
     };
 
