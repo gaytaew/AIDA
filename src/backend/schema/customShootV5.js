@@ -1375,6 +1375,32 @@ SCENE CONTENT (New Geometry)
 ═══════════════════════════════════════════════════════════════
 ${buildSceneDescription(scene, params)}`);
 
+  // Add EXPLICIT scene changes that are not in V5 params but are critical
+  // These override whatever is in the Style Reference [$2]
+  const sceneChanges = [];
+  if (scene.emotionId) {
+    sceneChanges.push(`• EMOTION: Apply "${scene.emotionId}" expression (OVERRIDES expression in [$2])`);
+  }
+  if (scene.action || scene.pose) {
+    sceneChanges.push(`• POSE: Use the pose described in Scene Content (NOT the pose in [$2])`);
+  }
+  if (scene.location?.label) {
+    sceneChanges.push(`• LOCATION: Use "${scene.location.label}" (Geometry only, style from [$2])`);
+  }
+
+  if (sceneChanges.length > 0) {
+    sections.push(`
+═══════════════════════════════════════════════════════════════
+⚠️ SCENE CHANGES (OVERRIDE REFERENCE [$2])
+═══════════════════════════════════════════════════════════════
+The following scene elements are DIFFERENT from [$2] and MUST be applied:
+
+${sceneChanges.join('\n')}
+
+PRIORITY: These scene changes WIN over whatever appears in [$2].
+Keep the STYLE/LIGHTING from [$2], but change the CONTENT as listed.`);
+  }
+
   // Identity Rules
   if (scene.hasIdentityRefs) {
     sections.push(`
