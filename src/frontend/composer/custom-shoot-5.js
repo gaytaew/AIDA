@@ -261,6 +261,13 @@ function initEventListeners() {
       return;
     }
 
+    // UPSCALE BUTTON
+    const upscaleBtn = e.target.closest('.btn-upscale-frame');
+    if (upscaleBtn) {
+      upscaleFrame(parseInt(upscaleBtn.dataset.frameIndex));
+      return;
+    }
+
     // EDIT MODE TOGGLER
     const editToggleBtn = e.target.closest('.btn-toggle-edit-mode');
     if (editToggleBtn) {
@@ -2639,6 +2646,7 @@ function renderGeneratedHistory() {
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-secondary" onclick="window.downloadAsJpeg('${frame.imageUrl}', 'custom-shoot-${idx}')" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Скачать JPEG">💾</button>
+            <button class="btn btn-secondary btn-upscale-frame" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Апскейл 4K + улучшение текстур">⬆️</button>
             <button class="btn btn-secondary" onclick="window.copyFrameSettings(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Применить настройки этого кадра">📋</button>
             <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock (включает локацию)">🎨</button>
             <button class="btn btn-secondary btn-toggle-edit-mode" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Режим изменений (Edit Mode)">✏️</button>
@@ -2908,6 +2916,76 @@ async function deleteFrame(index) {
 
   state.generatedFrames.splice(index, 1);
   renderGeneratedHistory();
+}
+
+/**
+ * Upscale a frame to 4K with texture enhancement via Nano Banana Pro
+ */
+async function upscaleFrame(frameIndex) {
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame || !frame.imageUrl) {
+    showToast('❌ Нет изображения для апскейла');
+    return;
+  }
+
+  if (!state.currentShoot) {
+    showToast('❌ Съёмка не выбрана');
+    return;
+  }
+
+  // Find button and show loading
+  const btn = document.querySelector(`.btn-upscale-frame[data-frame-index="${frameIndex}"]`);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳';
+  }
+
+  try {
+    // Extract base64 from data URL
+    const match = frame.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error('Неверный формат изображения');
+    }
+
+    showToast('⬆️ Апскейл 4K + улучшение текстур...');
+
+    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/upscale`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: match[2],
+        mimeType: match[1],
+        targetSize: '4K'
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.ok && data.data) {
+      // Update frame with upscaled image
+      state.generatedFrames[frameIndex] = {
+        ...frame,
+        imageUrl: data.data.imageUrl,
+        upscaled: true,
+        upscaleMethod: data.data.method,
+        upscaleWidth: data.data.width,
+        upscaleHeight: data.data.height
+      };
+
+      renderGeneratedHistory();
+      showToast(`✅ Апскейл выполнен! ${data.data.width}x${data.data.height}`);
+    } else {
+      throw new Error(data.error || 'Ошибка апскейла');
+    }
+  } catch (e) {
+    console.error('[Upscale] Error:', e);
+    showToast('❌ ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⬆️';
+    }
+  }
 }
 
 function clearGenerationHistory() {

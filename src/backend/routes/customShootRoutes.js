@@ -1001,6 +1001,146 @@ router.delete('/:id/images/:imageId', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// UPSCALE ENDPOINT (Nano Banana Pro — Texture Enhancement)
+// ═══════════════════════════════════════════════════════════════
+
+import sharp from 'sharp';
+import { requestGeminiImage } from '../providers/geminiClient.js';
+
+/**
+ * Upscale prompt for Nano Banana Pro - photorealistic texture enhancement
+ * Focuses on micro-details while preserving identity and original grading
+ */
+const UPSCALE_TEXTURE_PROMPT = `Усиль фотореализм с высокой точностью микродеталей, корректируя только элементы, которые выглядят сломанными или искажёнными ИИ, при этом полностью сохраняя идентичность субъекта и исходную сцену/изделие.
+
+Лицо / кожа:
+Усиль все лицевые несовершенства с высокой точностью микродеталей: аутентичные поры, тонкие вариации текстуры, мелкие морщины, микротрещины, естественную асимметрию, едва заметные шрамы, веснушки, пушковые волосы и реальные неровности поверхности кожи. Усиль реалистичную материальную реакцию кожи — корректное разделение матовых и жирных зон, естественную спекулярность и микротени — без добавления сглаживания, смягчения, "beauty"-ретуши или пластиковых артефактов. Корректируй только искажённые или сломанные элементы, при этом полностью сохраняя идентичность субъекта и естественную асимметрию.
+
+Глаза / веки / ресницы:
+Усиль глаза с высокой достоверностью микродеталей: чёткую текстуру радужки, естественные радиальные паттерны, тонкие хроматические вариации и корректную реакцию подповерхностного рассеяния света. Доработай веки, ресницы и слёзные каналы с анатомической точностью — точное разделение ресниц, естественный уровень влажности, микротени и реалистичную полупрозрачность. Сохраняй подлинную асимметрию и избегай искусственного свечения, чрезмерной резкости и пластикового блеска. Корректируй только искажённые или сломанные элементы, полностью сохраняя идентичность субъекта.
+
+Текстуры / ткани / материалы / поверхности:
+Усиль реализм текстур и материалов с высокой точностью микродеталей: прояви реальную структуру ткани и поверхностей — видимое переплетение нитей, микроволокна, ворс/пушок, лёгкий пилинг, микрозаломы, естественные складки, микрорастяжения по швам, деликатную неоднородность плотности и фактуры. Для принтов, вышивки и рисунков — сохрани точное соответствие исходнику: без смещения паттерна, без деформации логотипов/надписей, без "перерисовки" орнамента и без подмены материала.
+
+Усиль физически правдоподобную материальную реакцию каждого материала: корректное разделение roughness/глянца, естественную спекулярность, микротени в складках и по рельефу, реалистичную анизотропию для сатина/шёлка, правильную полупрозрачность для тонких тканей, натуральную глубину и пористость для кожи/замши, микросколы/царапины/патину для металла, микропыль/следы касаний только там, где это уместно и правдоподобно. Избегай "пластикового" блеска, чрезмерной резкости, искусственного свечения и любых признаков нейросетевого сглаживания.
+
+Корректируй только AI-поломки: швы, края, стежки, пуговицы/молнии, стыки материалов, повторяющиеся "тайлы", неестественные узоры, странные заломы, шум-заменители текстуры, "плавающие" края, разрывы ткани и артефакты на поверхности. Полностью сохраняй идентичность изделия и исходную геометрию: крой, силуэт, посадку, пропорции, толщину ткани, направление нитей и складок — без изменения дизайна.
+
+Жёсткие ограничения (обязательные):
+— Не добавлять сглаживание, смягчение, beauty-ретушь, "фарфоровую" кожу, пластиковый блеск, искусственное свечение.
+— Не менять черты лица, форму глаз, расстояния/пропорции, выражение, возраст, макияж (если он есть) и любые признаки идентичности.
+— Не менять материал/паттерн/фурнитуру/крой одежды и поверхностей; не "улучшать" дизайн.
+— Не повышать резкость глобально; микродетали должны выглядеть как физическая фактура, а не как oversharpen.
+— Не добавлять новых объектов, не менять фон, не менять освещение концептуально — только чинить поломки.
+
+Цвет / грейд (строго):
+СТРОГО СОХРАНЯЙ исходную цветокоррекцию точно в том виде, как во входном изображении: не менять баланс белого, оттенки, контраст, насыщенность, тональную кривую, общий грейд и характер света/цвета. Все улучшения должны происходить только в микротекстуре и физике материалов/кожи, без "перекраски" кадра.
+
+Output: 4K resolution enhanced version of the EXACT same image.`;
+
+/**
+ * POST /api/custom-shoots/:id/upscale
+ * Upscale an image to 4K with texture enhancement via Nano Banana Pro
+ * Body: { imageBase64: string, mimeType: string, targetSize?: '2K' | '4K' }
+ */
+router.post('/:id/upscale', async (req, res) => {
+  try {
+    const { imageBase64, mimeType, targetSize = '4K' } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ ok: false, error: 'imageBase64 is required' });
+    }
+
+    // Get original dimensions for logging
+    const inputBuffer = Buffer.from(imageBase64, 'base64');
+    const metadata = await sharp(inputBuffer).metadata();
+    const originalWidth = metadata.width || 1024;
+    const originalHeight = metadata.height || 1024;
+
+    // Determine aspect ratio from original image
+    const ratio = originalWidth / originalHeight;
+    let aspectRatio;
+
+    if (ratio >= 1.7) {
+      aspectRatio = '16:9';
+    } else if (ratio >= 1.2) {
+      aspectRatio = '4:3';
+    } else if (ratio >= 0.9) {
+      aspectRatio = '1:1';
+    } else if (ratio >= 0.65) {
+      aspectRatio = '3:4';
+    } else {
+      aspectRatio = '9:16';
+    }
+
+    console.log(`[CustomShootRoutes] Upscaling image ${originalWidth}x${originalHeight} (ratio: ${ratio.toFixed(2)}) → aspect: ${aspectRatio}, target: ${targetSize}`);
+
+    // Call Gemini with texture enhancement prompt
+    const result = await requestGeminiImage({
+      prompt: UPSCALE_TEXTURE_PROMPT,
+      referenceImages: [{
+        mimeType: mimeType || 'image/jpeg',
+        base64: imageBase64
+      }],
+      imageConfig: {
+        aspectRatio,
+        imageSize: targetSize
+      }
+    });
+
+    if (!result.ok) {
+      console.error('[CustomShootRoutes] Gemini upscale failed:', result.error);
+
+      // Fallback to sharp if Gemini fails
+      console.log('[CustomShootRoutes] Falling back to sharp upscale...');
+      const scale = targetSize === '4K' ? 4 : 2;
+      const newWidth = Math.round(originalWidth * scale);
+      const newHeight = Math.round(originalHeight * scale);
+
+      const outputBuffer = await sharp(inputBuffer)
+        .resize(newWidth, newHeight, { kernel: 'lanczos3' })
+        .jpeg({ quality: 95 })
+        .toBuffer();
+
+      const outputBase64 = outputBuffer.toString('base64');
+      const outputUrl = `data:image/jpeg;base64,${outputBase64}`;
+
+      return res.json({
+        ok: true,
+        data: {
+          imageUrl: outputUrl,
+          width: newWidth,
+          height: newHeight,
+          method: 'sharp_fallback'
+        }
+      });
+    }
+
+    // Get upscaled dimensions
+    const upscaledBuffer = Buffer.from(result.base64, 'base64');
+    const upscaledMeta = await sharp(upscaledBuffer).metadata();
+
+    const outputUrl = `data:${result.mimeType || 'image/jpeg'};base64,${result.base64}`;
+
+    console.log(`[CustomShootRoutes] ✅ Upscaled via Gemini: ${originalWidth}x${originalHeight} → ${upscaledMeta.width}x${upscaledMeta.height}`);
+
+    res.json({
+      ok: true,
+      data: {
+        imageUrl: outputUrl,
+        width: upscaledMeta.width,
+        height: upscaledMeta.height,
+        method: 'gemini'
+      }
+    });
+
+  } catch (error) {
+    console.error('[CustomShootRoutes] Error upscaling image:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // IMAGE SERVING ENDPOINT
 // ═══════════════════════════════════════════════════════════════
 
