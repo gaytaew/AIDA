@@ -1385,6 +1385,18 @@ IDENTITY (Strict Adherence: [$1])
 - BUT lit/styled according to the Style Reference [$2] (and modifications).`);
   }
 
+  // Clothing Rules
+  if (scene.hasClothingRefs) {
+    sections.push(`
+═══════════════════════════════════════════════════════════════
+CLOTHING (Strict Adherence)
+═══════════════════════════════════════════════════════════════
+- You MUST reproduce the clothing from the provided reference images.
+- Ignore the clothing in the Style Reference [$2] if it differs.
+- The Style Reference [$2] provides the LIGHTING/VIBE.
+- The Clothing Reference provides the OUTFIT contents.`);
+  }
+
   return sections.join('\n\n');
 }
 
