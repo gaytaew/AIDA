@@ -12,7 +12,7 @@
 
 import { requestGeminiImage } from '../providers/geminiClient.js';
 import { requestVertexImage } from '../providers/vertexClient.js';
-import { buildCollage } from '../utils/imageCollage.js';
+import { buildCollage, buildCollageMapPrompt } from '../utils/imageCollage.js';
 import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
 import { POSE_ADHERENCE_MAP } from './shootGenerator.js';
@@ -383,6 +383,7 @@ export function buildCustomShootPrompt({
   modelDescription = '',
   clothingDescriptions = [],
   clothingItemPrompts = [], // NEW: structured prompts per clothing item [{ name, prompt }]
+  clothingLayout = null,    // NEW: collage layout map for prompt generation
   lookPrompt = '',          // NEW: overall outfit style prompt
   hasIdentityRefs = false,
   hasClothingRefs = false,
@@ -798,8 +799,38 @@ ${modelDescription ? `Additional notes: ${modelDescription}` : ''}`);
   // ═══════════════════════════════════════════════════════════════
 
   if (hasClothingRefs) {
-    // Build clothing description section
-    let clothingSection = `
+    // Use collage map if layout is available (new system)
+    if (clothingLayout && clothingLayout.items && clothingLayout.items.length > 0) {
+      // Build collage map prompt with descriptions
+      const collageMapPrompt = buildCollageMapPrompt(clothingLayout, clothingDescriptions, '[$3]');
+
+      let clothingSection = collageMapPrompt;
+
+      // Add overall look/outfit style if provided
+      if (lookPrompt && lookPrompt.trim()) {
+        clothingSection += `
+
+OUTFIT STYLE:
+${lookPrompt.trim()}`;
+      }
+
+      // Add structured clothing item prompts if available
+      if (clothingItemPrompts && clothingItemPrompts.length > 0) {
+        clothingSection += `
+
+DETAILED CLOTHING NOTES:`;
+        clothingItemPrompts.forEach((item, i) => {
+          const name = item.name ? `${item.name}: ` : `Item ${i + 1}: `;
+          clothingSection += `
+• ${name}${item.prompt}`;
+        });
+      }
+
+      sections.push(clothingSection);
+    }
+    // Fallback to old format (legacy — individual refs [$3], [$4])
+    else {
+      let clothingSection = `
 === CLOTHING ACCURACY (CRITICAL — [$3], [$4]) ===
 
 Recreate garments from reference images with MAXIMUM accuracy:
@@ -809,8 +840,6 @@ MUST MATCH:
 - Exact proportions and lengths
 - Exact colors and patterns
 - Construction details (seams, buttons, pockets)
-- Exact colors and patterns
-- Construction details (seams, buttons, pockets)
 - Fabric behavior (structured vs flowing)
 
 STRICT SENSOR ISOLATION:
@@ -818,34 +847,35 @@ STRICT SENSOR ISOLATION:
 - IGNORE lighting and color casting from these references.
 - Integrate the clothing naturally into the new scene's lighting.`;
 
-    // Add overall look/outfit style if provided
-    if (lookPrompt && lookPrompt.trim()) {
-      clothingSection += `
+      // Add overall look/outfit style if provided
+      if (lookPrompt && lookPrompt.trim()) {
+        clothingSection += `
 
 OUTFIT STYLE:
 ${lookPrompt.trim()}`;
-    }
+      }
 
-    // Add structured clothing item prompts (NEW format)
-    if (clothingItemPrompts && clothingItemPrompts.length > 0) {
-      clothingSection += `
+      // Add structured clothing item prompts (NEW format)
+      if (clothingItemPrompts && clothingItemPrompts.length > 0) {
+        clothingSection += `
 
 CLOTHING ITEMS:`;
-      clothingItemPrompts.forEach((item, i) => {
-        const name = item.name ? `${item.name}: ` : `Item ${i + 1}: `;
-        clothingSection += `
+        clothingItemPrompts.forEach((item, i) => {
+          const name = item.name ? `${item.name}: ` : `Item ${i + 1}: `;
+          clothingSection += `
 • ${name}${item.prompt}`;
-      });
-    }
-    // Fallback to old format (simple descriptions per image)
-    else if (clothingDescriptions.length > 0) {
-      clothingSection += `
+        });
+      }
+      // Fallback to old format (simple descriptions per image)
+      else if (clothingDescriptions.length > 0) {
+        clothingSection += `
 
 USER DESCRIPTIONS:
 ${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`;
-    }
+      }
 
-    sections.push(clothingSection);
+      sections.push(clothingSection);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -923,6 +953,7 @@ export async function generateCustomShootFrame({
   clothingImages = [],
   clothingDescriptions = [],
   clothingItemPrompts = [], // NEW: prompts grouped by clothing item [{ name, prompt }]
+  clothingLayout = null,    // NEW: collage layout map for prompt generation
   lookPrompt = '',          // NEW: overall outfit style prompt
   styleRefImage = null,
   styleRefParams = null,    // NEW: Params of the reference frame
@@ -1102,6 +1133,7 @@ export async function generateCustomShootFrame({
         modelDescription: '',
         clothingDescriptions,
         clothingItemPrompts,
+        clothingLayout,
         lookPrompt,
         hasIdentityRefs: identityImages.length > 0,
         hasClothingRefs: clothingImages.length > 0,

@@ -266,8 +266,8 @@ export async function buildSmartCollage(images, options = {}) {
   const gap = clampInt(options.gap ?? 4, 0, 32);
 
   // Get layout
-  const layout = getSmartLayout(refs.length);
-  const numRows = layout.length;
+  const layoutGrid = getSmartLayout(refs.length);
+  const numRows = layoutGrid.length;
 
   // Calculate row height based on max size and number of rows
   const totalGapHeight = gap * (numRows - 1);
@@ -275,11 +275,18 @@ export async function buildSmartCollage(images, options = {}) {
 
   // Process each image and calculate positions
   const composites = [];
+  const itemPositions = []; // Track positions for prompt generation
   let imageIndex = 0;
   let currentY = 0;
 
-  for (let rowIdx = 0; rowIdx < layout.length; rowIdx++) {
-    const row = layout[rowIdx];
+  // Position labels for grid
+  const ROW_LABELS = ['Top', 'Mid', 'Bottom', 'Row4', 'Row5'];
+  const COL_LABELS = ['left', 'center', 'right', 'col4', 'col5'];
+  const COL_LABELS_2 = ['left', 'right'];
+  const COL_LABELS_4 = ['left', 'mid-left', 'mid-right', 'right'];
+
+  for (let rowIdx = 0; rowIdx < layoutGrid.length; rowIdx++) {
+    const row = layoutGrid[rowIdx];
     const numCols = row.length;
     const totalWeight = row.reduce((sum, w) => sum + w, 0);
     const totalGapWidth = gap * (numCols - 1);
@@ -287,12 +294,22 @@ export async function buildSmartCollage(images, options = {}) {
 
     let currentX = 0;
 
+    // Choose column labels based on number of columns in this row
+    let colLabels = COL_LABELS;
+    if (numCols === 2) colLabels = COL_LABELS_2;
+    else if (numCols === 4) colLabels = COL_LABELS_4;
+
     for (let colIdx = 0; colIdx < row.length; colIdx++) {
       if (imageIndex >= refs.length) break;
 
       const weight = row[colIdx];
       const slotWidth = Math.floor((availableWidth * weight) / totalWeight);
       const slotHeight = rowHeight;
+
+      // Generate position label
+      const rowLabel = ROW_LABELS[rowIdx] || `Row${rowIdx + 1}`;
+      const colLabel = colLabels[colIdx] || `col${colIdx + 1}`;
+      const positionLabel = `${rowLabel}-${colLabel}`;
 
       try {
         const input = Buffer.from(refs[imageIndex].base64, 'base64');
@@ -330,6 +347,19 @@ export async function buildSmartCollage(images, options = {}) {
           input: resized,
           left: currentX + offsetX,
           top: currentY + offsetY
+        });
+
+        // Track position for prompt
+        itemPositions.push({
+          index: imageIndex,
+          number: imageIndex + 1,
+          row: rowIdx,
+          col: colIdx,
+          position: positionLabel,
+          slotX: currentX,
+          slotY: currentY,
+          slotWidth,
+          slotHeight
         });
 
       } catch (e) {
@@ -373,5 +403,80 @@ export async function buildSmartCollage(images, options = {}) {
     console.warn('[SmartCollage] Trim failed, using untrimmed:', e.message);
   }
 
-  return { mimeType: 'image/jpeg', base64: finalBuffer.toString('base64') };
+  // Build layout info for prompt generation
+  const layoutInfo = {
+    totalItems: itemPositions.length,
+    rows: numRows,
+    cols: Math.max(...layoutGrid.map(r => r.length)),
+    grid: layoutGrid,
+    items: itemPositions
+  };
+
+  return {
+    image: { mimeType: 'image/jpeg', base64: finalBuffer.toString('base64') },
+    layout: layoutInfo
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COLLAGE MAP PROMPT BUILDER
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build a text prompt describing the collage layout for AI
+ * @param {Object} layout - Layout info from buildSmartCollage
+ * @param {Array<string>} descriptions - Optional descriptions for each item
+ * @param {string} refToken - Reference token (e.g., "[$3]")
+ * @returns {string} Prompt text describing the collage map
+ */
+export function buildCollageMapPrompt(layout, descriptions = [], refToken = '[$3]') {
+  if (!layout || !layout.items || layout.items.length === 0) {
+    return '';
+  }
+
+  const lines = [];
+
+  lines.push(`=== CLOTHING REFERENCE COLLAGE ${refToken} ===`);
+  lines.push('');
+  lines.push(`This image is a COLLAGE containing ${layout.totalItems} clothing items arranged in a grid.`);
+  lines.push('');
+
+  // Build visual grid representation
+  lines.push(`GRID LAYOUT (${layout.rows} row${layout.rows > 1 ? 's' : ''}):`);
+
+  // Group items by row
+  const rows = {};
+  for (const item of layout.items) {
+    if (!rows[item.row]) rows[item.row] = [];
+    rows[item.row].push(item);
+  }
+
+  // Build simple text grid
+  for (let r = 0; r < layout.rows; r++) {
+    const rowItems = rows[r] || [];
+    const rowStr = rowItems.map(item => {
+      const desc = descriptions[item.index] || `Item ${item.number}`;
+      const shortDesc = desc.length > 20 ? desc.substring(0, 17) + '...' : desc;
+      return `(${item.number}) ${item.position}`;
+    }).join(' | ');
+    lines.push(`  Row ${r + 1}: ${rowStr}`);
+  }
+
+  lines.push('');
+  lines.push('ITEM DESCRIPTIONS:');
+
+  // List items with descriptions
+  for (const item of layout.items) {
+    const desc = descriptions[item.index] || 'Clothing item';
+    lines.push(`  (${item.number}) ${item.position}: ${desc}`);
+  }
+
+  lines.push('');
+  lines.push('INSTRUCTIONS:');
+  lines.push('- Recreate ALL clothing items from the collage on the model');
+  lines.push('- Match exact colors, patterns, silhouettes, and construction details');
+  lines.push('- If multiple views of the same garment are shown → use them for accuracy');
+  lines.push('- Combine items into a cohesive outfit');
+
+  return lines.join('\n');
 }

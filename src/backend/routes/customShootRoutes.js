@@ -711,14 +711,20 @@ router.post('/:id/generate', async (req, res) => {
       });
     }
 
-    // Clothing collage: Smart masonry layout (no empty cells, preserved proportions)
+    // Clothing collage: Smart masonry layout with layout map for prompt
+    let clothingLayout = null;
     if (clothingImages.length > 0) {
-      clothingCollage = await buildSmartCollage(clothingImages, {
+      const collageResult = await buildSmartCollage(clothingImages, {
         maxSize: 4096,
         jpegQuality: 95,
         background: '#ffffff',
         gap: 4
       });
+      if (collageResult) {
+        clothingCollage = collageResult.image;
+        clothingLayout = collageResult.layout;
+        console.log(`[CustomShootRoutes] Smart clothing collage built: ${clothingLayout?.totalItems} items in ${clothingLayout?.rows} rows`);
+      }
     }
 
     // Track generation time
@@ -727,6 +733,7 @@ router.post('/:id/generate', async (req, res) => {
     log('GENERATING', {
       identityImages: identityImages.length,
       clothingImages: clothingImages.length,
+      clothingLayout: clothingLayout ? `${clothingLayout.totalItems} items` : null,
       hasStyleRef: !!styleRefImage,
       styleLockActive: isStyleLockEnabled,
       hasLocationSketch: !!locationSketchImage,
@@ -740,6 +747,7 @@ router.post('/:id/generate', async (req, res) => {
       clothingImages,
       clothingDescriptions, // detailed clothing descriptions per image
       clothingItemPrompts,  // NEW: prompts grouped by clothing item
+      clothingLayout,       // NEW: collage layout map for prompt
       lookPrompt,           // NEW: overall outfit style prompt
       styleRefImage,
       styleRefParams, // NEW: pass reference params

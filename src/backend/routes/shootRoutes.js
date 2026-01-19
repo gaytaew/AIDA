@@ -653,13 +653,16 @@ router.post('/:id/generate', async (req, res) => {
 
     // Clothing collage: Smart masonry layout (no empty cells, preserved proportions)
     if (clothingImages.length > 0) {
-      clothingCollage = await buildSmartCollage(clothingImages, {
+      const collageResult = await buildSmartCollage(clothingImages, {
         maxSize: 4096,
         jpegQuality: 95,
         background: '#ffffff',
         gap: 4
       });
-      console.log(`[ShootRoutes] Smart clothing collage built from ${clothingImages.length} images`);
+      if (collageResult) {
+        clothingCollage = collageResult.image;
+        console.log(`[ShootRoutes] Smart clothing collage built from ${clothingImages.length} images, ${collageResult.layout?.totalItems} items`);
+      }
     }
 
     // Collect frame data (or use empty array for default scene)
@@ -912,12 +915,15 @@ router.post('/:id/generate-frame', async (req, res) => {
 
     // Clothing collage: Smart masonry layout (no empty cells, preserved proportions)
     if (clothingImages.length > 0) {
-      clothingCollage = await buildSmartCollage(clothingImages, {
+      const collageResult = await buildSmartCollage(clothingImages, {
         maxSize: 4096,
         jpegQuality: 95,
         background: '#ffffff',
         gap: 4
       });
+      if (collageResult) {
+        clothingCollage = collageResult.image;
+      }
     }
 
     // Get model description
