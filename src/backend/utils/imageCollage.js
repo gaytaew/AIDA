@@ -244,7 +244,7 @@ export async function buildSmartCollage(images, options = {}) {
     // Single image: just resize to max size while preserving aspect ratio
     try {
       const input = Buffer.from(refs[0].base64, 'base64');
-      const maxSize = clampInt(options.maxSize ?? 2048, 512, 2048);
+      const maxSize = clampInt(options.maxSize ?? 4096, 512, 4096);
       const jpegQuality = clampInt(options.jpegQuality ?? 95, 60, 95);
 
       const resized = await sharp(input, { failOn: 'none' })
@@ -260,7 +260,7 @@ export async function buildSmartCollage(images, options = {}) {
     }
   }
 
-  const maxSize = clampInt(options.maxSize ?? 2048, 512, 2048);
+  const maxSize = clampInt(options.maxSize ?? 4096, 512, 4096);
   const background = typeof options.background === 'string' && options.background ? options.background : '#ffffff';
   const jpegQuality = clampInt(options.jpegQuality ?? 95, 60, 95);
   const gap = clampInt(options.gap ?? 4, 0, 32);

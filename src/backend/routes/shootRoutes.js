@@ -654,7 +654,7 @@ router.post('/:id/generate', async (req, res) => {
     // Clothing collage: Smart masonry layout (no empty cells, preserved proportions)
     if (clothingImages.length > 0) {
       clothingCollage = await buildSmartCollage(clothingImages, {
-        maxSize: 2048,
+        maxSize: 4096,
         jpegQuality: 95,
         background: '#ffffff',
         gap: 4
@@ -913,7 +913,7 @@ router.post('/:id/generate-frame', async (req, res) => {
     // Clothing collage: Smart masonry layout (no empty cells, preserved proportions)
     if (clothingImages.length > 0) {
       clothingCollage = await buildSmartCollage(clothingImages, {
-        maxSize: 2048,
+        maxSize: 4096,
         jpegQuality: 95,
         background: '#ffffff',
         gap: 4
