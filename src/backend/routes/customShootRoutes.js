@@ -690,7 +690,7 @@ router.post('/:id/generate', async (req, res) => {
     }
 
     // Build collages for refs preview (same as shootRoutes)
-    const { buildCollage } = await import('../utils/imageCollage.js');
+    const { buildCollage, buildSmartCollage } = await import('../utils/imageCollage.js');
 
     let identityCollage = null;
     let clothingCollage = null;
@@ -711,15 +711,13 @@ router.post('/:id/generate', async (req, res) => {
       });
     }
 
-    // Clothing collage: HIGH quality, large tiles for detail
+    // Clothing collage: Smart masonry layout (no empty cells, preserved proportions)
     if (clothingImages.length > 0) {
-      clothingCollage = await buildCollage(clothingImages, {
-        maxSize: 2048,      // Maximum size for clothing details
-        maxCols: 2,         // Fewer columns = bigger images
-        minTile: 768,       // Each garment at least 768px
-        jpegQuality: 95,    // Maximum quality
-        fit: 'contain',     // Show full garment, don't crop
-        background: '#ffffff'
+      clothingCollage = await buildSmartCollage(clothingImages, {
+        maxSize: 2048,
+        jpegQuality: 95,
+        background: '#ffffff',
+        gap: 4
       });
     }
 

@@ -43,7 +43,7 @@ function pickBestGrid({ n, maxSize, minTile = 24, maxCols = 64 }) {
 
   let best = null;
   const colsUpper = Math.max(1, Math.min(nn, maxColsAllowed));
-  
+
   for (let cols = 1; cols <= colsUpper; cols++) {
     const rows = Math.ceil(nn / cols);
     const tile = Math.floor(Math.min(maxSize / cols, maxSize / rows));
@@ -97,7 +97,7 @@ export async function buildCollage(images, options = {}) {
   const refsAll = normalizeRefs(images);
   const hardCap = clampInt(options.maxItems ?? 16, 1, 64);
   const refs = refsAll.slice(0, hardCap);
-  
+
   if (refs.length === 0) return null;
   if (refs.length === 1) {
     return { mimeType: refs[0].mimeType, base64: refs[0].base64 };
@@ -187,3 +187,191 @@ export async function buildIdentityCollage(images, options = {}) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SMART MASONRY COLLAGE (for clothing references)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get optimal layout for N images (no empty cells)
+ * Returns array of rows, each row has slot definitions
+ */
+function getSmartLayout(n) {
+  switch (n) {
+    case 1:
+      return [[1]]; // Single image, full width
+    case 2:
+      return [[1, 1]]; // 2 side by side
+    case 3:
+      return [[1, 1, 1]]; // 3 in a row
+    case 4:
+      return [[1, 1], [1, 1]]; // 2x2 grid
+    case 5:
+      return [[1, 1, 1], [1.5, 1.5]]; // 3 top, 2 bottom (centered, 1.5x width each)
+    case 6:
+      return [[1, 1, 1], [1, 1, 1]]; // 3x2 grid
+    case 7:
+      return [[1, 1, 1, 1], [1.33, 1.33, 1.33]]; // 4 top, 3 bottom
+    case 8:
+      return [[1, 1, 1, 1], [1, 1, 1, 1]]; // 4x2 grid
+    default:
+      // For 9+, use 3 columns
+      const rows = [];
+      let remaining = n;
+      while (remaining > 0) {
+        const inRow = Math.min(3, remaining);
+        rows.push(Array(inRow).fill(1));
+        remaining -= inRow;
+      }
+      return rows;
+  }
+}
+
+/**
+ * Build a smart collage with adaptive layout (no empty cells)
+ * Each image is scaled to fit its slot while preserving aspect ratio (no cropping)
+ * 
+ * @param {Array<{mimeType: string, base64: string}>} images
+ * @param {Object} options
+ * @returns {Promise<{mimeType: string, base64: string}|null>}
+ */
+export async function buildSmartCollage(images, options = {}) {
+  const refsAll = normalizeRefs(images);
+  const hardCap = clampInt(options.maxItems ?? 16, 1, 64);
+  const refs = refsAll.slice(0, hardCap);
+
+  if (refs.length === 0) return null;
+  if (refs.length === 1) {
+    // Single image: just resize to max size while preserving aspect ratio
+    try {
+      const input = Buffer.from(refs[0].base64, 'base64');
+      const maxSize = clampInt(options.maxSize ?? 2048, 512, 2048);
+      const jpegQuality = clampInt(options.jpegQuality ?? 95, 60, 95);
+
+      const resized = await sharp(input, { failOn: 'none' })
+        .rotate()
+        .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: jpegQuality })
+        .toBuffer();
+
+      return { mimeType: 'image/jpeg', base64: resized.toString('base64') };
+    } catch (e) {
+      console.warn('[SmartCollage] Failed to process single image:', e.message);
+      return { mimeType: refs[0].mimeType, base64: refs[0].base64 };
+    }
+  }
+
+  const maxSize = clampInt(options.maxSize ?? 2048, 512, 2048);
+  const background = typeof options.background === 'string' && options.background ? options.background : '#ffffff';
+  const jpegQuality = clampInt(options.jpegQuality ?? 95, 60, 95);
+  const gap = clampInt(options.gap ?? 4, 0, 32);
+
+  // Get layout
+  const layout = getSmartLayout(refs.length);
+  const numRows = layout.length;
+
+  // Calculate row height based on max size and number of rows
+  const totalGapHeight = gap * (numRows - 1);
+  const rowHeight = Math.floor((maxSize - totalGapHeight) / numRows);
+
+  // Process each image and calculate positions
+  const composites = [];
+  let imageIndex = 0;
+  let currentY = 0;
+
+  for (let rowIdx = 0; rowIdx < layout.length; rowIdx++) {
+    const row = layout[rowIdx];
+    const numCols = row.length;
+    const totalWeight = row.reduce((sum, w) => sum + w, 0);
+    const totalGapWidth = gap * (numCols - 1);
+    const availableWidth = maxSize - totalGapWidth;
+
+    let currentX = 0;
+
+    for (let colIdx = 0; colIdx < row.length; colIdx++) {
+      if (imageIndex >= refs.length) break;
+
+      const weight = row[colIdx];
+      const slotWidth = Math.floor((availableWidth * weight) / totalWeight);
+      const slotHeight = rowHeight;
+
+      try {
+        const input = Buffer.from(refs[imageIndex].base64, 'base64');
+        const metadata = await sharp(input).metadata();
+        const imgWidth = metadata.width || 100;
+        const imgHeight = metadata.height || 100;
+
+        // Calculate size to fit inside slot while preserving aspect ratio
+        const imgRatio = imgWidth / imgHeight;
+        const slotRatio = slotWidth / slotHeight;
+
+        let resizeWidth, resizeHeight;
+        if (imgRatio > slotRatio) {
+          // Image is wider than slot - fit by width
+          resizeWidth = slotWidth;
+          resizeHeight = Math.round(slotWidth / imgRatio);
+        } else {
+          // Image is taller than slot - fit by height
+          resizeHeight = slotHeight;
+          resizeWidth = Math.round(slotHeight * imgRatio);
+        }
+
+        // Resize image
+        const resized = await sharp(input, { failOn: 'none' })
+          .rotate()
+          .resize(resizeWidth, resizeHeight, { fit: 'fill' })
+          .jpeg({ quality: jpegQuality })
+          .toBuffer();
+
+        // Center image in slot
+        const offsetX = Math.floor((slotWidth - resizeWidth) / 2);
+        const offsetY = Math.floor((slotHeight - resizeHeight) / 2);
+
+        composites.push({
+          input: resized,
+          left: currentX + offsetX,
+          top: currentY + offsetY
+        });
+
+      } catch (e) {
+        console.warn('[SmartCollage] Failed to process image:', e.message);
+      }
+
+      currentX += slotWidth + gap;
+      imageIndex++;
+    }
+
+    currentY += rowHeight + gap;
+  }
+
+  if (composites.length === 0) return null;
+
+  // Calculate actual canvas size (remove trailing gap)
+  const canvasWidth = maxSize;
+  const canvasHeight = currentY - gap;
+
+  // Create canvas and composite all images
+  const board = await sharp({
+    create: {
+      width: canvasWidth,
+      height: canvasHeight,
+      channels: 3,
+      background
+    }
+  })
+    .composite(composites)
+    .jpeg({ quality: jpegQuality })
+    .toBuffer();
+
+  // Trim white borders
+  let finalBuffer = board;
+  try {
+    finalBuffer = await sharp(board)
+      .trim({ background, threshold: 10 })
+      .jpeg({ quality: jpegQuality })
+      .toBuffer();
+  } catch (e) {
+    console.warn('[SmartCollage] Trim failed, using untrimmed:', e.message);
+  }
+
+  return { mimeType: 'image/jpeg', base64: finalBuffer.toString('base64') };
+}

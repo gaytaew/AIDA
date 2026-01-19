@@ -36,7 +36,7 @@ import {
   FRAME_COMPOSITION_OPTIONS,
   shouldRequireOutfitAvatar
 } from '../schema/shootConfig.js';
-import { buildCollage } from '../utils/imageCollage.js';
+import { buildCollage, buildSmartCollage } from '../utils/imageCollage.js';
 import { convertGeminiImageToJpeg } from '../utils/imageConverter.js';
 
 const router = express.Router();
@@ -651,17 +651,15 @@ router.post('/:id/generate', async (req, res) => {
       console.log(`[ShootRoutes] Identity collage built from ${identityImages.length} images`);
     }
 
-    // Clothing collage: HIGH quality, large tiles for detail
+    // Clothing collage: Smart masonry layout (no empty cells, preserved proportions)
     if (clothingImages.length > 0) {
-      clothingCollage = await buildCollage(clothingImages, {
-        maxSize: 2048,      // Maximum size for clothing details
-        maxCols: 2,         // Fewer columns = bigger images
-        minTile: 768,       // Each garment at least 768px
-        jpegQuality: 95,    // Maximum quality
-        fit: 'contain',     // Show full garment, don't crop
-        background: '#ffffff'
+      clothingCollage = await buildSmartCollage(clothingImages, {
+        maxSize: 2048,
+        jpegQuality: 95,
+        background: '#ffffff',
+        gap: 4
       });
-      console.log(`[ShootRoutes] Clothing collage built from ${clothingImages.length} images`);
+      console.log(`[ShootRoutes] Smart clothing collage built from ${clothingImages.length} images`);
     }
 
     // Collect frame data (or use empty array for default scene)
@@ -912,15 +910,13 @@ router.post('/:id/generate-frame', async (req, res) => {
       });
     }
 
-    // Clothing collage: HIGH quality, large tiles for detail
+    // Clothing collage: Smart masonry layout (no empty cells, preserved proportions)
     if (clothingImages.length > 0) {
-      clothingCollage = await buildCollage(clothingImages, {
-        maxSize: 2048,      // Maximum size for clothing details
-        maxCols: 2,         // Fewer columns = bigger images
-        minTile: 768,       // Each garment at least 768px
-        jpegQuality: 95,    // Maximum quality
-        fit: 'contain',     // Show full garment, don't crop
-        background: '#ffffff'
+      clothingCollage = await buildSmartCollage(clothingImages, {
+        maxSize: 2048,
+        jpegQuality: 95,
+        background: '#ffffff',
+        gap: 4
       });
     }
 
