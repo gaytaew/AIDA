@@ -409,6 +409,188 @@ export function buildCustomShootPrompt({
   const useUniverse = universeParams != null;
 
   // ═══════════════════════════════════════════════════════════════
+  // V7 LOGIC (Pure Prompt Mode)
+  // User provides a visual description prompt instead of selecting parameters
+  // ═══════════════════════════════════════════════════════════════
+  if (useUniverse && universeParams.version === 'v7') {
+    const visualPrompt = universeParams.visualPrompt || '';
+
+    console.log('[CustomShootGenerator] V7 Pure Prompt Mode, prompt length:', visualPrompt.length);
+
+    // Build V7 prompt using user's visual description + standard reference handling
+    const v7Sections = [];
+
+    // Header
+    v7Sections.push(`═══════════════════════════════════════════════════════════════
+V7 PURE PROMPT MODE - Professional Fashion Photography
+═══════════════════════════════════════════════════════════════`);
+
+    // Hard rules
+    v7Sections.push(`
+TASK: Generate a photorealistic fashion photograph based on user's visual description.
+
+HARD RULES:
+1. Return photorealistic images (NO illustration, NO CGI, NO 3D render).
+2. Natural skin texture, believable fabric behavior, real optics.
+3. No watermarks, no text overlays, no logos.`);
+
+    // Visual description from user
+    if (visualPrompt) {
+      v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+VISUAL STYLE (from user)
+═══════════════════════════════════════════════════════════════
+
+${visualPrompt}`);
+    }
+
+    // Identity preservation
+    if (hasIdentityRefs) {
+      v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+IDENTITY PRESERVATION (CRITICAL — [$1])
+═══════════════════════════════════════════════════════════════
+
+The generated image MUST show the EXACT SAME person as in reference [$1].
+
+FACIAL STRUCTURE (must match exactly):
+- Face shape, eyes, nose, lips: identical to reference
+- Jawline and cheekbones: same definition
+
+STRICT STYLE ISOLATION:
+- EXTRACT ONLY physical facial features from [$1].
+- IGNORE lighting/style from [$1] — use the VISUAL STYLE section above.
+
+${modelDescription ? `Additional notes: ${modelDescription}` : ''}`);
+    }
+
+    // Clothing
+    if (hasClothingRefs) {
+      let clothingSection = `
+═══════════════════════════════════════════════════════════════
+CLOTHING ACCURACY (CRITICAL — [$3], [$4])
+═══════════════════════════════════════════════════════════════
+
+Recreate garments from reference images with MAXIMUM accuracy.
+Same silhouette, length, fit, colors, construction.`;
+
+      if (lookPrompt && lookPrompt.trim()) {
+        clothingSection += `
+
+OUTFIT STYLE:
+${lookPrompt.trim()}`;
+      }
+
+      if (clothingItemPrompts && clothingItemPrompts.length > 0) {
+        clothingSection += `
+
+DETAILED CLOTHING NOTES:`;
+        clothingItemPrompts.forEach((item, i) => {
+          const name = item.name ? `${item.name}: ` : `Item ${i + 1}: `;
+          clothingSection += `
+• ${name}${item.prompt}`;
+        });
+      } else if (clothingDescriptions.length > 0) {
+        clothingSection += `
+
+USER DESCRIPTIONS:
+${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`;
+      }
+
+      v7Sections.push(clothingSection);
+    }
+
+    // Style Lock
+    if (hasStyleRef && locks?.style?.enabled) {
+      const styleLockPrompt = buildStyleLockPrompt(locks.style);
+      if (styleLockPrompt) {
+        v7Sections.push(`
+${styleLockPrompt}`);
+      }
+    }
+
+    // Pose sketch
+    if (hasPoseSketch) {
+      const POSE_ADHERENCE_MAP = {
+        1: { label: 'Creative Freedom', instruction: 'Use pose as loose inspiration only.' },
+        2: { label: 'Natural Variation', instruction: 'Follow general pose but allow natural adjustments.' },
+        3: { label: 'Structured Match', instruction: 'Match pose closely with minor variations.' },
+        4: { label: 'Strict Match', instruction: 'Copy pose exactly from sketch.' }
+      };
+      const adherence = POSE_ADHERENCE_MAP[poseAdherence] || POSE_ADHERENCE_MAP[2];
+      v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+POSE REFERENCE ([$6])
+═══════════════════════════════════════════════════════════════
+
+ADHERENCE LEVEL: ${poseAdherence}/4 (${adherence.label})
+${adherence.instruction}`);
+    }
+
+    // Composition
+    if (composition && (composition.shotSize !== 'default' || composition.cameraAngle !== 'eye_level')) {
+      v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+COMPOSITION
+═══════════════════════════════════════════════════════════════
+
+Shot: ${composition.shotSize || 'auto'}
+Angle: ${composition.cameraAngle || 'eye level'}`);
+    }
+
+    // Emotion
+    if (emotionId) {
+      const emotion = getEmotionById(emotionId);
+      if (emotion) {
+        v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+EMOTION / EXPRESSION
+═══════════════════════════════════════════════════════════════
+
+The model MUST show "${emotion.label}" emotion.
+${emotion.physicalHints ? `Physical cues: ${Array.isArray(emotion.physicalHints) ? emotion.physicalHints.join(', ') : emotion.physicalHints}` : ''}`);
+      }
+    }
+
+    // Extra prompt
+    if (extraPrompt) {
+      v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+ADDITIONAL INSTRUCTIONS
+═══════════════════════════════════════════════════════════════
+
+${extraPrompt}`);
+    }
+
+    // Anti-AI standard block
+    v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+AUTHENTICITY REQUIREMENTS
+═══════════════════════════════════════════════════════════════
+
+The image must feel like genuine professional photography, not AI-generated.
+Include natural imperfections: subtle skin texture, micro-shadows, fabric wrinkles.`);
+
+    const v7Prompt = v7Sections.join('\n');
+
+    const promptJson = {
+      format: 'custom_shoot_v7_pure_prompt',
+      generatedAt: new Date().toISOString(),
+      version: 'v7',
+      visualPrompt: visualPrompt,
+      frame,
+      location,
+      emotionId,
+      extraPrompt,
+      composition,
+      qualityMode,
+      mood
+    };
+
+    return { prompt: v7Prompt, promptJson };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // V5 LOGIC (Strict Technical / Narrative Artistic)
   // New architecture with dependency matrix and smart conflict resolution
   // ═══════════════════════════════════════════════════════════════

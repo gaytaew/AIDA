@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Shoot 7 (Pure Prompt) — AIDA</title>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="shoot-composer-styles.css">
+  <style>
+    /* Custom Shoot specific styles */
+
+    /* Reference Locks Panel */
+    .locks-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .locks-panel h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lock-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--color-bg);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .lock-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .lock-icon {
+      font-size: 20px;
+      width: 32px;
+      text-align: center;
+    }
+
+    .lock-info {
+      flex: 1;
+    }
+
+    .lock-title {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .lock-desc {
+      font-size: 11px;
+      color: var(--color-text-muted);
+    }
+
+    .lock-preview-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 2px solid var(--color-accent);
+      display: none;
+    }
+
+    .lock-preview-thumb.active {
+      display: block;
+    }
+
+    .lock-preview-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .lock-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .lock-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 4px;
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .lock-btn:hover {
+      border-color: var(--color-text-muted);
+    }
+
+    .lock-btn.active {
+      background: var(--color-accent);
+      color: white;
+      border-color: var(--color-accent);
+    }
+
+    .lock-btn.active-soft {
+      background: #8B5CF6;
+      color: white;
+      border-color: #8B5CF6;
+    }
+
+    /* Universe Settings Section */
+    .universe-settings {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .universe-settings h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 16px;
+    }
+
+    .universe-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 800px) {
+      .universe-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .universe-grid .form-group {
+      margin: 0;
+    }
+
+    .universe-grid label {
+      font-size: 12px;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .universe-grid select {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 12px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      color: var(--color-text);
+    }
+
+    /* History item with lock badges */
+    .history-lock-badges {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .history-lock-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .history-lock-badge.style {
+      background: #F59E0B;
+    }
+
+    /* .history-lock-badge.location removed - Location Lock removed */
+
+    /* Lock selection hint on hover */
+    .generated-frame-card .lock-actions {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+      padding: 40px 10px 10px;
+      display: none;
+    }
+
+    .generated-frame-card:hover .lock-actions {
+      display: block;
+    }
+
+    .lock-action-btn {
+      display: block;
+      width: 100%;
+      padding: 6px 10px;
+      margin-bottom: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 11px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .lock-action-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .lock-action-btn:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Clothing Items with Descriptions */
+    .clothing-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .clothing-item {
+      display: flex;
+      gap: 12px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .clothing-item-preview {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+    }
+
+    .clothing-item-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .clothing-item-preview .image-thumb-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      background: var(--color-error);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .clothing-description {
+      flex: 1;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 13px;
+      color: var(--color-text);
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .clothing-description::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    .clothing-description:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    /* Toast animations */
+    @keyframes toast-slide-up {
+      from {
+        transform: translateX(-50%) translateY(100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes toast-slide-down {
+      from {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+
+      to {
+        transform: translateX(-50%) translateY(100%);
+        opacity: 0;
+      }
+    }
+
+    /* Spinner for generation placeholder */
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <div class="logo-icon">A</div>
+          <div class="logo-text">AIDA</div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <!-- Auto-populated by sidebar-nav.js -->
+      </nav>
+      <script src="/shared/sidebar-nav.js"></script>
+
+      <div class="sidebar-footer">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="server-status">Загрузка...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="page-header">
+        <h1 class="page-title">✏️ Custom Shoot v7.0 (Pure Prompt)</h1>
+        <p class="page-subtitle">
+          Просто опиши визуальный стиль съёмки своими словами. Без параметров — одним промптом.
+        </p>
+      </header>
+
+      <div class="page-content">
+        <div class="composer-layout">
+          <!-- Steps Sidebar -->
+          <div class="steps-sidebar">
+            <ul class="steps-list">
+              <li class="step-item active" data-step="shoot">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                  <div class="step-title">Съёмка</div>
+                  <div class="step-desc">Создать или выбрать</div>
+                  <div class="step-status pending" id="step-shoot-status">Не выбрано</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="models">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                  <div class="step-title">Модели</div>
+                  <div class="step-desc">До 3 моделей</div>
+                  <div class="step-status pending" id="step-models-status">0 / 3</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="clothing">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                  <div class="step-title">Одежда</div>
+                  <div class="step-desc">Референсы луков</div>
+                  <div class="step-status pending" id="step-clothing-status">Опционально</div>
+                </div>
+              </li>
+              <li class="step-item locked" data-step="generate">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                  <div class="step-title">Генерация</div>
+                  <div class="step-desc">Кадры + настройки</div>
+                  <div class="step-status pending" id="step-generate-status">—</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Composer Main Area -->
+          <div class="composer-main">
+
+            <!-- Step 1: Select/Create Shoot -->
+            <div class="step-panel active" data-panel="shoot">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Выбери или создай Custom Shoot</h2>
+                <p class="step-panel-desc">
+                  В Custom Shoot все визуальные параметры настраиваются вручную на этапе генерации.
+                </p>
+              </div>
+
+              <div class="form-actions" style="margin-bottom: 24px;">
+                <button class="btn btn-primary" id="btn-new-shoot">
+                  ✨ Новый Custom Shoot
+                </button>
+              </div>
+
+              <h3 class="section-title" style="margin-bottom: 16px;">Существующие Custom Shoots</h3>
+              <div id="shoots-list" class="shoots-list">
+                <div class="empty-state">
+                  <div class="empty-state-icon">✨</div>
+                  <div class="empty-state-title">Нет съёмок</div>
+                  <div class="empty-state-text">Создайте первый Custom Shoot</div>
+                </div>
+              </div>
+
+              <div class="composer-nav">
+                <div></div>
+                <button class="btn btn-primary" id="btn-next-to-models" disabled>
+                  Далее: Модели →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2: Select Models -->
+            <div class="step-panel" data-panel="models">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Добавь моделей</h2>
+                <p class="step-panel-desc">
+                  Выбери от 1 до 3 моделей для съёмки. Каждая модель сохраняет свою идентичность во всех кадрах.
+                </p>
+              </div>
+
+              <div id="model-slots" class="model-slots">
+                <div class="model-slot" data-slot="0" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 1</div>
+                </div>
+                <div class="model-slot" data-slot="1" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 2 (опц.)</div>
+                </div>
+                <div class="model-slot" data-slot="2" style="position: relative;">
+                  <div class="model-slot-icon">👤</div>
+                  <div class="model-slot-label">Модель 3 (опц.)</div>
+                </div>
+              </div>
+
+              <div id="available-models" style="display: none;">
+                <h3 class="section-title" style="margin: 24px 0 16px;">Доступные модели</h3>
+                <div id="models-grid" class="selection-grid"></div>
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-shoot">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-clothing" disabled>
+                  Далее: Одежда →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 3: Clothing -->
+            <div class="step-panel" data-panel="clothing">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Загрузи одежду</h2>
+                <p class="step-panel-desc">
+                  Загрузи референсы одежды для каждой модели.
+                </p>
+              </div>
+
+              <div id="clothing-sections" class="clothing-sections">
+                <!-- Will be populated dynamically -->
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-models">
+                  ← Назад
+                </button>
+                <button class="btn btn-primary" id="btn-next-to-frames">
+                  Далее: Генерация →
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 4: Generation (Pure Prompt Mode) -->
+            <div class="step-panel" data-panel="generate">
+              <div class="step-panel-header">
+                <h2 class="step-panel-title">Генерация по промпту</h2>
+                <p class="step-panel-desc">
+                  Опиши визуальный стиль съёмки своими словами. AI создаст кадр на основе твоего описания.
+                </p>
+              </div>
+
+              <!-- Reference Locks -->
+              <div class="locks-panel">
+                <h4>🔒 Style Lock (консистентность)</h4>
+
+                <div class="lock-row" id="style-lock-row">
+                  <div class="lock-icon">🎨</div>
+                  <div class="lock-info">
+                    <div class="lock-title">Style Lock</div>
+                    <div class="lock-desc">Фиксирует цвет, свет, текстуру</div>
+                  </div>
+                  <div class="lock-preview-thumb" id="style-lock-preview">
+                    <img src="" alt="Style ref" id="style-lock-img">
+                  </div>
+                  <div class="lock-controls">
+                    <button class="lock-btn active" id="style-lock-off" data-mode="off">Off</button>
+                    <button class="lock-btn" id="style-lock-strict" data-mode="strict">Strict</button>
+                    <button class="lock-btn" id="style-lock-soft" data-mode="soft">Soft</button>
+                  </div>
+                </div>
+
+                <div
+                  style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px; padding: 8px; background: var(--color-bg); border-radius: 6px;">
+                  💡 Сгенерируй первый кадр, затем кликни на него в истории, чтобы установить как референс для Style
+                  Lock.
+                </div>
+              </div>
+
+              <!-- ═══════════════════════════════════════════════════════════ -->
+              <!-- VISUAL PROMPT (главный элемент V7) -->
+              <!-- ═══════════════════════════════════════════════════════════ -->
+
+              <div class="universe-settings" style="border: 2px solid var(--color-primary);">
+                <h4 style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                  ✏️ Визуальный промпт
+                  <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">
+                    Опиши всё, что хочешь увидеть на фото
+                  </span>
+                </h4>
+                <textarea id="visual-prompt" placeholder="Опиши визуальный стиль съёмки...
+
+Например:
+• Закатный свет на пляже, мягкие золотые тона, модель в расслабленной позе смотрит в камеру
+• Студийное фото на белом фоне, яркий контрастный свет, уверенный взгляд
+• Уличная съёмка в дождливом городе, неоновые отражения, кинематографичная атмосфера"
+                  style="width: 100%; min-height: 180px; padding: 16px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 14px; line-height: 1.6; resize: vertical; font-family: inherit;"></textarea>
+                <div
+                  style="margin-top: 12px; padding: 10px; background: var(--color-bg); border-radius: 6px; font-size: 11px; color: var(--color-text-muted);">
+                  💡 <strong>Совет:</strong> Чем подробнее описание — тем точнее результат. Укажи освещение, настроение,
+                  цветовую гамму, позу, окружение.
+                </div>
+              </div>
+
+              <!-- Базовые контролы -->
+              <div class="generation-controls"
+                style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                <h4
+                  style="margin-bottom: 16px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">
+                  Базовые настройки</h4>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                  <!-- Location -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-location">📍 Локация (опционально)</label>
+                    <select id="gen-location"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="">Из промпта</option>
+                    </select>
+                  </div>
+
+                  <!-- Aspect Ratio -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-aspect-ratio">📐 Ориентация</label>
+                    <select id="gen-aspect-ratio"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="3:4" selected>3:4 (Портрет)</option>
+                      <option value="4:3">4:3 (Пейзаж)</option>
+                      <option value="1:1">1:1 (Квадрат)</option>
+                      <option value="9:16">9:16 (Сторис)</option>
+                      <option value="16:9">16:9 (Кино)</option>
+                    </select>
+                  </div>
+
+                  <!-- Image Size -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-image-size">📏 Качество</label>
+                    <select id="gen-image-size"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="2K" selected>2K (Стандарт)</option>
+                      <option value="4K">4K (Высокое качество)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Pose sketch adherence -->
+                <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-pose-adherence">🎯 Следование эскизу позы</label>
+                    <select id="gen-pose-adherence"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="1">1 — Творческая интерпретация</option>
+                      <option value="2" selected>2 — Естественная вариация</option>
+                      <option value="3">3 — Структурное совпадение</option>
+                      <option value="4">4 — Точная копия</option>
+                    </select>
+                  </div>
+                  <!-- Hidden elements for compatibility -->
+                  <div style="display: none;">
+                    <select id="gen-shot-size">
+                      <option value="default">Авто</option>
+                    </select>
+                    <select id="gen-camera-angle">
+                      <option value="eye_level">На уровне глаз</option>
+                    </select>
+                    <textarea id="gen-extra-prompt"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Universe params container (hidden, for compatibility) -->
+              <div id="universe-params-container" style="display: none;"></div>
+              <div id="visual-anchors-panel" style="display: none;"></div>
+              <div id="narrative-preview-panel" style="display: none;"></div>
+
+              <!-- Frames to generate -->
+              <div id="frames-to-generate" style="margin-bottom: 20px;">
+                <!-- Will be populated by JS -->
+              </div>
+
+              <!-- Generated Images History -->
+              <div id="generated-images">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                  <h3 class="section-title" style="margin: 0;">История генераций</h3>
+                  <span id="generation-count" style="font-size: 13px; color: var(--color-text-muted);">0
+                    изображений</span>
+                </div>
+                <div id="images-gallery" class="selection-grid"
+                  style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+                  <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+                    <div class="empty-state-icon">🎨</div>
+                    <div class="empty-state-title">Нет сгенерированных кадров</div>
+                    <div class="empty-state-text">Нажми "Генерировать" на карточке кадра выше</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="composer-nav">
+                <button class="btn btn-secondary" id="btn-back-to-frames">
+                  ← Назад к одежде
+                </button>
+                <button class="btn btn-secondary" id="btn-clear-history" style="color: var(--color-accent);">
+                  🗑️ Очистить историю
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Lightbox for generated images -->
+  <div class="lightbox-overlay" id="lightbox">
+    <button class="lightbox-close" id="lightbox-close">✕</button>
+    <button class="lightbox-nav prev" id="lightbox-prev">‹</button>
+    <button class="lightbox-nav next" id="lightbox-next">›</button>
+    <div class="lightbox-container">
+      <img class="lightbox-image zoomed-1x" id="lightbox-image" src="" alt="Preview">
+    </div>
+    <div class="lightbox-zoom-hint" id="lightbox-zoom-hint">Клик для увеличения (1x)</div>
+    <div class="lightbox-info" id="lightbox-info">1 / 1</div>
+  </div>
+
+  <!-- Looks Selection Modal -->
+  <div id="looks-modal" class="modal-overlay"
+    style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="modal-card"
+      style="background: var(--color-surface); width: 800px; max-width: 90vw; height: 80vh; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden;">
+      <div class="modal-header"
+        style="padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">Выбрать образ (Look)</h3>
+        <button id="btn-close-looks-modal"
+          style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--color-text);">×</button>
+      </div>
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 16px;">
+        <div id="looks-grid"
+          style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+          <!-- Looks rendered here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="custom-shoot-7.js?v=1"></script>
+  <script type="module" src="../shared/dev-console.js"></script>
+</body>
+
+</html>
