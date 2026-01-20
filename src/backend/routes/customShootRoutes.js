@@ -804,6 +804,11 @@ router.post('/:id/generate', async (req, res) => {
 
     if (!result.ok) {
       log('GENERATION_FAILED', { error: result.error?.slice(0, 200) });
+      // Проверяем, не отправлены ли уже заголовки (например, при 504 таймауте от HTTP middleware)
+      if (res.headersSent) {
+        console.warn(`[CustomShootRoutes] [${requestId}] Headers already sent, cannot send error response`);
+        return;
+      }
       return res.status(500).json({ ok: false, error: result.error });
     }
 
@@ -907,6 +912,11 @@ router.post('/:id/generate', async (req, res) => {
   } catch (err) {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     console.error(`[CustomShootRoutes] [${requestId}] [${elapsed}s] ERROR:`, err);
+    // Проверяем, не отправлены ли уже заголовки (например, при 504 таймауте от HTTP middleware)
+    if (res.headersSent) {
+      console.warn(`[CustomShootRoutes] [${requestId}] Headers already sent, cannot send error response`);
+      return;
+    }
     res.status(500).json({ ok: false, error: err.message });
   }
 });
