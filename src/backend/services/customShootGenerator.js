@@ -1369,14 +1369,32 @@ export async function generateCustomShootFrame({
 
     if (!result.ok) {
       const errorMsg = result.error || '';
+
+      // Условия для переключения на Vertex AI:
+      // 1. API перегружен (503, overloaded)
+      // 2. Таймаут (timed out)
+      // 3. Сетевые ошибки (network error)
       const isOverloaded =
         result.errorCode === 'api_overloaded' ||
         result.httpStatus === 503 ||
         /overloaded/i.test(errorMsg) ||
         /service unavailable/i.test(errorMsg);
 
-      if (isOverloaded) {
-        log('GEMINI_OVERLOADED', { error: errorMsg, action: 'FALLBACK_VERTEX' });
+      const isTimeout =
+        /timed out/i.test(errorMsg) ||
+        /timeout/i.test(errorMsg);
+
+      const isNetworkError =
+        /network error/i.test(errorMsg) ||
+        /ECONNRESET/i.test(errorMsg) ||
+        /ETIMEDOUT/i.test(errorMsg) ||
+        /socket hang up/i.test(errorMsg);
+
+      const shouldFallbackToVertex = isOverloaded || isTimeout || isNetworkError;
+
+      if (shouldFallbackToVertex) {
+        const reason = isOverloaded ? 'OVERLOADED' : isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR';
+        log('GEMINI_UNAVAILABLE', { error: errorMsg, reason, action: 'FALLBACK_VERTEX' });
 
         const vertexResult = await requestVertexImage({
           prompt,
