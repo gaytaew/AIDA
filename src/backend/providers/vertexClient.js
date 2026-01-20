@@ -1,12 +1,12 @@
 /**
  * Vertex AI Client for AIDA.
- * Fallback provider when Gemini API is overloaded (503).
+ * Fallback provider when Gemini API is overloaded or times out.
+ * Uses the same Nano Banana Pro model (gemini-3-pro-image-preview) as geminiClient.
  */
 
 import { fetch } from 'undici';
 import { GoogleAuth } from 'google-auth-library';
 import config from '../config.js';
-import { retry, isRetryableNetworkError } from '../utils/retry.js';
 
 let authClient = null;
 
@@ -21,30 +21,27 @@ async function getAccessToken() {
 
 /**
  * Request image generation via Vertex AI API.
- * Uses the same body structure as Gemini API but sends to Vertex endpoint.
+ * Uses Nano Banana Pro (gemini-3-pro-image-preview) - same as Gemini API.
  */
 export async function requestVertexImage({ prompt, referenceImages = [], imageConfig = {} }) {
     const projectId = config.VERTEX_PROJECT_ID;
-    const location = config.VERTEX_LOCATION;
-    const modelId = config.VERTEX_MODEL; // e.g. 'gemini-1.5-pro-002'
+    const location = config.VERTEX_LOCATION || 'us-central1';
+
+    // Nano Banana Pro model - same as geminiClient
+    const modelId = 'gemini-3-pro-image-preview';
 
     if (!projectId) {
+        console.error('[VertexAI] VERTEX_PROJECT_ID is not configured');
         return { ok: false, error: 'VERTEX_PROJECT_ID is not configured' };
     }
 
-    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
-
-    console.log(`[VertexAI] Generating with model: ${modelId}`);
-
-    // 1. Prepare Body (same as Gemini)
-    // Vertex expects { instances: [ { content: ... } ], parameters: ... }
-    // BUT for Gemini models in Vertex, the format is slightly specific.
-    // Standard Gemini format: { contents: [...], generationConfig: ... }
-    // Vertex "generateContent" method is:
-    // POST https://{location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent
-
+    // Vertex AI generateContent endpoint
     const generateContentUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
 
+    console.log(`[VertexAI] Generating with model: ${modelId} in ${location}`);
+    console.log(`[VertexAI] Endpoint: ${generateContentUrl}`);
+
+    // Build request body - same format as geminiClient
     const parts = [];
 
     if (prompt) {
@@ -63,38 +60,31 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
         });
     }
 
+    // Image config - same as geminiClient
+    const cfg = imageConfig && typeof imageConfig === 'object' ? imageConfig : {};
+    const aspectRatio = typeof cfg.aspectRatio === 'string' && cfg.aspectRatio ? cfg.aspectRatio : '1:1';
+    const imageSize = typeof cfg.imageSize === 'string' && cfg.imageSize ? cfg.imageSize : '1K';
+
     const body = {
-        contents: [{ role: 'user', parts }],
+        contents: [{ parts }],
         generationConfig: {
-            responseModalities: ['IMAGE'], // Vertex might support this, or might need specific simpler config
-            // Note: Some vertex models act differently with generationConfig.
-            // For images we usually stick to specific image generation models like imagen-3, 
-            // BUT if we assume we are using a Gemini model that supports images (like Gemini 1.5 Pro / Flash),
-            // we can try the standard generateContent schema.
+            responseModalities: ['Image'],
+            imageConfig: {
+                aspectRatio,
+                imageSize
+            }
         }
     };
 
-    // Add image params if supported by the specific model version via generationConfig
-    // For Gemini 1.5 Pro on Vertex, aspect ratio etc might be supported. 
-    // Safety: let's try standard generationConfig first.
-    if (imageConfig.aspectRatio) {
-        // Note: Gemini 1.5 Pro via Vertex might NOT support 'imageConfig' inside generationConfig the same way AI Studio does yet.
-        // It is safer to put aspect ratio in the prompt for fallback if technical params fail.
-        // However, let's try to pass it if possible or rely on the model prompt instruction.
-    }
-
-    // NOTE: As of now, Image Generation via Gemini 1.5 Pro on Vertex is "Preview".
-    // The 'responseModalities' field is key. 
-
-    // For Imagen 3 it would be different (:predict endpoint).
-    // Assuming we are using Gemini 1.5 Pro (multimodal input -> image output).
-    // If the user wants to fallback for "Nano Banana Pro" (Gemini 3 Pro Image Preview), 
-    // we likely need to target the same model family on Vertex.
-
-    // Let's assume standard Gemini generateContent protocol.
+    const bodySizeMB = (JSON.stringify(body).length / 1024 / 1024).toFixed(2);
+    const imageCount = referenceImages.filter(img => img?.base64).length;
+    console.log(`[VertexAI] Sending request: ${bodySizeMB} MB, ${imageCount} images`);
 
     try {
         const token = await getAccessToken();
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 sec timeout
 
         const response = await fetch(generateContentUrl, {
             method: 'POST',
@@ -102,37 +92,55 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json; charset=utf-8'
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const text = await response.text();
-            console.error('[VertexAI] Error:', text);
+            console.error('[VertexAI] Error:', text.slice(0, 500));
             return { ok: false, error: `Vertex API error: ${response.status} - ${text.slice(0, 200)}` };
         }
 
         const data = await response.json();
 
-        // Parse response
+        // Check for content block
+        if (data.promptFeedback?.blockReason) {
+            const pf = data.promptFeedback;
+            console.error('[VertexAI] Request blocked:', pf.blockReason);
+            return {
+                ok: false,
+                error: `Vertex AI blocked: ${pf.blockReason}`,
+                errorCode: 'blocked'
+            };
+        }
+
+        // Parse response - same format as Gemini
         const candidate = data.candidates?.[0];
+
         if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
             if (candidate.finishReason === 'SAFETY') {
                 return { ok: false, error: 'Vertex AI safety block', errorCode: 'blocked' };
             }
+            console.warn('[VertexAI] Finished with reason:', candidate.finishReason);
         }
 
         // Extract image
-        // Vertex might return it in parts just like AI Studio
-        const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
+        const imagePart = candidate?.content?.parts?.find(p => p.inlineData?.data);
 
         if (!imagePart) {
-            // Fallback: check for text explanation
+            // Check for text explanation
             const textPart = candidate?.content?.parts?.find(p => p.text);
             if (textPart) {
+                console.log('[VertexAI] Returned text instead of image:', textPart.text.slice(0, 200));
                 return { ok: false, error: `Vertex returned text: ${textPart.text.slice(0, 100)}` };
             }
             return { ok: false, error: 'No image in Vertex response' };
         }
+
+        console.log('[VertexAI] ✅ Image generated successfully');
 
         return {
             ok: true,
@@ -141,7 +149,11 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
         };
 
     } catch (error) {
-        console.error('[VertexAI] Exception:', error);
+        if (error.name === 'AbortError') {
+            console.error('[VertexAI] Request timeout');
+            return { ok: false, error: 'Vertex AI request timeout' };
+        }
+        console.error('[VertexAI] Exception:', error.message);
         return { ok: false, error: error.message };
     }
 }
