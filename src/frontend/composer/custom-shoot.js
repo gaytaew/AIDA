@@ -782,9 +782,10 @@ async function loadEmotions() {
       const grouped = data.data.emotions || {};
       state.emotions = [];
       for (const category of state.emotionCategories) {
-        const categoryEmotions = grouped[category] || [];
+        const categoryData = grouped[category.id];
+        const categoryEmotions = categoryData?.emotions || [];
         categoryEmotions.forEach(e => {
-          state.emotions.push({ ...e, category });
+          state.emotions.push({ ...e, category: category.id });
         });
       }
     }
