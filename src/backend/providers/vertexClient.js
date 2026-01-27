@@ -66,7 +66,7 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
     const imageSize = typeof cfg.imageSize === 'string' && cfg.imageSize ? cfg.imageSize : '1K';
 
     const body = {
-        contents: [{ parts }],
+        contents: [{ role: 'user', parts }],
         generationConfig: {
             responseModalities: ['Image'],
             imageConfig: {
