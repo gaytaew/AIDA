@@ -14,13 +14,13 @@ const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent';
 
 // Таймаут для запросов к Gemini API (в миллисекундах)
-const REQUEST_TIMEOUT_MS = 120000; // 120 секунд
+const REQUEST_TIMEOUT_MS = 25000; // 25 секунд (Fast Fail)
 
 // Global limiter for Gemini to reduce burst/parallel overload (503).
 // FIXED: Added name and timeout for better diagnostics
 const GEMINI_CONCURRENCY = 1;
 const GEMINI_MIN_TIME_MS = 800;
-const GEMINI_TIMEOUT_MS = 180000; // 3 minutes max per request
+const GEMINI_TIMEOUT_MS = 30000; // 30 seconds max per request
 const limitGemini = createLimiter({
   concurrency: GEMINI_CONCURRENCY,
   minTimeMs: GEMINI_MIN_TIME_MS,
@@ -194,7 +194,8 @@ async function callGeminiOnce(body) {
       console.error('[Gemini] Request timeout');
       return {
         ok: false,
-        error: 'Gemini request timeout. Try again later.'
+        error: 'Gemini request timeout. Try again later.',
+        errorCode: 'timeout'
       };
     }
 
@@ -242,9 +243,9 @@ async function callGeminiWithRetrySingle(body) {
 }
 
 async function callGeminiWithRetry(body) {
-  const rounds = 6;
-  const baseDelayMs = 2000;
-  const maxDelayMs = 30000;
+  const rounds = 2; // Fast Fail Strategy (was 6)
+  const baseDelayMs = 1000;
+  const maxDelayMs = 4000;
   const retryId = `retry_${Date.now() % 100000}`;
 
   let attempt = 0;

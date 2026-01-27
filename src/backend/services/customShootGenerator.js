@@ -1381,10 +1381,12 @@ export async function generateCustomShootFrame({
         /service unavailable/i.test(errorMsg);
 
       const isTimeout =
+        result.errorCode === 'timeout' ||
         /timed out/i.test(errorMsg) ||
         /timeout/i.test(errorMsg);
 
       const isNetworkError =
+        result.errorCode === 'internal_error' || // Fallback on internal errors too
         /network error/i.test(errorMsg) ||
         /ECONNRESET/i.test(errorMsg) ||
         /network error/i.test(errorMsg) ||
