@@ -93,13 +93,13 @@ app.use((req, res, next) => {
     }
   });
 
-  // FORCED TIMEOUT: If request doesn't finish in 3 minutes, kill it
-  // This prevents zombie connections from blocking browser connection pool
-  const REQUEST_TIMEOUT_MS = 180000; // 3 minutes
+  // FORCED TIMEOUT: If request doesn't finish in 10 minutes, kill it
+  // This prevents zombie connections, but allows for long AI generation chains (Retry + Fallback)
+  const REQUEST_TIMEOUT_MS = 600000; // 10 minutes
 
   const forceTimeout = setTimeout(() => {
     if (!res.headersSent) {
-      console.error(`[HTTP] ❌ FORCE_TIMEOUT: ${method} ${url} killed after 3 minutes`);
+      console.error(`[HTTP] ❌ FORCE_TIMEOUT: ${method} ${url} killed after 10 minutes`);
       res.status(504).json({
         ok: false,
         error: 'Request timeout - operation took too long',
@@ -108,10 +108,10 @@ app.use((req, res, next) => {
     }
   }, REQUEST_TIMEOUT_MS);
 
-  // Log warning at 2 minutes
+  // Log warning at 8 minutes
   const warnTimeout = setTimeout(() => {
-    console.warn(`[HTTP] ⚠️ SLOW REQUEST: ${method} ${url} still pending after 2 minutes`);
-  }, 120000);
+    console.warn(`[HTTP] ⚠️ SLOW REQUEST: ${method} ${url} still pending after 8 minutes`);
+  }, 480000);
 
   res.on('finish', () => {
     clearTimeout(warnTimeout);
@@ -182,7 +182,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = config.PORT;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
@@ -194,6 +194,9 @@ app.listen(PORT, () => {
 ╚═══════════════════════════════════════════════════════════╝
   `);
 });
+
+// Set server timeout to 10 minutes + 10s buffer
+server.setTimeout(610000);
 
 export default app;
 
