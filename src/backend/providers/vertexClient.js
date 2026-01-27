@@ -27,8 +27,8 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
     const projectId = config.VERTEX_PROJECT_ID;
     const location = config.VERTEX_LOCATION || 'us-central1';
 
-    // Use model from config (defaults to gemini-2.0-flash-exp which supports image generation)
-    const modelId = config.VERTEX_MODEL || 'gemini-2.0-flash-exp';
+    // Use model from config (defaults to Nano Banana Pro / gemini-3-pro-image-preview)
+    const modelId = config.VERTEX_MODEL || 'gemini-3-pro-image-preview';
 
     if (!projectId) {
         console.error('[VertexAI] VERTEX_PROJECT_ID is not configured');
