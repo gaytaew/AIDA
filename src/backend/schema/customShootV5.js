@@ -1488,6 +1488,13 @@ TASK: Generate a photorealistic image based on the following Technical Specifica
    - NEVER copy the "look" (film grain, contrast, filters) of the Location or Identity references.
    - Reference images are for GEOMETRY/CONTENTS only.
 
+5. CLOTHING REFERENCE [$3], [$4] (if provided):
+   - You MUST reproduce the clothing from these references EXACTLY.
+   - Match silhouette, fit, length, neckline, sleeves, and construction details.
+   - IGNORE the lighting and color grading of the clothing reference.
+   - If reference is a flat lay or ghost mannequin, fit it naturally onto the model.
+   - The Clothing Reference is the AUTHORITY for the Outfit.
+
 5. ENVIRONMENTAL VARIATION (CRITICAL): 
    - The scene MUST adapt to the specified Weather, Season, and Time of Day.
    - If "snow" is active: cover the location in snow, even if reference is sunny/green.
