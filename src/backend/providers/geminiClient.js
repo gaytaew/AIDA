@@ -14,13 +14,13 @@ const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent';
 
 // Таймаут для запросов к Gemini API (в миллисекундах)
-const REQUEST_TIMEOUT_MS = 25000; // 25 секунд (Fast Fail)
+const REQUEST_TIMEOUT_MS = 50000; // 50 секунд (Balance between Fail Fast and Quality)
 
 // Global limiter for Gemini to reduce burst/parallel overload (503).
 // FIXED: Added name and timeout for better diagnostics
 const GEMINI_CONCURRENCY = 1;
 const GEMINI_MIN_TIME_MS = 800;
-const GEMINI_TIMEOUT_MS = 30000; // 30 seconds max per request
+const GEMINI_TIMEOUT_MS = 55000; // 55 seconds max per request
 const limitGemini = createLimiter({
   concurrency: GEMINI_CONCURRENCY,
   minTimeMs: GEMINI_MIN_TIME_MS,
