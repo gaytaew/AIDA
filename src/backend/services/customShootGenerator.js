@@ -1395,7 +1395,19 @@ export async function generateCustomShootFrame({
         /socket hang up/i.test(errorMsg) ||
         /fetch failed/i.test(errorMsg); // Common undici error
 
+      /* 
+      STRICT QUALITY CONTROL: 
+      User explicitly explicitly requested ONLY "Nano Banana Pro" (Gemini 3).
+      Since Vertex AI only has Gemini 2 Flash (lower quality), we MUST NOT fallback.
+      We fail instead of generating low quality images.
+      
       const shouldFallbackToVertex = isOverloaded || isTimeout || isNetworkError;
+
+      if (shouldFallbackToVertex) {
+        // ... disabled ...
+      }
+      */
+      const shouldFallbackToVertex = false; // FORCE DISABLED
 
       if (shouldFallbackToVertex) {
         const reason = isOverloaded ? 'OVERLOADED' : isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR';
