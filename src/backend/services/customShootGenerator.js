@@ -1387,13 +1387,17 @@ export async function generateCustomShootFrame({
       const isNetworkError =
         /network error/i.test(errorMsg) ||
         /ECONNRESET/i.test(errorMsg) ||
+        /network error/i.test(errorMsg) ||
+        /ECONNRESET/i.test(errorMsg) ||
         /ETIMEDOUT/i.test(errorMsg) ||
-        /socket hang up/i.test(errorMsg);
+        /socket hang up/i.test(errorMsg) ||
+        /fetch failed/i.test(errorMsg); // Common undici error
 
       const shouldFallbackToVertex = isOverloaded || isTimeout || isNetworkError;
 
       if (shouldFallbackToVertex) {
         const reason = isOverloaded ? 'OVERLOADED' : isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR';
+        console.warn(`[CustomShootGenerator] ⚠️ Gemini issue detected (${reason}). Falling back to Vertex AI...`);
         log('GEMINI_UNAVAILABLE', { error: errorMsg, reason, action: 'FALLBACK_VERTEX' });
 
         const vertexResult = await requestVertexImage({
