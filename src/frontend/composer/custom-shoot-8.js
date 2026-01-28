@@ -1097,12 +1097,8 @@ window.applyPreset = function (presetId) {
   // Update Visual Prompt textarea
   const visualPromptEl = document.getElementById('visual-prompt');
 
-  let currentText = visualPromptEl.value;
-  if (!currentText.trim()) {
-    visualPromptEl.value = injection;
-  } else {
-    visualPromptEl.value = injection + '\n' + currentText;
-  }
+  // ALWAYS replace the visual prompt with the preset (not append)
+  visualPromptEl.value = injection;
 
   // Flash effect to show it worked
   visualPromptEl.style.borderColor = 'var(--color-accent)';
