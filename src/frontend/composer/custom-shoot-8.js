@@ -3960,11 +3960,11 @@ function initPresetLogic() {
     tab.addEventListener('click', () => switchPresetTab(tab.dataset.tab));
   });
 
-  // Modal Close
-  const closeBtn = document.getElementById('btn-close-preset-gen');
+  // Modal Close (correct IDs from HTML)
+  const closeBtn = document.getElementById('btn-close-preset-modal');
   if (closeBtn) closeBtn.onclick = closePresetModal;
 
-  const cancelBtn = document.getElementById('btn-cancel-preset');
+  const cancelBtn = document.getElementById('btn-preset-discard');
   if (cancelBtn) cancelBtn.onclick = closePresetModal;
 
   // Generate Buttons
@@ -3974,8 +3974,8 @@ function initPresetLogic() {
   const genImgBtn = document.getElementById('btn-gen-preset-image');
   if (genImgBtn) genImgBtn.onclick = generatePresetFromImage;
 
-  // Save Button
-  const saveBtn = document.getElementById('btn-save-preset');
+  // Save Button (correct ID from HTML)
+  const saveBtn = document.getElementById('btn-preset-save');
   if (saveBtn) saveBtn.onclick = saveGeneratedPreset;
 
   // File Input
@@ -4001,18 +4001,4 @@ function initPresetLogic() {
 
   // Load Presets
   loadPresets();
-}
-
-// FIX: Update modal ID references
-window.openPresetModal = function () {
-  const modal = document.getElementById('preset-modal-overlay');
-  if (modal) modal.style.display = 'flex';
-}
-
-window.closePresetModal = function () {
-  const modal = document.getElementById('preset-modal-overlay');
-  if (modal) {
-    modal.style.display = 'none';
-    resetPresetModal();
-  }
 }
