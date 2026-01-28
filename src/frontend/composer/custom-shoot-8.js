@@ -953,6 +953,15 @@ function generatePresetRichText(preset) {
     injection += `• Location: ${resolveSchemaValue('location', 'spaceTypes', preset.location.spaceType)}\n`;
   }
 
+  // POSE & PHYSICS (New!)
+  if (preset.pose) injection += `• Pose: ${preset.pose}\n`;
+  if (preset.physics) injection += `• Physics: ${preset.physics}\n`;
+
+  // EMOTION (New! Free-form)
+  if (preset.emotion) {
+    injection += `\n[EMOTION]\n${preset.emotion}\n`;
+  }
+
   return injection;
 }
 
