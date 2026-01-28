@@ -123,6 +123,67 @@ Captured between steps — dynamic but frozen.`,
         defaultAdherence: 3
     },
 
+    'leaning_back_wall': {
+        id: 'leaning_back_wall',
+        category: 'standing',
+        label: 'Спиной к стене',
+        shortDescription: 'Расслабленно прислонившись спиной',
+
+        bodyPrompt: `Leaning back flat against a wall. Shoulders and hips contact surface.
+One foot might be propped up against the wall or both planted forward.
+Relaxed, waiting, owning the space behind them.`,
+
+        avoid: ['Sliding down', 'Stiff military posture', 'Looking trapped'],
+        physicalHints: 'Head may tip back against wall. Thumbs in pockets.',
+        defaultAdherence: 2
+    },
+
+    'arms_crossed': {
+        id: 'arms_crossed',
+        category: 'standing',
+        label: 'Руки скрещены',
+        shortDescription: 'Закрытая или уверенная поза',
+
+        bodyPrompt: `Standing with arms crossed over chest. Shoulders relaxed, not raised.
+Can read as defensive, skeptical, or cool confidence depending on face.
+Weight shifted to one hip to break rigidity.`,
+
+        avoid: ['Tense aggression', 'Hiding hands completely', 'Squeezing arms too tight'],
+        physicalHints: 'Fingers should be visible on biceps. Chin slightly down or up.',
+        defaultAdherence: 2
+    },
+
+    'leg_pop': {
+        id: 'leg_pop',
+        category: 'standing',
+        label: 'Нога в сторону',
+        shortDescription: 'Игривая фэшн стойка',
+
+        bodyPrompt: `Playful fashion stance with one leg kicked out to side or popped knee.
+Creates dynamic angle with hips. Upper body might lean opposite to leg.
+Classic street style editorial energy.`,
+
+        avoid: ['Exaggerated flamingo pose', 'Loss of balance'
+        ],
+        physicalHints: 'Toe point or heel touch. Hip popped out.',
+        defaultAdherence: 3
+    },
+
+    'walking_away': {
+        id: 'walking_away',
+        category: 'standing',
+        label: 'Уходит от камеры',
+        shortDescription: 'Вид со спины, уходит',
+
+        bodyPrompt: `Captured from behind, walking away from camera.
+Head might turn slightly back (quarter profile) or look straight ahead.
+Sense of mystery, departure, leading the viewer.`,
+
+        avoid: ['Stiff marching', 'Looking purely at ground'],
+        physicalHints: 'Back of outfit visible. Sole of shoe might show during step.',
+        defaultAdherence: 3
+    },
+
     // ─────────────────────────────────────────────────────────────
     // 🪑 SITTING — Сидящие позы
     // ─────────────────────────────────────────────────────────────
@@ -185,6 +246,51 @@ The poised grace of old Hollywood or fashion editorial.`,
         avoid: ['Stiff formal posture', 'Legs spread wide', 'Hunching'],
         physicalHints: 'Ankles together or crossed. Hands placed gracefully.',
         defaultAdherence: 3
+    },
+
+    'squatting_low': {
+        id: 'squatting_low',
+        category: 'sitting',
+        label: 'На корточках',
+        shortDescription: 'Глубокий присед, уличный стиль',
+
+        bodyPrompt: `Deep squat (slav squat or fashion squat). Heels on or near ground.
+Knees wide apart, elbows might rest on knees.
+Grounding, raw, street-level perspective.`,
+
+        avoid: ['Falling backward', 'Straining to hold pose', 'Unflattering angles'],
+        physicalHints: 'Back rounded naturally. Hands loose between legs or on knees.',
+        defaultAdherence: 3
+    },
+
+    'straddling_chair': {
+        id: 'straddling_chair',
+        category: 'sitting',
+        label: 'Верхом на стуле',
+        shortDescription: 'Сидит задом наперед',
+
+        bodyPrompt: `Sitting backward on a chair, straddling the seat.
+Arms resting on the chair back. Chin might rest on arms.
+Rebellious, casual, breaking convention.`,
+
+        avoid: ['Manspreading too wide', 'Hiding face completely', 'Awkward crotch angle'],
+        physicalHints: 'Chest against chair back. Legs relaxed on sides.',
+        defaultAdherence: 3
+    },
+
+    'kneeling': {
+        id: 'kneeling',
+        category: 'sitting',
+        label: 'На коленях',
+        shortDescription: 'На одном или двух коленях',
+
+        bodyPrompt: `Kneeling on the floor. Could be on one knee (proposing style but casual)
+or both knees (Japanese style or relaxed).
+Changes height level, creates vulnerability or grounding.`,
+
+        avoid: ['Religious prayer pose', 'Begging pose', 'Stiffness'],
+        physicalHints: 'Fabric pools around legs. Posture upright but not rigid.',
+        defaultAdherence: 2
     },
 
     // ─────────────────────────────────────────────────────────────
@@ -251,6 +357,66 @@ transition, not a finished pose.`,
         defaultAdherence: 2
     },
 
+    'running': {
+        id: 'running',
+        category: 'dynamic',
+        label: 'Бег',
+        shortDescription: 'В процессе бега',
+
+        bodyPrompt: `Caught mid-run. Blur options allowed. Hair flying, clothes moving.
+Both feet might be off ground (floating phase) or one driving.
+High energy, urgency, or freedom.`,
+
+        avoid: ['Jogging inplace look', 'Stiff robot run', 'Face distorted by effort'],
+        physicalHints: 'Forward lean. Arms pumping. Intense focus or laughing.',
+        defaultAdherence: 3
+    },
+
+    'dancing': {
+        id: 'dancing',
+        category: 'dynamic',
+        label: 'Танец',
+        shortDescription: 'Свободное движение под музыку',
+
+        bodyPrompt: `Fluid body movement, lost in music. Arms extended or moving.
+Head thrown back or turning. Eyes might be closed.
+Expression of joy, release, and rhythm.`,
+
+        avoid: ['Cheesy disco finger', 'Ballroom hold', 'Stiff posed dance'],
+        physicalHints: 'Twisting torso. Blurred extremities. Hair in motion.',
+        defaultAdherence: 2
+    },
+
+    'jumping': {
+        id: 'jumping',
+        category: 'dynamic',
+        label: 'Прыжок',
+        shortDescription: 'В воздухе',
+
+        bodyPrompt: `Suspended in mid-air. Jump or leap.
+Clothing defying gravity. Hair floating up.
+A moment of total weightlessness and energy.`,
+
+        avoid: ['Awkward landing face', 'Compressed spine', 'Blurry mess'],
+        physicalHints: 'Knees tucked or legs extended. Arms reaching up or out.',
+        defaultAdherence: 3
+    },
+
+    'reaching_out': {
+        id: 'reaching',
+        category: 'dynamic',
+        label: 'Тянется к камере',
+        shortDescription: 'Рука тянется к объективу',
+
+        bodyPrompt: `Hand reaching out toward the camera lens (foreshortened).
+Blurry hand in foreground, focus on face/eyes behind it.
+Interactive, inviting, or blocking the shot.`,
+
+        avoid: ['Covering entire face', 'Aggressive punch', 'Claw hand'],
+        physicalHints: 'Palm open or fingers reaching. Depth of field play.',
+        defaultAdherence: 3
+    },
+
     // ─────────────────────────────────────────────────────────────
     // 🛋️ RECLINING — Полулежащие и лежащие
     // ─────────────────────────────────────────────────────────────
@@ -282,6 +448,36 @@ the pose of someone reading in bed or daydreaming.`,
 
         avoid: ['Pinup pose', 'Stiff side-lying', 'Unnatural head angle'],
         physicalHints: 'Top arm may rest on hip or surface ahead. Legs may be stacked or bent.',
+        defaultAdherence: 2
+    },
+
+    'flat_lay_floor': {
+        id: 'flat_lay_floor',
+        category: 'reclining',
+        label: 'Лёжа на спине',
+        shortDescription: 'Вид сверху или сбоку, на спине',
+
+        bodyPrompt: `Lying flat on back on floor/bed. Hair spread out like halo.
+Limbs relaxed, maybe one knee bent.
+Vulnerable, dreamy, surrender to gravity.`,
+
+        avoid: ['Corpse pose', 'Stiff waiting', 'Double chin angle'],
+        physicalHints: 'Fabric pooling. Gravity pulling hair and skin back.',
+        defaultAdherence: 3
+    },
+
+    'propped_elbows_front': {
+        id: 'propped_elbows_front',
+        category: 'reclining',
+        label: 'На животе',
+        shortDescription: 'Лёжа на животе, опора на локти',
+
+        bodyPrompt: `Lying on stomach, propped up on elbows. Feet might be kicked up.
+Reading book style or looking at camera.
+Playful, casual, intimate.`,
+
+        avoid: ['Strained neck', 'Seal pose', 'Uncomfortable arch'],
+        physicalHints: 'Shoulders shrugged up. Chin in hands or looking slightly up.',
         defaultAdherence: 2
     },
 
@@ -332,6 +528,20 @@ The natural pose of conversation or contemplation.`,
         avoid: ['Elbow digging in', 'Head fully on hand', 'Both elbows symmetric'],
         physicalHints: 'One side lower than other. Fingers may be near face.',
         defaultAdherence: 2
+    },
+    'doorway_lean': {
+        id: 'doorway_lean',
+        category: 'leaning',
+        label: 'В дверном проеме',
+        shortDescription: 'Опираясь руками о косяк',
+
+        bodyPrompt: `Standing in a doorway, leaning against the frame.
+Maybe hands bracing on top or sides. Framing within a frame.
+Transition space, threshold, welcoming or blocking.`,
+
+        avoid: ['Jesus pose', 'Measuring height', 'Stiff symmetry'],
+        physicalHints: 'One hip cocked. Arms creating geometric angles with frame.',
+        defaultAdherence: 3
     }
 };
 
