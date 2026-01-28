@@ -3949,4 +3949,70 @@ async function applyLookToModel(lookId) {
 }
 
 // Init called at end
-document.addEventListener('DOMContentLoaded', initLooksLogic);
+document.addEventListener('DOMContentLoaded', () => {
+  initLooksLogic();
+  initPresetLogic();
+});
+
+function initPresetLogic() {
+  // Tabs
+  document.querySelectorAll('.preset-gen-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchPresetTab(tab.dataset.tab));
+  });
+
+  // Modal Close
+  const closeBtn = document.getElementById('btn-close-preset-gen');
+  if (closeBtn) closeBtn.onclick = closePresetModal;
+
+  const cancelBtn = document.getElementById('btn-cancel-preset');
+  if (cancelBtn) cancelBtn.onclick = closePresetModal;
+
+  // Generate Buttons
+  const genTextBtn = document.getElementById('btn-gen-preset-text');
+  if (genTextBtn) genTextBtn.onclick = generatePresetFromText;
+
+  const genImgBtn = document.getElementById('btn-gen-preset-image');
+  if (genImgBtn) genImgBtn.onclick = generatePresetFromImage;
+
+  // Save Button
+  const saveBtn = document.getElementById('btn-save-preset');
+  if (saveBtn) saveBtn.onclick = saveGeneratedPreset;
+
+  // File Input
+  const dropZone = document.getElementById('preset-drop-zone');
+  const fileInput = document.getElementById('preset-file-input');
+
+  if (dropZone && fileInput) {
+    dropZone.onclick = (e) => {
+      // Prevent recursive clicking if label contains input
+      if (e.target !== fileInput) fileInput.click();
+    };
+    fileInput.onchange = handlePresetFileSelect;
+
+    // Drag & Drop
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handlePresetFile(e.dataTransfer.files[0]);
+    };
+  }
+
+  // Load Presets
+  loadPresets();
+}
+
+// FIX: Update modal ID references
+window.openPresetModal = function () {
+  const modal = document.getElementById('preset-modal-overlay');
+  if (modal) modal.style.display = 'flex';
+}
+
+window.closePresetModal = function () {
+  const modal = document.getElementById('preset-modal-overlay');
+  if (modal) {
+    modal.style.display = 'none';
+    resetPresetModal();
+  }
+}
