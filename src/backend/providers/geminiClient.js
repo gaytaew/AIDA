@@ -19,7 +19,7 @@ import { setGeminiLimiterStatus, setGeminiClientVersion } from '../routes/health
 // ═══════════════════════════════════════════════════════════════
 // VERSION (для отслеживания на сервере)
 // ═══════════════════════════════════════════════════════════════
-export const GEMINI_CLIENT_VERSION = '2.0.3';
+export const GEMINI_CLIENT_VERSION = '2.0.4';
 
 // Nano Banana Pro - модель для генерации изображений
 const GEMINI_URL =
