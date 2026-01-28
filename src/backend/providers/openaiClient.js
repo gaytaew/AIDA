@@ -2,9 +2,19 @@
 import OpenAI from 'openai';
 import config from '../config.js';
 
-const openai = new OpenAI({
-    apiKey: config.OPENAI_API_KEY,
-});
+let openaiInstance = null;
+
+function getOpenAI() {
+    if (!openaiInstance) {
+        if (!config.OPENAI_API_KEY) {
+            throw new Error('OPENAI_API_KEY is not configured');
+        }
+        openaiInstance = new OpenAI({
+            apiKey: config.OPENAI_API_KEY,
+        });
+    }
+    return openaiInstance;
+}
 
 /**
  * Request text completion via OpenAI API (supports multimodal input).
@@ -13,11 +23,10 @@ const openai = new OpenAI({
  * @returns {Promise<{ok: boolean, text?: string, error?: string}>}
  */
 export async function requestOpenAIText({ prompt, images = [] }) {
-    if (!config.OPENAI_API_KEY) {
-        return { ok: false, error: 'OPENAI_API_KEY is not configured' };
-    }
-
     try {
+        // Initialize lazily to prevent startup crash if key is missing
+        const openai = getOpenAI();
+
         const messages = [{
             role: 'user',
             content: []
@@ -32,11 +41,6 @@ export async function requestOpenAIText({ prompt, images = [] }) {
         if (Array.isArray(images) && images.length > 0) {
             images.forEach(img => {
                 if (!img || !img.base64) return;
-                // Ensure base64 has prefix for OpenAI or just send the dataUrl if needed.
-                // OpenAI expects: "data:image/jpeg;base64,{base64_image}"
-                // Check if incoming base64 already has it or not.
-                // Usually our internal base64 might be raw or with header.
-                // Let's assume raw base64 and add header if missing, or use as is if full data URL.
 
                 let imageUrl = `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}`;
 
