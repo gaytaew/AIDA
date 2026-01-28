@@ -2832,8 +2832,11 @@ async function generateFrame(frameId) {
       gazeDirection: elements.genGazeDirection?.value || 'camera'
     },
     // Body pose (only when no pose sketch - ignored on backend if sketch present)
-    poseId: document.getElementById('gen-body-pose')?.value || null
+    poseId: document.getElementById('gen-body-pose')?.value || null  // empty string becomes null
   };
+
+  // DEBUG: Log poseId
+  console.log('[CS8] generateFrame poseId:', params.poseId, 'element value:', document.getElementById('gen-body-pose')?.value);
 
   // Add placeholder
   const placeholderId = `pending_${Date.now()}`;
