@@ -4,9 +4,9 @@
  */
 
 import express from 'express';
-import { getGeminiTextResponse, getGeminiVisionResponse } from '../services/gemini.js'; // Assuming this exists
+import { requestGeminiText } from '../providers/geminiClient.js';
 import presetGenerator from '../services/presetGenerator.js';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -33,21 +33,27 @@ async function savePresets(presets) {
     await fs.writeFile(PRESETS_FILE, JSON.stringify(presets, null, 2));
 }
 
+// Helper to clean JSON from Gemini markdown
+function cleanJson(text) {
+    if (!text) return null;
+    return text.replace(/```json/g, '').replace(/```/g, '').trim();
+}
+
 // 1. GENERATE FROM TEXT
 router.post('/generate-text', async (req, res) => {
     try {
         const { prompt } = req.body;
         const systemPrompt = presetGenerator.buildPresetSystemPrompt();
+        const fullPrompt = `${systemPrompt}\n\nUSER REQUEST: Style description: "${prompt}"`;
 
-        // Call Gemini (Mock implementation pattern - in real app would call gemini service)
-        // Here we assume getGeminiTextResponse returns a valid JSON string
-        // In a real implementation, you'd wire this to your actual LLM service wrapper
-        const aiResponse = await getGeminiTextResponse([
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Style description: "${prompt}"` }
-        ]);
+        const response = await requestGeminiText({ prompt: fullPrompt });
 
-        let rawPreset = JSON.parse(aiResponse); // Assuming AI returns clean JSON
+        if (!response.ok) {
+            throw new Error(response.error);
+        }
+
+        const rawJson = cleanJson(response.text);
+        let rawPreset = JSON.parse(rawJson);
         const validation = presetGenerator.validatePhysicalConsistency(rawPreset);
 
         res.json({ success: true, preset: validation.preset, logs: validation.logs });
@@ -62,14 +68,22 @@ router.post('/generate-image', async (req, res) => {
     try {
         const { imageBase64 } = req.body;
         const systemPrompt = presetGenerator.buildPresetSystemPrompt();
+        const fullPrompt = `${systemPrompt}\n\nUSER REQUEST: Analyze this image and reverse-engineer the shoot preset.`;
 
-        // Gemini Vision call
-        const aiResponse = await getGeminiVisionResponse(
-            imageBase64,
-            systemPrompt + '\n\nAnalyze this image and reverse-engineer the shoot preset.'
-        );
+        // Prepare image for Gemini (remove header if present)
+        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
-        let rawPreset = JSON.parse(aiResponse);
+        const response = await requestGeminiText({
+            prompt: fullPrompt,
+            images: [{ mimeType: 'image/jpeg', base64: base64Data }]
+        });
+
+        if (!response.ok) {
+            throw new Error(response.error);
+        }
+
+        const rawJson = cleanJson(response.text);
+        let rawPreset = JSON.parse(rawJson);
         const validation = presetGenerator.validatePhysicalConsistency(rawPreset);
 
         res.json({ success: true, preset: validation.preset, logs: validation.logs });
@@ -90,7 +104,7 @@ router.post('/', async (req, res) => {
     if (!preset) return res.status(400).send('No preset data');
 
     const presets = await getPresets();
-    const newPreset = { ...preset, id: uuidv4(), createdAt: new Date() };
+    const newPreset = { ...preset, id: crypto.randomUUID(), createdAt: new Date() };
     presets.push(newPreset);
     await savePresets(presets);
 
