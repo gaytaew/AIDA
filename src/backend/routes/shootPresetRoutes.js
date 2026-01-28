@@ -16,6 +16,7 @@ const PRESETS_FILE = path.join(process.cwd(), 'src/data/shootPresets.json');
 // Ensure stats file exists
 async function ensureFile() {
     try {
+        await fs.mkdir(path.dirname(PRESETS_FILE), { recursive: true });
         await fs.access(PRESETS_FILE);
     } catch {
         await fs.writeFile(PRESETS_FILE, JSON.stringify([]));
