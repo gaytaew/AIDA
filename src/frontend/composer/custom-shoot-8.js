@@ -1,9 +1,8 @@
 /**
- * Custom Shoot V7 - Pure Prompt Mode
+ * Custom Shoot V8 - Pure Logic Mode
  * 
- * Same workflow as V5 (Shoot > Models > Clothing > Generate),
- * but Step 4 uses a single visual prompt instead of manual parameters.
- * Style Lock ensures consistency between frames.
+ * Logic-driven prompt generation using Shoot Presets.
+ * Focuses on 'Logic of Silence' and physics-based consistency.
  */
 
 // ═══════════════════════════════════════════════════════════════
