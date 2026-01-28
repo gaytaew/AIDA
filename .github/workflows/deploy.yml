@@ -16,62 +16,70 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script_stop: true
+          command_timeout: 10m
           script: |
             set -e
+            export TERM=xterm
             
-            echo "=== AIDA Deploy Started ==="
+            LOGFILE="/root/aida_deploy_last.log"
+            echo "Starting deploy at $(date)" > $LOGFILE
             
-            # 1. Clone or update repo
+            # Helper for logging
+            log() {
+              echo "[$1] $2" | tee -a $LOGFILE
+            }
+            
+            log "INFO" "Ensuring directory exists..."
             if [ ! -d "/root/AIDA" ]; then
-              echo "Cloning repository..."
               git clone git@github.com:gaytaew/AIDA.git /root/AIDA
             fi
             
             cd /root/AIDA
             
-            # 2. Fetch and reset to latest
-            echo "Fetching latest changes..."
-            git fetch origin
-            git reset --hard origin/main
+            log "INFO" "Fetching updates..."
+            git fetch --all --tags --prune
             
-            # 3. Show current commit
-            echo "Current commit:"
-            git log -1 --oneline
+            # Force checkout exactly the commit that triggered this workflow
+            # origin/main might lag behind slightly or contain cached refs
+            TARGET_SHA="${{ github.sha }}"
+            log "INFO" "Checking out commit: $TARGET_SHA"
             
-            # 4. Install dependencies
-            echo "Installing dependencies..."
-            npm ci --production
+            git checkout -f $TARGET_SHA
+            git reset --hard $TARGET_SHA
+            git clean -fd
             
-            # 5. Run checks (optional, don't fail deploy)
-            npm run check || echo "Check failed but continuing..."
+            log "INFO" "Updating dependencies..."
+            # Use npm install instead of ci to be more resilient to lockfile mismatches
+            npm install --production --no-audit
             
-            # 6. Restart service with verification
-            echo "Restarting AIDA service..."
-            sudo systemctl restart aida
+            log "INFO" "Restarting Service..."
+            # Stop first to ensure clean state
+            sudo systemctl stop aida || true
+            sleep 2
+            sudo systemctl start aida
             
-            # 7. Wait for service to start
-            sleep 3
+            log "INFO" "Verifying Service Status..."
+            sleep 5
             
-            # 8. Verify service is running
-            echo "Checking service status..."
             if sudo systemctl is-active --quiet aida; then
-              echo "✅ AIDA service is running"
+              log "SUCCESS" "AIDA is running."
             else
-              echo "❌ AIDA service failed to start!"
-              sudo systemctl status aida --no-pager -l
+              log "ERROR" "AIDA failed to start."
+              sudo systemctl status aida --no-pager -l | tee -a $LOGFILE
               exit 1
             fi
             
-            # 9. Verify health endpoint
-            echo "Checking health endpoint..."
+            log "INFO" "Health Check..."
+            # Allow service time to initialize
+            sleep 5
             HEALTH=$(curl -s http://localhost:3003/api/health 2>/dev/null || echo "FAILED")
-            if echo "$HEALTH" | grep -q '"ok":true'; then
-              echo "✅ Health check passed"
-              # Show gemini client version
-              echo "$HEALTH" | grep -o '"geminiClientVersion":"[^"]*"' || echo "(version not found)"
-            else
-              echo "⚠️ Health check failed or endpoint not ready"
-              echo "Response: $HEALTH"
-            fi
             
-            echo "=== AIDA Deploy Complete ==="
+            log "INFO" "Health Response: $HEALTH"
+            
+            if echo "$HEALTH" | grep -q '"ok":true'; then
+               log "SUCCESS" "Deploy finished successfully."
+               exit 0
+            else
+               log "WARNING" "Health check endpoint failed, but service is running."
+               exit 1
+            fi
