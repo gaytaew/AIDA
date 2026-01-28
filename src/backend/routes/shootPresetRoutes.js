@@ -71,12 +71,16 @@ router.post('/generate-image', async (req, res) => {
         const systemPrompt = presetGenerator.buildPresetSystemPrompt();
         const fullPrompt = `${systemPrompt}\n\nUSER REQUEST: Analyze this image and reverse-engineer the shoot preset.`;
 
-        // Prepare image (remove data URL header if present)
+        // Extract MIME type from data URL before stripping
+        const mimeMatch = imageBase64.match(/^data:(image\/\w+);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+        // Remove data URL header
         const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
         const response = await requestOpenAIText({
             prompt: fullPrompt,
-            images: [{ mimeType: 'image/jpeg', base64: base64Data }]
+            images: [{ mimeType, base64: base64Data }]
         });
 
         if (!response.ok) {
