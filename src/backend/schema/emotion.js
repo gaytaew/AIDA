@@ -26,6 +26,7 @@ export const EMOTION_CATEGORIES = [
   { id: 'camera_aware', label: '📷 С камерой', description: 'Взаимодействие с камерой' },
   { id: 'transitional', label: '✨ Переходные', description: 'Моменты между состояниями' },
   { id: 'facial_intense', label: '🎭 Интенсивные', description: 'Глубокие эмоции с точным описанием мышц лица' },
+  { id: 'commercial_positive', label: '💼 Commercial', description: 'Позитивные, вызывающие доверие (реклама, лайфстайл)' },
   { id: 'fashion_editorial', label: '👠 Fashion', description: 'Модельные выражения лица для фэшн съёмки' }
 ];
 
@@ -658,6 +659,94 @@ full reaction. Brief, subtle, but visible.`,
     defaultIntensity: 2,
     physicalHints: 'jaw set firmly, unwavering eye contact, slight raised brow, chin level, lips closed neutral',
     authenticityKey: 'Resistance through stillness, not action'
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 💼 COMMERCIAL POSITIVE — Реклама и Лайфстайл
+  // ─────────────────────────────────────────────────────────────
+
+  'candid_joy': {
+    id: 'candid_joy',
+    category: 'commercial_positive',
+    label: 'Candid Joy',
+    shortDescription: 'Сияющая, искренняя улыбка',
+
+    atmosphere: `Full activation of Zygomaticus major pulling mouth corners distinctly up. Orbicularis oculi contraction creating deep, genuine 'Duchenne' crows feet. Cheeks lifted high, reducing eye aperture. Teeth visible but natural.`,
+
+    avoid: ['Stock photo freeze', 'Dead eyes smile', 'Too perfect', 'Scary grin'],
+    defaultIntensity: 2,
+    physicalHints: 'Zygomaticus major engaged, Duchenne eye markers, lifted cheeks, open genuine mouth',
+    authenticityKey: 'The smile that reaches the eyes immediately'
+  },
+
+  'welcoming_warmth': {
+    id: 'welcoming_warmth',
+    category: 'commercial_positive',
+    label: 'Welcoming',
+    shortDescription: 'Приветливость, доверие',
+
+    atmosphere: `Soft contraction of Zygomaticus major. Eyes slightly widened (Orbicularis oculi relaxed) but bright. Head tilted slightly forward. Eyebrows slightly raised in center (Frontalis muscle).`,
+
+    avoid: ['Salesman fake smile', 'Creepy stare', 'Overly wide eyes'],
+    defaultIntensity: 2,
+    physicalHints: 'Soft smile, bright widened eyes, slight brow raise, forward head tilt',
+    authenticityKey: 'Safe, approachable, ready to listen'
+  },
+
+  'glowing_satisfaction': {
+    id: 'glowing_satisfaction',
+    category: 'commercial_positive',
+    label: 'Glowing',
+    shortDescription: 'Внутреннее свечение, довольство',
+
+    atmosphere: `Face muscles completely relaxed but elevated. Eyelids heavy with contentment. Lips loosely closed or slightly parted with corners upturned. Skin looks smooth due to lack of tension.`,
+
+    avoid: ['Sleepy', 'Drugged look', 'Smugness', 'Arrogance'],
+    defaultIntensity: 2,
+    physicalHints: 'Elevated relaxed features, heavy content lids, soft upturned mouth corners',
+    authenticityKey: 'Post-skincare glow feel, purely internal comfort'
+  },
+
+  'laughing_out_loud': {
+    id: 'laughing_out_loud',
+    category: 'commercial_positive',
+    label: 'Laughing Out Loud',
+    shortDescription: 'Открытый, чистый смех',
+
+    atmosphere: `Jaw dropped open, Zygomaticus major fully contracted. Nose wrinkled (Nasalis muscle). Eyes squeezed almost shut with joy. Head thrown back slightly. Neck muscles visible but not strained.`,
+
+    avoid: ['Fake stock laugh', 'Scary wide mouth', 'Frozen scream'],
+    defaultIntensity: 3,
+    physicalHints: 'Open dropped jaw, wrinkled nose, eyes wrinkled shut, head back',
+    authenticityKey: 'Auditively loud laughter captured visually'
+  },
+
+  'confident_professional': {
+    id: 'confident_professional',
+    category: 'commercial_positive',
+    label: 'Confident Pro',
+    shortDescription: 'Уверенный эксперт',
+
+    atmosphere: `Direct eye contact with relaxed Orbicularis oculi. Chin level. Mouth in firm but neutral line or micro-smile. Masseter (jaw) relaxed, not clenched. Posture supporting the face.`,
+
+    avoid: ['Arrogant sneer', 'Passport photo face', 'Scared eyes'],
+    defaultIntensity: 2,
+    physicalHints: 'Direct relaxed gaze, level chin, firm neutral mouth, relaxed jaw',
+    authenticityKey: 'Competence without trying to prove it'
+  },
+
+  'inspired_vision': {
+    id: 'inspired_vision',
+    category: 'commercial_positive',
+    label: 'Inspired',
+    shortDescription: 'Вдохновение, взгляд в будущее',
+
+    atmosphere: `Eyes focused on distant point, slightly elevated. Upper eyelids lifted. Lips parted as if taking a breath. Slight expansion of nostrils (alar portion). Face lit by internal idea.`,
+
+    avoid: ['Zombie stare', 'Confused look', 'Mouth breather', 'Shock'],
+    defaultIntensity: 2,
+    physicalHints: 'Distant elevated gaze, lifted lids, parted lips (breath), slight nostril flare',
+    authenticityKey: 'Seeing possibilities, not just looking at things'
   },
 
   // ─────────────────────────────────────────────────────────────
