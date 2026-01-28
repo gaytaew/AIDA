@@ -65,9 +65,19 @@ router.post('/generate-text', async (req, res) => {
 });
 
 // 2. GENERATE FROM IMAGE (Vision) — uses OpenAI GPT-5.2
+// 2. GENERATE FROM IMAGE (Vision) — uses OpenAI GPT-5.2
 router.post('/generate-image', async (req, res) => {
     try {
+        console.log('[ShootPreset] POST /generate-image received');
         const { imageBase64 } = req.body;
+
+        if (!imageBase64) {
+            console.error('[ShootPreset] No imageBase64 provided');
+            return res.status(400).json({ success: false, error: 'No image provided' });
+        }
+
+        console.log(`[ShootPreset] Processing image (length: ${imageBase64.length})`);
+
         const systemPrompt = presetGenerator.buildPresetSystemPrompt();
         const fullPrompt = `${systemPrompt}\n\nUSER REQUEST: Analyze this image and reverse-engineer the shoot preset.`;
 
@@ -78,23 +88,34 @@ router.post('/generate-image', async (req, res) => {
         // Remove data URL header
         const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
+        console.log('[ShootPreset] Calling OpenAI Vision...');
         const response = await requestOpenAIText({
             prompt: fullPrompt,
             images: [{ mimeType, base64: base64Data }]
         });
 
+        console.log('[ShootPreset] OpenAI Response:', response.ok ? 'OK' : 'FAIL');
+
         if (!response.ok) {
-            throw new Error(response.error);
+            throw new Error(response.error || 'Unknown OpenAI error');
         }
 
         const rawJson = cleanJson(response.text);
+        console.log('[ShootPreset] Raw JSON:', rawJson.substring(0, 50) + '...');
+
         let rawPreset = JSON.parse(rawJson);
         const validation = presetGenerator.validatePhysicalConsistency(rawPreset);
 
+        console.log('[ShootPreset] Validation complete. Sending response.');
         res.json({ success: true, preset: validation.preset, logs: validation.logs });
     } catch (error) {
         console.error('Preset Vision Error:', error);
-        res.status(500).json({ success: false, error: 'Failed to analyze image' });
+        res.status(500).json({
+            success: false,
+            error: 'Failed to analyze image',
+            details: error.message,
+            stack: error.stack
+        });
     }
 });
 

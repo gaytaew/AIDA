@@ -863,11 +863,11 @@ async function generatePresetFromImage() {
   setPresetLoading(true);
   try {
     console.log('Sending preset generation request...', imgBase64.substring(0, 50) + '...');
-    const res = await fetch('/api/shoot-presets/generate-image', {
+    const res = await fetchWithTimeout('/api/shoot-presets/generate-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageBase64: imgBase64 })
-    });
+    }, 60000); // 60s timeout for AI generation
     const data = await res.json();
 
     if (data.success) {
@@ -887,7 +887,9 @@ let tempGeneratedPreset = null;
 
 function setPresetLoading(isLoading) {
   document.getElementById('preset-loading').style.display = isLoading ? 'block' : 'none';
-  document.getElementById('preset-gen-result').style.display = 'none';
+  if (isLoading) {
+    document.getElementById('preset-gen-result').style.display = 'none';
+  }
 }
 
 function showPresetPreview(preset) {
