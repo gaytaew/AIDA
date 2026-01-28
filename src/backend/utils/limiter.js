@@ -16,13 +16,14 @@ function sleep(ms) {
  * @param {Object} options
  * @param {number} options.concurrency - max parallel tasks (default 1)
  * @param {number} options.minTimeMs - minimum delay between task starts (default 0)
- * @param {number} options.timeoutMs - max time for a single task (default 180000 = 3 minutes)
+ * @param {number} options.timeoutMs - max time for a single task (default 0 = no timeout, use HTTP timeout)
  * @param {string} options.name - limiter name for logging (default 'limiter')
  */
 export function createLimiter(options = {}) {
   const concurrency = Math.max(1, Number.parseInt(options.concurrency || 1, 10) || 1);
   const minTimeMs = Math.max(0, Number.parseInt(options.minTimeMs || 0, 10) || 0);
-  const timeoutMs = Math.max(0, Number.parseInt(options.timeoutMs || 180000, 10) || 180000);
+  // timeoutMs = 0 means NO internal timeout (rely on HTTP timeout)
+  const timeoutMs = Math.max(0, Number.parseInt(options.timeoutMs || 0, 10) || 0);
   const name = options.name || 'limiter';
 
   let active = 0;
@@ -32,7 +33,6 @@ export function createLimiter(options = {}) {
 
   async function runNext() {
     if (active >= concurrency) {
-      console.log(`[${name}] runNext: active=${active} >= concurrency=${concurrency}, waiting...`);
       return;
     }
     const item = queue.shift();
@@ -41,11 +41,10 @@ export function createLimiter(options = {}) {
     const taskId = ++taskIdCounter;
     active++;
     console.log(`[${name}] Task #${taskId} started (active=${active}, queue=${queue.length})`);
-    
+
     const startTime = Date.now();
     let timeoutHandle = null;
-    let timedOut = false;
-    
+
     try {
       if (minTimeMs > 0) {
         const now = Date.now();
@@ -53,35 +52,39 @@ export function createLimiter(options = {}) {
         if (wait > 0) await sleep(wait);
       }
       lastStartAt = Date.now();
-      
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          timedOut = true;
-          reject(new Error(`[${name}] Task #${taskId} timed out after ${timeoutMs}ms`));
-        }, timeoutMs);
-      });
-      
-      // Race between task and timeout
-      const res = await Promise.race([
-        item.fn(),
-        timeoutPromise
-      ]);
-      
-      clearTimeout(timeoutHandle);
-      
+
+      let result;
+
+      // Only race with timeout if timeoutMs > 0
+      if (timeoutMs > 0) {
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reject(new Error(`[${name}] Task #${taskId} timed out after ${timeoutMs}ms`));
+          }, timeoutMs);
+        });
+
+        result = await Promise.race([
+          item.fn(),
+          timeoutPromise
+        ]);
+
+        clearTimeout(timeoutHandle);
+      } else {
+        // No internal timeout — just run the task
+        result = await item.fn();
+      }
+
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`[${name}] Task #${taskId} completed in ${duration}s (active=${active - 1}, queue=${queue.length})`);
-      
-      item.resolve(res);
+      console.log(`[${name}] Task #${taskId} completed in ${duration}s`);
+
+      item.resolve(result);
     } catch (e) {
-      clearTimeout(timeoutHandle);
+      if (timeoutHandle) clearTimeout(timeoutHandle);
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       console.error(`[${name}] Task #${taskId} failed after ${duration}s:`, e.message?.slice(0, 100));
       item.reject(e);
     } finally {
       active--;
-      console.log(`[${name}] Task #${taskId} cleanup: active=${active}, queue=${queue.length}`);
       // Schedule next tick to avoid deep recursion
       queueMicrotask(runNext);
     }
@@ -96,7 +99,7 @@ export function createLimiter(options = {}) {
       queueMicrotask(runNext);
     });
   };
-  
+
   // Add diagnostic method
   limitFn.getStatus = () => ({
     name,
@@ -105,7 +108,7 @@ export function createLimiter(options = {}) {
     concurrency,
     timeoutMs
   });
-  
+
   return limitFn;
 }
 

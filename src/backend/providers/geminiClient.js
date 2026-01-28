@@ -1,51 +1,49 @@
 /**
  * Gemini (Nano Banana Pro) client for AIDA.
- * Adapted from fashion-shoot-mvp geminiClient.js
+ * 
+ * VERSION: 2.0.0
+ * DATE: 2026-01-28
+ * 
+ * ARCHITECTURE v2.0:
+ * - Простая архитектура: один HTTP запрос → один таймаут → результат или fallback
+ * - Убраны множественные уровни retry (были причиной бесконечных зависаний)
+ * - Лимитер используется ТОЛЬКО для concurrency (предотвращение 503)
+ * - При ошибках (timeout, overloaded) → возвращаем errorCode для fallback в генераторе
  */
 
 import { fetch } from 'undici';
 import config from '../config.js';
-import { retry, isRetryableNetworkError } from '../utils/retry.js';
 import { createLimiter } from '../utils/limiter.js';
-import { setGeminiLimiterStatus } from '../routes/healthRoutes.js';
+import { setGeminiLimiterStatus, setGeminiClientVersion } from '../routes/healthRoutes.js';
+
+// ═══════════════════════════════════════════════════════════════
+// VERSION (для отслеживания на сервере)
+// ═══════════════════════════════════════════════════════════════
+export const GEMINI_CLIENT_VERSION = '2.0.0';
 
 // Nano Banana Pro - модель для генерации изображений
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent';
 
-// Таймаут для запросов к Gemini API (в миллисекундах)
-// UPDATED: 90 секунд для сложных запросов с 4+ изображениями в 2K разрешении
-const REQUEST_TIMEOUT_MS = 90000;
+// Единственный таймаут — 120 секунд
+// Достаточно для сложных запросов с 6+ изображениями в 2K
+const REQUEST_TIMEOUT_MS = 120000;
 
-// Global limiter for Gemini to reduce burst/parallel overload (503).
-// FIXED: Added name and timeout for better diagnostics
-// UPDATED: 120 секунд - запас для тяжёлых генераций
-const GEMINI_CONCURRENCY = 1;
-const GEMINI_MIN_TIME_MS = 800;
-const GEMINI_TIMEOUT_MS = 120000;
+// Лимитер ТОЛЬКО для concurrency — предотвращает параллельные запросы (причина 503)
+// НЕТ внутреннего таймаута — таймаут только на уровне HTTP
 const limitGemini = createLimiter({
-  concurrency: GEMINI_CONCURRENCY,
-  minTimeMs: GEMINI_MIN_TIME_MS,
-  timeoutMs: GEMINI_TIMEOUT_MS,
+  concurrency: 1,
+  minTimeMs: 500,
   name: 'Gemini'
 });
 
-// Register limiter status for health endpoint
+// Register limiter status and version for health endpoint
 setGeminiLimiterStatus(() => limitGemini.getStatus());
+setGeminiClientVersion(GEMINI_CLIENT_VERSION);
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function getGeminiKeyDebugInfo() {
-  const key = config.GEMINI_API_KEY;
-  if (!key) {
-    return '[Gemini key] no key configured';
-  }
-  const len = key.length;
-  const last4 = key.slice(-4);
-  return `[Gemini key] length=${len}, masked=***${last4}`;
-}
+// ═══════════════════════════════════════════════════════════════
+// CORE: Единственный HTTP запрос к Gemini
+// ═══════════════════════════════════════════════════════════════
 
 async function callGeminiOnce(body) {
   const controller = new AbortController();
@@ -58,9 +56,12 @@ async function callGeminiOnce(body) {
   const bodyStr = JSON.stringify(body);
   const bodySizeMB = (bodyStr.length / 1024 / 1024).toFixed(2);
   const imageCount = body?.contents?.[0]?.parts?.filter(p => p.inlineData)?.length || 0;
-  console.log(`[Gemini] Sending request: ${bodySizeMB} MB, ${imageCount} images`);
+
+  console.log(`[Gemini v${GEMINI_CLIENT_VERSION}] Request: ${bodySizeMB} MB, ${imageCount} images, timeout: ${REQUEST_TIMEOUT_MS / 1000}s`);
 
   try {
+    const startTime = Date.now();
+
     const response = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: {
@@ -72,233 +73,150 @@ async function callGeminiOnce(body) {
     });
 
     clearTimeout(timeoutId);
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    // ═══════════════════════════════════════════════════════════════
+    // ERROR HANDLING: Определяем тип ошибки для fallback
+    // ═══════════════════════════════════════════════════════════════
 
     if (!response.ok) {
       const text = await response.text();
       let parsed = null;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = null;
-      }
+      try { parsed = JSON.parse(text); } catch { parsed = null; }
 
       const code = parsed?.error?.code;
       const status = parsed?.error?.status;
       const message = parsed?.error?.message || text;
 
+      // Определяем тип ошибки
       const quotaExceeded =
         code === 429 ||
         status === 'RESOURCE_EXHAUSTED' ||
-        /quota exceeded/i.test(String(message || '')) ||
-        /rate limit/i.test(String(message || ''));
+        /quota exceeded/i.test(String(message)) ||
+        /rate limit/i.test(String(message));
 
       const apiOverloaded =
-        /overloaded/i.test(String(message || '')) ||
-        /model is overloaded/i.test(String(message || '')) ||
-        /service unavailable/i.test(String(message || '')) ||
+        /overloaded/i.test(String(message)) ||
+        /model is overloaded/i.test(String(message)) ||
+        /service unavailable/i.test(String(message)) ||
         response.status === 503;
 
       const internalError =
-        /internal error/i.test(String(message || '')) ||
+        /internal error/i.test(String(message)) ||
         status === 'INTERNAL' ||
         code === 500 ||
         response.status === 500;
 
-      console.error('[Gemini] API error:', {
-        message,
-        code,
-        status,
+      const errorCode = quotaExceeded ? 'quota_exceeded'
+        : apiOverloaded ? 'api_overloaded'
+          : internalError ? 'internal_error'
+            : 'http_error';
+
+      console.error(`[Gemini v${GEMINI_CLIENT_VERSION}] API error after ${duration}s:`, {
+        errorCode,
         httpStatus: response.status,
-        errorType: quotaExceeded ? 'quota_exceeded' : (apiOverloaded ? 'api_overloaded' : (internalError ? 'internal_error' : 'http_error'))
+        message: String(message).slice(0, 200)
       });
-      console.error(getGeminiKeyDebugInfo());
 
       return {
         ok: false,
-        error: `Gemini API error: ${message}`,
-        errorCode: quotaExceeded ? 'quota_exceeded' : (apiOverloaded ? 'api_overloaded' : (internalError ? 'internal_error' : 'http_error')),
+        error: `Gemini API error: ${String(message).slice(0, 200)}`,
+        errorCode,
         httpStatus: response.status
       };
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SUCCESS PATH: Парсим ответ
+    // ═══════════════════════════════════════════════════════════════
 
     const data = await response.json();
 
     // Check for content block
     if (data.promptFeedback?.blockReason) {
       const pf = data.promptFeedback;
-      console.error('[Gemini] Request blocked:', {
-        blockReason: pf.blockReason,
-        blockReasonMessage: pf.blockReasonMessage || null
-      });
+      console.error(`[Gemini v${GEMINI_CLIENT_VERSION}] Blocked:`, pf.blockReason);
       return {
         ok: false,
-        error: `Gemini blocked request: ${pf.blockReason}${pf.blockReasonMessage ? ` (${String(pf.blockReasonMessage).slice(0, 160)})` : ''}`,
+        error: `Gemini blocked: ${pf.blockReason}`,
         errorCode: 'blocked',
         httpStatus: 400
       };
     }
 
     if (data.error) {
-      const errorMessage = data.error.message || JSON.stringify(data.error);
-      console.error('[Gemini] Error in response:', errorMessage);
+      console.error(`[Gemini v${GEMINI_CLIENT_VERSION}] Error in response:`, data.error.message);
       return {
         ok: false,
-        error: `Gemini error: ${errorMessage}`,
+        error: `Gemini error: ${data.error.message}`,
         errorCode: 'api_error'
       };
     }
 
-    const candidate = data.candidates && data.candidates[0];
+    const candidate = data.candidates?.[0];
 
     // Check finish reason
     if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
-      console.warn('[Gemini] Finished with reason:', candidate.finishReason);
+      console.warn(`[Gemini v${GEMINI_CLIENT_VERSION}] Finish reason:`, candidate.finishReason);
       if (candidate.finishReason === 'SAFETY') {
         return {
           ok: false,
-          error: 'Gemini rejected request due to safety concerns.',
+          error: 'Gemini rejected due to safety.',
           errorCode: 'blocked',
           httpStatus: 400
         };
       }
     }
 
-    const imagePart =
-      candidate && candidate.content && Array.isArray(candidate.content.parts)
-        ? candidate.content.parts.find(p => p.inlineData && p.inlineData.data)
-        : null;
+    // Extract image
+    const imagePart = candidate?.content?.parts?.find(p => p.inlineData?.data);
 
     if (!imagePart) {
       const textPart = candidate?.content?.parts?.find(p => p.text);
       if (textPart) {
-        console.log('[Gemini] Returned text instead of image:', textPart.text.slice(0, 500));
+        console.log(`[Gemini v${GEMINI_CLIENT_VERSION}] Got text instead of image:`, textPart.text.slice(0, 200));
         return {
           ok: false,
-          error: `Gemini did not generate image. Response: ${textPart.text.slice(0, 200)}`
+          error: `Gemini returned text: ${textPart.text.slice(0, 100)}`
         };
       }
-
-      return { ok: false, error: 'No image in Gemini response. Try again.' };
+      return { ok: false, error: 'No image in Gemini response' };
     }
 
-    const mimeType = imagePart.inlineData.mimeType || 'image/png';
-    const base64 = imagePart.inlineData.data;
+    console.log(`[Gemini v${GEMINI_CLIENT_VERSION}] ✅ Success in ${duration}s`);
 
     return {
       ok: true,
-      mimeType,
-      base64
+      mimeType: imagePart.inlineData.mimeType || 'image/png',
+      base64: imagePart.inlineData.data
     };
+
   } catch (error) {
     clearTimeout(timeoutId);
 
+    // Timeout
     if (error.name === 'AbortError' || controller.signal.aborted) {
-      console.error('[Gemini] Request timeout');
+      console.error(`[Gemini v${GEMINI_CLIENT_VERSION}] ⏱️ Timeout after ${REQUEST_TIMEOUT_MS / 1000}s`);
       return {
         ok: false,
-        error: 'Gemini request timeout. Try again later.',
+        error: `Gemini timeout (${REQUEST_TIMEOUT_MS / 1000}s). Попробуйте уменьшить качество.`,
         errorCode: 'timeout'
       };
     }
 
-    throw error;
+    // Network error
+    console.error(`[Gemini v${GEMINI_CLIENT_VERSION}] Network error:`, error.message);
+    return {
+      ok: false,
+      error: `Gemini network error: ${error.message}`,
+      errorCode: 'network_error'
+    };
   }
 }
 
-async function callGeminiWithRetrySingle(body) {
-  return await retry(
-    async () => {
-      const result = await callGeminiOnce(body);
-
-      if (result.ok) {
-        return result;
-      }
-
-      // Don't retry API errors
-      if (!result.ok && result.errorCode &&
-        ['quota_exceeded', 'api_overloaded', 'internal_error', 'api_error'].includes(result.errorCode)) {
-        return result;
-      }
-
-      if (!result.ok && result.httpStatus && result.httpStatus < 500) {
-        return result;
-      }
-
-      if (!result.ok && result.httpStatus === 500) {
-        return result;
-      }
-
-      throw new Error(result.error || 'Network error');
-    },
-    {
-      maxRetries: 3,
-      initialDelay: 2000,
-      maxDelay: 10000,
-      multiplier: 2,
-      shouldRetry: (error) => isRetryableNetworkError(error),
-      onRetry: (attempt, error, delay) => {
-        const errorMsg = error.message || String(error);
-        console.warn(`[Gemini] Retry ${attempt}/3 in ${delay}ms. Error: ${errorMsg.slice(0, 100)}`);
-      }
-    }
-  );
-}
-
-async function callGeminiWithRetry(body) {
-  const rounds = 2; // Fast Fail Strategy (was 6)
-  const baseDelayMs = 1000;
-  const maxDelayMs = 4000;
-  const retryId = `retry_${Date.now() % 100000}`;
-
-  let attempt = 0;
-  let lastResult = null;
-
-  console.log(`[Gemini] [${retryId}] callGeminiWithRetry started (max ${rounds} rounds)`);
-
-  for (let round = 0; round < rounds; round++) {
-    console.log(`[Gemini] [${retryId}] Round ${round + 1}/${rounds} starting...`);
-
-    lastResult = await callGeminiWithRetrySingle(body);
-
-    console.log(`[Gemini] [${retryId}] Round ${round + 1} result: ok=${lastResult?.ok}, errorCode=${lastResult?.errorCode}, httpStatus=${lastResult?.httpStatus}`);
-
-    if (lastResult.ok) {
-      console.log(`[Gemini] [${retryId}] Success on round ${round + 1}`);
-      return lastResult;
-    }
-
-    const code = lastResult && lastResult.errorCode ? String(lastResult.errorCode) : '';
-    const httpStatus = lastResult && lastResult.httpStatus ? Number(lastResult.httpStatus) : null;
-    const isOverloaded = code === 'api_overloaded' || httpStatus === 503;
-    const isInternal = code === 'internal_error' || httpStatus === 500;
-
-    if (isOverloaded || isInternal) {
-      attempt++;
-      const jitter = Math.floor(Math.random() * 250);
-      const delay = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, Math.min(4, attempt - 1))) + jitter;
-      console.warn(
-        `[Gemini] [${retryId}] TRANSIENT (${isOverloaded ? 'api_overloaded/503' : 'internal_error/500'}) (attempt ${attempt}/${rounds}). Waiting ${delay}ms.`
-      );
-      await sleep(delay);
-      continue;
-    }
-
-    console.log(`[Gemini] [${retryId}] Non-retryable error, returning`);
-    return lastResult;
-  }
-
-  console.warn(`[Gemini] [${retryId}] All ${rounds} rounds exhausted. Returning last error.`);
-
-  if (lastResult) {
-    return lastResult;
-  }
-
-  return {
-    ok: false,
-    error: 'Gemini did not respond after all retries.',
-    errorCode: 'internal_error'
-  };
-}
+// ═══════════════════════════════════════════════════════════════
+// HELPER: Создание тела запроса
+// ═══════════════════════════════════════════════════════════════
 
 function createGeminiBody(prompt, processedImages, imageConfig) {
   const parts = [];
@@ -323,12 +241,8 @@ function createGeminiBody(prompt, processedImages, imageConfig) {
   const aspectRatio = typeof cfg.aspectRatio === 'string' && cfg.aspectRatio ? cfg.aspectRatio : '1:1';
   const imageSize = typeof cfg.imageSize === 'string' && cfg.imageSize ? cfg.imageSize : '1K';
 
-  const body = {
-    contents: [
-      {
-        parts
-      }
-    ],
+  return {
+    contents: [{ parts }],
     generationConfig: {
       responseModalities: ['Image'],
       imageConfig: {
@@ -337,15 +251,14 @@ function createGeminiBody(prompt, processedImages, imageConfig) {
       }
     }
   };
-
-  return body;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// TEXT API (unchanged)
+// ═══════════════════════════════════════════════════════════════
 
 /**
  * Request text completion via Gemini API.
- * @param {string} prompt - Text prompt
- * @param {Array<{mimeType: string, base64: string}>} images - Reference images (optional)
- * @returns {Promise<{ok: boolean, text?: string, error?: string}>}
  */
 export async function requestGeminiText({ prompt, images = [] }) {
   const apiKey = config.GEMINI_API_KEY;
@@ -425,12 +338,22 @@ export async function requestGeminiText({ prompt, images = [] }) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MAIN EXPORT: requestGeminiImage
+// ═══════════════════════════════════════════════════════════════
+
 /**
  * Request image generation via Gemini API.
+ * 
+ * ARCHITECTURE v2.0:
+ * - Лимитер только для concurrency (предотвращение 503)
+ * - Один HTTP запрос с таймаутом 120с
+ * - При ошибках возвращаем errorCode для fallback в генераторе
+ * 
  * @param {string} prompt - Text prompt
  * @param {Array<{mimeType: string, base64: string}>} referenceImages - Reference images
  * @param {Object} imageConfig - Image configuration (aspectRatio, imageSize)
- * @returns {Promise<{ok: boolean, mimeType?: string, base64?: string, error?: string}>}
+ * @returns {Promise<{ok: boolean, mimeType?: string, base64?: string, error?: string, errorCode?: string}>}
  */
 export async function requestGeminiImage({ prompt, referenceImages = [], imageConfig = {} }) {
   const apiKey = config.GEMINI_API_KEY;
@@ -439,51 +362,13 @@ export async function requestGeminiImage({ prompt, referenceImages = [], imageCo
     return { ok: false, error: 'GEMINI_API_KEY is not configured' };
   }
 
-  const requestStartTime = Date.now();
-
-  // DIAGNOSTIC: Log limiter status before queueing
-  const limiterStatus = limitGemini.getStatus();
-  console.log(`[Gemini] requestGeminiImage called. Limiter status:`, limiterStatus);
+  console.log(`[Gemini v${GEMINI_CLIENT_VERSION}] requestGeminiImage called`);
 
   const body = createGeminiBody(prompt, referenceImages, imageConfig);
 
-  try {
-    console.log(`[Gemini] Queueing request to limiter...`);
-    const result = await limitGemini(() => callGeminiWithRetry(body));
-    const duration = Date.now() - requestStartTime;
-    console.log(`[Gemini] Request completed in ${(duration / 1000).toFixed(1)} sec`);
+  // Используем лимитер ТОЛЬКО для concurrency
+  // Таймаут контролируется внутри callGeminiOnce
+  const result = await limitGemini(() => callGeminiOnce(body));
 
-    if (!result.ok && result.errorCode === 'quota_exceeded') {
-      console.warn('[Gemini] Quota exceeded.');
-      return result;
-    }
-
-    if (!result.ok && result.errorCode === 'internal_error') {
-      console.error('[Gemini] Internal error:', result.error);
-      return result;
-    }
-
-    return result;
-  } catch (error) {
-    console.error('[Gemini] Network error after all retries:', error);
-    console.error(getGeminiKeyDebugInfo());
-
-    const errorMsg = error.message || String(error);
-
-    // Возвращаем понятные ошибки для пользователя
-    if (errorMsg.includes('timed out')) {
-      return {
-        ok: false,
-        error: 'Gemini не ответил вовремя. Попробуйте снизить качество (1K) или количество референсов.',
-        errorCode: 'timeout'
-      };
-    }
-
-    return {
-      ok: false,
-      error: `Gemini network error: ${errorMsg}`,
-      errorCode: 'network_error'
-    };
-  }
+  return result;
 }
-
