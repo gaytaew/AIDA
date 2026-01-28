@@ -20,21 +20,16 @@ jobs:
           script: |
             export TERM=xterm
             
-            # Helper for logging
             log() {
               echo "[$1] $2"
             }
             
             log "INFO" "STARTING DEPLOY..."
             
-            if [ ! -d "/root/AIDA" ]; then
-               git clone git@github.com:gaytaew/AIDA.git /root/AIDA
-            fi
-            
-            cd /root/AIDA
+            cd /root/AIDA || exit 1
             
             log "INFO" "Git Update..."
-            git fetch --all --tags --prune || echo "Git fetch warning"
+            git fetch --all --tags --prune
             
             TARGET_SHA="${{ github.sha }}"
             log "INFO" "Checkout: $TARGET_SHA"
@@ -42,55 +37,61 @@ jobs:
             git checkout -f $TARGET_SHA
             git reset --hard $TARGET_SHA
             
-            # Check .env
+            # DIAGNOSTICS
+            log "INFO" "=== DIAGNOSTICS ==="
+            log "INFO" "Node version: $(node --version)"
+            log "INFO" "NPM version: $(npm --version)"
+            
+            # Check what's using port 3003
+            log "INFO" "Port 3003 status:"
+            sudo lsof -i :3003 || echo "Port 3003 is free"
+            
+            # Show .env PORT
             if [ -f .env ]; then
-              log "INFO" ".env file exists."
+              log "INFO" ".env exists. PORT setting:"
+              grep PORT .env || echo "PORT not set in .env"
             else
-              log "WARNING" ".env file MISSING! Service might fail."
+              log "WARNING" ".env MISSING!"
             fi
             
             # Ensure directories
-            log "INFO" "Creating directories..."
             mkdir -p src/backend/store/vision-cache
             mkdir -p src/backend/store/style-presets
             mkdir -p src/backend/store/product-shoot-images
             mkdir -p src/backend/store/food-shoot-images
+            chmod -R 777 src/backend/store
             
-            # Fix permissions (sudo in case user is not root)
-            log "INFO" "Fixing permissions..."
-            sudo chmod -R 777 src/backend/store || echo "Chmod warning"
+            # Rebuild native modules (in case of architecture mismatch)
+            log "INFO" "Rebuilding dependencies..."
+            npm rebuild 2>&1 || echo "Rebuild warning"
+            npm install --omit=dev --no-audit 2>&1 || echo "Install warning"
             
-            log "INFO" "Updating dependencies..."
-            # Try install, if fails - continue
-            npm install --omit=dev --no-audit || echo "NPM install failed, continuing..."
+            # Stop service and WAIT
+            log "INFO" "Stopping service..."
+            sudo systemctl stop aida || true
+            sleep 3
             
-            log "INFO" "Service Restart Sequence..."
+            # Kill anything on port 3003 just in case
+            sudo fuser -k 3003/tcp 2>/dev/null || true
+            sleep 2
             
-            # Don't fail script on stop
-            sudo systemctl stop aida || echo "Stop warning"
-            sleep 5
+            # Reset systemd failure counter
+            sudo systemctl reset-failed aida 2>/dev/null || true
             
-            # Capture start output
-            START_OUT=$(sudo systemctl start aida 2>&1)
-            START_CODE=$?
+            log "INFO" "Starting service..."
+            sudo systemctl start aida
             
-            if [ $START_CODE -ne 0 ]; then
-               log "ERROR" "Start failed: $START_OUT"
-            else
-               log "INFO" "Service output: $START_OUT"
-            fi
-            
-            log "INFO" "Verifying..."
-            sleep 10
+            log "INFO" "Waiting 15 seconds for startup..."
+            sleep 15
             
             STATUS=$(sudo systemctl is-active aida)
             log "INFO" "Service Status: $STATUS"
             
             if [ "$STATUS" != "active" ]; then
-               log "ERROR" "SERVICE IS NOT ACTIVE!"
-               echo "--- JOURNAL LOGS ---"
-               sudo journalctl -u aida -n 50 --no-pager
-               echo "--------------------"
+               log "ERROR" "SERVICE FAILED!"
+               echo "=== LAST 100 LOG LINES ==="
+               sudo journalctl -u aida -n 100 --no-pager
+               echo "=========================="
                exit 1
             fi
             
@@ -99,10 +100,9 @@ jobs:
             log "INFO" "Health: $HEALTH"
             
             if echo "$HEALTH" | grep -q '"ok":true'; then
-               echo "$HEALTH" | grep -o '"geminiClientVersion":"[^"]*"'
                log "SUCCESS" "DEPLOY COMPLETE"
                exit 0
             else
-               log "WARNING" "Health check failed (service is active)"
+               log "ERROR" "Health check failed"
                exit 1
             fi

@@ -40,15 +40,22 @@ function patchConsoleMethod(level) {
 // Patch all console methods
 ['log', 'info', 'warn', 'error', 'debug'].forEach(patchConsoleMethod);
 
-// Capture uncaught exceptions
+// Capture uncaught exceptions - MUST print and exit!
 process.on('uncaughtException', err => {
   try {
+    const stack = err && err.stack ? String(err.stack) : String(err);
     pushLogEntry({
       level: 'uncaughtException',
-      message: err && err.stack ? String(err.stack) : safeStringify(err),
+      message: stack,
       data: null
     });
-  } catch {}
+    // CRITICAL: Print to stderr so we can see the error!
+    console.error('[FATAL] Uncaught Exception:', stack);
+  } catch (e) {
+    console.error('[FATAL] Uncaught Exception (logging failed):', err);
+  }
+  // CRITICAL: Exit with error code so systemd knows something is wrong
+  process.exit(1);
 });
 
 // Capture unhandled promise rejections
@@ -59,7 +66,7 @@ process.on('unhandledRejection', reason => {
       message: reason && reason.stack ? String(reason.stack) : safeStringify(reason),
       data: null
     });
-  } catch {}
+  } catch { }
 });
 
 console.log('[ConsoleTap] Log capture initialized');
