@@ -65,6 +65,11 @@ export async function requestOpenAIText({ prompt, images = [] }) {
 
     } catch (error) {
         console.error('[OpenAI] Request error:', error);
+        // Write to file for debugging (ConsoleTap may not capture errors)
+        const fs = await import('fs/promises');
+        await fs.appendFile('/root/AIDA/openai_errors.log',
+            `[${new Date().toISOString()}] ${error.message}\n${JSON.stringify(error, null, 2)}\n\n`
+        ).catch(() => { });
         return {
             ok: false,
             error: error.message || 'OpenAI API request failed'
