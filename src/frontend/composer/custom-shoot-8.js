@@ -892,19 +892,36 @@ function setPresetLoading(isLoading) {
   }
 }
 
-// Helper to resolve ID to String globally
+// Helper to resolve ID to FULL PROMPT String from schema
 function resolveSchemaValue(category, sub, id) {
-  if (!id || !presetSchema) return id;
+  if (!id) return '';
+  if (!presetSchema) {
+    console.warn('resolveSchemaValue: presetSchema not loaded yet, returning id:', id);
+    return id;
+  }
 
   const collection = presetSchema[category]?.[sub];
-  if (!collection) return id;
+  if (!collection) {
+    console.warn(`resolveSchemaValue: collection not found for ${category}.${sub}`);
+    return id;
+  }
 
   const item = collection[id];
-  if (!item) return id;
+  if (!item) {
+    console.warn(`resolveSchemaValue: item not found for ${category}.${sub}.${id}`);
+    return id;
+  }
 
+  // For simple string values (like LENSES, APERTURES, etc.)
   if (typeof item === 'string') return item;
+
+  // For complex objects (like CAMERA_TYPES, LIGHT_SOURCES)
   if (item.prompt) return item.prompt;
 
+  // Fallback to label if available
+  if (item.label) return item.label;
+
+  console.warn('resolveSchemaValue: no prompt/label found, returning id:', id);
   return id;
 }
 
