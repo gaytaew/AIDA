@@ -15,6 +15,7 @@ import { requestVertexImage } from '../providers/vertexClient.js';
 import { buildCollage, buildCollageMapPrompt } from '../utils/imageCollage.js';
 import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
+import { getPoseById, buildPosePrompt, GLOBAL_POSE_RULES } from '../schema/pose.js';
 import { POSE_ADHERENCE_MAP } from './shootGenerator.js';
 import { buildLocationPromptSnippet, buildAmbientPrompt } from '../schema/location.js';
 import { generateImageId } from '../schema/customShoot.js';
@@ -379,6 +380,7 @@ export function buildCustomShootPrompt({
   frame = null,
   location = null,
   emotionId = null,
+  poseId = null,  // V8: Pose preset ID (only used when no pose sketch)
   extraPrompt = '',
   modelDescription = '',
   clothingDescriptions = [],
@@ -560,6 +562,24 @@ EMOTION / EXPRESSION
 
 The model MUST show "${emotion.label}" emotion.
 ${emotion.physicalHints ? `Physical cues: ${Array.isArray(emotion.physicalHints) ? emotion.physicalHints.join(', ') : emotion.physicalHints}` : ''}`);
+      }
+    }
+
+    // Body Pose (only if no pose sketch)
+    if (!hasPoseSketch && poseId) {
+      const pose = getPoseById(poseId);
+      if (pose) {
+        v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+BODY POSE: ${pose.label.toUpperCase()}
+═══════════════════════════════════════════════════════════════
+
+${pose.bodyPrompt}
+
+${pose.physicalHints ? `Physical cues: ${pose.physicalHints}` : ''}
+${pose.avoid?.length > 0 ? `AVOID: ${pose.avoid.join(', ')}` : ''}
+
+ADHERENCE: 2/4 — Follow the general idea, natural adjustments welcome.`);
       }
     }
 
@@ -1171,6 +1191,7 @@ export async function generateCustomShootFrame({
   poseSketchImage = null,
   frame = null,
   emotionId = null,
+  poseId = null,  // V8: Pose preset ID (only used when no pose sketch)
   extraPrompt = '',
   location = null,
   presets = null,
@@ -1338,6 +1359,7 @@ export async function generateCustomShootFrame({
         frame,
         location,
         emotionId,
+        poseId,  // V8: Pose preset (only when no pose sketch)
         extraPrompt,
         modelDescription: '',
         clothingDescriptions,

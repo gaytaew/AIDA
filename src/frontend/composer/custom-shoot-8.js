@@ -1874,6 +1874,119 @@ function renderEmotionOptions() {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// POSE FUNCTIONS (V8 Frame Settings)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Load pose options from /api/poses/options
+ */
+async function loadPoses() {
+  try {
+    const res = await fetch('/api/poses/options');
+    const data = await res.json();
+    if (data.ok) {
+      state.poses = data.data.poses || [];
+      state.poseCategories = data.data.categories || [];
+      renderPoseOptions();
+    }
+  } catch (e) {
+    console.error('[CS8] Error loading poses:', e);
+  }
+}
+
+/**
+ * Render pose options into the dropdown
+ * Uses state.poses and state.poseCategories
+ */
+function renderPoseOptions() {
+  const select = document.getElementById('gen-body-pose');
+  if (!select) return;
+
+  // Store current value to restore it
+  const currentValue = state.generationSettings?.poseId || select.value;
+
+  select.innerHTML = '<option value="">— Не выбрано —</option>';
+
+  if (!state.poses || state.poses.length === 0) return;
+
+  // Group poses by category
+  const posesByCategory = {};
+  state.poses.forEach(p => {
+    const cat = p.category || 'other';
+    if (!posesByCategory[cat]) {
+      posesByCategory[cat] = [];
+    }
+    posesByCategory[cat].push(p);
+  });
+
+  // Render groups
+  Object.keys(posesByCategory).forEach(catId => {
+    // Find category label
+    let catLabel = catId;
+    if (state.poseCategories) {
+      const catObj = state.poseCategories.find(c => c.id === catId);
+      if (catObj) catLabel = catObj.label;
+    }
+
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = catLabel;
+
+    posesByCategory[catId].forEach(p => {
+      const option = document.createElement('option');
+      option.value = p.id;
+      option.textContent = p.label;
+      option.title = p.shortDescription || '';
+      optgroup.appendChild(option);
+    });
+
+    select.appendChild(optgroup);
+  });
+
+  // Restore value if possible
+  if (currentValue) {
+    select.value = currentValue;
+  }
+
+  // Update global elements ref
+  elements.genBodyPose = select;
+
+  // Add change listener
+  select.addEventListener('change', () => {
+    saveGenerationSettings();
+  });
+}
+
+/**
+ * Update pose selector state based on pose sketch presence
+ * If pose sketch is selected, disable the selector and show hint
+ */
+function updatePoseSelectorState() {
+  const select = document.getElementById('gen-body-pose');
+  const hint = document.getElementById('pose-sketch-hint');
+  if (!select) return;
+
+  const hasPoseSketch = !!(state.currentShoot?.poseSketchAsset?.url);
+
+  if (hasPoseSketch) {
+    select.disabled = true;
+    select.value = '';
+    select.style.opacity = '0.5';
+    select.style.cursor = 'not-allowed';
+    if (hint) {
+      hint.style.display = 'inline';
+      hint.textContent = '(эскиз выбран — точное следование)';
+    }
+  } else {
+    select.disabled = false;
+    select.style.opacity = '1';
+    select.style.cursor = '';
+    if (hint) {
+      hint.style.display = 'none';
+    }
+  }
+}
+
 /**
  * Render V5 parameter blocks in UI (Technical / Artistic / Context)
  */
@@ -2260,6 +2373,9 @@ function collectGenerationSettings() {
     shotSize: elements.genShotSize?.value || 'medium',
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
     gazeDirection: elements.genGazeDirection?.value || 'camera',
+
+    // Body pose (only when no pose sketch)
+    poseId: document.getElementById('gen-body-pose')?.value || '',
 
     // Extra prompt
     extraPrompt: elements.genExtraPrompt?.value || '',
@@ -2714,7 +2830,9 @@ async function generateFrame(frameId) {
       shotSize: elements.genShotSize?.value || 'medium',
       cameraAngle: elements.genCameraAngle?.value || 'eye_level',
       gazeDirection: elements.genGazeDirection?.value || 'camera'
-    }
+    },
+    // Body pose (only when no pose sketch - ignored on backend if sketch present)
+    poseId: document.getElementById('gen-body-pose')?.value || null
   };
 
   // Add placeholder
@@ -3779,6 +3897,7 @@ async function init() {
       loadFrames(),
       loadLocations(),
       loadEmotions(),
+      loadPoses(),
       loadUniverseParams()
     ]);
     console.log('[Init] Data loaded OK');
@@ -4178,7 +4297,8 @@ function saveCurrentAsFrame() {
     emotionId: elements.genEmotion?.value || '',
     shotSize: elements.genShotSize?.value || 'medium',
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
-    gazeDirection: elements.genGazeDirection?.value || 'camera'
+    gazeDirection: elements.genGazeDirection?.value || 'camera',
+    poseId: document.getElementById('gen-body-pose')?.value || ''
   };
 
   state.savedFrames.push(newFrame);
@@ -4207,6 +4327,10 @@ function loadSavedFrame(frameId) {
   }
   if (elements.genGazeDirection && frame.gazeDirection) {
     elements.genGazeDirection.value = frame.gazeDirection;
+  }
+  const poseSelect = document.getElementById('gen-body-pose');
+  if (poseSelect && frame.poseId) {
+    poseSelect.value = frame.poseId;
   }
 
   // Save to persist changes

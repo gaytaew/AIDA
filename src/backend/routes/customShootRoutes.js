@@ -451,6 +451,7 @@ router.post('/:id/generate', async (req, res) => {
     const {
       frame,
       emotionId,
+      poseId,  // V8: Pose preset (only used when no pose sketch)
       extraPrompt,
       locationId,
       aspectRatio,
@@ -499,6 +500,7 @@ router.post('/:id/generate', async (req, res) => {
     console.log('[CustomShootRoutes] Generate request for shoot:', shoot.id);
     console.log('[CustomShootRoutes] Request params:', {
       emotionId,
+      poseId,
       locationId,
       aspectRatio,
       imageSize,
@@ -756,6 +758,7 @@ router.post('/:id/generate', async (req, res) => {
       poseSketchImage,
       frame: effectiveFrame,
       emotionId: emotionId || shoot.currentEmotion,
+      poseId: poseSketchImage ? null : (poseId || null),  // Ignore poseId when pose sketch is present
       extraPrompt: extraPrompt || shoot.extraPrompt || '',
       location,
       presets,

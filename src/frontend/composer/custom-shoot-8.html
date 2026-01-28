@@ -838,6 +838,18 @@
                       <option value="away">Куда-то в сторону</option>
                     </select>
                   </div>
+
+                  <!-- Поза тела (disabled when pose sketch selected) -->
+                  <div class="form-group" style="margin: 0; grid-column: span 2;">
+                    <label for="gen-body-pose" style="font-size: 12px; margin-bottom: 4px; display: block;">🧍
+                      Поза тела <span id="pose-sketch-hint"
+                        style="color: var(--color-primary); font-size: 10px; display: none;">(⚡ эскиз)</span></label>
+                    <select id="gen-body-pose"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="">— Не выбрано —</option>
+                      <!-- Populated by JS from /api/poses/options -->
+                    </select>
+                  </div>
                 </div>
 
                 <!-- Saved Frames Shelf -->
