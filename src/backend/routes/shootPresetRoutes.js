@@ -4,7 +4,21 @@
  */
 
 import express from 'express';
-import { requestGeminiText } from '../providers/geminiClient.js';
+import { requestOpenAIText } from '../providers/openaiClient.js';
+
+// ... existing code ...
+
+// Prepare image for OpenAI (keep raw base64, client adds header)
+// logic in client expects raw base64 if we pass it as such, OR we can pass it clean.
+// In previous Gemini code, we stripped header.
+// Let's pass raw base64 (without header) as before, since my client implementation adds the header.
+
+const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+
+const response = await requestOpenAIText({
+    prompt: fullPrompt,
+    images: [{ mimeType: 'image/jpeg', base64: base64Data }]
+});
 import presetGenerator from '../services/presetGenerator.js';
 import crypto from 'crypto';
 import fs from 'fs/promises';
@@ -74,7 +88,7 @@ router.post('/generate-image', async (req, res) => {
         // Prepare image for Gemini (remove header if present)
         const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
-        const response = await requestGeminiText({
+        const response = await requestOpenAIText({
             prompt: fullPrompt,
             images: [{ mimeType: 'image/jpeg', base64: base64Data }]
         });
