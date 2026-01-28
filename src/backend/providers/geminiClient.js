@@ -14,7 +14,7 @@
 import { fetch } from 'undici';
 import config from '../config.js';
 import { createLimiter } from '../utils/limiter.js';
-import { setGeminiLimiterStatus, setGeminiClientVersion } from '../routes/healthRoutes.js';
+import { setGeminiLimiterStatus } from '../routes/healthRoutes.js';
 
 // ═══════════════════════════════════════════════════════════════
 // VERSION (для отслеживания на сервере)
@@ -37,9 +37,8 @@ const limitGemini = createLimiter({
   name: 'Gemini'
 });
 
-// Register limiter status and version for health endpoint
+// Register limiter status for health endpoint
 setGeminiLimiterStatus(() => limitGemini.getStatus());
-setGeminiClientVersion(GEMINI_CLIENT_VERSION);
 
 // ═══════════════════════════════════════════════════════════════
 // CORE: Единственный HTTP запрос к Gemini

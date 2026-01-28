@@ -9,14 +9,9 @@ const router = express.Router();
 
 // Global reference to gemini limiter status (set by geminiClient)
 let geminiLimiterStatus = null;
-let geminiClientVersion = null;
 
 export function setGeminiLimiterStatus(getStatusFn) {
   geminiLimiterStatus = getStatusFn;
-}
-
-export function setGeminiClientVersion(version) {
-  geminiClientVersion = version;
 }
 
 router.get('/health', (req, res) => {
@@ -30,7 +25,6 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '0.1.0',
     project: 'AIDA',
-    geminiClientVersion: geminiClientVersion || 'unknown',
     geminiLimiter: limiterStatus
   });
 });
