@@ -5,9 +5,10 @@
       "label": "Test Debug Shoot",
       "createdAt": "2026-01-16T12:32:50.521Z",
       "updatedAt": "2026-01-16T12:32:50.523Z",
-      "imageCount": 1,
-      "previewUrl": "/api/food-shoots/FOOD_1768566770521_945c/images/IMG_1768566770522"
+      "frameCount": 0,
+      "snapshotCount": 0,
+      "previewUrl": null
     }
   ],
-  "rebuiltAt": "2026-01-16T12:32:50.513Z"
+  "rebuiltAt": "2026-01-28T12:15:31.178Z"
 }

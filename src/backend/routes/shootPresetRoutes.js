@@ -10,8 +10,49 @@ import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 
+import {
+    PRESET_CAMERA_TYPES,
+    PRESET_LENSES,
+    PRESET_APERTURES,
+    PRESET_SHUTTERS,
+    PRESET_LIGHT_SOURCES,
+    PRESET_LIGHT_DIRECTIONS,
+    PRESET_LIGHT_QUALITY,
+    PRESET_LIGHT_TEMP,
+    PRESET_MOODS,
+    PRESET_ERAS,
+    PRESET_PROCESSING,
+    PRESET_SPACE_TYPES
+} from '../schema/shootPreset.js';
+
 const router = express.Router();
 const PRESETS_FILE = path.join(process.cwd(), 'src/data/shootPresets.json');
+
+// 0. GET SCHEMA (Helper for Frontend V8)
+router.get('/schema', (req, res) => {
+    res.json({
+        camera: {
+            types: PRESET_CAMERA_TYPES,
+            lenses: PRESET_LENSES,
+            apertures: PRESET_APERTURES,
+            shutters: PRESET_SHUTTERS
+        },
+        lighting: {
+            sources: PRESET_LIGHT_SOURCES,
+            directions: PRESET_LIGHT_DIRECTIONS,
+            quality: PRESET_LIGHT_QUALITY,
+            temp: PRESET_LIGHT_TEMP
+        },
+        atmosphere: {
+            moods: PRESET_MOODS,
+            eras: PRESET_ERAS,
+            processing: PRESET_PROCESSING
+        },
+        location: {
+            spaceTypes: PRESET_SPACE_TYPES
+        }
+    });
+});
 
 // Ensure data directory and file exist
 async function ensureFile() {

@@ -892,14 +892,77 @@ function setPresetLoading(isLoading) {
   }
 }
 
+// Helper to resolve ID to String globally
+function resolveSchemaValue(category, sub, id) {
+  if (!id || !presetSchema) return id;
+
+  const collection = presetSchema[category]?.[sub];
+  if (!collection) return id;
+
+  const item = collection[id];
+  if (!item) return id;
+
+  if (typeof item === 'string') return item;
+  if (item.prompt) return item.prompt;
+
+  return id;
+}
+
+function generatePresetRichText(preset) {
+  let injection = `[PRESET: ${preset.name}]\n`;
+
+  // Camera
+  if (preset.camera?.type) injection += `• Camera: ${resolveSchemaValue('camera', 'types', preset.camera.type)}\n`;
+  if (preset.camera?.aperture) injection += `• Aperture: ${resolveSchemaValue('camera', 'apertures', preset.camera.aperture)}\n`;
+  if (preset.camera?.shutter) injection += `• Shutter: ${resolveSchemaValue('camera', 'shutters', preset.camera.shutter)}\n`;
+  if (preset.camera?.focalLength) injection += `• Lens: ${resolveSchemaValue('camera', 'lenses', preset.camera.focalLength)}\n`;
+
+  // Lighting
+  if (preset.lighting?.source) injection += `• Light: ${resolveSchemaValue('lighting', 'sources', preset.lighting.source)}\n`;
+  if (preset.lighting?.quality) injection += `• Quality: ${resolveSchemaValue('lighting', 'quality', preset.lighting.quality)}\n`;
+  if (preset.lighting?.direction) injection += `• Direction: ${resolveSchemaValue('lighting', 'directions', preset.lighting.direction)}\n`;
+  if (preset.lighting?.temp) injection += `• Temp: ${resolveSchemaValue('lighting', 'temp', preset.lighting.temp)}\n`;
+
+  // Atmosphere
+  if (preset.atmosphere?.mood) injection += `• Mood: ${resolveSchemaValue('atmosphere', 'moods', preset.atmosphere.mood)}\n`;
+  if (preset.atmosphere?.era) injection += `• Era: ${resolveSchemaValue('atmosphere', 'eras', preset.atmosphere.era)}\n`;
+  if (preset.atmosphere?.processing) injection += `• Processing: ${resolveSchemaValue('atmosphere', 'processing', preset.atmosphere.processing)}\n`;
+
+  // LOCATION
+  if (preset.location?.description) {
+    injection += `• Location: ${preset.location.description}\n`;
+  }
+  else if (preset.location?.spaceType) {
+    injection += `• Location: ${resolveSchemaValue('location', 'spaceTypes', preset.location.spaceType)}\n`;
+  }
+
+  return injection;
+}
+
 function showPresetPreview(preset) {
   tempGeneratedPreset = preset;
-  document.getElementById('preset-json-preview').textContent = JSON.stringify(preset, null, 2);
+
+  // Show Visual Preview (Rich Text)
+  const richText = generatePresetRichText(preset);
+  const previewContainer = document.getElementById('preset-json-preview');
+
+  previewContainer.innerHTML = `
+    <div style="margin-bottom: 12px; font-family: sans-serif; font-size: 13px; line-height: 1.5; color: var(--color-text);">
+      <strong>Предпросмотр (как это будет в промпте):</strong><br>
+      <pre style="white-space: pre-wrap; background: var(--color-surface); padding: 8px; border-radius: 4px; border: 1px solid var(--color-border); margin-top: 4px;">${richText}</pre>
+    </div>
+    <details>
+      <summary style="cursor: pointer; color: var(--color-text-muted); font-size: 11px;">Показать raw JSON (для отладки)</summary>
+      <pre style="font-size: 10px; margin-top: 4px;">${JSON.stringify(preset, null, 2)}</pre>
+    </details>
+  `;
+
   document.getElementById('preset-gen-result').style.display = 'block';
 }
 
 function resetPresetModal() {
   document.getElementById('preset-gen-result').style.display = 'none';
+  document.getElementById('preset-json-preview').innerHTML = '';
   tempGeneratedPreset = null;
   document.getElementById('preset-text-prompt').value = '';
   // process reset elements...
@@ -927,6 +990,20 @@ async function saveGeneratedPreset() {
   }
 }
 
+
+// SCHEMA CACHE
+let presetSchema = null;
+
+async function loadPresetSchema() {
+  try {
+    const res = await fetch('/api/shoot-presets/schema');
+    presetSchema = await res.json();
+    console.log('Preset Schema loaded for V8 injection');
+  } catch (e) {
+    console.error('Failed to load preset schema', e);
+  }
+}
+
 // APPLYING PRESET
 window.applyPreset = function (presetId) {
   const preset = state.presets.find(p => p.id === presetId);
@@ -936,34 +1013,15 @@ window.applyPreset = function (presetId) {
   renderPresetsList(); // Update UI active state
 
   // LOGIC OF SILENCE application
-  // We construct a "Visual Prompt" injection that represents this preset
-
-  let injection = `[PRESET: ${preset.name}]\n`;
-
-  // Camera
-  if (preset.camera?.type) injection += `• Camera: ${preset.camera.type}\n`;
-  if (preset.camera?.aperture) injection += `• Aperture: ${preset.camera.aperture}\n`;
-  if (preset.camera?.film) injection += `• Film: ${preset.camera.film}\n`;
-
-  // Lighting
-  if (preset.lighting?.source) injection += `• Light: ${preset.lighting.source}\n`;
-  if (preset.lighting?.quality) injection += `• Quality: ${preset.lighting.quality}\n`;
-
-  // Atmosphere
-  if (preset.atmosphere?.mood) injection += `• Mood: ${preset.atmosphere.mood}\n`;
-  if (preset.atmosphere?.era) injection += `• Era: ${preset.atmosphere.era}\n`;
+  const injection = generatePresetRichText(preset) + '\n' + (preset.description || '');
 
   // Update Visual Prompt textarea
   const visualPromptEl = document.getElementById('visual-prompt');
 
-  // Strategy: Append or Replace? 
-  // Let's Append to top if empty, or just clean replace the [PRESET] block if exists
-
   let currentText = visualPromptEl.value;
   if (!currentText.trim()) {
-    visualPromptEl.value = injection + '\n' + preset.description;
+    visualPromptEl.value = injection;
   } else {
-    // Just append for now, user can edit
     visualPromptEl.value = injection + '\n' + currentText;
   }
 
@@ -973,7 +1031,10 @@ window.applyPreset = function (presetId) {
 }
 
 // Init Load
-document.addEventListener('DOMContentLoaded', loadPresets);
+document.addEventListener('DOMContentLoaded', () => {
+  loadPresets();
+  loadPresetSchema(); // Load schema for translation
+});
 
 // Export for global access if needed
 window.openPresetModal = openPresetModal;
