@@ -851,10 +851,18 @@ function handlePresetFile(file) {
 }
 
 async function generatePresetFromImage() {
-  const imgBase64 = document.getElementById('preset-preview-img').src;
+  const imgEl = document.getElementById('preset-preview-img');
+  const imgBase64 = imgEl ? imgEl.src : '';
+
+  if (!imgBase64 || imgBase64.length < 100) {
+    alert('Ошибка: Изображение не загружено или повреждено');
+    console.error('Image source invalid:', imgBase64);
+    return;
+  }
 
   setPresetLoading(true);
   try {
+    console.log('Sending preset generation request...', imgBase64.substring(0, 50) + '...');
     const res = await fetch('/api/shoot-presets/generate-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

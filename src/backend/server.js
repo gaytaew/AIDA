@@ -51,8 +51,8 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const url = req.originalUrl || req.url;
 
-  // Log POST/PUT requests to custom-shoots immediately
-  if ((req.method === 'POST' || req.method === 'PUT') && url.includes('/custom-shoots')) {
+  // Log POST/PUT requests
+  if (req.method === 'POST' || req.method === 'PUT') {
     const contentLength = req.headers['content-length'] || 0;
     console.log(`[HTTP] ⚡ INCOMING: ${req.method} ${url} (content-length: ${Math.round(contentLength / 1024)}KB)`);
   }
