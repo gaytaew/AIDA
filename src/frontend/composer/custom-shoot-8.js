@@ -858,7 +858,7 @@ async function generatePresetFromImage() {
     const res = await fetch('/api/shoot-presets/generate-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64 })
+      body: JSON.stringify({ imageBase64: imgBase64 })
     });
     const data = await res.json();
 
