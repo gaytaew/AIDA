@@ -19,6 +19,7 @@ import { getPoseById, buildPosePrompt, GLOBAL_POSE_RULES } from '../schema/pose.
 import { POSE_ADHERENCE_MAP } from './shootGenerator.js';
 import { buildLocationPromptSnippet, buildAmbientPrompt } from '../schema/location.js';
 import { generateImageId } from '../schema/customShoot.js';
+import { HARDCODED_REALISM } from '../schema/shootPreset.js';
 
 // New Virtual Studio imports
 import {
@@ -595,7 +596,11 @@ AUTHENTICITY REQUIREMENTS
 ═══════════════════════════════════════════════════════════════
 
 The image must feel like genuine professional photography, not AI-generated.
-Include natural imperfections: subtle skin texture, micro-shadows, fabric wrinkles.`);
+Include natural imperfections: subtle skin texture, micro-shadows, fabric wrinkles.
+
+${HARDCODED_REALISM.HYPER_REAL_SKIN}
+
+${HARDCODED_REALISM.HYPER_REAL_EYES}`);
 
     const v7Prompt = v7Sections.join('\n');
 
