@@ -25,7 +25,8 @@ export const EMOTION_CATEGORIES = [
   { id: 'energy_high', label: '🔥 Яркие', description: 'Высокая энергия, экспрессивные' },
   { id: 'camera_aware', label: '📷 С камерой', description: 'Взаимодействие с камерой' },
   { id: 'transitional', label: '✨ Переходные', description: 'Моменты между состояниями' },
-  { id: 'facial_intense', label: '🎭 Интенсивные', description: 'Глубокие эмоции с точным описанием мышц лица' }
+  { id: 'facial_intense', label: '🎭 Интенсивные', description: 'Глубокие эмоции с точным описанием мышц лица' },
+  { id: 'fashion_editorial', label: '👠 Fashion', description: 'Модельные выражения лица для фэшн съёмки' }
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -657,6 +658,150 @@ full reaction. Brief, subtle, but visible.`,
     defaultIntensity: 2,
     physicalHints: 'jaw set firmly, unwavering eye contact, slight raised brow, chin level, lips closed neutral',
     authenticityKey: 'Resistance through stillness, not action'
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 👠 FASHION EDITORIAL — Модельные выражения лица
+  // ─────────────────────────────────────────────────────────────
+
+  'deadpan_glare': {
+    id: 'deadpan_glare',
+    category: 'fashion_editorial',
+    label: 'The Deadpan',
+    shortDescription: 'Радикальная нейтральность, чистый лист',
+
+    atmosphere: `face completely relaxed and symmetrical, eyes staring straight with no focal point, mouth closed with no tension, eyelids slightly heavy`,
+
+    avoid: ['Frowning', 'Smiling', 'Squinting', 'Tension'],
+    defaultIntensity: 2,
+    physicalHints: 'relaxed symmetrical face, straight stare, heavy lids, no tension',
+    authenticityKey: 'Radical absence of emotion, the face as an object'
+  },
+
+  'smize': {
+    id: 'smize',
+    category: 'fashion_editorial',
+    label: 'The Smize',
+    shortDescription: 'Улыбка глазами, лицо серьёзное',
+
+    atmosphere: `lower eyelids tensed and lifted slightly, mouth completely neutral and heavy, cheekbones engaged but not lifted, intensity in iris`,
+
+    avoid: ['Mouth smile', 'Squinting too much', 'Angry glare'],
+    defaultIntensity: 2,
+    physicalHints: 'tensed lower eyelids, neutral heavy mouth, intensity in iris',
+    authenticityKey: 'Warmth in eyes, coldness in mouth'
+  },
+
+  'haughty_sneer': {
+    id: 'haughty_sneer',
+    category: 'fashion_editorial',
+    label: 'The Haughty',
+    shortDescription: 'Аристократичное высокомерие',
+
+    atmosphere: `chin tilted up, eyelids lowered halfway (bedroom eyes), nostrils slightly flared looking down, mouth corners pulled down microscopically`,
+
+    avoid: ['Disgust', 'Funny face', 'Aggression'],
+    defaultIntensity: 2,
+    physicalHints: 'chin up, lowered eyelids, nostrils flared, micro-frown',
+    authenticityKey: 'Looking down on the viewer, literally and figuratively'
+  },
+
+  'couture_pout': {
+    id: 'couture_pout',
+    category: 'fashion_editorial',
+    label: 'Couture Pout',
+    shortDescription: 'Приоткрытый рот, расслабленная челюсть',
+
+    atmosphere: `jaw dropped and relaxed, lips parted visible teeth gap (no tongue), eyes vacant, muscles around mouth completely slack`,
+
+    avoid: ['Duck face', 'Kissing face', 'O-shape', 'Surprise'],
+    defaultIntensity: 2,
+    physicalHints: 'dropped jaw, parted lips, visible teeth gap, slack mouth muscles',
+    authenticityKey: 'Breathless vacancy, organic relaxation'
+  },
+
+  'fierce_gaze': {
+    id: 'fierce_gaze',
+    category: 'fashion_editorial',
+    label: 'Fierce Gaze',
+    shortDescription: 'Взгляд хищника',
+
+    atmosphere: `eyebrows lowered and flat (not furrowed), eyes unblinking and wide intense, head tilted slightly forward, neck muscles tense`,
+
+    avoid: ['Anger', 'Frowning', 'Scary face', 'Crazy eyes'],
+    defaultIntensity: 3,
+    physicalHints: 'lowered flat brows, unblinking intense eyes, forward head tilt',
+    authenticityKey: 'Predatory focus, dangerous but beautiful'
+  },
+
+  'asymmetric_quirk': {
+    id: 'asymmetric_quirk',
+    category: 'fashion_editorial',
+    label: 'Asymmetric Quirk',
+    shortDescription: 'Странность, интеллектуал',
+
+    atmosphere: `one eyebrow raised significantly, other eye slightly squinted, mouth pulled to one side, head tilted to shoulder`,
+
+    avoid: ['Cartoon confusion', 'Winking', 'Drunken look'],
+    defaultIntensity: 2,
+    physicalHints: 'one raised brow, asymmetric mouth, head tilt',
+    authenticityKey: 'Calculated imperfection, high-fashion oddity'
+  },
+
+  'ethereal_trance': {
+    id: 'ethereal_trance',
+    category: 'fashion_editorial',
+    label: 'Ethereal Trance',
+    shortDescription: 'Сонное состояние, транс',
+
+    atmosphere: `eyes rolled back slightly showing white below iris, eyelids fluttering, jaw slack, neck extended back, lips soft`,
+
+    avoid: ['Dead face', 'Sleep', 'Fainting', 'Drug look'],
+    defaultIntensity: 2,
+    physicalHints: 'eyes rolled slightly up, fluttering lids, slack jaw, extended neck',
+    authenticityKey: 'Caught between sleeping and waking'
+  },
+
+  'structured_cool': {
+    id: 'structured_cool',
+    category: 'fashion_editorial',
+    label: 'Structured Cool',
+    shortDescription: 'Втянутые щеки, геометрия',
+
+    atmosphere: `cheeks sucked in creating hollows, lips slightly pursed (Blue Steel), eyes narrowed, jawline emphasized by lighting angle`,
+
+    avoid: ['Fish face', 'Duck face', 'Silly expression'],
+    defaultIntensity: 3,
+    physicalHints: 'sucked cheeks, slightly pursed lips, narrowed eyes, tense jawline',
+    authenticityKey: 'Face as geometry, highlighting bone structure'
+  },
+
+  'disdainful': {
+    id: 'disdainful',
+    category: 'fashion_editorial',
+    label: 'Disdain',
+    shortDescription: 'Холодное осуждение',
+
+    atmosphere: `eyes looking sideways (side-eye) without turning head, eyelids heavy, one corner of mouth raised in micro-sneer`,
+
+    avoid: ['Angry side-eye', 'Bitchy face', 'Cartoon villain'],
+    defaultIntensity: 2,
+    physicalHints: 'side-eye gaze, heavy lids, micro-sneer',
+    authenticityKey: 'Silent judgment, you are not impressed'
+  },
+
+  'dynamic_shout': {
+    id: 'dynamic_shout',
+    category: 'fashion_editorial',
+    label: 'Dynamic Shout',
+    shortDescription: 'Застывший крик, энергия',
+
+    atmosphere: `mouth wide open in shout shape, eyes squinted shut or wide wild, forehead smooth (joy) or tense (power), neck veins visible`,
+
+    avoid: ['Scary scream', 'Pain', 'Horror movie'],
+    defaultIntensity: 3,
+    physicalHints: 'wide open mouth, squinted or wild eyes, visible neck tension',
+    authenticityKey: 'High energy release, frozen in time'
   }
 };
 
