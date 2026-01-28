@@ -957,9 +957,9 @@ function generatePresetRichText(preset) {
   if (preset.pose) injection += `• Pose: ${preset.pose}\n`;
   if (preset.physics) injection += `• Physics: ${preset.physics}\n`;
 
-  // EMOTION (New! Free-form)
+  // EMOTION (Now using enum key)
   if (preset.emotion) {
-    injection += `\n[EMOTION]\n${preset.emotion}\n`;
+    injection += `• Emotion: ${preset.emotion}\n`;
   }
 
   return injection;

@@ -17,8 +17,12 @@ import {
     PRESET_MOODS,
     PRESET_ERAS,
     PRESET_PROCESSING,
-    PRESET_SPACE_TYPES
+    PRESET_SPACE_TYPES,
+    PRESET_POSES,
+    PRESET_PHYSICS
 } from '../schema/shootPreset.js';
+
+import { EMOTION_PRESETS } from '../schema/emotion.js';
 
 // ═══════════════════════════════════════════════════════════════
 // SYSTEM PROMPT BUILDER
@@ -119,25 +123,20 @@ Processing: ${Object.keys(PRESET_PROCESSING).join(', ')}
 Space Types: ${Object.keys(PRESET_SPACE_TYPES).join(', ')}
 
 [POSE] (How body relates to space)
-- relaxed_standing → casual weight shift, zero tension
-- dynamic_motion → caught mid-movement, kinetic energy
-- slouching_cool → anti-fashion, deliberate bad posture
-- sitting_grounded → heavy gravity, folded limbs
-- interaction → touching environment, tactile connection
+Keys: ${Object.keys(PRESET_POSES).join(', ')}
 
 [PHYSICS] (Environmental forces)
-- gravity_heavy → clothes drape, hair falls, weight visible
-- wind_dynamic → hair blowing, fabric billowing, squinting
-- static_still → absolute stillness, dust motes, vacuum
+Keys: ${Object.keys(PRESET_PHYSICS).join(', ')}
 
-[EMOTION] (Model's internal state — NOT performance)
-Describe what the model is FEELING, not what they're performing.
-Examples:
-- "quiet contemplation, eyes unfocused as if remembering something"
-- "suppressed excitement, trying to contain energy, slight tension in jaw"
-- "raw vulnerability, guard completely down, no mask"
-- "playful defiance, challenging the camera with amused distance"
-- "detached coolness, present but emotionally unreachable"
+[EMOTION] (Model's internal state — choose from these keys)
+Keys: ${Object.keys(EMOTION_PRESETS).join(', ')}
+
+NOTE: Each emotion has a detailed atmosphere description. Choose the one that best matches what you see in the image.
+Low energy: resting, thinking, distant, tired, melancholic, vulnerable
+Medium energy: observing, hint_of_smile, warm, confident, focused, serious, knowing, curious
+High energy: amused, laughing, joyful, excited, playful, triumphant
+Camera aware: caught, flirting, provocative, performing
+Fashion editorial: deadpan_glare, smize, haughty_sneer, couture_pout, fierce_gaze
 
 ═══════════════════════════════════════════════════════════════
 OUTPUT FORMAT
@@ -153,7 +152,7 @@ Return ONLY valid JSON (no commentary):
   "location": { "spaceType": "id_or_null", "description": "Specific setting or null" },
   "pose": "id_or_null",
   "physics": "id_or_null",
-  "emotion": "Free-form description of model's internal emotional state, written as if directing an actor. Focus on FEELING not ACTING."
+  "emotion": "id_or_null"
 }
   `;
 }
