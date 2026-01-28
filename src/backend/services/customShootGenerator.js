@@ -418,18 +418,13 @@ export function buildCustomShootPrompt({
     const visualPrompt = universeParams.visualPrompt || '';
 
     console.log('[CustomShootGenerator] V7 Pure Prompt Mode, prompt length:', visualPrompt.length);
+    console.log('[CustomShootGenerator] V7 poseId:', poseId, 'hasPoseSketch:', hasPoseSketch);
 
     // Build V7 prompt using user's visual description + standard reference handling
     const v7Sections = [];
 
-    // Header
-    v7Sections.push(`═══════════════════════════════════════════════════════════════
-V7 PURE PROMPT MODE - Professional Fashion Photography
-═══════════════════════════════════════════════════════════════`);
-
-    // Hard rules
-    v7Sections.push(`
-TASK: Generate a photorealistic fashion photograph based on user's visual description.
+    // Hard rules (no header, just rules)
+    v7Sections.push(`TASK: Generate a photorealistic fashion photograph based on user's visual description.
 
 HARD RULES:
 1. Return photorealistic images (NO illustration, NO CGI, NO 3D render).
