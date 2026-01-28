@@ -15,14 +15,63 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
           script: |
-            cd /root/AIDA || git clone git@github.com:gaytaew/AIDA.git /root/AIDA
+            set -e
+            
+            echo "=== AIDA Deploy Started ==="
+            
+            # 1. Clone or update repo
+            if [ ! -d "/root/AIDA" ]; then
+              echo "Cloning repository..."
+              git clone git@github.com:gaytaew/AIDA.git /root/AIDA
+            fi
+            
             cd /root/AIDA
+            
+            # 2. Fetch and reset to latest
+            echo "Fetching latest changes..."
             git fetch origin
             git reset --hard origin/main
+            
+            # 3. Show current commit
+            echo "Current commit:"
+            git log -1 --oneline
+            
+            # 4. Install dependencies
+            echo "Installing dependencies..."
             npm ci --production
-            npm run check || true
-            sudo systemctl restart aida >/dev/null 2>&1 || echo "Service not configured yet"
-            echo "DEPLOY_COMPLETE"
-            exit 0
-
+            
+            # 5. Run checks (optional, don't fail deploy)
+            npm run check || echo "Check failed but continuing..."
+            
+            # 6. Restart service with verification
+            echo "Restarting AIDA service..."
+            sudo systemctl restart aida
+            
+            # 7. Wait for service to start
+            sleep 3
+            
+            # 8. Verify service is running
+            echo "Checking service status..."
+            if sudo systemctl is-active --quiet aida; then
+              echo "✅ AIDA service is running"
+            else
+              echo "❌ AIDA service failed to start!"
+              sudo systemctl status aida --no-pager -l
+              exit 1
+            fi
+            
+            # 9. Verify health endpoint
+            echo "Checking health endpoint..."
+            HEALTH=$(curl -s http://localhost:3003/api/health 2>/dev/null || echo "FAILED")
+            if echo "$HEALTH" | grep -q '"ok":true'; then
+              echo "✅ Health check passed"
+              # Show gemini client version
+              echo "$HEALTH" | grep -o '"geminiClientVersion":"[^"]*"' || echo "(version not found)"
+            else
+              echo "⚠️ Health check failed or endpoint not ready"
+              echo "Response: $HEALTH"
+            fi
+            
+            echo "=== AIDA Deploy Complete ==="
