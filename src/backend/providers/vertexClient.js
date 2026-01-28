@@ -26,7 +26,17 @@ async function getAccessToken() {
  */
 export async function requestVertexImage({ prompt, referenceImages = [], imageConfig = {} }) {
     const projectId = config.VERTEX_PROJECT_ID;
-    const location = config.VERTEX_LOCATION || 'us-central1';
+
+    // Valid Vertex AI locations for Gemini
+    const validLocations = ['us-central1', 'us-east4', 'us-west1', 'europe-west1', 'europe-west4', 'asia-northeast1'];
+    let location = config.VERTEX_LOCATION || 'us-central1';
+
+    // Fallback to us-central1 if invalid location
+    if (!validLocations.includes(location)) {
+        console.warn(`[VertexAI] Invalid location '${location}', using us-central1`);
+        location = 'us-central1';
+    }
+
     const modelId = config.VERTEX_MODEL || 'gemini-2.0-flash-exp';
 
     if (!projectId) {
