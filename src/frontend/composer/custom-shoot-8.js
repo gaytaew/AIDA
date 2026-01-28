@@ -970,14 +970,11 @@ function generatePresetRichText(preset) {
     injection += `• Location: ${resolveSchemaValue('location', 'spaceTypes', preset.location.spaceType)}\n`;
   }
 
-  // POSE & PHYSICS (New!)
-  if (preset.pose) injection += `• Pose: ${preset.pose}\n`;
+  // POSE — removed, now controlled by V8 Frame Settings (poseId)
+  // PHYSICS (still from preset)
   if (preset.physics) injection += `• Physics: ${preset.physics}\n`;
 
-  // EMOTION (Now using enum key)
-  if (preset.emotion) {
-    injection += `• Emotion: ${preset.emotion}\n`;
-  }
+  // EMOTION — removed, now controlled by V8 Frame Settings (emotionId)
 
   return injection;
 }
