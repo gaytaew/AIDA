@@ -21,61 +21,52 @@ jobs:
             set -e
             export TERM=xterm
             
-            LOGFILE="/root/aida_deploy_last.log"
-            echo "Starting deploy at $(date)" > $LOGFILE
-            
             # Helper for logging
             log() {
-              echo "[$1] $2" | tee -a $LOGFILE
+              echo "[$1] $2"
             }
             
-            log "INFO" "Ensuring directory exists..."
-            if [ ! -d "/root/AIDA" ]; then
-              git clone git@github.com:gaytaew/AIDA.git /root/AIDA
-            fi
-            
+            cd /root/AIDA || git clone git@github.com:gaytaew/AIDA.git /root/AIDA
             cd /root/AIDA
             
             log "INFO" "Fetching updates..."
             git fetch --all --tags --prune
             
-            # Checkout specific SHA to ensure consistency
             TARGET_SHA="${{ github.sha }}"
-            log "INFO" "Checking out commit: $TARGET_SHA"
+            log "INFO" "Checkout: $TARGET_SHA"
             
             git checkout -f $TARGET_SHA
             git reset --hard $TARGET_SHA
             
-            # CRITICAL: Do NOT run git clean -fd, it deletes user data in store!
-            # Instead, ensure cache dirs exist
-            log "INFO" "Ensuring storage directories exist..."
+            # Ensure directories exist
+            log "INFO" "Fixing storage directories..."
             mkdir -p src/backend/store/vision-cache
             mkdir -p src/backend/store/style-presets
             mkdir -p src/backend/store/product-shoot-images
             mkdir -p src/backend/store/food-shoot-images
             
-            log "INFO" "Updating dependencies..."
-            npm install --omit=dev --no-audit
+            # FIX PERMISSIONS: Ensure service can write to store regardless of user
+            chmod -R 777 src/backend/store
+            
+            # Skip npm install to save memory/time if package.json didn't change heavily
+            # npm install --omit=dev --no-audit
             
             log "INFO" "Restarting Service..."
-            # Stop first to ensure clean state
             sudo systemctl stop aida || true
-            sleep 2
+            sleep 3
             sudo systemctl start aida
             
-            log "INFO" "Verifying Service Status..."
+            log "INFO" "Waiting for service startup..."
             sleep 10
             
+            log "INFO" "Checking status..."
             if sudo systemctl is-active --quiet aida; then
               log "SUCCESS" "AIDA is running."
             else
-              log "ERROR" "AIDA failed to start."
-              sudo systemctl status aida --no-pager -l | tee -a $LOGFILE
-              
-              # Show logs to understand why it failed
-              echo "=== SYSTEM LOGTAIL ==="
-              journalctl -u aida -n 50 --no-pager
-              
+              log "ERROR" "AIDA failed to start. Last 50 log lines:"
+              echo "---------------------------------------------------"
+              sudo journalctl -u aida -n 50 --no-pager
+              echo "---------------------------------------------------"
               exit 1
             fi
             
@@ -87,12 +78,9 @@ jobs:
             
             if echo "$HEALTH" | grep -q '"ok":true'; then
                log "SUCCESS" "Deploy finished successfully."
-               # Show version for verification
                echo "$HEALTH" | grep -o '"geminiClientVersion":"[^"]*"' || echo "(version not found)"
                exit 0
             else
-               log "WARNING" "Health check endpoint failed, but service is running."
-               echo "Response: $HEALTH"
-               # Don't fail the build if service is running but health check is slow
-               exit 0
+               log "WARNING" "Health check failed."
+               exit 1
             fi
