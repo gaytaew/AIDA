@@ -55,9 +55,9 @@ export async function requestOpenAIText({ prompt, images = [] }) {
         }
 
         const response = await openai.chat.completions.create({
-            model: config.OPENAI_TEXT_MODEL || 'gpt-5.2', // Use config or fallback
+            model: config.OPENAI_TEXT_MODEL || 'gpt-5.2',
             messages: messages,
-            max_tokens: 1500, // Reasonable limit for JSON output
+            max_completion_tokens: 1500, // GPT-5.2 uses max_completion_tokens instead of max_tokens
         });
 
         const content = response.choices[0].message.content;
