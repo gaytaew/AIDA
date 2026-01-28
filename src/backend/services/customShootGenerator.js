@@ -565,11 +565,24 @@ ${emotion.physicalHints ? `Physical cues: ${Array.isArray(emotion.physicalHints)
     if (!hasPoseSketch && poseId) {
       const pose = getPoseById(poseId);
       if (pose) {
+        // CONFLICT RESOLUTION: Shot Size vs Pose
+        // If framing is close, force model to ignore full-body aspects of the pose
+        let framingConstraint = '';
+        const shotSize = composition?.shotSize;
+
+        if (['close_up', 'extreme_close_up', 'medium_close_up', 'close'].includes(shotSize)) {
+          framingConstraint = `
+⚠️ FRAMING PRIORITY: The shot size is ${shotSize.toUpperCase()}. 
+CROP THE POSE. Execute ONLY the upper body/facial elements of this description. 
+Do NOT zoom out to show the full action. Ignore leg position. Focus on head angle, shoulders, and expression intensity.
+`;
+        }
+
         v7Sections.push(`
 ═══════════════════════════════════════════════════════════════
 BODY POSE: ${pose.label.toUpperCase()}
 ═══════════════════════════════════════════════════════════════
-
+${framingConstraint}
 ${pose.bodyPrompt}
 
 ${pose.physicalHints ? `Physical cues: ${pose.physicalHints}` : ''}
