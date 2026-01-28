@@ -71,57 +71,175 @@ function buildPresetSystemPrompt() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHYSICS ENGINE (CONFLICT DATA)
+// CONFLICT MATRICES
+// ═══════════════════════════════════════════════════════════════
+
+// MOOD ↔ ERA Compatibility Matrix
+// Some moods are incompatible with certain eras
+const MOOD_ERA_CONFLICTS = {
+    // Luxurious (polished, expensive) conflicts with raw/grunge eras
+    luxurious: ['90s'], // 90s = heroin chic, grunge, raw
+
+    // Gritty/raw conflicts with polished eras
+    gritty: ['modern'], // modern = clean, sharp, polished
+
+    // Ethereal (dreamy) conflicts with gritty eras
+    ethereal: ['90s'], // 90s grunge is opposite of dreamy
+
+    // Minimal (clean) conflicts with chaotic eras
+    minimal: ['80s'], // 80s = high saturation, maximalist
+};
+
+// Flash Sync Speed Constraints
+// Film cameras have physical flash sync limitations
+const FLASH_SYNC_RULES = {
+    // Cameras with flash sync limitations
+    film_35mm: { maxShutterWithFlash: 'motion_blur' }, // 1/60-1/250s max
+    film_medium: { maxShutterWithFlash: 'motion_blur' },
+    polaroid: { maxShutterWithFlash: null }, // No shutter control
+    disposable: { maxShutterWithFlash: null }, // No shutter control
+
+    // Digital cameras can do HSS
+    high_end_digital: { maxShutterWithFlash: 'freeze' }, // HSS allows fast shutter
+    vintage_digital: { maxShutterWithFlash: 'motion_blur' }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PHYSICS ENGINE (Enhanced Validation)
 // ═══════════════════════════════════════════════════════════════
 
 function validatePhysicalConsistency(preset) {
     const p = JSON.parse(JSON.stringify(preset)); // Deep copy
-    const logs = [];
+    const logs = [];      // Auto-fixes applied
+    const warnings = [];  // Conflicts detected but NOT auto-fixed (for UI)
 
-    // CAMERA LOGIC
-    if (p.camera?.type) {
-        const camType = PRESET_CAMERA_TYPES[p.camera.type].physics;
+    // ─────────────────────────────────────────────────────────────
+    // 1. CAMERA PHYSICS
+    // ─────────────────────────────────────────────────────────────
+    if (p.camera?.type && PRESET_CAMERA_TYPES[p.camera.type]) {
+        const camPhysics = PRESET_CAMERA_TYPES[p.camera.type].physics || {};
 
         // Fixed Aperture Cameras (Disposable, Polaroid)
-        if (camType.fixedAperture && p.camera.aperture) {
-            logs.push(`Removed Aperture ${p.camera.aperture} for camera ${p.camera.type}`);
+        if (camPhysics.fixedAperture && p.camera.aperture) {
+            logs.push(`🔧 Removed Aperture (${p.camera.aperture}) — ${p.camera.type} has fixed aperture`);
             p.camera.aperture = null;
         }
 
         // Fixed Lens Cameras
-        if (camType.fixedLens && p.camera.focalLength) {
-            logs.push(`Removed Lens ${p.camera.focalLength} for camera ${p.camera.type}`);
+        if (camPhysics.fixedLens && p.camera.focalLength) {
+            logs.push(`🔧 Removed Lens (${p.camera.focalLength}) — ${p.camera.type} has fixed lens`);
             p.camera.focalLength = null;
         }
     }
 
-    // LIGHTING LOGIC
-    if (p.location?.spaceType === 'studio') {
-        // Studio has no weather or time logic (managed by light source)
-        if (p.lighting?.source === 'natural_sun' && !p.lighting?.direction) {
-            // Allow natural sun in studio ONLY if it implies windows, but strictly studo usually means artificial
-            // For safety, let's just warn or allow user override
+    // ─────────────────────────────────────────────────────────────
+    // 2. FLASH SYNC SPEED VALIDATION
+    // ─────────────────────────────────────────────────────────────
+    const usesFlash = p.lighting?.source === 'on_camera_flash';
+    const hasCamera = p.camera?.type;
+    const hasShutter = p.camera?.shutter;
+
+    if (usesFlash && hasCamera && hasShutter) {
+        const flashRules = FLASH_SYNC_RULES[p.camera.type];
+
+        if (flashRules) {
+            // Check if shutter is faster than flash sync allows
+            if (hasShutter === 'freeze' && flashRules.maxShutterWithFlash !== 'freeze') {
+                warnings.push({
+                    type: 'flash_sync',
+                    severity: 'high',
+                    message: `⚠️ Flash Sync Conflict: ${p.camera.type} with flash cannot use 1/1000s shutter. Physical limit is ~1/250s. This would cause black banding.`,
+                    suggestion: 'Remove shutter speed or use digital camera for HSS'
+                });
+                // Auto-fix: remove shutter or set to motion_blur
+                logs.push(`🔧 Removed fast Shutter — ${p.camera.type} flash sync limit exceeded`);
+                p.camera.shutter = null;
+            }
+
+            // Fixed shutter cameras (polaroid, disposable)
+            if (flashRules.maxShutterWithFlash === null && hasShutter) {
+                logs.push(`🔧 Removed Shutter — ${p.camera.type} has fixed shutter`);
+                p.camera.shutter = null;
+            }
         }
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // 3. LIGHTING PHYSICS
+    // ─────────────────────────────────────────────────────────────
     if (p.lighting?.source === 'on_camera_flash') {
-        // Flash is usually hard
-        if (p.lighting.quality !== 'hard') {
+        // Flash is physically hard light
+        if (p.lighting.quality && p.lighting.quality !== 'hard') {
+            logs.push(`🔧 Forced Light Quality to Hard — on-camera flash produces hard light`);
             p.lighting.quality = 'hard';
-            logs.push('Forced Light Quality to Hard for On-Camera Flash');
+        }
+
+        // Flash is frontal by default
+        if (!p.lighting.direction) {
+            p.lighting.direction = 'front';
         }
     }
 
-    // ATMOSPHERE LOGIC
+    // Natural sun in studio is suspicious
+    if (p.location?.spaceType === 'studio' && p.lighting?.source === 'natural_sun') {
+        warnings.push({
+            type: 'location_light',
+            severity: 'medium',
+            message: `⚠️ Natural Sun in Studio: Studios typically use artificial light. "natural_sun" may produce unexpected results.`,
+            suggestion: 'Use "studio_strobe" or change location'
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. MOOD ↔ ERA COMPATIBILITY
+    // ─────────────────────────────────────────────────────────────
+    const mood = p.atmosphere?.mood;
+    const era = p.atmosphere?.era;
+
+    if (mood && era && MOOD_ERA_CONFLICTS[mood]) {
+        const conflictingEras = MOOD_ERA_CONFLICTS[mood];
+        if (conflictingEras.includes(era)) {
+            warnings.push({
+                type: 'mood_era',
+                severity: 'high',
+                message: `⚠️ Aesthetic Conflict: "${mood}" mood conflicts with "${era}" era. These are opposing aesthetics.`,
+                suggestion: getMoodEraFix(mood, era)
+            });
+            // DO NOT auto-fix — this is a creative choice
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 5. ATMOSPHERE COHERENCE
+    // ─────────────────────────────────────────────────────────────
     if (p.atmosphere?.mood === 'gritty') {
-        // Gritty implies contrast
+        // Gritty implies high contrast
         if (p.atmosphere.processing === 'bw_soft') {
+            logs.push(`🔧 Forced Processing to High Contrast — gritty mood requires contrast`);
             p.atmosphere.processing = 'bw_high_contrast';
-            logs.push('Forced Processing to High Contrast for Gritty mood');
         }
     }
 
-    return { preset: p, logs };
+    if (p.atmosphere?.mood === 'ethereal') {
+        // Ethereal implies soft processing
+        if (p.atmosphere.processing === 'bw_high_contrast') {
+            logs.push(`🔧 Forced Processing to Soft B&W — ethereal mood requires softness`);
+            p.atmosphere.processing = 'bw_soft';
+        }
+    }
+
+    return { preset: p, logs, warnings };
+}
+
+// Helper: Suggest fix for mood/era conflict
+function getMoodEraFix(mood, era) {
+    const fixes = {
+        'luxurious+90s': 'For 90s vibe: try "gritty" or "melancholic" mood. For luxury: try "modern" or "y2k" era.',
+        'gritty+modern': 'For modern vibe: try "minimal" or "luxurious" mood. For gritty: try "90s" era.',
+        'ethereal+90s': 'For 90s vibe: try "melancholic" mood. For ethereal: try "modern" or "70s" era.',
+        'minimal+80s': 'For 80s vibe: try "euphoric" mood. For minimal: try "modern" era.'
+    };
+    return fixes[`${mood}+${era}`] || 'Consider adjusting mood or era for aesthetic coherence.';
 }
 
 // ═══════════════════════════════════════════════════════════════

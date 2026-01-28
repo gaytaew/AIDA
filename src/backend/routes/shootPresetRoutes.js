@@ -148,7 +148,12 @@ router.post('/generate-image', async (req, res) => {
         const validation = presetGenerator.validatePhysicalConsistency(rawPreset);
 
         console.log('[ShootPreset] Validation complete. Sending response.');
-        res.json({ success: true, preset: validation.preset, logs: validation.logs });
+        res.json({
+            success: true,
+            preset: validation.preset,
+            logs: validation.logs,
+            warnings: validation.warnings || []
+        });
     } catch (error) {
         console.error('Preset Vision Error:', error);
         res.status(500).json({

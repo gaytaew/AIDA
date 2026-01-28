@@ -871,7 +871,7 @@ async function generatePresetFromImage() {
     const data = await res.json();
 
     if (data.success) {
-      showPresetPreview(data.preset);
+      showPresetPreview(data.preset, data.logs || [], data.warnings || []);
     } else {
       alert('Ошибка: ' + data.error);
     }
@@ -956,7 +956,7 @@ function generatePresetRichText(preset) {
   return injection;
 }
 
-async function showPresetPreview(preset) {
+async function showPresetPreview(preset, logs = [], warnings = []) {
   tempGeneratedPreset = preset;
 
   // ENSURE schema is loaded before rendering rich text
@@ -969,7 +969,40 @@ async function showPresetPreview(preset) {
   const richText = generatePresetRichText(preset);
   const previewContainer = document.getElementById('preset-json-preview');
 
+  // Build warnings HTML
+  let warningsHtml = '';
+  if (warnings && warnings.length > 0) {
+    warningsHtml = `
+      <div style="margin-bottom: 12px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;">
+        <strong style="color: #856404;">⚠️ Обнаружены конфликты:</strong>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #856404;">
+          ${warnings.map(w => `
+            <li style="margin-bottom: 6px;">
+              <strong>${w.message}</strong>
+              ${w.suggestion ? `<br><span style="font-size: 11px; opacity: 0.8;">💡 ${w.suggestion}</span>` : ''}
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Build auto-fixes HTML
+  let logsHtml = '';
+  if (logs && logs.length > 0) {
+    logsHtml = `
+      <div style="margin-bottom: 12px; padding: 10px; background: #d1e7dd; border: 1px solid #198754; border-radius: 6px;">
+        <strong style="color: #0f5132;">✅ Авто-исправления:</strong>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #0f5132; font-size: 12px;">
+          ${logs.map(l => `<li>${l}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
   previewContainer.innerHTML = `
+    ${warningsHtml}
+    ${logsHtml}
     <div style="margin-bottom: 12px; font-family: sans-serif; font-size: 13px; line-height: 1.5; color: var(--color-text);">
       <strong>Предпросмотр (как это будет в промпте):</strong><br>
       <pre style="white-space: pre-wrap; background: var(--color-surface); padding: 8px; border-radius: 4px; border: 1px solid var(--color-border); margin-top: 4px;">${richText}</pre>
