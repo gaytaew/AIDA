@@ -35,7 +35,40 @@ function buildPresetSystemPrompt() {
     - If a parameter is standard, neutral, or irrelevant, set it to NULL.
     - Null parameters will be excluded from the prompt to avoid noise.
     
-    AVAILABLE ENUMS (Use these keys exactly):
+    ═══════════════════════════════════════════════════════════════
+    PHYSICAL CONSTRAINTS (MUST OBEY)
+    ═══════════════════════════════════════════════════════════════
+    
+    [FLASH SYNC RULES]
+    Film cameras (film_35mm, film_medium) have flash sync speed ~1/250s max.
+    - If using on_camera_flash with film camera → shutter MUST be null or motion_blur
+    - NEVER combine on_camera_flash + film camera + freeze shutter (causes black banding)
+    - Polaroid and Disposable have fixed shutter → always set shutter to null
+    
+    [CAMERA CONSTRAINTS]
+    - polaroid, disposable → fixed aperture, fixed lens (set to null)
+    - on_camera_flash → quality is ALWAYS "hard" (physics of point source)
+    
+    [LIGHTING PHYSICS]
+    - on_camera_flash → direction is typically "front"
+    - natural_sun in "studio" is unusual (studios use artificial light)
+    
+    ═══════════════════════════════════════════════════════════════
+    FORBIDDEN AESTHETIC COMBINATIONS
+    ═══════════════════════════════════════════════════════════════
+    
+    These mood + era combinations create contradictory aesthetics. AVOID THEM:
+    
+    - luxurious + 90s → CONFLICT (90s = raw grunge heroin chic, luxurious = polished expensive)
+    - gritty + modern → CONFLICT (modern = clean sharp, gritty = dirty raw)
+    - ethereal + 90s → CONFLICT (90s = gritty grunge, ethereal = dreamy soft)
+    - minimal + 80s → CONFLICT (80s = maximalist saturated, minimal = reduced clean)
+    
+    If the image suggests BOTH conflicting elements, PREFER the more visually dominant one.
+    
+    ═══════════════════════════════════════════════════════════════
+    AVAILABLE ENUMS (Use these keys exactly)
+    ═══════════════════════════════════════════════════════════════
     
     [CAMERA]
     Types: ${Object.keys(PRESET_CAMERA_TYPES).join(', ')}
@@ -57,7 +90,10 @@ function buildPresetSystemPrompt() {
     [LOCATION]
     Space Types: ${Object.keys(PRESET_SPACE_TYPES).join(', ')}
     
-    OUTPUT FORMAT:
+    ═══════════════════════════════════════════════════════════════
+    OUTPUT FORMAT
+    ═══════════════════════════════════════════════════════════════
+    
     Return a strictly valid JSON object:
     {
       "name": "Short Creative Name (3-5 words)",
