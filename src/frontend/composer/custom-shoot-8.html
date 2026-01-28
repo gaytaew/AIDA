@@ -753,7 +753,7 @@
                 </div>
 
                 <!-- Pose sketch adherence -->
-                <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="margin-top: 16px;">
                   <div class="form-group" style="margin: 0;">
                     <label for="gen-pose-adherence">🎯 Следование эскизу позы</label>
                     <select id="gen-pose-adherence"
@@ -764,16 +764,88 @@
                       <option value="4">4 — Точная копия</option>
                     </select>
                   </div>
-                  <!-- Hidden elements for compatibility -->
-                  <div style="display: none;">
-                    <select id="gen-shot-size">
-                      <option value="default">Авто</option>
+                  <!-- Hidden element for compatibility -->
+                  <textarea id="gen-extra-prompt" style="display: none;"></textarea>
+                </div>
+              </div>
+
+              <!-- ═══════════════════════════════════════════════════════════ -->
+              <!-- FRAME SETTINGS BLOCK (NEW) -->
+              <!-- ═══════════════════════════════════════════════════════════ -->
+              <div class="frame-settings"
+                style="background: var(--color-surface); border: 2px solid #8B5CF6; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                  <h4
+                    style="margin: 0; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted); display: flex; align-items: center; gap: 8px;">
+                    🎬 Настройки кадра
+                    <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">Параметры для
+                      текущей генерации</span>
+                  </h4>
+                  <button id="btn-save-frame" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">
+                    💾 Сохранить как кадр
+                  </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                  <!-- Эмоция -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-emotion" style="font-size: 12px; margin-bottom: 4px; display: block;">😊
+                      Эмоция</label>
+                    <select id="gen-emotion"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="">Нейтральная (без эмоции)</option>
                     </select>
-                    <select id="gen-camera-angle">
-                      <option value="eye_level">На уровне глаз</option>
-                    </select>
-                    <textarea id="gen-extra-prompt"></textarea>
                   </div>
+
+                  <!-- План (Shot Size) -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-shot-size" style="font-size: 12px; margin-bottom: 4px; display: block;">📷
+                      План</label>
+                    <select id="gen-shot-size"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="full">Полный рост (Full)</option>
+                      <option value="3/4">3/4 (до колен)</option>
+                      <option value="medium" selected>Средний (до пояса)</option>
+                      <option value="close">Крупный (портрет)</option>
+                      <option value="extreme_close">Экстремальный (только лицо)</option>
+                    </select>
+                  </div>
+
+                  <!-- Угол камеры -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-camera-angle" style="font-size: 12px; margin-bottom: 4px; display: block;">📐 Угол
+                      камеры</label>
+                    <select id="gen-camera-angle"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="eye_level" selected>На уровне глаз</option>
+                      <option value="low">Снизу (Low Angle)</option>
+                      <option value="high">Сверху (High Angle)</option>
+                      <option value="dutch">Голландский угол</option>
+                    </select>
+                  </div>
+
+                  <!-- Направление взгляда -->
+                  <div class="form-group" style="margin: 0;">
+                    <label for="gen-gaze-direction" style="font-size: 12px; margin-bottom: 4px; display: block;">👁️
+                      Взгляд</label>
+                    <select id="gen-gaze-direction"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="camera" selected>В камеру</option>
+                      <option value="left">Влево</option>
+                      <option value="right">Вправо</option>
+                      <option value="down">Вниз</option>
+                      <option value="up">Вверх</option>
+                      <option value="away">Куда-то в сторону</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Saved Frames Shelf -->
+                <div id="saved-frames-shelf"
+                  style="margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--color-border); display: none;">
+                  <div style="font-size: 11px; color: var(--color-text-muted); margin-bottom: 8px;">📸 Сохранённые
+                    кадры:</div>
+                  <div id="saved-frames-list" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
                 </div>
               </div>
 

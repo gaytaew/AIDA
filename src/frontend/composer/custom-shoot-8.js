@@ -123,7 +123,10 @@ const state = {
   // V5 Smart System (kept for compatibility, not used in V7 UI)
   v5Schema: null,             // V5 schema (technical, artistic, context)
   v5Values: {},               // V5 current values
-  v5Corrections: []           // Auto-corrections applied
+  v5Corrections: [],          // Auto-corrections applied
+
+  // V8 Saved Frames (Frame Settings presets)
+  savedFrames: []             // {id, name, emotionId, shotSize, cameraAngle, gazeDirection}
 };
 
 // Step order for navigation (frames step removed - frames are selected directly in generate step)
@@ -181,6 +184,12 @@ function initElements() {
   // Composition controls (per-frame: shot size and camera angle)
   elements.genShotSize = document.getElementById('gen-shot-size');
   elements.genCameraAngle = document.getElementById('gen-camera-angle');
+  elements.genGazeDirection = document.getElementById('gen-gaze-direction');
+
+  // Frame Settings controls
+  elements.btnSaveFrame = document.getElementById('btn-save-frame');
+  elements.savedFramesShelf = document.getElementById('saved-frames-shelf');
+  elements.savedFramesList = document.getElementById('saved-frames-list');
 
   // NOTE: Legacy controls removed - now controlled via Universe params:
   // - genCaptureStyle, genColor, genSkinTexture, genEra
@@ -237,6 +246,11 @@ function initEventListeners() {
   elements.styleLockOff.addEventListener('click', () => setStyleLockMode('off'));
   elements.styleLockStrict.addEventListener('click', () => setStyleLockMode('strict'));
   elements.styleLockSoft.addEventListener('click', () => setStyleLockMode('soft'));
+
+  // Frame Settings: Save current settings as named frame
+  if (elements.btnSaveFrame) {
+    elements.btnSaveFrame.addEventListener('click', saveCurrentAsFrame);
+  }
 
   // DELEGATED event handler for generate buttons (won't break on DOM re-renders)
   elements.framesToGenerate.addEventListener('click', (e) => {
@@ -601,6 +615,9 @@ function loadShootState() {
 
   // Load generation settings
   state.generationSettings = state.currentShoot.generationSettings || {};
+
+  // Load saved frames (V8 Frame Settings presets)
+  loadSavedFramesFromShoot();
 
   // Restore V5 Universe parameters if saved
   if (state.generationSettings.universeValues) {
@@ -2239,9 +2256,10 @@ function collectGenerationSettings() {
     imageSize: elements.genImageSize?.value || '2K',
     poseAdherence: elements.genPoseAdherence?.value || '2',
 
-    // Per-frame composition (shot size and camera angle can vary per frame)
-    shotSize: elements.genShotSize?.value || 'default',
+    // Per-frame composition (shot size, camera angle, gaze direction)
+    shotSize: elements.genShotSize?.value || 'medium',
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
+    gazeDirection: elements.genGazeDirection?.value || 'camera',
 
     // Extra prompt
     extraPrompt: elements.genExtraPrompt?.value || '',
@@ -2281,6 +2299,9 @@ function applyGenerationSettings(settings) {
   }
   if (settings.cameraAngle && elements.genCameraAngle) {
     elements.genCameraAngle.value = settings.cameraAngle;
+  }
+  if (settings.gazeDirection && elements.genGazeDirection) {
+    elements.genGazeDirection.value = settings.gazeDirection;
   }
 
   // Extra prompt
@@ -2690,8 +2711,9 @@ async function generateFrame(frameId) {
     imageSize: elements.genImageSize?.value || '2K',
     poseAdherence: elements.genPoseAdherence?.value ? parseInt(elements.genPoseAdherence.value) : 2,
     composition: {
-      shotSize: elements.genShotSize?.value || 'default',
-      cameraAngle: elements.genCameraAngle?.value || 'eye_level'
+      shotSize: elements.genShotSize?.value || 'medium',
+      cameraAngle: elements.genCameraAngle?.value || 'eye_level',
+      gazeDirection: elements.genGazeDirection?.value || 'camera'
     }
   };
 
@@ -4138,3 +4160,135 @@ function initPresetLogic() {
   // Load Presets
   loadPresets();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// V8 SAVED FRAMES (Frame Settings Presets)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Save current frame settings as a named preset
+ */
+function saveCurrentAsFrame() {
+  const name = prompt('Название кадра:', 'Кадр ' + (state.savedFrames.length + 1));
+  if (!name) return;
+
+  const newFrame = {
+    id: 'frame_' + Date.now(),
+    name: name.trim(),
+    emotionId: elements.genEmotion?.value || '',
+    shotSize: elements.genShotSize?.value || 'medium',
+    cameraAngle: elements.genCameraAngle?.value || 'eye_level',
+    gazeDirection: elements.genGazeDirection?.value || 'camera'
+  };
+
+  state.savedFrames.push(newFrame);
+  saveSavedFramesToServer();
+  renderSavedFramesShelf();
+
+  console.log('[SavedFrames] Saved new frame:', newFrame.name);
+}
+
+/**
+ * Load a saved frame's settings into the UI
+ */
+function loadSavedFrame(frameId) {
+  const frame = state.savedFrames.find(f => f.id === frameId);
+  if (!frame) return;
+
+  // Apply settings to UI
+  if (elements.genEmotion && frame.emotionId) {
+    elements.genEmotion.value = frame.emotionId;
+  }
+  if (elements.genShotSize && frame.shotSize) {
+    elements.genShotSize.value = frame.shotSize;
+  }
+  if (elements.genCameraAngle && frame.cameraAngle) {
+    elements.genCameraAngle.value = frame.cameraAngle;
+  }
+  if (elements.genGazeDirection && frame.gazeDirection) {
+    elements.genGazeDirection.value = frame.gazeDirection;
+  }
+
+  // Save to persist changes
+  saveGenerationSettings();
+
+  console.log('[SavedFrames] Loaded frame:', frame.name);
+}
+
+/**
+ * Delete a saved frame
+ */
+function deleteSavedFrame(frameId) {
+  state.savedFrames = state.savedFrames.filter(f => f.id !== frameId);
+  saveSavedFramesToServer();
+  renderSavedFramesShelf();
+  console.log('[SavedFrames] Deleted frame:', frameId);
+}
+
+/**
+ * Render the saved frames shelf
+ */
+function renderSavedFramesShelf() {
+  if (!elements.savedFramesShelf || !elements.savedFramesList) return;
+
+  if (state.savedFrames.length === 0) {
+    elements.savedFramesShelf.style.display = 'none';
+    return;
+  }
+
+  elements.savedFramesShelf.style.display = 'block';
+
+  // Get emotion labels for display
+  const getEmotionLabel = (emotionId) => {
+    if (!emotionId) return 'Нейтральная';
+    const emotion = state.emotions.find(e => e.id === emotionId);
+    return emotion?.label || emotionId;
+  };
+
+  elements.savedFramesList.innerHTML = state.savedFrames.map(frame => `
+    <div class="saved-frame-chip" 
+         style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"
+         onclick="loadSavedFrame('${frame.id}')">
+      <span style="font-size: 12px; font-weight: 500;">${escapeHtml(frame.name)}</span>
+      <span style="font-size: 10px; color: var(--color-text-muted);">${getEmotionLabel(frame.emotionId)}</span>
+      <button onclick="event.stopPropagation(); deleteSavedFrame('${frame.id}')" 
+              style="background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 12px; padding: 0 4px;"
+              title="Удалить">×</button>
+    </div>
+  `).join('');
+}
+
+/**
+ * Save saved frames to server (via shoot update)
+ */
+async function saveSavedFramesToServer() {
+  if (!state.currentShoot) return;
+
+  try {
+    await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        savedFrames: state.savedFrames
+      })
+    });
+  } catch (e) {
+    console.error('[SavedFrames] Error saving to server:', e);
+  }
+}
+
+/**
+ * Load saved frames from current shoot
+ */
+function loadSavedFramesFromShoot() {
+  if (state.currentShoot?.savedFrames) {
+    state.savedFrames = state.currentShoot.savedFrames;
+  } else {
+    state.savedFrames = [];
+  }
+  renderSavedFramesShelf();
+}
+
+// Expose functions to window for onclick handlers
+window.loadSavedFrame = loadSavedFrame;
+window.deleteSavedFrame = deleteSavedFrame;

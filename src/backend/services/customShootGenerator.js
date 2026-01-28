@@ -528,14 +528,25 @@ ${adherence.instruction}`);
     }
 
     // Composition
-    if (composition && (composition.shotSize !== 'default' || composition.cameraAngle !== 'eye_level')) {
+    if (composition && (composition.shotSize !== 'default' || composition.cameraAngle !== 'eye_level' || composition.gazeDirection !== 'camera')) {
+      const gazeMap = {
+        'camera': 'looking directly into camera',
+        'left': 'looking to the left (from viewer perspective)',
+        'right': 'looking to the right (from viewer perspective)',
+        'down': 'looking downward',
+        'up': 'looking upward',
+        'away': 'looking away from camera, off into the distance'
+      };
+      const gazeDesc = gazeMap[composition.gazeDirection] || composition.gazeDirection || 'looking into camera';
+
       v7Sections.push(`
 ═══════════════════════════════════════════════════════════════
 COMPOSITION
 ═══════════════════════════════════════════════════════════════
 
 Shot: ${composition.shotSize || 'auto'}
-Angle: ${composition.cameraAngle || 'eye level'}`);
+Angle: ${composition.cameraAngle || 'eye level'}
+Gaze: ${gazeDesc}`);
     }
 
     // Emotion
@@ -872,10 +883,10 @@ ${adherence.forbid ? `⛔ ${adherence.forbid}` : ''}`);
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 9B: COMPOSITION (shotSize + cameraAngle) — STRICT
+  // SECTION 9B: COMPOSITION (shotSize + cameraAngle + gazeDirection) — STRICT
   // ═══════════════════════════════════════════════════════════════
 
-  if (composition && (composition.shotSize || composition.cameraAngle)) {
+  if (composition && (composition.shotSize || composition.cameraAngle || composition.gazeDirection)) {
     const SHOT_SIZE_DIRECTIVES = {
       extreme_closeup: 'EXTREME CLOSE-UP: Only face/detail visible, fills 90%+ of frame. NO body below chin.',
       closeup: 'CLOSE-UP: Head and shoulders ONLY. Face is primary focus. NO waist or below visible.',
@@ -897,8 +908,18 @@ ${adherence.forbid ? `⛔ ${adherence.forbid}` : ''}`);
       fisheye: 'FISHEYE: Extreme wide-angle with VISIBLE barrel distortion. Edges curve dramatically.'
     };
 
+    const GAZE_DIRECTION_DIRECTIVES = {
+      camera: 'GAZE INTO CAMERA: Eyes locked on viewer. Direct, engaging connection.',
+      left: 'GAZE LEFT: Model looking to the left (from viewer perspective). Creates narrative tension.',
+      right: 'GAZE RIGHT: Model looking to the right (from viewer perspective). Implies movement or departure.',
+      down: 'GAZE DOWN: Eyes lowered, contemplative or modest expression.',
+      up: 'GAZE UP: Eyes raised, aspirational or hopeful expression.',
+      away: 'GAZE AWAY: Eyes off-camera to an undefined point. Creates mystery, introspection.'
+    };
+
     const shotDesc = SHOT_SIZE_DIRECTIVES[composition.shotSize] || composition.shotSize;
     const angleDesc = CAMERA_ANGLE_DIRECTIVES[composition.cameraAngle] || composition.cameraAngle;
+    const gazeDesc = GAZE_DIRECTION_DIRECTIVES[composition.gazeDirection] || composition.gazeDirection;
 
     let compositionBlock = `
 === COMPOSITION (MANDATORY — NOT NEGOTIABLE) ===`;
@@ -915,12 +936,18 @@ FRAMING: ${shotDesc}`;
 CAMERA ANGLE: ${angleDesc}`;
     }
 
+    if (composition.gazeDirection && composition.gazeDirection !== 'camera') {
+      compositionBlock += `
+
+GAZE DIRECTION: ${gazeDesc}`;
+    }
+
     compositionBlock += `
 
 ⚠️ STRICT ENFORCEMENT:
 - If CLOSE-UP specified → do NOT show full body
 - If LOW ANGLE specified → camera MUST be below eye level
-- If FISHEYE specified → edges MUST curve with visible distortion
+- If GAZE LEFT specified → model MUST look to the left
 - These are REQUIREMENTS, not suggestions`;
 
     sections.push(compositionBlock);
