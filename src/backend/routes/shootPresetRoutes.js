@@ -5,20 +5,6 @@
 
 import express from 'express';
 import { requestOpenAIText } from '../providers/openaiClient.js';
-
-// ... existing code ...
-
-// Prepare image for OpenAI (keep raw base64, client adds header)
-// logic in client expects raw base64 if we pass it as such, OR we can pass it clean.
-// In previous Gemini code, we stripped header.
-// Let's pass raw base64 (without header) as before, since my client implementation adds the header.
-
-const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-
-const response = await requestOpenAIText({
-    prompt: fullPrompt,
-    images: [{ mimeType: 'image/jpeg', base64: base64Data }]
-});
 import presetGenerator from '../services/presetGenerator.js';
 import crypto from 'crypto';
 import fs from 'fs/promises';
@@ -27,7 +13,7 @@ import path from 'path';
 const router = express.Router();
 const PRESETS_FILE = path.join(process.cwd(), 'src/data/shootPresets.json');
 
-// Ensure stats file exists
+// Ensure data directory and file exist
 async function ensureFile() {
     try {
         await fs.mkdir(path.dirname(PRESETS_FILE), { recursive: true });
@@ -48,20 +34,20 @@ async function savePresets(presets) {
     await fs.writeFile(PRESETS_FILE, JSON.stringify(presets, null, 2));
 }
 
-// Helper to clean JSON from Gemini markdown
+// Helper to clean JSON from markdown code blocks
 function cleanJson(text) {
     if (!text) return null;
     return text.replace(/```json/g, '').replace(/```/g, '').trim();
 }
 
-// 1. GENERATE FROM TEXT
+// 1. GENERATE FROM TEXT (uses OpenAI GPT-5.2)
 router.post('/generate-text', async (req, res) => {
     try {
         const { prompt } = req.body;
         const systemPrompt = presetGenerator.buildPresetSystemPrompt();
         const fullPrompt = `${systemPrompt}\n\nUSER REQUEST: Style description: "${prompt}"`;
 
-        const response = await requestGeminiText({ prompt: fullPrompt });
+        const response = await requestOpenAIText({ prompt: fullPrompt });
 
         if (!response.ok) {
             throw new Error(response.error);
@@ -78,14 +64,14 @@ router.post('/generate-text', async (req, res) => {
     }
 });
 
-// 2. GENERATE FROM IMAGE (Vision)
+// 2. GENERATE FROM IMAGE (Vision) — uses OpenAI GPT-5.2
 router.post('/generate-image', async (req, res) => {
     try {
         const { imageBase64 } = req.body;
         const systemPrompt = presetGenerator.buildPresetSystemPrompt();
         const fullPrompt = `${systemPrompt}\n\nUSER REQUEST: Analyze this image and reverse-engineer the shoot preset.`;
 
-        // Prepare image for Gemini (remove header if present)
+        // Prepare image (remove data URL header if present)
         const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
         const response = await requestOpenAIText({
