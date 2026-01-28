@@ -14,13 +14,15 @@ const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent';
 
 // Таймаут для запросов к Gemini API (в миллисекундах)
-const REQUEST_TIMEOUT_MS = 50000; // 50 секунд (Balance between Fail Fast and Quality)
+// UPDATED: 90 секунд для сложных запросов с 4+ изображениями в 2K разрешении
+const REQUEST_TIMEOUT_MS = 90000;
 
 // Global limiter for Gemini to reduce burst/parallel overload (503).
 // FIXED: Added name and timeout for better diagnostics
+// UPDATED: 120 секунд - запас для тяжёлых генераций
 const GEMINI_CONCURRENCY = 1;
 const GEMINI_MIN_TIME_MS = 800;
-const GEMINI_TIMEOUT_MS = 55000; // 55 seconds max per request
+const GEMINI_TIMEOUT_MS = 120000;
 const limitGemini = createLimiter({
   concurrency: GEMINI_CONCURRENCY,
   minTimeMs: GEMINI_MIN_TIME_MS,
@@ -467,9 +469,20 @@ export async function requestGeminiImage({ prompt, referenceImages = [], imageCo
     console.error(getGeminiKeyDebugInfo());
 
     const errorMsg = error.message || String(error);
+
+    // Возвращаем понятные ошибки для пользователя
+    if (errorMsg.includes('timed out')) {
+      return {
+        ok: false,
+        error: 'Gemini не ответил вовремя. Попробуйте снизить качество (1K) или количество референсов.',
+        errorCode: 'timeout'
+      };
+    }
+
     return {
       ok: false,
-      error: `Gemini network error: ${errorMsg}`
+      error: `Gemini network error: ${errorMsg}`,
+      errorCode: 'network_error'
     };
   }
 }

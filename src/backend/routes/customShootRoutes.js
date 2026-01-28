@@ -803,13 +803,32 @@ router.post('/:id/generate', async (req, res) => {
     log('GENERATION_COMPLETE', { ok: result.ok, duration: genDuration });
 
     if (!result.ok) {
-      log('GENERATION_FAILED', { error: result.error?.slice(0, 200) });
+      log('GENERATION_FAILED', { error: result.error?.slice(0, 200), errorCode: result.errorCode });
       // Проверяем, не отправлены ли уже заголовки (например, при 504 таймауте от HTTP middleware)
       if (res.headersSent) {
         console.warn(`[CustomShootRoutes] [${requestId}] Headers already sent, cannot send error response`);
         return;
       }
-      return res.status(500).json({ ok: false, error: result.error });
+
+      // Определяем HTTP статус и сообщение по типу ошибки
+      let status = 500;
+      let userError = result.error;
+
+      if (result.errorCode === 'timeout') {
+        status = 504; // Gateway Timeout
+        userError = 'Генерация заняла слишком много времени. Попробуйте уменьшить качество (1K) или количество референсов.';
+      } else if (result.errorCode === 'quota_exceeded') {
+        status = 429;
+        userError = 'Превышен лимит запросов к Gemini. Подождите минуту и попробуйте снова.';
+      } else if (result.errorCode === 'api_overloaded') {
+        status = 503;
+        userError = 'Gemini перегружен. Попробуйте через 30 секунд.';
+      } else if (result.errorCode === 'blocked') {
+        status = 400;
+        userError = 'Запрос отклонён модерацией. Измените параметры и попробуйте снова.';
+      }
+
+      return res.status(status).json({ ok: false, error: userError, errorCode: result.errorCode });
     }
 
     // Build refs with preview URLs (same format as shootRoutes)
