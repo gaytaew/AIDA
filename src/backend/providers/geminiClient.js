@@ -377,11 +377,14 @@ export async function requestGeminiText({ prompt, images = [] }) {
     }
   };
 
+  const model = config.V3_GEMINI_MODEL || 'gemini-1.5-flash';
+  const textUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(textUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
