@@ -2858,6 +2858,7 @@ async function generateFrame(frameId) {
       emotionId: params.emotionId,
       extraPrompt: params.extraPrompt,
       locationId: params.locationId,
+      poseId: params.poseId,
       aspectRatio: params.aspectRatio,
       imageSize: params.imageSize,
       poseAdherence: params.poseAdherence,
