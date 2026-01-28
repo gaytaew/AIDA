@@ -956,8 +956,14 @@ function generatePresetRichText(preset) {
   return injection;
 }
 
-function showPresetPreview(preset) {
+async function showPresetPreview(preset) {
   tempGeneratedPreset = preset;
+
+  // ENSURE schema is loaded before rendering rich text
+  if (!presetSchema) {
+    console.log('showPresetPreview: schema not loaded, loading now...');
+    await loadPresetSchema();
+  }
 
   // Show Visual Preview (Rich Text)
   const richText = generatePresetRichText(preset);
