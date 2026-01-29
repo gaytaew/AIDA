@@ -83,11 +83,11 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
             });
         }
 
-        // IMPLEMENTING RETRY LOGIC (3 attempts)
-        // Since this is our last line of defense for Nano Banana Pro, we try hard.
-        // Delays: 2s, 5s, 10s
-        const retries = 3;
-        const delays = [2000, 5000, 10000];
+        // IMPLEMENTING RETRY LOGIC (5 attempts - Tenacious Mode)
+        // Since this is our last line of defense for Nano Banana Pro, we try VERY hard.
+        // Delays coverage: ~ 1 minute of outage
+        const retries = 5;
+        const delays = [2000, 5000, 10000, 20000, 30000];
 
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
