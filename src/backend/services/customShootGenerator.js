@@ -400,6 +400,11 @@ export function buildCustomShootPrompt({
   // Composition (shotSize + cameraAngle)
   composition = null,
 
+  // Location settings (V8)
+  locationMode = 'none',      // 'none', 'reference', 'prompt'
+  locationPrompt = '',        // User-written location description
+  locationRefPath = null,     // Path to uploaded location reference image
+
   // Quality settings
   qualityMode = 'DRAFT',
   mood = 'natural'
@@ -515,6 +520,32 @@ ${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`;
       }
 
       v7Sections.push(clothingSection);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // LOCATION (V8)
+    // ═══════════════════════════════════════════════════════════════
+    if (locationMode === 'prompt' && locationPrompt && locationPrompt.trim()) {
+      v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+LOCATION / ENVIRONMENT
+═══════════════════════════════════════════════════════════════
+
+${locationPrompt.trim()}
+
+The environment should feel authentic and physically correct.
+Match lighting conditions to the location (indoor/outdoor, time of day).`);
+    } else if (locationMode === 'reference' && locationRefPath) {
+      // If reference was uploaded, it should be analyzed via Vision API
+      // For now, we add a placeholder that will be expanded by the route handler
+      v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+LOCATION / ENVIRONMENT (from reference [$LOC_REF])
+═══════════════════════════════════════════════════════════════
+
+Recreate the environment shown in the location reference image [$LOC_REF].
+Match the setting, atmosphere, lighting conditions, and spatial context.
+The model should be naturally placed within this environment.`);
     }
 
     // Style Lock

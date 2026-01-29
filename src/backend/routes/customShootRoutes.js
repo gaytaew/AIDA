@@ -488,13 +488,19 @@ router.post('/:id/generate', async (req, res) => {
       variationId,    // V6: Selected variation (sub-preset) ID
       // Note: emotionId is already extracted above in common params
 
-      // ═══════════════════════════════════════════════════════════════
       // Virtual Studio Parameters (legacy)
       // ═══════════════════════════════════════════════════════════════
       virtualCamera,  // { focalLength, aperture, shutterSpeed }
       lighting,       // { primarySource, secondarySource, modifier }
       qualityMode,    // 'DRAFT' | 'PRODUCTION'
-      mood            // string for atmosphere/feeling
+      mood,           // string for atmosphere/feeling
+
+      // ═══════════════════════════════════════════════════════════════
+      // Location Parameters (V8)
+      // ═══════════════════════════════════════════════════════════════
+      locationMode,      // 'none', 'reference', 'prompt'
+      locationPrompt,    // User-written location description
+      locationRefPath    // Path to uploaded location reference image
     } = req.body;
 
     console.log('[CustomShootRoutes] Generate request for shoot:', shoot.id);
@@ -798,7 +804,14 @@ router.post('/:id/generate', async (req, res) => {
       virtualCamera,
       lighting,
       qualityMode: qualityMode || 'DRAFT',
-      mood: mood || 'natural'
+      mood: mood || 'natural',
+
+      // ═══════════════════════════════════════════════════════════════
+      // Location Parameters (V8)
+      // ═══════════════════════════════════════════════════════════════
+      locationMode: locationMode || 'none',
+      locationPrompt: locationPrompt || '',
+      locationRefPath: locationRefPath || null
     });
 
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);

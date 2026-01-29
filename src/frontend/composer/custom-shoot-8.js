@@ -126,7 +126,10 @@ const state = {
   v5Corrections: [],          // Auto-corrections applied
 
   // V8 Saved Frames (Frame Settings presets)
-  savedFrames: []             // {id, name, emotionId, shotSize, cameraAngle, gazeDirection}
+  savedFrames: [],             // {id, name, emotionId, shotSize, cameraAngle, gazeDirection}
+
+  // Location reference (uploaded image path)
+  locationRefPath: null
 };
 
 // Step order for navigation (frames step removed - frames are selected directly in generate step)
@@ -333,6 +336,64 @@ function initEventListeners() {
       return;
     }
   });
+
+  // ═══════════════════════════════════════════════════════════════
+  // LOCATION MODE HANDLERS
+  // ═══════════════════════════════════════════════════════════════
+
+  const locationModeSelect = document.getElementById('gen-location-mode');
+  const locationRefContainer = document.getElementById('location-reference-container');
+  const locationPromptContainer = document.getElementById('location-prompt-container');
+  const locationRefInput = document.getElementById('location-ref-input');
+  const locationRefPreview = document.getElementById('location-ref-preview');
+  const locationRefStatus = document.getElementById('location-ref-status');
+  const btnUploadLocationRef = document.getElementById('btn-upload-location-ref');
+
+  if (locationModeSelect) {
+    locationModeSelect.addEventListener('change', () => {
+      const mode = locationModeSelect.value;
+      locationRefContainer.style.display = mode === 'reference' ? 'block' : 'none';
+      locationPromptContainer.style.display = mode === 'prompt' ? 'block' : 'none';
+    });
+  }
+
+  if (btnUploadLocationRef && locationRefInput) {
+    btnUploadLocationRef.addEventListener('click', () => locationRefInput.click());
+
+    locationRefInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      locationRefStatus.textContent = 'Загрузка...';
+      btnUploadLocationRef.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/shoot-presets/upload-reference', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) throw new Error('Upload failed');
+
+        const data = await res.json();
+        state.locationRefPath = data.path;
+
+        locationRefPreview.src = data.path;
+        locationRefPreview.style.display = 'block';
+        locationRefStatus.textContent = '✓ Загружено';
+        console.log('[Location] Reference uploaded:', data.path);
+      } catch (err) {
+        console.error('[Location] Upload error:', err);
+        locationRefStatus.textContent = '❌ Ошибка загрузки';
+        state.locationRefPath = null;
+      } finally {
+        btnUploadLocationRef.disabled = false;
+      }
+    });
+  }
 
   // PRESET UI HANDLERS
   initPresetEventListeners();
@@ -2825,11 +2886,16 @@ async function generateFrame(frameId) {
       gazeDirection: elements.genGazeDirection?.value || 'camera'
     },
     // Body pose (only when no pose sketch - ignored on backend if sketch present)
-    poseId: document.getElementById('gen-body-pose')?.value || null  // empty string becomes null
+    poseId: document.getElementById('gen-body-pose')?.value || null,  // empty string becomes null
+    // Location settings
+    locationMode: document.getElementById('gen-location-mode')?.value || 'none',
+    locationPrompt: document.getElementById('gen-location-prompt')?.value || '',
+    locationRefPath: state.locationRefPath || null
   };
 
   // DEBUG: Log poseId
   console.log('[CS8] generateFrame poseId:', params.poseId, 'element value:', document.getElementById('gen-body-pose')?.value);
+  console.log('[CS8] generateFrame location:', params.locationMode, params.locationPrompt ? '(prompt)' : '', params.locationRefPath ? '(ref)' : '');
 
   // Add placeholder
   const placeholderId = `pending_${Date.now()}`;
@@ -2863,7 +2929,11 @@ async function generateFrame(frameId) {
       imageSize: params.imageSize,
       poseAdherence: params.poseAdherence,
       universeParams: params.universeParams,
-      composition: params.composition
+      composition: params.composition,
+      // Location
+      locationMode: params.locationMode,
+      locationPrompt: params.locationPrompt,
+      locationRefPath: params.locationRefPath
     };
 
     const bodySize = JSON.stringify(requestBody).length;

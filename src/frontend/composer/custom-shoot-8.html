@@ -850,6 +850,41 @@
                       <!-- Populated by JS from /api/poses/options -->
                     </select>
                   </div>
+
+                  <!-- Локация -->
+                  <div class="form-group" style="margin: 0; grid-column: span 2;">
+                    <label for="gen-location-mode" style="font-size: 12px; margin-bottom: 4px; display: block;">🌍
+                      Локация</label>
+                    <select id="gen-location-mode"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="none">Без локации</option>
+                      <option value="reference">По референсу (изображение)</option>
+                      <option value="prompt">По промпту (описание)</option>
+                    </select>
+                  </div>
+
+                  <!-- Location Reference Container -->
+                  <div id="location-reference-container" class="form-group"
+                    style="margin: 0; grid-column: span 2; display: none;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <button id="btn-upload-location-ref" class="btn btn-secondary"
+                        style="font-size: 11px; padding: 6px 12px;">
+                        📷 Загрузить фото локации
+                      </button>
+                      <span id="location-ref-status" style="font-size: 11px; color: var(--color-text-muted);"></span>
+                    </div>
+                    <img id="location-ref-preview"
+                      style="display: none; max-width: 100%; max-height: 120px; margin-top: 8px; border-radius: 6px; object-fit: cover;" />
+                    <input type="file" id="location-ref-input" accept="image/*" style="display: none;" />
+                  </div>
+
+                  <!-- Location Prompt Container -->
+                  <div id="location-prompt-container" class="form-group"
+                    style="margin: 0; grid-column: span 2; display: none;">
+                    <textarea id="gen-location-prompt"
+                      placeholder="Опиши локацию: снежная гора, пляж на закате, лофт в Нью-Йорке..."
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; min-height: 60px; resize: vertical;"></textarea>
+                  </div>
                 </div>
 
                 <!-- Saved Frames Shelf -->
