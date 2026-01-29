@@ -749,6 +749,118 @@ full reaction. Brief, subtle, but visible.`,
     authenticityKey: 'Seeing possibilities, not just looking at things'
   },
 
+  'serene_confidence': {
+    id: 'serene_confidence',
+    category: 'commercial_positive',
+    label: 'Serene Confidence',
+    shortDescription: 'Спокойная уверенность',
+
+    atmosphere: `Complete facial muscle relaxation with subtle engagement of Levator labii superioris creating soft closed-lip smile. Eyes half-lidded with Orbicularis oculi partially engaged. Jaw relaxed, chin neutral. Inner stillness.`,
+
+    avoid: ['Smug look', 'Sleepy tired', 'Bored expression', 'Fake meditation face'],
+    defaultIntensity: 2,
+    physicalHints: 'relaxed features, soft closed-lip smile, half-lidded content eyes, neutral chin',
+    authenticityKey: 'Knows their worth without needing to prove it'
+  },
+
+  'playful_spark': {
+    id: 'playful_spark',
+    category: 'commercial_positive',
+    label: 'Playful Spark',
+    shortDescription: 'Игривый блеск в глазах',
+
+    atmosphere: `Slight asymmetric activation of Zygomaticus major (one corner higher). One eyebrow micro-raised (Frontalis unilateral). Eyes bright with dilated pupils. Head slightly tilted. Mischief without malice.`,
+
+    avoid: ['Crazy eyes', 'Forced quirky', 'Winking', 'Trying too hard'],
+    defaultIntensity: 2,
+    physicalHints: 'asymmetric smile, one brow micro-raised, bright eyes, head tilt',
+    authenticityKey: 'About to share a delightful secret'
+  },
+
+  'gentle_kindness': {
+    id: 'gentle_kindness',
+    category: 'commercial_positive',
+    label: 'Gentle Kindness',
+    shortDescription: 'Мягкая доброта',
+
+    atmosphere: `Soft engagement of Orbicularis oculi creating warmth in eyes. Zygomaticus minor lifting upper lip slightly. Shoulders dropped, head tilted with genuine care. Face radiates acceptance.`,
+
+    avoid: ['Pity face', 'Condescending look', 'Overly sympathetic', 'Sad eyes'],
+    defaultIntensity: 2,
+    physicalHints: 'warm soft eyes, slight upper lip lift, tilted caring head, open face',
+    authenticityKey: 'Unconditional acceptance without judgment'
+  },
+
+  'lifestyle_ease': {
+    id: 'lifestyle_ease',
+    category: 'commercial_positive',
+    label: 'Lifestyle Ease',
+    shortDescription: 'Расслабленный лайфстайл',
+
+    atmosphere: `Total release of Corrugator supercilii (no brow tension). Eyes bright but unfocused, gazing into pleasant middle distance. Lips naturally parted in soft smile. Breathing visible through relaxed chest. Weekend morning energy.`,
+
+    avoid: ['Spa ad cliché', 'Fake relaxation', 'Zonked out', 'Forced zen'],
+    defaultIntensity: 2,
+    physicalHints: 'no brow tension, soft unfocused bright eyes, parted lips smile, visible relaxed breathing',
+    authenticityKey: 'Sunday morning with nowhere to be'
+  },
+
+  'quiet_pride': {
+    id: 'quiet_pride',
+    category: 'commercial_positive',
+    label: 'Quiet Pride',
+    shortDescription: 'Тихая гордость',
+
+    atmosphere: `Chin slightly elevated (Mentalis). Direct but soft eye contact. Micro-smile with closed lips pulled slightly back (Risorius). Posture tall. Achievement without arrogance, earned satisfaction.`,
+
+    avoid: ['Smugness', 'Arrogant sneer', 'Boastful expression', 'Looking down at others'],
+    defaultIntensity: 2,
+    physicalHints: 'elevated chin, soft direct gaze, closed-lip micro-smile, tall posture',
+    authenticityKey: 'Proud of the journey, not just the result'
+  },
+
+  'natural_charm': {
+    id: 'natural_charm',
+    category: 'commercial_positive',
+    label: 'Natural Charm',
+    shortDescription: 'Природное обаяние',
+
+    atmosphere: `Genuine symmetric activation of Zygomaticus major. Eyes crinkled with authentic Duchenne markers. Head canted slightly. One shoulder slightly forward creating approachable asymmetry. Effortless magnetism.`,
+
+    avoid: ['Forced charisma', 'Salesman smile', 'Trying to charm', 'Overdone friendliness'],
+    defaultIntensity: 2,
+    physicalHints: 'symmetric genuine smile, Duchenne eye crinkles, tilted head, relaxed asymmetric shoulders',
+    authenticityKey: 'Charm that happens without trying'
+  },
+
+  'fresh_energy': {
+    id: 'fresh_energy',
+    category: 'commercial_positive',
+    label: 'Fresh Energy',
+    shortDescription: 'Свежая энергия',
+
+    atmosphere: `Eyes wide and alert (Levator palpebrae engaged). Slight nostril flare (anticipation). Lips parted showing teeth tips. Skin appears taut from underlying muscle tone. Morning energy, ready for action.`,
+
+    avoid: ['Manic excitement', 'Caffeine jitters', 'Forced enthusiasm', 'Scream face'],
+    defaultIntensity: 2,
+    physicalHints: 'wide alert eyes, slight nostril flare, parted lips, taut energized skin',
+    authenticityKey: 'First sip of fresh air on a perfect day'
+  },
+
+  'graceful_poise': {
+    id: 'graceful_poise',
+    category: 'commercial_positive',
+    label: 'Graceful Poise',
+    shortDescription: 'Грациозное изящество',
+
+    atmosphere: `Elongated neck with Platysma relaxed. Chin parallel to ground. Eyes with soft direct gaze, lids slightly heavy with control. Lips in neutral closed position with micro-upturn. Complete physical awareness without tension.`,
+
+    avoid: ['Stiff mannequin', 'Robot posture', 'Unnatural stillness', 'Frozen dancer'],
+    defaultIntensity: 2,
+    physicalHints: 'elongated relaxed neck, level chin, soft controlled gaze, neutral lips with micro-upturn',
+    authenticityKey: 'Ballet dancer at rest, still commanding the room'
+  },
+
   // ─────────────────────────────────────────────────────────────
   // 👠 FASHION EDITORIAL — Модельные выражения лица
   // ─────────────────────────────────────────────────────────────
