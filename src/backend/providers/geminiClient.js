@@ -15,6 +15,11 @@ import { fetch } from 'undici';
 import config from '../config.js';
 import { createLimiter } from '../utils/limiter.js';
 import { setGeminiLimiterStatus } from '../routes/healthRoutes.js';
+import { retry, isRetryableNetworkError } from '../utils/retry.js';
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 // ═══════════════════════════════════════════════════════════════
 // VERSION (для отслеживания на сервере)
@@ -214,6 +219,95 @@ async function callGeminiOnce(body) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// RETRY LOGIC: Robust handling for Overload/503
+// ═══════════════════════════════════════════════════════════════
+
+async function callGeminiWithRetrySingle(body) {
+  return await retry(
+    async () => {
+      const result = await callGeminiOnce(body);
+
+      if (result.ok) {
+        return result;
+      }
+
+      // Don't retry API errors (except 503 which is handled by outer loop, or managed here if desired)
+      // retry.js excludes 'quota_exceeded', 'api_overloaded', 'internal_error' by default.
+      if (!result.ok && result.errorCode &&
+        ['quota_exceeded', 'api_overloaded', 'internal_error', 'api_error'].includes(result.errorCode)) {
+        return result;
+      }
+
+      // Retry HTTP errors < 500 (transient?) - actually usually client error, but maybe network flake
+      if (!result.ok && result.httpStatus && result.httpStatus < 500) {
+        return result; // Client error, do not retry
+      }
+
+      if (!result.ok && result.httpStatus === 500) {
+        return result; // Internal error, handled by outer loop
+      }
+
+      throw new Error(result.error || 'Network error');
+    },
+    {
+      maxRetries: 3,
+      initialDelay: 2000,
+      maxDelay: 10000,
+      multiplier: 2,
+      shouldRetry: (error) => isRetryableNetworkError(error),
+      onRetry: (attempt, error, delay) => {
+        const errorMsg = error.message || String(error);
+        console.warn(`[Gemini] Retry ${attempt}/3 in ${delay}ms. Error: ${errorMsg.slice(0, 100)}`);
+      }
+    }
+  );
+}
+
+async function callGeminiWithRetry(body) {
+  // Reference Implementation: 6 rounds, max 30s delay
+  // This covers ~1-2 minutes of outage
+  const rounds = 6;
+  const baseDelayMs = 2000;
+  const maxDelayMs = 30000;
+
+  let attempt = 0;
+  let lastResult = null;
+
+  for (let round = 0; round < rounds; round++) {
+    lastResult = await callGeminiWithRetrySingle(body);
+    if (lastResult.ok) return lastResult;
+
+    const code = lastResult && lastResult.errorCode ? String(lastResult.errorCode) : '';
+    const httpStatus = lastResult && lastResult.httpStatus ? Number(lastResult.httpStatus) : null;
+
+    // Explicitly handle 503 (Overloaded) and 500 (Internal) which standard retry skips
+    const isOverloaded = code === 'api_overloaded' || httpStatus === 503;
+    const isInternal = code === 'internal_error' || httpStatus === 500;
+
+    if (isOverloaded || isInternal) {
+      attempt++;
+      const jitter = Math.floor(Math.random() * 250);
+      const delay = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, Math.min(4, attempt - 1))) + jitter;
+      console.warn(
+        `[Gemini] TRANSIENT (${isOverloaded ? 'api_overloaded/503' : 'internal_error/500'}) (attempt ${attempt}/${rounds}). Waiting ${delay}ms.`
+      );
+      await sleep(delay);
+      continue;
+    }
+
+    return lastResult; // Valid error (quota, blocked, etc) or success
+  }
+
+  return (
+    lastResult || {
+      ok: false,
+      error: 'Gemini did not respond after all retries.',
+      errorCode: 'internal_error'
+    }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // HELPER: Создание тела запроса
 // ═══════════════════════════════════════════════════════════════
 
@@ -367,7 +461,26 @@ export async function requestGeminiImage({ prompt, referenceImages = [], imageCo
 
   // Используем лимитер ТОЛЬКО для concurrency
   // Таймаут контролируется внутри callGeminiOnce
-  const result = await limitGemini(() => callGeminiOnce(body));
+  const result = await limitGemini(() => callGeminiWithRetry(body));
+
+  const duration = Date.now() - requestStartTime;
+  console.log(`[Gemini] Request completed in ${(duration / 1000).toFixed(1)} sec`);
+
+  if (!result.ok && result.errorCode === 'quota_exceeded') {
+    console.warn('[Gemini] Quota exceeded.');
+    return result;
+  }
+
+  if (!result.ok && result.errorCode === 'internal_error') {
+    // Even after retries, internal error persisted
+    console.error('[Gemini] Internal error:', result.error);
+    return result;
+  }
+
+  if (!result.ok && result.errorCode === 'api_overloaded') {
+    console.error(`[Gemini] API Overloaded after retries (${(duration / 1000).toFixed(1)}s):`, result.error);
+    return result;
+  }
 
   return result;
 }
