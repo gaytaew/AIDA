@@ -193,7 +193,9 @@ export function buildV6StylePrompt({
   clothingItemPrompts = [],
   clothingDescriptions = [],
   variationId = null,   // V6: Selected variation ID
-  emotionId = null      // Selected emotion ID
+  emotionId = null,     // Selected emotion ID
+  location = null,      // NEW: Location object from Base Settings (overrides preset)
+  locationPrompt = ''   // NEW: Location prompt from Base Settings
 }) {
   const sections = [];
 
@@ -219,6 +221,24 @@ Style Preset: ${styleParams.presetId || 'Custom'}
 === VISUAL STYLE (from AI Director) ===
 
 ${prompt}`);
+  }
+
+  // LOCATION OVERRIDE (Base Settings > Preset)
+  // If user selected a location in Base Settings, it MUST override the preset's implied location
+  if (location || (locationPrompt && locationPrompt.trim())) {
+    const locLabel = location ? location.label : 'Custom Location';
+    const locDesc = location ? (location.prompt || '') : locationPrompt;
+
+    sections.push(`
+=== LOCATION OVERRIDE (CRITICAL — IGNORE PRESET) ===
+The user has MANUALLY selected a specific location: "${locLabel}".
+
+⚠️ OVERRIDE RULE:
+- IGNORE any location/environment described in the "VISUAL STYLE" section above.
+- The scene MUST take place in: ${locLabel}
+- Environment Description: ${locDesc}
+
+Keep the LIGHTING and COLOR PALETTE from the Style Preset, but change the physical ENVIRONMENT to matches this location.`);
   }
 
   // Anti-AI directives from preset (becomes negative prompt elements)
@@ -1406,7 +1426,9 @@ export async function generateCustomShootFrame({
         poseAdherence,
         lookPrompt,
         clothingItemPrompts,
-        clothingDescriptions
+        clothingDescriptions,
+        location,           // NEW
+        locationPrompt: location ? location.prompt : (shoot.locationPrompt || '') // NEW
       });
       prompt = v6Result.prompt;
       promptJson = v6Result.promptJson;
