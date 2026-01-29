@@ -456,6 +456,7 @@ export async function requestGeminiImage({ prompt, referenceImages = [], imageCo
   }
 
   console.log(`[Gemini v${GEMINI_CLIENT_VERSION}] requestGeminiImage called`);
+  const requestStartTime = Date.now();
 
   const body = createGeminiBody(prompt, referenceImages, imageConfig);
 
