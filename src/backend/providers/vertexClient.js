@@ -83,40 +83,73 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
             });
         }
 
-        try {
-            // 120s timeout for consistency
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 120000);
+        // IMPLEMENTING RETRY LOGIC (3 attempts)
+        // Since this is our last line of defense for Nano Banana Pro, we try hard.
+        // Delays: 2s, 5s, 10s
+        const retries = 3;
+        const delays = [2000, 5000, 10000];
 
-            const response = await fetch(`${aiStudioUrl}?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-                signal: controller.signal
-            });
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                // Delay before retry (not on first attempt)
+                if (attempt > 0) {
+                    const delay = delays[attempt - 1] || 10000;
+                    console.log(`[VertexAI] ⏳ Fallback Retry #${attempt} after ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
 
-            clearTimeout(timeoutId);
+                // 120s timeout per attempt
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 120000);
 
-            if (!response.ok) {
-                const text = await response.text();
-                // If blocked or overloaded again
-                return { ok: false, error: `Nano Banana Pro Fallback failed: ${response.status} - ${text.slice(0, 200)}` };
+                const response = await fetch(`${aiStudioUrl}?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const text = await response.text();
+
+                    // If it's the last attempt, return error
+                    if (attempt === retries) {
+                        return { ok: false, error: `Nano Banana Pro Fallback failed after ${retries} retries: ${response.status} - ${text.slice(0, 200)}` };
+                    }
+
+                    console.warn(`[VertexAI] Attempt #${attempt + 1} failed: ${response.status}. Retrying...`);
+                    continue; // Try again
+                }
+
+                const data = await response.json();
+                const candidate = data.candidates?.[0];
+
+                if (candidate?.finishReason === 'SAFETY') {
+                    return { ok: false, error: 'Nano Banana Pro blocked (Safety)', errorCode: 'blocked' };
+                }
+
+                const imagePart = candidate?.content?.parts?.find(p => p.inlineData?.data);
+
+                if (!imagePart) {
+                    if (attempt === retries) return { ok: false, error: 'No image in Fallback response' };
+                    console.warn(`[VertexAI] Attempt #${attempt + 1} no image. Retrying...`);
+                    continue;
+                }
+
+                console.log('[VertexAI] ✅ Nano Banana Pro fallback success');
+                return {
+                    ok: true,
+                    mimeType: imagePart.inlineData.mimeType,
+                    base64: imagePart.inlineData.data
+                };
+            } catch (error) {
+                if (attempt === retries) {
+                    return { ok: false, error: `Fallback Exception: ${error.message}` };
+                }
+                console.warn(`[VertexAI] Attempt #${attempt + 1} exception: ${error.message}`);
             }
-
-            const data = await response.json();
-            const candidate = data.candidates?.[0];
-            const imagePart = candidate?.content?.parts?.find(p => p.inlineData?.data);
-
-            if (!imagePart) return { ok: false, error: 'No image in Fallback response' };
-
-            console.log('[VertexAI] ✅ Nano Banana Pro fallback success');
-            return {
-                ok: true,
-                mimeType: imagePart.inlineData.mimeType,
-                base64: imagePart.inlineData.data
-            };
-        } catch (error) {
-            return { ok: false, error: `Fallback Exception: ${error.message}` };
         }
     }
 
