@@ -20,7 +20,7 @@ export const config = {
   VERTEX_LOCATION: process.env.VERTEX_LOCATION || 'us-central1',
   // Модель должна поддерживать генерацию изображений (responseModalities: IMAGE)
   // gemini-2.0-flash-exp поддерживает это в Vertex AI
-  VERTEX_MODEL: process.env.VERTEX_MODEL || 'gemini-2.0-flash-exp',
+  VERTEX_MODEL: process.env.VERTEX_MODEL || 'gemini-3-pro-image-preview',
 
   // AI Models
   // GPT-5.2 is available via API in this environment
