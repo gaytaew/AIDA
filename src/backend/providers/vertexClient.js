@@ -38,8 +38,91 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
         location = 'us-central1';
     }
 
-    // Nano Banana Pro - same model as geminiClient
     const modelId = config.VERTEX_MODEL || 'gemini-3-pro-image-preview';
+    const isNanoBananaPro = modelId === 'gemini-3-pro-image-preview';
+
+    // ═══════════════════════════════════════════════════════════════
+    // SPECIAL CASE: Nano Banana Pro (Gemini 3)
+    // This model is currently only available via AI Studio (Google AI), NOT Vertex.
+    // To satisfy the requirement of using "Only Nano Banana Pro", we route 
+    // "Vertex Fallback" requests for this model back to AI Studio API.
+    // This effectively acts as a "Retry with same model" strategy.
+    // ═══════════════════════════════════════════════════════════════
+    if (isNanoBananaPro) {
+        console.log(`[VertexAI] 🍌 Routing Nano Banana Pro (${modelId}) via AI Studio (Proxy Fallback)`);
+
+        const apiKey = config.GEMINI_API_KEY;
+        if (!apiKey) {
+            return { ok: false, error: 'GEMINI_API_KEY required for Nano Banana Pro fallback' };
+        }
+
+        const aiStudioUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent`;
+
+        const body = {
+            contents: [{ parts: [] }],
+            generationConfig: {
+                responseModalities: ['Image'],
+                imageConfig: {
+                    aspectRatio: typeof imageConfig.aspectRatio === 'string' ? imageConfig.aspectRatio : '1:1',
+                    imageSize: typeof imageConfig.imageSize === 'string' ? imageConfig.imageSize : '1K'
+                }
+            }
+        };
+
+        if (prompt) body.contents[0].parts.push({ text: prompt });
+        if (Array.isArray(referenceImages)) {
+            referenceImages.forEach(img => {
+                if (img?.base64) {
+                    body.contents[0].parts.push({
+                        inlineData: {
+                            mimeType: img.mimeType || 'image/jpeg',
+                            data: img.base64
+                        }
+                    });
+                }
+            });
+        }
+
+        try {
+            // 120s timeout for consistency
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+            const response = await fetch(`${aiStudioUrl}?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const text = await response.text();
+                // If blocked or overloaded again
+                return { ok: false, error: `Nano Banana Pro Fallback failed: ${response.status} - ${text.slice(0, 200)}` };
+            }
+
+            const data = await response.json();
+            const candidate = data.candidates?.[0];
+            const imagePart = candidate?.content?.parts?.find(p => p.inlineData?.data);
+
+            if (!imagePart) return { ok: false, error: 'No image in Fallback response' };
+
+            console.log('[VertexAI] ✅ Nano Banana Pro fallback success');
+            return {
+                ok: true,
+                mimeType: imagePart.inlineData.mimeType,
+                base64: imagePart.inlineData.data
+            };
+        } catch (error) {
+            return { ok: false, error: `Fallback Exception: ${error.message}` };
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STANDARD VERTEX AI FLOW (for Flash/other models)
+    // ═══════════════════════════════════════════════════════════════
 
     if (!projectId) {
         console.error('[VertexAI] VERTEX_PROJECT_ID is not configured');
@@ -49,7 +132,7 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
     // Vertex AI generateContent endpoint
     const generateContentUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
 
-    console.log(`[VertexAI] Generating with Nano Banana Pro (${modelId}) in ${location}`);
+    console.log(`[VertexAI] Generating with model: ${modelId} in ${location}`);
 
     // Build request body - same format as geminiClient
     const parts = [];

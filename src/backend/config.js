@@ -19,7 +19,7 @@ export const config = {
   VERTEX_PROJECT_ID: process.env.VERTEX_PROJECT_ID || '',
   VERTEX_LOCATION: process.env.VERTEX_LOCATION || 'us-central1',
   // Модель должна поддерживать генерацию изображений (responseModalities: IMAGE)
-  // gemini-2.0-flash-exp поддерживает это в Vertex AI
+  // NANO BANANA PRO: Fallback configured to proxy via AI Studio
   VERTEX_MODEL: process.env.VERTEX_MODEL || 'gemini-3-pro-image-preview',
 
   // AI Models
