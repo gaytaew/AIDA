@@ -430,7 +430,26 @@ export function buildCustomShootPrompt({
 HARD RULES:
 1. Return photorealistic images (NO illustration, NO CGI, NO 3D render).
 2. Natural skin texture, believable fabric behavior, real optics.
-3. No watermarks, no text overlays, no logos.`);
+3. No watermarks, no text overlays, no logos.
+
+═══════════════════════════════════════════════════════════════
+⚠️ MANDATORY REALISM (READ FIRST — HIGHEST PRIORITY)
+═══════════════════════════════════════════════════════════════
+
+${HARDCODED_REALISM.HYPER_REAL_SKIN}
+
+${HARDCODED_REALISM.HYPER_REAL_EYES}
+
+CRITICAL ANTI-AI RULES:
+- MUST show visible skin pores on face, especially forehead, nose, cheeks
+- MUST include natural skin imperfections: fine lines, subtle discoloration, vellus hair
+- NEVER smooth skin artificially — preserve all texture
+- Teeth MUST have natural variation (slight color, size differences)
+- Eyes MUST have realistic moisture, blood vessels in sclera
+- Hair MUST have flyaways, frizz, individual strands
+- Fabric MUST show wear, wrinkles, lint, real physics
+
+${HARDCODED_REALISM.GLOBAL_NEG}`);
 
     // Visual description from user
     if (visualPrompt) {
@@ -602,18 +621,18 @@ ADDITIONAL INSTRUCTIONS
 ${extraPrompt}`);
     }
 
-    // Anti-AI standard block
+    // Final reminder (realism was specified at the top)
     v7Sections.push(`
 ═══════════════════════════════════════════════════════════════
-AUTHENTICITY REQUIREMENTS
+FINAL CHECK
 ═══════════════════════════════════════════════════════════════
 
-The image must feel like genuine professional photography, not AI-generated.
-Include natural imperfections: subtle skin texture, micro-shadows, fabric wrinkles.
-
-${HARDCODED_REALISM.HYPER_REAL_SKIN}
-
-${HARDCODED_REALISM.HYPER_REAL_EYES}`);
+Before outputting, verify:
+✓ Skin has visible pores and texture (NOT smooth)
+✓ Eyes have realistic moisture and detail
+✓ Teeth are not perfectly uniform
+✓ Hair has natural flyaways
+✓ Fabric shows real physics and wear`);
 
     const v7Prompt = v7Sections.join('\n');
 
