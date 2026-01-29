@@ -1,8 +1,9 @@
 /**
  * Vertex AI Client for AIDA.
  * Fallback provider when Gemini API is overloaded or times out.
- * Model is configured via VERTEX_MODEL env variable (defaults to gemini-2.0-flash-exp).
- * When gemini-3-pro-image-preview becomes available on Vertex, update VERTEX_MODEL.
+ * 
+ * NANO BANANA PRO: Uses gemini-3-pro-image-preview for image generation.
+ * Same model as geminiClient for consistent quality across primary and fallback.
  */
 
 import { fetch } from 'undici';
@@ -22,7 +23,7 @@ async function getAccessToken() {
 
 /**
  * Request image generation via Vertex AI API.
- * Model is determined by config.VERTEX_MODEL.
+ * Uses Nano Banana Pro (gemini-3-pro-image-preview) for consistent quality.
  */
 export async function requestVertexImage({ prompt, referenceImages = [], imageConfig = {} }) {
     const projectId = config.VERTEX_PROJECT_ID;
@@ -37,7 +38,8 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
         location = 'us-central1';
     }
 
-    const modelId = config.VERTEX_MODEL || 'gemini-2.0-flash-exp';
+    // Nano Banana Pro - same model as geminiClient
+    const modelId = config.VERTEX_MODEL || 'gemini-3-pro-image-preview';
 
     if (!projectId) {
         console.error('[VertexAI] VERTEX_PROJECT_ID is not configured');
@@ -47,7 +49,7 @@ export async function requestVertexImage({ prompt, referenceImages = [], imageCo
     // Vertex AI generateContent endpoint
     const generateContentUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
 
-    console.log(`[VertexAI] Generating with model: ${modelId} in ${location}`);
+    console.log(`[VertexAI] Generating with Nano Banana Pro (${modelId}) in ${location}`);
 
     // Build request body - same format as geminiClient
     const parts = [];
