@@ -134,6 +134,64 @@
             gap: 8px;
         }
 
+        .mode-toggle {
+            display: flex;
+            gap: 4px;
+            background: var(--color-bg);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            margin-bottom: 16px;
+        }
+
+        .mode-toggle button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: var(--color-text-muted);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .mode-toggle button.active {
+            background: var(--color-surface);
+            color: var(--color-text);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .manual-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .manual-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .manual-control-group label {
+            font-size: 11px;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+        }
+
+        .manual-control-group select {
+            width: 100%;
+            padding: 8px;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            color: var(--color-text);
+            font-size: 12px;
+        }
+
         .style-presets-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -571,16 +629,31 @@
                             </div>
 
                             <!-- Style Preset Selector (NEW for V6) -->
+                            <!-- Style Preset / Manual Mode -->
                             <div class="style-preset-selector">
-                                <h4>🎨 Выбери стиль</h4>
-                                <div id="style-presets-grid" class="style-presets-grid">
-                                    <div class="no-presets-message">
-                                        ⏳ Загрузка стилей...
+                                <div class="mode-toggle">
+                                    <button class="active" id="btn-mode-preset">🎨 Пресеты</button>
+                                    <button id="btn-mode-manual">🛠️ Ручной режим</button>
+                                </div>
+
+                                <div id="preset-mode-container">
+                                    <h4>🎨 Выбери стиль</h4>
+                                    <div id="style-presets-grid" class="style-presets-grid">
+                                        <div class="no-presets-message">
+                                            ⏳ Загрузка стилей...
+                                        </div>
+                                    </div>
+                                    <div class="selected-preset-details" id="selected-preset-details">
+                                        <h5 id="selected-preset-name">—</h5>
+                                        <div class="prompt-preview" id="selected-preset-prompt">—</div>
                                     </div>
                                 </div>
-                                <div class="selected-preset-details" id="selected-preset-details">
-                                    <h5 id="selected-preset-name">—</h5>
-                                    <div class="prompt-preview" id="selected-preset-prompt">—</div>
+
+                                <div id="manual-mode-container" style="display: none;">
+                                    <h4>12 параметров (Ultimate Control)</h4>
+                                    <div class="manual-grid" id="manual-controls-grid">
+                                        <!-- Populated by JS -->
+                                    </div>
                                 </div>
                             </div>
 
@@ -760,6 +833,35 @@
                     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
                     <!-- Looks rendered here -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frame Settings Modal (Overrides) -->
+    <div id="frame-settings-modal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2010; align-items: center; justify-content: center;">
+        <div class="modal-card"
+            style="background: var(--color-surface); width: 800px; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; border: 1px solid var(--color-border); box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div class="modal-header"
+                style="padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: var(--color-bg);">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px;">Настройки кадра <span id="frame-settings-title"
+                            style="color: var(--color-accent);">#1</span></h3>
+                    <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Переопределите
+                        глобальные настройки для этого кадра</div>
+                </div>
+                <button id="btn-close-frame-settings"
+                    style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--color-text);">×</button>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <div class="manual-grid" id="frame-settings-grid">
+                    <!-- Populated by JS (same as manual controls) -->
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="padding: 16px; border-top: 1px solid var(--color-border); background: var(--color-bg); display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-secondary" id="btn-reset-frame-settings">Сбросить</button>
+                <button class="btn btn-primary" id="btn-save-frame-settings">Сохранить</button>
             </div>
         </div>
     </div>

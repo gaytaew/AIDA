@@ -34,7 +34,7 @@ export const SHOOT_TYPE_PRESETS = {
       lightingQuality: ['harsh_direct']
     }
   },
-  
+
   editorial: {
     id: 'editorial',
     label: 'Editorial',
@@ -66,7 +66,7 @@ ANTI-PLASTIC:
     },
     conflicts: {} // Editorial allows everything
   },
-  
+
   street: {
     id: 'street',
     label: 'Street / Documentary',
@@ -82,7 +82,7 @@ ANTI-PLASTIC:
       lightingSource: ['studio_strobe', 'ring_flash']
     }
   },
-  
+
   lookbook: {
     id: 'lookbook',
     label: 'Lookbook',
@@ -97,7 +97,7 @@ ANTI-PLASTIC:
       captureStyle: ['paparazzi_telephoto', 'motion_blur_action']
     }
   },
-  
+
   campaign: {
     id: 'campaign',
     label: 'Campaign / Реклама',
@@ -113,7 +113,7 @@ ANTI-PLASTIC:
       antiAi: ['high'] // Campaign shouldn't look too raw
     }
   },
-  
+
   portrait: {
     id: 'portrait',
     label: 'Портрет',
@@ -126,7 +126,7 @@ ANTI-PLASTIC:
     },
     conflicts: {}
   },
-  
+
   beauty: {
     id: 'beauty',
     label: 'Beauty',
@@ -142,7 +142,7 @@ ANTI-PLASTIC:
       composition: ['wide_shot', 'full_shot']
     }
   },
-  
+
   sport: {
     id: 'sport',
     label: 'Спорт / Active',
@@ -170,7 +170,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     prompt: null,
     focusConflicts: [] // No conflicts
   },
-  
+
   contax_t2: {
     id: 'contax_t2',
     label: 'Contax T2 (Portra)',
@@ -179,7 +179,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusCapability: 'moderate', // f/2.8 - moderate shallow DOF
     focusConflicts: []
   },
-  
+
   hasselblad_mf: {
     id: 'hasselblad_mf',
     label: 'Hasselblad (Medium Format)',
@@ -189,7 +189,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusConflicts: [],
     implies: { focusMode: 'shallow_dof' } // Hasselblad implies shallow DOF
   },
-  
+
   leica_m: {
     id: 'leica_m',
     label: 'Leica M (Street)',
@@ -198,7 +198,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusCapability: 'full', // Fast lenses available
     focusConflicts: []
   },
-  
+
   canon_ae1: {
     id: 'canon_ae1',
     label: 'Canon AE-1 (Consumer)',
@@ -207,7 +207,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusCapability: 'full', // f/1.4 available
     focusConflicts: []
   },
-  
+
   mamiya_rz67: {
     id: 'mamiya_rz67',
     label: 'Mamiya RZ67 (Studio)',
@@ -217,7 +217,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusConflicts: [],
     implies: { focusMode: 'shallow_dof' }
   },
-  
+
   polaroid: {
     id: 'polaroid',
     label: 'Polaroid',
@@ -227,7 +227,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusConflicts: ['very_shallow_dof'], // Polaroid can't do very shallow
     warns: { focusMode: 'shallow_dof', message: 'Polaroid имеет ограниченные возможности размытия фона' }
   },
-  
+
   disposable: {
     id: 'disposable',
     label: 'Одноразовая камера',
@@ -237,7 +237,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusConflicts: ['shallow_dof', 'very_shallow_dof'], // Disposable = deep focus only
     implies: { focusMode: 'deep_focus' }
   },
-  
+
   holga: {
     id: 'holga',
     label: 'Holga / Toy Camera',
@@ -247,7 +247,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusConflicts: ['shallow_dof', 'very_shallow_dof'],
     implies: { focusMode: 'deep_focus' }
   },
-  
+
   iphone: {
     id: 'iphone',
     label: 'iPhone / Smartphone',
@@ -257,7 +257,7 @@ export const CAMERA_AESTHETIC_PRESETS = {
     focusConflicts: ['very_shallow_dof'], // iPhone can't do very shallow optically
     warns: { focusMode: 'shallow_dof', message: 'iPhone использует вычислительное размытие (portrait mode) — не оптическое' }
   },
-  
+
   ricoh_gr: {
     id: 'ricoh_gr',
     label: 'Ricoh GR (28mm)',
@@ -285,7 +285,7 @@ export const LIGHTING_SOURCE_PRESETS = {
     },
     validSpaceTypes: ['exterior', 'rooftop', 'interior_with_windows', 'mixed']
   },
-  
+
   window_light: {
     id: 'window_light',
     label: 'Свет из окна',
@@ -297,7 +297,7 @@ export const LIGHTING_SOURCE_PRESETS = {
     },
     validSpaceTypes: ['interior_with_windows', 'interior_studio', 'mixed']
   },
-  
+
   on_camera_flash: {
     id: 'on_camera_flash',
     label: 'Накамерная вспышка',
@@ -308,7 +308,7 @@ export const LIGHTING_SOURCE_PRESETS = {
     },
     validSpaceTypes: ['interior', 'exterior', 'mixed', 'interior_studio'] // Works anywhere
   },
-  
+
   studio_strobe: {
     id: 'studio_strobe',
     label: 'Студийный импульс',
@@ -319,7 +319,7 @@ export const LIGHTING_SOURCE_PRESETS = {
     },
     validSpaceTypes: ['interior_studio', 'interior', 'mixed']
   },
-  
+
   ring_flash: {
     id: 'ring_flash',
     label: 'Кольцевая вспышка',
@@ -330,7 +330,7 @@ export const LIGHTING_SOURCE_PRESETS = {
     },
     validSpaceTypes: ['interior_studio', 'interior']
   },
-  
+
   mixed_ambient: {
     id: 'mixed_ambient',
     label: 'Смешанный ambient',
@@ -341,7 +341,7 @@ export const LIGHTING_SOURCE_PRESETS = {
     },
     validSpaceTypes: ['exterior', 'interior', 'mixed']
   },
-  
+
   practicals: {
     id: 'practicals',
     label: 'Практические источники',
@@ -349,7 +349,7 @@ export const LIGHTING_SOURCE_PRESETS = {
     prompt: 'Practical light sources visible in frame (lamps, neon signs, screens), motivated lighting, cinematic quality, light sources as part of composition',
     validSpaceTypes: ['interior', 'exterior', 'mixed']
   },
-  
+
   continuous_led: {
     id: 'continuous_led',
     label: 'Постоянный LED',
@@ -382,7 +382,7 @@ export const LIGHTING_QUALITY_PRESETS = {
       fallback: 'soft_diffused'
     }
   },
-  
+
   soft_diffused: {
     id: 'soft_diffused',
     label: 'Мягкий рассеянный',
@@ -396,7 +396,7 @@ export const LIGHTING_QUALITY_PRESETS = {
       timeOfDay: ['any', 'golden_hour', 'blue_hour', 'sunrise', 'sunset']
     }
   },
-  
+
   contrasty: {
     id: 'contrasty',
     label: 'Контрастный',
@@ -406,7 +406,7 @@ export const LIGHTING_QUALITY_PRESETS = {
       weather: ['foggy'] // Fog kills contrast
     }
   },
-  
+
   flat: {
     id: 'flat',
     label: 'Плоский',
@@ -417,7 +417,7 @@ export const LIGHTING_QUALITY_PRESETS = {
       lightingSource: ['ring_flash', 'studio_strobe', 'continuous_led']
     }
   },
-  
+
   backlit: {
     id: 'backlit',
     label: 'Контровой',
@@ -428,7 +428,7 @@ export const LIGHTING_QUALITY_PRESETS = {
       lightingSource: ['natural_daylight']
     }
   },
-  
+
   moody_lowkey: {
     id: 'moody_lowkey',
     label: 'Low-key / Moody',
@@ -461,7 +461,7 @@ export const LIGHT_PRESETS = {
       lightImperfections: ['none']
     }
   },
-  
+
   natural_harsh: {
     id: 'natural_harsh',
     label: 'Жёсткий естественный',
@@ -477,7 +477,7 @@ export const LIGHT_PRESETS = {
       lightImperfections: ['none']
     }
   },
-  
+
   golden_hour: {
     id: 'golden_hour',
     label: 'Золотой час',
@@ -493,7 +493,7 @@ export const LIGHT_PRESETS = {
       lightImperfections: ['flare_ghosts', 'reflections']
     }
   },
-  
+
   studio_strobe: {
     id: 'studio_strobe',
     label: 'Студийный свет',
@@ -509,7 +509,7 @@ export const LIGHT_PRESETS = {
       lightImperfections: ['none']
     }
   },
-  
+
   on_camera_harsh: {
     id: 'on_camera_harsh',
     label: 'Жёсткая вспышка',
@@ -525,7 +525,7 @@ export const LIGHT_PRESETS = {
       lightImperfections: ['reflections']
     }
   },
-  
+
   mixed_ambient: {
     id: 'mixed_ambient',
     label: 'Смешанный свет',
@@ -541,7 +541,7 @@ export const LIGHT_PRESETS = {
       lightImperfections: ['uneven_falloff', 'reflections']
     }
   },
-  
+
   ring_flash: {
     id: 'ring_flash',
     label: 'Кольцевая вспышка',
@@ -557,7 +557,7 @@ export const LIGHT_PRESETS = {
       lightImperfections: ['reflections']
     }
   },
-  
+
   window_light: {
     id: 'window_light',
     label: 'Свет из окна',
@@ -593,7 +593,7 @@ export const COLOR_PRESETS = {
       colorNoise: 'film_like'
     }
   },
-  
+
   film_cool: {
     id: 'film_cool',
     label: 'Холодная плёнка',
@@ -607,7 +607,7 @@ export const COLOR_PRESETS = {
       colorNoise: 'subtle'
     }
   },
-  
+
   high_contrast: {
     id: 'high_contrast',
     label: 'Высокий контраст',
@@ -621,7 +621,7 @@ export const COLOR_PRESETS = {
       colorNoise: 'none'
     }
   },
-  
+
   desaturated: {
     id: 'desaturated',
     label: 'Приглушённый',
@@ -635,7 +635,7 @@ export const COLOR_PRESETS = {
       colorNoise: 'subtle'
     }
   },
-  
+
   cross_process: {
     id: 'cross_process',
     label: 'Кросс-процесс',
@@ -649,7 +649,7 @@ export const COLOR_PRESETS = {
       colorNoise: 'film_like'
     }
   },
-  
+
   black_white: {
     id: 'black_white',
     label: 'Чёрно-белый',
@@ -664,7 +664,7 @@ export const COLOR_PRESETS = {
     },
     isMonochrome: true
   },
-  
+
   vintage_fade: {
     id: 'vintage_fade',
     label: 'Винтажный fade',
@@ -678,7 +678,7 @@ export const COLOR_PRESETS = {
       colorNoise: 'film_like'
     }
   },
-  
+
   neutral_clean: {
     id: 'neutral_clean',
     label: 'Нейтральный чистый',
@@ -711,7 +711,7 @@ export const ERA_PRESETS = {
       formatBias: 'vertical'
     }
   },
-  
+
   y2k_flash: {
     id: 'y2k_flash',
     label: 'Y2K вспышка',
@@ -724,7 +724,7 @@ export const ERA_PRESETS = {
       formatBias: 'horizontal'
     }
   },
-  
+
   '2000s_digital': {
     id: '2000s_digital',
     label: '2000s цифра',
@@ -737,7 +737,7 @@ export const ERA_PRESETS = {
       formatBias: 'horizontal'
     }
   },
-  
+
   '2010s_instagram': {
     id: '2010s_instagram',
     label: '2010s Instagram',
@@ -750,7 +750,7 @@ export const ERA_PRESETS = {
       formatBias: 'square'
     }
   },
-  
+
   contemporary: {
     id: 'contemporary',
     label: 'Современный',
@@ -763,7 +763,7 @@ export const ERA_PRESETS = {
       formatBias: 'vertical'
     }
   },
-  
+
   film_revival: {
     id: 'film_revival',
     label: 'Плёночный ренессанс',
@@ -790,7 +790,7 @@ export const LENS_FOCAL_LENGTH_PRESETS = {
     prompt: null,
     focalRange: null
   },
-  
+
   fisheye: {
     id: 'fisheye',
     label: 'Фишай (8-16mm)',
@@ -810,7 +810,7 @@ export const LENS_FOCAL_LENGTH_PRESETS = {
       shotSize: ['closeup', 'extreme_closeup'] // Fisheye distorts faces badly
     }
   },
-  
+
   ultra_wide: {
     id: 'ultra_wide',
     label: 'Сверхширокий (16-24mm)',
@@ -830,7 +830,7 @@ export const LENS_FOCAL_LENGTH_PRESETS = {
       shootType: ['street', 'editorial']
     }
   },
-  
+
   wide: {
     id: 'wide',
     label: 'Широкий (24-35mm)',
@@ -850,7 +850,7 @@ export const LENS_FOCAL_LENGTH_PRESETS = {
       shootType: ['editorial', 'street']
     }
   },
-  
+
   standard: {
     id: 'standard',
     label: 'Стандартный (35-50mm)',
@@ -867,7 +867,7 @@ export const LENS_FOCAL_LENGTH_PRESETS = {
     perspective: 'natural',
     isDefault: true
   },
-  
+
   portrait: {
     id: 'portrait',
     label: 'Портретный (85-105mm)',
@@ -890,7 +890,7 @@ export const LENS_FOCAL_LENGTH_PRESETS = {
       focusMode: 'shallow' // Portrait lenses often used wide open
     }
   },
-  
+
   telephoto: {
     id: 'telephoto',
     label: 'Телефото (135-200mm)',
@@ -910,7 +910,7 @@ export const LENS_FOCAL_LENGTH_PRESETS = {
       shotSize: ['closeup', 'medium_closeup', 'medium_shot']
     }
   },
-  
+
   super_telephoto: {
     id: 'super_telephoto',
     label: 'Супер-телефото (300mm+)',
@@ -949,7 +949,7 @@ export const MODEL_BEHAVIOR_PRESETS = {
     intensity: 'low',
     cameraAwareness: 'unaware_or_casual'
   },
-  
+
   aware_relaxed: {
     id: 'aware_relaxed',
     label: 'Расслабленный контакт',
@@ -963,7 +963,7 @@ export const MODEL_BEHAVIOR_PRESETS = {
     intensity: 'low',
     cameraAwareness: 'aware_casual'
   },
-  
+
   engaged: {
     id: 'engaged',
     label: 'Взаимодействие',
@@ -977,7 +977,7 @@ export const MODEL_BEHAVIOR_PRESETS = {
     intensity: 'medium',
     cameraAwareness: 'engaged'
   },
-  
+
   flirty: {
     id: 'flirty',
     label: 'Игривый / Заигрывание',
@@ -1009,7 +1009,7 @@ AVOID:
     intensity: 'high',
     cameraAwareness: 'seductive'
   },
-  
+
   editorial_dramatic: {
     id: 'editorial_dramatic',
     label: 'Editorial драматичный',
@@ -1046,7 +1046,7 @@ AVOID:
     intensity: 'high',
     cameraAwareness: 'intense_or_detached'
   },
-  
+
   dynamic: {
     id: 'dynamic',
     label: 'Динамичный / В движении',
@@ -1084,7 +1084,7 @@ AVOID:
     intensity: 'high',
     cameraAwareness: 'action_focused'
   },
-  
+
   vulnerable: {
     id: 'vulnerable',
     label: 'Открытый / Уязвимый',
@@ -1124,7 +1124,7 @@ AVOID:
     intensity: 'medium',
     cameraAwareness: 'internal'
   },
-  
+
   powerful: {
     id: 'powerful',
     label: 'Мощный / Уверенный',
@@ -1174,8 +1174,222 @@ AVOID:
 };
 
 // ═══════════════════════════════════════════════════════════════
-// CONFLICT DETECTION SYSTEM
+// 8. APERTURE (Depth of Field)
 // ═══════════════════════════════════════════════════════════════
+
+export const APERTURE_PRESETS = {
+  f1_4: {
+    id: 'f1_4',
+    label: 'f/1.2 - f/1.4 (Dreamy)',
+    prompt: 'Aperture f/1.4, varied depth of field, razor thin focus plane, extreme bokeh, dreamy background obliteration, subject pops from environment, soft focus falloff',
+    conflicts: {
+      shotSize: ['extreme_wide'] // Can't have thin DOF on extreme wide usually
+    }
+  },
+  f2_8: {
+    id: 'f2_8',
+    label: 'f/2.8 (Portrait)',
+    prompt: 'Aperture f/2.8, shallow depth of field, distinct background separation, creamy bokeh, classic portrait rendering, eyes in focus/ears soft',
+    conflicts: {}
+  },
+  f5_6: {
+    id: 'f5_6',
+    label: 'f/5.6 (Moderate)',
+    prompt: 'Aperture f/5.6, moderate depth of field, background visible but slightly soft, environmental context clear, balanced focus',
+    conflicts: {}
+  },
+  f11: {
+    id: 'f11',
+    label: 'f/11 - f/16 (Deep Focus)',
+    prompt: 'Aperture f/11, deep depth of field, everything in sharp focus from foreground to background, hyper-real detail, no bokeh, Ansel Adams sharpness',
+    conflicts: {
+      cameraAesthetic: ['polaroid', 'holga'] // Toy cameras have fixed/weird focus
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 9. SHUTTER SPEED (Motion)
+// ═══════════════════════════════════════════════════════════════
+
+export const SHUTTER_SPEED_PRESETS = {
+  frozen: {
+    id: 'frozen',
+    label: '1/1000s (Frozen)',
+    prompt: 'Shutter speed 1/1000s, frozen motion, zero blur, crystal clear action, suspended particles sharp, hair frozen in mid-air',
+    conflicts: {}
+  },
+  standard: {
+    id: 'standard',
+    label: '1/250s (Standard)',
+    prompt: 'Shutter speed 1/250s, standard syncing, sharp static subjects, slight natural Micro-movement in extremities',
+    conflicts: {}
+  },
+  motion_blur: {
+    id: 'motion_blur',
+    label: '1/30s (Motion Blur)',
+    prompt: 'Shutter speed 1/30s, visible motion blur on moving elements, dynamic energy, sense of speed, slightly soft edges on movement',
+    conflicts: {}
+  },
+  long_exposure: {
+    id: 'long_exposure',
+    label: 'Long Exposure (Trails)',
+    prompt: 'Long exposure photography, light trails, ghosting effects, movement smeared artistically, ethereal flow, steady background/blurred action',
+    conflicts: {
+      shootType: ['catalog'] // Catalog needs sharpness
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 10. LIGHTING DIRECTION
+// ═══════════════════════════════════════════════════════════════
+
+export const LIGHTING_DIRECTION_PRESETS = {
+  frontal: {
+    id: 'frontal',
+    label: 'Frontal (Flat)',
+    prompt: 'Frontal lighting, light source directly on subject axis, minimal modeling shadows, beauty lighting approach, concealing texture',
+    conflicts: {}
+  },
+  forty_five: {
+    id: 'forty_five',
+    label: '45° (Rembrandt)',
+    prompt: '45-degree classic lighting, Rembrandt triangle on shadow side, three-dimensional modeling, classic portrait structure, volume defining',
+    conflicts: {}
+  },
+  side: {
+    id: 'side',
+    label: 'Side (Split)',
+    prompt: 'Side lighting, split lighting technique, half face in light/half in shadow, dramatic transition, high texture revelation',
+    conflicts: {}
+  },
+  top_down: {
+    id: 'top_down',
+    label: 'Top-Down (Overhead)',
+    prompt: 'Top-down overhead lighting, butterfly pattern under nose, deep shadows in eye sockets, dramatic mood, noon sun or overhead bank',
+    conflicts: {}
+  },
+  backlit: {
+    id: 'backlit',
+    label: 'Backlit (Rim)',
+    prompt: 'Backlighting source, subject silhouetted or rim-lit, halo effect on hair, lens flare, glowing edges, separation from background',
+    conflicts: {}
+  },
+  bottom_up: {
+    id: 'bottom_up',
+    label: 'Bottom-Up (Uplighting)',
+    prompt: 'Uplighting from below, unnatural shadowing, eerie or theatrical effect, reverse shadows',
+    conflicts: {
+      shootType: ['catalog', 'beauty'] // Usually too weird for commercial
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 11. WHITE BALANCE (Temperature)
+// ═══════════════════════════════════════════════════════════════
+
+export const WHITE_BALANCE_PRESETS = {
+  warm: {
+    id: 'warm',
+    label: 'Warm (3200-4500K)',
+    prompt: 'Warm color temperature (3200K-4500K), golden tones, tungsten balance, cozy atmosphere, sun-kissed warmth',
+    conflicts: {}
+  },
+  neutral: {
+    id: 'neutral',
+    label: 'Neutral (5500K)',
+    prompt: 'Neutral daylight balance (5500K), accurate whites, true-to-life color rendering, no color cast',
+    conflicts: {}
+  },
+  cool: {
+    id: 'cool',
+    label: 'Cool (7000K+)',
+    prompt: 'Cool color temperature (7000K+), blueish shade tones, northern light feel, clinical or winter atmosphere, cold cast',
+    conflicts: {}
+  },
+  fluorescent: {
+    id: 'fluorescent',
+    label: 'Fluorescent (Green cast)',
+    prompt: 'Fluorescent white balance, slight green-magenta spike, industrial lighting feel, office or subway atmosphere, uncorrected artificial light',
+    conflicts: {}
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 12. MOOD (Atmosphere)
+// ═══════════════════════════════════════════════════════════════
+
+export const MOOD_PRESETS = {
+  natural: {
+    id: 'natural',
+    label: 'Natural / Neutral',
+    prompt: 'Natural atmosphere, authentic vibe, documenting reality as is, unbiased mood',
+    conflicts: {}
+  },
+  gritty: {
+    id: 'gritty',
+    label: 'Gritty / Raw',
+    prompt: 'Gritty atmosphere, high local contrast, dirty textures, unpolished reality, street toughness, raw energy',
+    conflicts: {}
+  },
+  ethereal: {
+    id: 'ethereal',
+    label: 'Ethereal / Dreamy',
+    prompt: 'Ethereal atmosphere, dreamlike quality, soft glow, romantic feeling, escapism, floating sensation',
+    conflicts: {}
+  },
+  cinematic: {
+    id: 'cinematic',
+    label: 'Cinematic / Dramatic',
+    prompt: 'Cinematic atmosphere, movie still quality, narrative tension, carefully constructed reality, visual storytelling',
+    conflicts: {}
+  },
+  melancholic: {
+    id: 'melancholic',
+    label: 'Melancholic / Dark',
+    prompt: 'Melancholic atmosphere, somber mood, introspection, loneliness, heavier emotional weight, muted energy',
+    conflicts: {}
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 13. PROCESSING (Lab)
+// ═══════════════════════════════════════════════════════════════
+
+export const PROCESSING_PRESETS = {
+  standard: {
+    id: 'standard',
+    label: 'Standard Dev',
+    prompt: 'Standard film processing, correct development, normal contrast curve, accurate results',
+    conflicts: {}
+  },
+  cross_process: {
+    id: 'cross_process',
+    label: 'Cross Process',
+    prompt: 'Cross processed development (E6 in C41), color shifts, cyan shadows/yellow highlights, high contrast, unpredictable saturation',
+    conflicts: {}
+  },
+  bleach_bypass: {
+    id: 'bleach_bypass',
+    label: 'Bleach Bypass',
+    prompt: 'Bleach bypass processing, silver retention, reduced saturation, increased contrast, harsh metallic look, war movie aesthetic',
+    conflicts: {}
+  },
+  push_pull: {
+    id: 'push_pull',
+    label: 'Pushed (+2 Stops)',
+    prompt: 'Pushed film processing (+2 stops), increased grain structure, increased contrast, crushed blacks, shifts in color balance, gritty look',
+    conflicts: {}
+  },
+  bw_high_contrast: {
+    id: 'bw_high_contrast',
+    label: 'B&W High Contrast',
+    prompt: 'Black and white development, red filter effect, darkened skies, bright skin, dramatic tonal separation',
+    conflicts: {}
+  }
+};
 
 /**
  * Check if a parameter value conflicts with current selections
@@ -1189,22 +1403,22 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
   const warnings = [];
   const blockedBy = [];
   const autoCorrections = {};
-  
+
   const TIME_LABELS = {
     night: 'Ночь', sunrise: 'Рассвет', midday: 'Полдень', sunset: 'Закат',
     golden_hour: 'Золотой час', blue_hour: 'Синий час', afternoon: 'День', any: 'Любое'
   };
-  
+
   const WEATHER_LABELS = {
     clear: 'Ясно', overcast: 'Пасмурно', foggy: 'Туман', cloudy: 'Облачно',
     rainy: 'Дождь', any: 'Любая'
   };
-  
+
   const SPACE_LABELS = {
     exterior: 'Улица', rooftop: 'Крыша', interior: 'Интерьер',
     interior_studio: 'Студия', interior_with_windows: 'Интерьер с окнами', mixed: 'Смешанное'
   };
-  
+
   // 1. Check Shoot Type conflicts
   if (currentSelections.shootType && SHOOT_TYPE_PRESETS[currentSelections.shootType]) {
     const shootType = SHOOT_TYPE_PRESETS[currentSelections.shootType];
@@ -1213,7 +1427,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       blockedBy.push('shootType');
     }
   }
-  
+
   // 2. Check Lighting Source implies (e.g., on_camera_flash implies harsh_direct)
   if (paramToCheck === 'lightingQuality' && currentSelections.lightingSource) {
     const source = LIGHTING_SOURCE_PRESETS[currentSelections.lightingSource];
@@ -1223,7 +1437,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       autoCorrections.lightingQuality = source.implies.lightingQuality;
     }
   }
-  
+
   // 3. Check Lighting Source conflicts with Lighting Quality
   if (paramToCheck === 'lightingSource' && currentSelections.lightingQuality) {
     const quality = LIGHTING_QUALITY_PRESETS[currentSelections.lightingQuality];
@@ -1232,7 +1446,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       blockedBy.push('lightingQuality');
     }
   }
-  
+
   // 4. Check Lighting Quality conflicts with Lighting Source
   if (paramToCheck === 'lightingQuality' && currentSelections.lightingSource) {
     const source = LIGHTING_SOURCE_PRESETS[currentSelections.lightingSource];
@@ -1242,7 +1456,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       blockedBy.push('lightingSource');
     }
   }
-  
+
   // 5. Check Time of Day conflicts with Lighting Source
   if (paramToCheck === 'lightingSource' && currentSelections.timeOfDay) {
     const source = LIGHTING_SOURCE_PRESETS[valueToCheck];
@@ -1251,7 +1465,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       blockedBy.push('timeOfDay');
     }
   }
-  
+
   // 6. Check Time of Day conflicts with Lighting Quality
   if (paramToCheck === 'lightingQuality' && currentSelections.timeOfDay) {
     const quality = LIGHTING_QUALITY_PRESETS[valueToCheck];
@@ -1260,7 +1474,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       blockedBy.push('timeOfDay');
     }
   }
-  
+
   // 7. Check Weather conflicts with Lighting Quality
   if (paramToCheck === 'lightingQuality' && currentSelections.weather) {
     const quality = LIGHTING_QUALITY_PRESETS[valueToCheck];
@@ -1273,7 +1487,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       }
     }
   }
-  
+
   // 8. Check Space Type conflicts with Lighting Source
   if (paramToCheck === 'lightingSource' && currentSelections.spaceType) {
     const source = LIGHTING_SOURCE_PRESETS[valueToCheck];
@@ -1282,7 +1496,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       blockedBy.push('spaceType');
     }
   }
-  
+
   // 9. Check Camera Aesthetic conflicts with Focus Mode
   if (paramToCheck === 'focusMode' && currentSelections.cameraAesthetic) {
     const camera = CAMERA_AESTHETIC_PRESETS[currentSelections.cameraAesthetic];
@@ -1295,7 +1509,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       warnings.push(camera.warns.message);
     }
   }
-  
+
   // 10. Check Camera Aesthetic implies (e.g., disposable implies deep_focus)
   if (paramToCheck === 'focusMode' && currentSelections.cameraAesthetic) {
     const camera = CAMERA_AESTHETIC_PRESETS[currentSelections.cameraAesthetic];
@@ -1305,7 +1519,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       autoCorrections.focusMode = camera.implies.focusMode;
     }
   }
-  
+
   // 11. Check Shot Size recommendations for Focus
   if (paramToCheck === 'focusMode' && currentSelections.shotSize) {
     const shotSizeFocusRecommendations = {
@@ -1317,7 +1531,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       'wide': ['deep_focus', 'moderate_dof'],
       'extreme_wide': ['deep_focus']
     };
-    
+
     const recommended = shotSizeFocusRecommendations[currentSelections.shotSize];
     if (recommended && !recommended.includes(valueToCheck)) {
       // Use human-readable labels
@@ -1326,7 +1540,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       warnings.push(`Для плана «${shotLabel}» лучше подходит: ${focusLabels}`);
     }
   }
-  
+
   // 12. Check Capture Style conflicts with Shoot Type
   if (paramToCheck === 'captureStyle' && currentSelections.shootType) {
     const shootType = SHOOT_TYPE_PRESETS[currentSelections.shootType];
@@ -1335,7 +1549,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
       blockedBy.push('shootType');
     }
   }
-  
+
   return {
     conflicts: conflicts.length > 0,
     reasons: conflicts,
@@ -1352,7 +1566,7 @@ export function checkConflicts(currentSelections, paramToCheck, valueToCheck) {
  */
 export function getAllConflicts(selections) {
   const allConflicts = {};
-  
+
   // Check each parameter category
   const categories = {
     shootType: SHOOT_TYPE_PRESETS,
@@ -1362,7 +1576,7 @@ export function getAllConflicts(selections) {
     color: COLOR_PRESETS,
     era: ERA_PRESETS
   };
-  
+
   for (const [param, presets] of Object.entries(categories)) {
     allConflicts[param] = {};
     for (const presetId of Object.keys(presets)) {
@@ -1372,7 +1586,7 @@ export function getAllConflicts(selections) {
       }
     }
   }
-  
+
   return allConflicts;
 }
 
@@ -1406,14 +1620,14 @@ export function validateAndCorrectParams(params) {
     spaceType,
     captureStyle
   } = params;
-  
+
   const allConflicts = [];
   const allWarnings = [];
   const autoCorrections = {};
-  
+
   // Create selection context
   const selections = { shootType, cameraAesthetic, lightingSource, lightingQuality, focusMode, shotSize, timeOfDay, weather, spaceType, captureStyle };
-  
+
   // Check each current value against all rules
   const checks = [
     { param: 'lightingQuality', value: lightingQuality },
@@ -1421,7 +1635,7 @@ export function validateAndCorrectParams(params) {
     { param: 'focusMode', value: focusMode },
     { param: 'captureStyle', value: captureStyle }
   ];
-  
+
   for (const { param, value } of checks) {
     if (value) {
       const result = checkConflicts(selections, param, value);
@@ -1436,10 +1650,10 @@ export function validateAndCorrectParams(params) {
       }
     }
   }
-  
+
   // Apply auto-corrections to create corrected params
   const correctedParams = { ...params, ...autoCorrections };
-  
+
   return {
     valid: allConflicts.length === 0,
     conflicts: allConflicts,
@@ -1466,7 +1680,7 @@ const LABELS = {
     'soft_focus': 'Мягкий фокус',
     'default': 'По умолчанию'
   },
-  
+
   // Shot Size
   shotSize: {
     'extreme_closeup': 'Макро',
@@ -1480,7 +1694,7 @@ const LABELS = {
     'wide': 'Общий план',
     'extreme_wide': 'Панорама'
   },
-  
+
   // Lighting Quality
   lightingQuality: {
     'harsh_direct': 'Жёсткий свет',
@@ -1490,7 +1704,7 @@ const LABELS = {
     'backlit': 'Контровой свет',
     'moody_lowkey': 'Атмосферный тёмный'
   },
-  
+
   // Lighting Source
   lightingSource: {
     'natural_daylight': 'Дневной свет',
@@ -1502,7 +1716,7 @@ const LABELS = {
     'practicals': 'Практические источники',
     'continuous_led': 'LED свет'
   },
-  
+
   // Camera Aesthetic
   cameraAesthetic: {
     'none': 'Без стилизации',
@@ -1516,7 +1730,7 @@ const LABELS = {
     'iphone': 'iPhone',
     'ricoh_gr': 'Ricoh GR (28mm)'
   },
-  
+
   // Shoot Type
   shootType: {
     'catalog': 'Каталог',
@@ -1528,7 +1742,7 @@ const LABELS = {
     'beauty': 'Beauty',
     'sport': 'Спорт'
   },
-  
+
   // Model Behavior
   modelBehavior: {
     'natural': 'Естественное',
@@ -1540,7 +1754,7 @@ const LABELS = {
     'vulnerable': 'Открытый / Уязвимый',
     'powerful': 'Мощный / Уверенный'
   },
-  
+
   // Lens Focal Length
   lensFocalLength: {
     'auto': 'Авто',
@@ -1569,7 +1783,7 @@ function getLabel(param, value) {
  */
 export function getParameterRecommendations(context, param) {
   const recommendations = { recommended: [], avoid: [], info: '' };
-  
+
   // Shot Size → Focus Mode recommendations
   if (param === 'focusMode' && context.shotSize) {
     const shotFocusMap = {
@@ -1581,7 +1795,7 @@ export function getParameterRecommendations(context, param) {
       'wide': { recommended: ['deep_focus'], avoid: ['shallow_dof'], info: 'Общий план — всё должно быть в фокусе' },
       'extreme_wide': { recommended: ['deep_focus'], avoid: ['shallow_dof', 'very_shallow_dof'], info: 'Панорамный кадр' }
     };
-    
+
     const rec = shotFocusMap[context.shotSize];
     if (rec) {
       // Convert IDs to labels
@@ -1590,7 +1804,7 @@ export function getParameterRecommendations(context, param) {
       recommendations.info = rec.info || '';
     }
   }
-  
+
   // Time of Day → Lighting Quality recommendations
   if (param === 'lightingQuality' && context.timeOfDay) {
     const timeQualityMap = {
@@ -1600,7 +1814,7 @@ export function getParameterRecommendations(context, param) {
       'night': { recommended: ['moody_lowkey', 'contrasty'], avoid: ['soft_diffused'], info: 'Ночь — контрастный свет от источников' },
       'overcast': { recommended: ['soft_diffused', 'flat'], avoid: ['harsh_direct'], info: 'Пасмурно — естественный рассеянный свет' }
     };
-    
+
     const rec = timeQualityMap[context.timeOfDay];
     if (rec) {
       recommendations.recommended = rec.recommended?.map(id => getLabel('lightingQuality', id)) || [];
@@ -1608,7 +1822,7 @@ export function getParameterRecommendations(context, param) {
       recommendations.info = rec.info || '';
     }
   }
-  
+
   // Space Type → Lighting Source recommendations
   if (param === 'lightingSource' && context.spaceType) {
     const spaceSourceMap = {
@@ -1618,7 +1832,7 @@ export function getParameterRecommendations(context, param) {
       'interior_with_windows': { recommended: ['window_light', 'natural_daylight', 'practicals'], info: 'Интерьер с окнами — смешанный свет' },
       'interior': { recommended: ['practicals', 'continuous_led', 'mixed_ambient'], info: 'Интерьер — ambient освещение' }
     };
-    
+
     const rec = spaceSourceMap[context.spaceType];
     if (rec) {
       recommendations.recommended = rec.recommended?.map(id => getLabel('lightingSource', id)) || [];
@@ -1626,7 +1840,7 @@ export function getParameterRecommendations(context, param) {
       recommendations.info = rec.info || '';
     }
   }
-  
+
   // Shoot Type → Camera Aesthetic recommendations
   if (param === 'cameraAesthetic' && context.shootType) {
     const shootCameraMap = {
@@ -1636,7 +1850,7 @@ export function getParameterRecommendations(context, param) {
       'beauty': { recommended: ['hasselblad_mf', 'mamiya_rz67'], avoid: ['iphone', 'disposable'], info: 'Beauty — максимальная детализация' },
       'sport': { recommended: ['none', 'ricoh_gr'], info: 'Спорт — нейтральный look' }
     };
-    
+
     const rec = shootCameraMap[context.shootType];
     if (rec) {
       recommendations.recommended = rec.recommended?.map(id => getLabel('cameraAesthetic', id)) || [];
@@ -1644,7 +1858,7 @@ export function getParameterRecommendations(context, param) {
       recommendations.info = rec.info || '';
     }
   }
-  
+
   return recommendations;
 }
 
@@ -1667,7 +1881,7 @@ export function getPresetById(category, id) {
     modelBehavior: MODEL_BEHAVIOR_PRESETS,
     lensFocalLength: LENS_FOCAL_LENGTH_PRESETS
   };
-  
+
   return presets[category]?.[id] || null;
 }
 
@@ -1686,10 +1900,10 @@ export function getPresetsArray(category) {
     modelBehavior: MODEL_BEHAVIOR_PRESETS,
     lensFocalLength: LENS_FOCAL_LENGTH_PRESETS
   };
-  
+
   const categoryPresets = presets[category];
   if (!categoryPresets) return [];
-  
+
   return Object.values(categoryPresets);
 }
 
@@ -1698,39 +1912,82 @@ export function getPresetsArray(category) {
  */
 export function buildPresetsPrompt(presetIds) {
   const prompts = [];
-  
+
   // 1. Shoot Type context (highest priority)
   if (presetIds.shootType && SHOOT_TYPE_PRESETS[presetIds.shootType]) {
     prompts.push(`SHOOT TYPE: ${SHOOT_TYPE_PRESETS[presetIds.shootType].prompt}`);
   }
-  
-  // 2. Camera Aesthetic
+
+  // 6. Camera Aesthetic (Lens/Film)
   if (presetIds.cameraAesthetic && CAMERA_AESTHETIC_PRESETS[presetIds.cameraAesthetic]?.prompt) {
-    prompts.push(`CAMERA AESTHETIC: ${CAMERA_AESTHETIC_PRESETS[presetIds.cameraAesthetic].prompt}`);
+    prompts.push(`CAMERA BODY: ${CAMERA_AESTHETIC_PRESETS[presetIds.cameraAesthetic].prompt}`);
   }
-  
-  // 3. Lighting (source + quality OR legacy light preset)
+
+  // 7. Focal Length
+  if (presetIds.lensFocalLength && LENS_FOCAL_LENGTH_PRESETS[presetIds.lensFocalLength]?.prompt) {
+    prompts.push(LENS_FOCAL_LENGTH_PRESETS[presetIds.lensFocalLength].prompt);
+  }
+
+  // 8. Aperture
+  if (presetIds.aperture && APERTURE_PRESETS[presetIds.aperture]) {
+    prompts.push(APERTURE_PRESETS[presetIds.aperture].prompt);
+  }
+
+  // 9. Shutter
+  if (presetIds.shutterSpeed && SHUTTER_SPEED_PRESETS[presetIds.shutterSpeed]) {
+    prompts.push(SHUTTER_SPEED_PRESETS[presetIds.shutterSpeed].prompt);
+  }
+
+  // 10. Frame/Shot Size (as text if not handled by composition param)
+  if (presetIds.shotSize && LABELS.shotSize[presetIds.shotSize]) {
+    prompts.push(`FRAMING: ${LABELS.shotSize[presetIds.shotSize]}`);
+  }
+
+  // 11. Model Behavior
+  if (presetIds.modelBehavior && MODEL_BEHAVIOR_PRESETS[presetIds.modelBehavior]) {
+    prompts.push(MODEL_BEHAVIOR_PRESETS[presetIds.modelBehavior].prompt);
+  }
+
+  // 12. Light Source
   if (presetIds.lightingSource && LIGHTING_SOURCE_PRESETS[presetIds.lightingSource]) {
-    prompts.push(`LIGHTING SOURCE: ${LIGHTING_SOURCE_PRESETS[presetIds.lightingSource].prompt}`);
+    prompts.push(`LIGHT SOURCE: ${LIGHTING_SOURCE_PRESETS[presetIds.lightingSource].prompt}`);
   }
+
+  // 13. Light Quality
   if (presetIds.lightingQuality && LIGHTING_QUALITY_PRESETS[presetIds.lightingQuality]) {
-    prompts.push(`LIGHTING QUALITY: ${LIGHTING_QUALITY_PRESETS[presetIds.lightingQuality].prompt}`);
+    prompts.push(`LIGHT QUALITY: ${LIGHTING_QUALITY_PRESETS[presetIds.lightingQuality].prompt}`);
   }
-  // Legacy fallback
-  if (!presetIds.lightingSource && presetIds.light && LIGHT_PRESETS[presetIds.light]) {
-    prompts.push(`LIGHTING: ${LIGHT_PRESETS[presetIds.light].prompt}`);
+
+  // 14. Light Direction
+  if (presetIds.lightingDirection && LIGHTING_DIRECTION_PRESETS[presetIds.lightingDirection]) {
+    prompts.push(`LIGHT DIRECTION: ${LIGHTING_DIRECTION_PRESETS[presetIds.lightingDirection].prompt}`);
   }
-  
-  // 4. Color
+
+  // 15. White Balance
+  if (presetIds.whiteBalance && WHITE_BALANCE_PRESETS[presetIds.whiteBalance]) {
+    prompts.push(`WHITE BALANCE: ${WHITE_BALANCE_PRESETS[presetIds.whiteBalance].prompt}`);
+  }
+
+  // 16. Color Grade
   if (presetIds.color && COLOR_PRESETS[presetIds.color]) {
-    prompts.push(`COLOR: ${COLOR_PRESETS[presetIds.color].prompt}`);
+    prompts.push(`COLOR GRADE: ${COLOR_PRESETS[presetIds.color].prompt}`);
   }
-  
-  // 5. Era
+
+  // 17. Processing
+  if (presetIds.processing && PROCESSING_PRESETS[presetIds.processing]) {
+    prompts.push(`CHEMISTRY: ${PROCESSING_PRESETS[presetIds.processing].prompt}`);
+  }
+
+  // 18. Mood
+  if (presetIds.mood && MOOD_PRESETS[presetIds.mood]) {
+    prompts.push(`MOOD ANCHOR: ${MOOD_PRESETS[presetIds.mood].prompt}`);
+  }
+
+  // 19. Era
   if (presetIds.era && ERA_PRESETS[presetIds.era]) {
-    prompts.push(`ERA: ${ERA_PRESETS[presetIds.era].prompt}`);
+    prompts.push(`TIME PERIOD: ${ERA_PRESETS[presetIds.era].prompt}`);
   }
-  
+
   return prompts.join('\n\n');
 }
 
@@ -1741,13 +1998,19 @@ export function getAllStylePresets() {
   return {
     shootType: SHOOT_TYPE_PRESETS,
     cameraAesthetic: CAMERA_AESTHETIC_PRESETS,
+    lensFocalLength: LENS_FOCAL_LENGTH_PRESETS,
     lightingSource: LIGHTING_SOURCE_PRESETS,
     lightingQuality: LIGHTING_QUALITY_PRESETS,
-    light: LIGHT_PRESETS,
+    lightingDirection: LIGHTING_DIRECTION_PRESETS,
+    aperture: APERTURE_PRESETS,
+    shutterSpeed: SHUTTER_SPEED_PRESETS,
+    whiteBalance: WHITE_BALANCE_PRESETS,
     color: COLOR_PRESETS,
+    processing: PROCESSING_PRESETS,
+    mood: MOOD_PRESETS,
     era: ERA_PRESETS,
     modelBehavior: MODEL_BEHAVIOR_PRESETS,
-    lensFocalLength: LENS_FOCAL_LENGTH_PRESETS
+    light: LIGHT_PRESETS
   };
 }
 

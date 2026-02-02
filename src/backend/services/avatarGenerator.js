@@ -5,7 +5,7 @@
  * The results are packed into a single identity collage.
  */
 
-import { requestGeminiImage } from '../providers/geminiClient.js';
+import { generateImageWithFallback } from './resilientImageGenerator.js';
 import { buildIdentityCollage } from '../utils/imageCollage.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -185,13 +185,14 @@ export async function generateAvatarShots(identityImages, options = {}) {
       const prompt = buildAvatarPrompt(shot.id, extraPrompt);
 
       // Call Gemini with identity images as reference
-      const result = await requestGeminiImage({
+      const result = await generateImageWithFallback({
         prompt,
         referenceImages: identityImages,
         imageConfig: {
           aspectRatio: '1:1',
           imageSize: '2K'
-        }
+        },
+        generatorName: 'AvatarGenerator'
       });
 
       if (!result.ok) {
@@ -271,13 +272,14 @@ export async function generateSingleShot(identityImages, shotId, options = {}) {
 
   const prompt = buildAvatarPrompt(shotId, options.extraPrompt);
 
-  const result = await requestGeminiImage({
+  const result = await generateImageWithFallback({
     prompt,
     referenceImages: identityImages,
     imageConfig: {
       aspectRatio: '1:1',
       imageSize: '2K'
-    }
+    },
+    generatorName: 'AvatarGenerator'
   });
 
   if (!result.ok) {

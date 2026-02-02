@@ -4,6 +4,7 @@
 
 import express from 'express';
 import os from 'os';
+import { getOverloadStats } from '../services/resilientImageGenerator.js';
 
 const router = express.Router();
 
@@ -25,7 +26,8 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '0.1.0',
     project: 'AIDA',
-    geminiLimiter: limiterStatus
+    geminiLimiter: limiterStatus,
+    overloadStats: getOverloadStats()
   });
 });
 
@@ -45,6 +47,7 @@ router.get('/diagnostics', (req, res) => {
     },
     uptime: Math.round(process.uptime()) + 's',
     geminiLimiter: limiterStatus,
+    overloadStats: getOverloadStats(),
     nodeVersion: process.version
   });
 });

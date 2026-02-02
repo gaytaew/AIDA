@@ -5,8 +5,7 @@
  * Handles the "Crockery Reference" logic separately from Style/Subject.
  */
 
-import { requestGeminiImage } from '../providers/geminiClient.js';
-import { requestVertexImage } from '../providers/vertexClient.js';
+import { generateImageWithFallback } from './resilientImageGenerator.js';
 import { buildCollage } from '../utils/imageCollage.js';
 import { generateImageId } from '../schema/customShoot.js';
 
@@ -92,13 +91,14 @@ export async function generateFoodShootFrame({
         console.log(`[FoodGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 300)}...`);
 
         // 4. Call AI
-        const result = await requestGeminiImage({
+        const result = await generateImageWithFallback({
             prompt: promptText,
             referenceImages: validImages,
             imageConfig: {
                 aspectRatio: sanitizedParams.aspectRatio || '3:4',
                 imageSize: sanitizedParams.imageSize || '2k'
-            }
+            },
+            generatorName: 'FoodGenerator'
         });
 
         if (!result || !result.base64) {

@@ -117,6 +117,34 @@ const state = {
   selectedPresetId: null,     // Currently selected preset ID
   selectedPreset: null,       // Full preset object
 
+  // V6 Manual Mode (Ultimate Control)
+  mode: 'preset',             // 'preset' | 'manual'
+  manualOptions: {},          // Loaded dictionaries (camera, aperture, etc.)
+  manualParams: {
+    shootType: 'catalog',
+    cameraAesthetic: 'contax_t2',
+    aperture: 'f5_6',
+    shutterSpeed: 'standard',
+    lensFocalLength: 'auto',
+    lightingSource: 'natural_daylight',
+    lightingQuality: 'soft_diffused',
+    lightingDirection: 'forty_five',
+    whiteBalance: 'neutral',
+    color: 'neutral_clean',
+    processing: 'standard',
+    mood: 'natural',
+    era: 'contemporary',
+    modelBehavior: 'natural',
+    captureStyle: 'editorial_relaxed' // mapped from behavior/shootType usually, but user can override if we expose it. Wait, captureStyle is implicit? 
+    // The plan had "Physics" -> captureStyle.
+    // Let's add captureStyle to defaults.
+  },
+
+  // Frame Overrides
+  frameOverrides: {},         // Map<frameId or index, partialParams>
+  editingFrameIndex: null,    // Index of frame currently being edited in modal
+  tempFrameParams: {},        // Temporary params while editing in modal
+
   // V5 Smart System - NOT USED in V6
   v5Schema: null,
   v5Values: {},
@@ -142,8 +170,24 @@ function initElements() {
   // Step 1: Shoot
   elements.shootsList = document.getElementById('shoots-list');
   elements.btnNewShoot = document.getElementById('btn-new-shoot');
+  elements.btnNewShoot = document.getElementById('btn-new-shoot');
   elements.btnNextToModels = document.getElementById('btn-next-to-models');
   elements.stepShootStatus = document.getElementById('step-shoot-status');
+
+  // Manual Mode Toggles
+  elements.btnModePreset = document.getElementById('btn-mode-preset');
+  elements.btnModeManual = document.getElementById('btn-mode-manual');
+  elements.presetModeContainer = document.getElementById('preset-mode-container');
+  elements.manualModeContainer = document.getElementById('manual-mode-container');
+  elements.manualControlsGrid = document.getElementById('manual-controls-grid');
+
+  // Frame Settings Modal
+  elements.frameSettingsModal = document.getElementById('frame-settings-modal');
+  elements.frameSettingsGrid = document.getElementById('frame-settings-grid');
+  elements.frameSettingsTitle = document.getElementById('frame-settings-title');
+  elements.btnCloseFrameSettings = document.getElementById('btn-close-frame-settings');
+  elements.btnSaveFrameSettings = document.getElementById('btn-save-frame-settings');
+  elements.btnResetFrameSettings = document.getElementById('btn-reset-frame-settings');
 
   // Step 2: Models
   elements.modelSlots = document.getElementById('model-slots');
@@ -236,6 +280,15 @@ function initEventListeners() {
   elements.styleLockOff.addEventListener('click', () => setStyleLockMode('off'));
   elements.styleLockStrict.addEventListener('click', () => setStyleLockMode('strict'));
   elements.styleLockSoft.addEventListener('click', () => setStyleLockMode('soft'));
+
+  // Manual Mode Toggles
+  elements.btnModePreset.addEventListener('click', () => setMode('preset'));
+  elements.btnModeManual.addEventListener('click', () => setMode('manual'));
+
+  // Frame Settings Modal
+  elements.btnCloseFrameSettings.addEventListener('click', closeFrameSettings);
+  elements.btnSaveFrameSettings.addEventListener('click', saveFrameSettings);
+  elements.btnResetFrameSettings.addEventListener('click', resetFrameSettings);
 
   // DELEGATED event handler for generate buttons (won't break on DOM re-renders)
   elements.framesToGenerate.addEventListener('click', (e) => {
@@ -1363,6 +1416,21 @@ async function loadStylePresets() {
   }
 }
 
+async function loadManualOptions() {
+  try {
+    console.log('[LoadManualOptions] Loading from /api/custom-shoots/presets...');
+    const res = await fetchWithTimeout('/api/custom-shoots/presets', {}, 10000);
+    const data = await res.json();
+    if (data.ok) {
+      state.manualOptions = data.presets || {};
+      console.log('[LoadManualOptions] Loaded dictionaries:', Object.keys(state.manualOptions));
+      renderManualControls(); // Use loaded options
+    }
+  } catch (e) {
+    console.error('[LoadManualOptions] Error:', e.message);
+  }
+}
+
 // V6: Render style presets grid for selection
 function renderStylePresetsGrid() {
   const container = document.getElementById('style-presets-grid');
@@ -1408,6 +1476,137 @@ function renderStylePresetsGrid() {
 
   // Update details panel if preset is selected
   updateSelectedPresetDetails();
+}
+
+// V6: Switch Mode
+function setMode(mode) {
+  state.mode = mode;
+
+  // Update toggle buttons
+  if (mode === 'manual') {
+    elements.btnModePreset.classList.remove('active');
+    elements.btnModeManual.classList.add('active');
+    elements.presetModeContainer.style.display = 'none';
+    elements.manualModeContainer.style.display = 'block';
+
+    // Lazy load options if needed
+    if (Object.keys(state.manualOptions).length === 0) {
+      loadManualOptions();
+    } else {
+      renderManualControls();
+    }
+  } else {
+    elements.btnModeManual.classList.remove('active');
+    elements.btnModePreset.classList.add('active');
+    elements.manualModeContainer.style.display = 'none';
+    elements.presetModeContainer.style.display = 'block';
+  }
+}
+
+// V6: Render Manual Controls (Global)
+function renderManualControls() {
+  const container = document.getElementById('manual-controls-grid');
+  if (!container || Object.keys(state.manualOptions).length === 0) return;
+
+  renderParamsGrid(container, state.manualParams, 'updateManualParam');
+}
+
+// Helper: Render Grid
+function renderParamsGrid(container, currentValues, onChangeFuncName) {
+  const MANUAL_FIELDS = [
+    { key: 'shootType', label: '1. Context', dict: 'shootType' },
+    { key: 'cameraAesthetic', label: '2. Camera Body', dict: 'cameraAesthetic' },
+    { key: 'aperture', label: '3. Aperture', dict: 'aperture' },
+    { key: 'shutterSpeed', label: '4. Shutter', dict: 'shutterSpeed' },
+    { key: 'lensFocalLength', label: '5. Lens', dict: 'lensFocalLength' },
+    { key: 'lightingSource', label: '6. Light Source', dict: 'lightingSource' },
+    { key: 'lightingQuality', label: '7. Light Quality', dict: 'lightingQuality' },
+    { key: 'lightingDirection', label: '8. Direction', dict: 'lightingDirection' },
+    { key: 'whiteBalance', label: '9. WB / Temp', dict: 'whiteBalance' },
+    { key: 'mood', label: '10. Mood', dict: 'mood' },
+    { key: 'era', label: '11. Era', dict: 'era' },
+    { key: 'processing', label: '12. Processing', dict: 'processing' },
+    { key: 'modelBehavior', label: '13. Behavior', dict: 'modelBehavior' }
+  ];
+
+  container.innerHTML = MANUAL_FIELDS.map(field => {
+    const options = state.manualOptions[field.dict] || {};
+    const sortedOptions = Object.values(options).sort((a, b) => a.label.localeCompare(b.label));
+    const val = currentValues[field.key] || '';
+
+    return `
+      <div class="manual-control-group">
+        <label>${field.label}</label>
+        <select onchange="${onChangeFuncName}('${field.key}', this.value)">
+           <option value="">-- Global/Auto --</option>
+           ${sortedOptions.map(opt => `
+             <option value="${opt.id}" ${val === opt.id ? 'selected' : ''}>
+               ${opt.label}
+             </option>
+           `).join('')}
+        </select>
+      </div>
+    `;
+  }).join('');
+}
+
+// Global: Update Manual Param
+window.updateManualParam = function (key, value) {
+  state.manualParams[key] = value;
+  console.log('[ManualParam]', key, '->', value);
+}
+
+// Global: Update Temp Frame Param (Modal)
+window.updateTempFrameParam = function (key, value) {
+  state.tempFrameParams[key] = value;
+}
+
+// OPEN Frame Settings Modal
+window.openFrameSettings = function (frameIndex) {
+  state.editingFrameIndex = frameIndex;
+
+  // Start with global params, overlay with existing overrides
+  // We want the inputs to show the EFFECTIVE values, or just the overrides?
+  // Ideally overrides. If empty, show "Global/Auto".
+  // So currentValues should be the overrides.
+  const overrides = state.frameOverrides[frameIndex] || {};
+  state.tempFrameParams = { ...overrides };
+
+  elements.frameSettingsTitle.textContent = `#${parseInt(frameIndex) + 1}`;
+  elements.frameSettingsModal.style.display = 'flex';
+
+  // Render grid targeting temp params
+  renderParamsGrid(elements.frameSettingsGrid, state.tempFrameParams, 'updateTempFrameParam');
+}
+
+function closeFrameSettings() {
+  elements.frameSettingsModal.style.display = 'none';
+  state.editingFrameIndex = null;
+  state.tempFrameParams = {};
+}
+
+function saveFrameSettings() {
+  if (state.editingFrameIndex !== null) {
+    // Save temp params to overrides
+    // Filter out empty strings (which mean "use global")
+    const cleanParams = {};
+    for (const [k, v] of Object.entries(state.tempFrameParams)) {
+      if (v) cleanParams[k] = v;
+    }
+
+    state.frameOverrides[state.editingFrameIndex] = cleanParams;
+    console.log('[FrameSettings] Saved overrides for frame', state.editingFrameIndex, cleanParams);
+
+    // Update frame card UI to show "Custom Settings" badge or similar?
+    // We'd need to re-render frames list or toggle a class.
+    // For now just console log.
+  }
+  closeFrameSettings();
+}
+
+function resetFrameSettings() {
+  state.tempFrameParams = {};
+  renderParamsGrid(elements.frameSettingsGrid, {}, 'updateTempFrameParam');
 }
 
 // V6: Select a style preset

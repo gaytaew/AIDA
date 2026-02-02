@@ -31,8 +31,8 @@ import {
   checkConflicts,
   getAllConflicts,
   getShootTypeDefaults,
-  validateAndCorrectParams,
-  getParameterRecommendations
+  getParameterRecommendations,
+  buildPresetsPrompt
 } from '../schema/stylePresets.js';
 import {
   generateCustomShootFrame,
@@ -485,6 +485,7 @@ router.post('/:id/generate', async (req, res) => {
       // ═══════════════════════════════════════════════════════════════
       v6Mode,         // Boolean flag for V6 mode
       styleParams,    // { presetId, naturalPrompt, antiAiDirectives, technicalParams }
+      manualParams,   // NEW: 12-layer manual configuration
       variationId,    // V6: Selected variation (sub-preset) ID
       // Note: emotionId is already extracted above in common params
 
@@ -794,8 +795,16 @@ router.post('/:id/generate', async (req, res) => {
       // ═══════════════════════════════════════════════════════════════
       // V6: Style Preset Parameters (AI Director mode)
       // ═══════════════════════════════════════════════════════════════
-      v6Mode,
-      styleParams,
+      v6Mode: v6Mode || (manualParams && Object.keys(manualParams).length > 0), // Enable V6 if manual params exist
+      styleParams: (manualParams && Object.keys(manualParams).length > 0) ? {
+        ...styleParams,
+        isManual: true,
+        naturalPrompt: buildPresetsPrompt(manualParams),
+        presetId: 'MANUAL_MODE',
+        // Manual mode implicitly sets Anti-AI to high (as requested)
+        antiAiDirectives: ['Avoid plastic skin', 'High frequency texture', 'Natural imperfections']
+      } : styleParams,
+
       variationId,  // V6: Selected variation (sub-preset) ID
 
       // ═══════════════════════════════════════════════════════════════

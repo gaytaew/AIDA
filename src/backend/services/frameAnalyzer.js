@@ -8,7 +8,7 @@
  */
 
 import config from '../config.js';
-import { requestGeminiImage } from '../providers/geminiClient.js';
+import { generateImageWithFallback } from './resilientImageGenerator.js';
 import { convertToJpeg } from '../utils/imageConverter.js';
 import {
   SHOT_SIZE_OPTIONS,
@@ -251,7 +251,7 @@ export async function generatePoseSketch(technical = {}, referenceImage = null) 
   };
 
   const poseDescription = tech.poseDescription || 'Standing neutral pose, arms at sides';
-  
+
   // Build prompt
   const prompt = POSE_SKETCH_PROMPT
     .replace('{poseDescription}', poseDescription)
@@ -259,17 +259,18 @@ export async function generatePoseSketch(technical = {}, referenceImage = null) 
     .replace('{cameraAngle}', tech.cameraAngle.replace(/_/g, ' '));
 
   console.log('[FrameAnalyzer] Generating schematic pose sketch with Gemini...');
-  
+
   // Include reference image if provided
   const referenceImages = referenceImage ? [referenceImage] : [];
 
-  const result = await requestGeminiImage({
+  const result = await generateImageWithFallback({
     prompt,
     referenceImages,
     imageConfig: {
       aspectRatio: '3:4',
       imageSize: '1K'
-    }
+    },
+    generatorName: 'FrameAnalyzer'
   });
 
   if (!result.ok) {
@@ -311,7 +312,7 @@ export async function analyzeAndGenerateSketch(image, notes = '') {
   // Pass the original image as reference for more accurate pose replication
   console.log('[FrameAnalyzer] Step 2: Generating pose sketch with reference...');
   let sketchResult = null;
-  
+
   try {
     sketchResult = await generatePoseSketch(analysis.technical, image);
   } catch (error) {

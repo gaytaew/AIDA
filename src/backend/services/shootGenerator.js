@@ -12,13 +12,13 @@
  * Промпт собирается в JSON-формате из модулей.
  */
 
-import { requestGeminiImage } from '../providers/geminiClient.js';
+import { generateImageWithFallback } from './resilientImageGenerator.js';
 import { buildCollage } from '../utils/imageCollage.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
-import { 
-  CAMERA_SIGNATURE_PRESETS, 
-  CAPTURE_STYLE_PRESETS, 
-  SKIN_TEXTURE_PRESETS 
+import {
+  CAMERA_SIGNATURE_PRESETS,
+  CAPTURE_STYLE_PRESETS,
+  SKIN_TEXTURE_PRESETS
 } from '../schema/universe.js';
 import { buildLocationPromptSnippet } from '../schema/location.js';
 
@@ -50,8 +50,8 @@ const POSING_STYLE_MAP = {
 
 // Pose adherence descriptions — STRICT GRADIENT with detailed body part instructions
 const POSE_ADHERENCE_MAP = {
-  1: { 
-    label: 'free', 
+  1: {
+    label: 'free',
     instruction: `POSE TYPE ONLY — The sketch is just a category hint, NOT a pose reference.
 
 WHAT TO MATCH (only):
@@ -71,8 +71,8 @@ GOAL: Create a FRESH, DIFFERENT pose that only shares the basic category (e.g., 
     forbid: 'FORBIDDEN: Copying ANY limb angles from sketch. Matching head position. Mirroring the composition. The result should look like a DIFFERENT photo, not a recreation.',
     matchPercent: '10-20%'
   },
-  2: { 
-    label: 'loose', 
+  2: {
+    label: 'loose',
     instruction: `GENERAL VIBE — Similar energy, different execution.
 
 WHAT TO MATCH (~40%):
@@ -92,8 +92,8 @@ GOAL: Someone looking at both would say "similar vibe" not "same pose".`,
     forbid: 'FORBIDDEN: Precise angle matching. Exact hand/finger positions. Identical head tilt. This should feel like the model\'s OWN interpretation of a general direction.',
     matchPercent: '30-40%'
   },
-  3: { 
-    label: 'close', 
+  3: {
+    label: 'close',
     instruction: `CLOSE MATCH — Recognizably the same pose with natural variation.
 
 WHAT TO MATCH (~75%):
@@ -116,8 +116,8 @@ GOAL: Someone comparing would say "that's the same pose" with minor natural diff
     forbid: null,
     matchPercent: '70-80%'
   },
-  4: { 
-    label: 'exact', 
+  4: {
+    label: 'exact',
     instruction: `STRICT REPLICATION — Technical precision, like a drawing reference.
 
 WHAT TO MATCH (everything):
@@ -165,7 +165,7 @@ export function buildShootPromptJson({
 }) {
   // Priority: frame > location.defaultFrameParams > DEFAULT_SCENE
   let effectiveFrame = frame;
-  
+
   if (!effectiveFrame && location?.defaultFrameParams) {
     // Use location's default frame params if no frame selected
     effectiveFrame = {
@@ -182,7 +182,7 @@ export function buildShootPromptJson({
     };
     console.log('[ShootGenerator] Using location default frame params:', location.label);
   }
-  
+
   if (!effectiveFrame) {
     effectiveFrame = DEFAULT_SCENE;
     console.log('[ShootGenerator] Using default scene (no frame or location params)');
@@ -201,7 +201,7 @@ export function buildShootPromptJson({
       'STRICTLY match identity reference images (faces, anatomy) for models.',
       'STRICTLY match clothing reference images (silhouette, color, construction, materials).',
       'Do NOT invent brands/logos/text.',
-      modelCount === 1 
+      modelCount === 1
         ? 'Keep the SAME model identity across all frames.'
         : `Keep the SAME ${modelCount} model identities across all frames.`
     ],
@@ -240,7 +240,7 @@ export function buildShootPromptJson({
 
     // Frame / Scene (ONLY pose, camera, composition - NO location)
     frame: buildFrameBlock(effectiveFrame),
-    
+
     // Frame interpretation rules
     frameRules: [
       'FRAME describes ONLY: pose, body position, camera angle, shot size, composition.',
@@ -249,7 +249,7 @@ export function buildShootPromptJson({
       'If frame description mentions any location hints (snow, beach, studio, etc.) — IGNORE them.',
       'Apply the pose/camera from FRAME to whatever location is defined.'
     ],
-    
+
     // Pose sketch reference (if available) — with strict adherence gradient
     poseReference: hasPoseSketch ? (() => {
       const adherenceLevel = POSE_ADHERENCE_MAP[poseAdherence] || POSE_ADHERENCE_MAP[2];
@@ -260,12 +260,12 @@ export function buildShootPromptJson({
         `=== ADHERENCE LEVEL: ${poseAdherence}/4 (${adherenceLevel.label.toUpperCase()}) ===`,
         adherenceLevel.instruction
       ];
-      
+
       // Add explicit forbid rules for low adherence
       if (adherenceLevel.forbid) {
         rules.push('', '⚠️ FORBIDDEN:', adherenceLevel.forbid);
       }
-      
+
       return {
         hasSketch: true,
         adherenceLevel: poseAdherence,
@@ -273,40 +273,40 @@ export function buildShootPromptJson({
         rules: rules.filter(r => r !== '')
       };
     })() : null,
-    
+
     // === OPTIONAL BLOCKS (only included if explicitly set) ===
     // This keeps the prompt shorter and less confusing for the model
-    
+
     // Capture style (only if universe has explicit captureStyle)
     ...(universe?.captureStyle?.preset && universe.captureStyle.preset !== 'none' ? {
       captureStyle: buildCaptureStyleBlock(universe, posingStyle)
     } : {}),
-    
+
     // Camera signature (only if universe has explicit cameraSignature)
     ...(universe?.cameraSignature?.preset && universe.cameraSignature.preset !== 'none' ? {
       cameraSignature: buildCameraSignatureBlock(universe)
     } : {}),
-    
+
     // Skin & texture rendering (only if universe has explicit skinTexture)
     ...(universe?.skinTexture?.preset && universe.skinTexture.preset !== 'none' ? {
       skinTexture: buildSkinTextureBlock(universe)
     } : {}),
-    
+
     // Emotion (only if explicitly set)
     ...(effectiveFrame?.emotion?.emotionId ? {
       emotion: buildEmotionBlock(effectiveFrame.emotion)
     } : {}),
-    
+
     // Action / micromoment (only if explicitly set)
     ...(effectiveFrame?.action ? {
       action: buildActionBlock(effectiveFrame.action)
     } : {}),
-    
+
     // Important textures for this frame (only if set)
     ...(effectiveFrame?.textures?.length > 0 ? {
       textures: effectiveFrame.textures
     } : {}),
-    
+
     // How clothing works in this frame (only if set)
     ...(effectiveFrame?.clothingFocus?.description ? {
       clothingFocus: {
@@ -320,10 +320,10 @@ export function buildShootPromptJson({
     ...(universe?.antiAi?.level && universe.antiAi.level !== 'none' ? {
       antiAi: buildAntiAiBlock(universe)
     } : {}),
-    
+
     // Artistic intention — anti-AI aesthetic principles
     artisticIntention: buildArtisticIntentionBlock(),
-    
+
     // Narrative micro-beat — what happened before/after this frame
     narrativeBeat: {
       rule: 'This is NOT a posed fashion shot. This is a MOMENT extracted from a life.',
@@ -348,12 +348,12 @@ export function buildShootPromptJson({
  */
 function buildEmotionBlock(emotion) {
   console.log('[ShootGenerator] buildEmotionBlock input:', emotion);
-  
+
   if (!emotion) {
     console.log('[ShootGenerator] No emotion provided, returning null');
     return null;
   }
-  
+
   // If there's a custom description, use it (legacy support)
   if (emotion.customDescription) {
     return {
@@ -363,7 +363,7 @@ function buildEmotionBlock(emotion) {
       intensity: emotion.intensity || 2
     };
   }
-  
+
   // If there's an emotion preset ID, use new atmospheric builder
   if (emotion.emotionId) {
     console.log('[ShootGenerator] Looking up emotion preset:', emotion.emotionId);
@@ -373,7 +373,7 @@ function buildEmotionBlock(emotion) {
       // Build full prompt using new atmospheric approach
       const intensity = emotion.intensity || preset.defaultIntensity || 2;
       const promptBlock = buildEmotionPrompt(emotion.emotionId, intensity);
-      
+
       return {
         source: 'preset',
         presetId: emotion.emotionId,
@@ -390,7 +390,7 @@ function buildEmotionBlock(emotion) {
       };
     }
   }
-  
+
   return null;
 }
 
@@ -401,7 +401,7 @@ function buildActionBlock(action) {
   if (!action || (!action.description && !action.micromoment)) {
     return null;
   }
-  
+
   return {
     description: action.description || action.micromoment || null,
     motionBlur: action.motionBlur || 'none',
@@ -437,18 +437,18 @@ function buildUniverseBlock(universe) {
   // Build text blocks section (rich narrative descriptions)
   const textBlocks = universe.textBlocks || {};
   const hasTextBlocks = textBlocks.visionBlock || textBlocks.atmosphereBlock ||
-                        textBlocks.techBlock || textBlocks.colorBlock || 
-                        textBlocks.lensBlock || textBlocks.moodBlock || 
-                        textBlocks.eraBlock || textBlocks.environmentBlock;
+    textBlocks.techBlock || textBlocks.colorBlock ||
+    textBlocks.lensBlock || textBlocks.moodBlock ||
+    textBlocks.eraBlock || textBlocks.environmentBlock;
 
   // Build artistic vision section (most important for mood/atmosphere)
   const artisticVision = universe.artisticVision || {};
   const hasArtisticVision = artisticVision.artDirection || artisticVision.emotionalTone ||
-                            artisticVision.worldBuilding;
+    artisticVision.worldBuilding;
 
   return {
     shortDescription: universe.shortDescription || null,
-    
+
     // ARTISTIC VISION - defines the mood and atmosphere (MOST IMPORTANT)
     artisticVision: hasArtisticVision ? {
       artDirection: artisticVision.artDirection || 'editorial',
@@ -459,7 +459,7 @@ function buildUniverseBlock(universe) {
       atmosphericDensity: artisticVision.atmosphericDensity || 'layered',
       humanPresence: artisticVision.humanPresence || 'integrated'
     } : null,
-    
+
     // Rich text blocks for detailed prompt context
     textBlocks: hasTextBlocks ? {
       visionBlock: textBlocks.visionBlock || null,
@@ -471,30 +471,30 @@ function buildUniverseBlock(universe) {
       eraBlock: textBlocks.eraBlock || null,
       environmentBlock: textBlocks.environmentBlock || null
     } : null,
-    
+
     capture: universe.capture ? {
       mediumType: universe.capture.mediumType || 'photo',
       cameraSystem: universe.capture.cameraSystem || '35mm',
       grainStructure: universe.capture.grainStructure || 'none'
     } : null,
-    
+
     light: universe.light ? {
       primaryLightType: universe.light.primaryLightType || 'natural',
       flashCharacter: universe.light.flashCharacter || 'soft',
       shadowBehavior: universe.light.shadowBehavior || 'soft_falloff'
     } : null,
-    
+
     color: universe.color ? {
       baseColorCast: universe.color.baseColorCast || 'neutral',
       dominantPalette: universe.color.dominantPalette || 'natural',
       skinToneRendering: universe.color.skinToneRendering || 'natural'
     } : null,
-    
+
     era: universe.era ? {
       eraReference: universe.era.eraReference || 'contemporary',
       editorialReference: universe.era.editorialReference || 'european_fashion'
     } : null,
-    
+
     postProcess: universe.postProcess ? {
       hdrForbidden: universe.postProcess.hdrForbidden ?? true,
       aiArtifactsPrevention: universe.postProcess.aiArtifactsPrevention ?? true,
@@ -552,7 +552,7 @@ function buildArtisticIntentionBlock() {
 function buildCameraSignatureBlock(universe) {
   const sig = universe?.cameraSignature;
   if (!sig || sig.preset === 'none') return null;
-  
+
   // If custom prompt is provided
   if (sig.preset === 'custom' && sig.customPrompt) {
     return {
@@ -560,11 +560,11 @@ function buildCameraSignatureBlock(universe) {
       prompt: sig.customPrompt
     };
   }
-  
+
   // Look up preset
   const preset = CAMERA_SIGNATURE_PRESETS[sig.preset];
   if (!preset || !preset.prompt) return null;
-  
+
   return {
     source: 'preset',
     presetId: sig.preset,
@@ -579,7 +579,7 @@ function buildCameraSignatureBlock(universe) {
  */
 function buildCaptureStyleBlock(universe, fallbackPosingStyle = 2) {
   const style = universe?.captureStyle;
-  
+
   // If no captureStyle in universe, fall back to old posingStyle logic
   if (!style || style.preset === 'none') {
     const oldStyle = POSING_STYLE_MAP[fallbackPosingStyle] || POSING_STYLE_MAP[2];
@@ -590,7 +590,7 @@ function buildCaptureStyleBlock(universe, fallbackPosingStyle = 2) {
       prompt: oldStyle.instruction
     };
   }
-  
+
   // If custom prompt
   if (style.preset === 'custom' && style.customPrompt) {
     return {
@@ -598,7 +598,7 @@ function buildCaptureStyleBlock(universe, fallbackPosingStyle = 2) {
       prompt: style.customPrompt
     };
   }
-  
+
   // Look up preset
   const preset = CAPTURE_STYLE_PRESETS[style.preset];
   if (!preset) {
@@ -610,7 +610,7 @@ function buildCaptureStyleBlock(universe, fallbackPosingStyle = 2) {
       prompt: oldStyle.instruction
     };
   }
-  
+
   return {
     source: 'preset',
     presetId: style.preset,
@@ -627,7 +627,7 @@ function buildCaptureStyleBlock(universe, fallbackPosingStyle = 2) {
 function buildSkinTextureBlock(universe) {
   const tex = universe?.skinTexture;
   if (!tex || tex.preset === 'none') return null;
-  
+
   // If custom prompt
   if (tex.preset === 'custom' && tex.customPrompt) {
     return {
@@ -635,11 +635,11 @@ function buildSkinTextureBlock(universe) {
       prompt: tex.customPrompt
     };
   }
-  
+
   // Look up preset
   const preset = SKIN_TEXTURE_PRESETS[tex.preset];
   if (!preset || !preset.prompt) return null;
-  
+
   return {
     source: 'preset',
     presetId: tex.preset,
@@ -653,7 +653,7 @@ function buildSkinTextureBlock(universe) {
  */
 function buildAntiAiBlock(universe) {
   const antiAi = universe?.antiAi;
-  
+
   // Default rules
   const baseRules = [
     'Natural skin texture with visible pores, fine lines, small imperfections.',
@@ -663,7 +663,7 @@ function buildAntiAiBlock(universe) {
     'NO HDR look.',
     'NO watermarks or text overlays.'
   ];
-  
+
   // Level-specific rules
   const levelRules = {
     minimal: [],
@@ -684,10 +684,10 @@ function buildAntiAiBlock(universe) {
       'Add subtle film grain or scan texture.'
     ]
   };
-  
+
   const level = antiAi?.level || 'medium';
   const customRules = antiAi?.customRules || [];
-  
+
   return {
     level,
     rules: [...baseRules, ...(levelRules[level] || []), ...customRules]
@@ -739,7 +739,7 @@ function buildFrameBlock(frame) {
   return {
     label: frame.label || null,
     description: frame.description || null,
-    
+
     technical: frame.technical ? {
       shotSize: frame.technical.shotSize || null,
       cameraAngle: frame.technical.cameraAngle || null,
@@ -875,7 +875,7 @@ export function jsonPromptToText(promptJson) {
     sections.push('Apply this camera signature to the entire image: color science, grain, bokeh, flash behavior, lens character.');
     sections.push('');
   }
-  
+
   // Capture Style (how the moment was captured)
   if (promptJson.captureStyle && promptJson.captureStyle.prompt) {
     sections.push('CAPTURE STYLE (how this moment was caught):');
@@ -885,7 +885,7 @@ export function jsonPromptToText(promptJson) {
     sections.push(promptJson.captureStyle.prompt);
     sections.push('');
   }
-  
+
   // Skin & Texture
   if (promptJson.skinTexture && promptJson.skinTexture.prompt) {
     sections.push('SKIN & TEXTURE RENDERING:');
@@ -900,7 +900,7 @@ export function jsonPromptToText(promptJson) {
   sections.push('ANTI-AI MARKERS:');
   promptJson.antiAi.rules.forEach(rule => sections.push(`- ${rule}`));
   sections.push('');
-  
+
   // Artistic Intention
   if (promptJson.artisticIntention) {
     const ai = promptJson.artisticIntention;
@@ -920,7 +920,7 @@ export function jsonPromptToText(promptJson) {
     sections.push(`- ${ai.temporalReality.rule}`);
     sections.push('');
   }
-  
+
   // Narrative Beat
   if (promptJson.narrativeBeat) {
     const nb = promptJson.narrativeBeat;
@@ -952,7 +952,7 @@ export function jsonPromptToText(promptJson) {
 async function packImagesToBoard(images, options = {}) {
   if (!images || images.length === 0) return null;
   if (images.length === 1) return images[0];
-  
+
   return await buildCollage(images, {
     maxSize: options.maxSize || 2048,
     minTile: options.minTile || 400, // Larger tiles for detail preservation
@@ -1060,13 +1060,14 @@ export async function generateShootFrame({
     console.log(`[ShootGenerator] Sending ${referenceImages.length} reference images to Gemini`);
 
     // Generate with Gemini
-    const result = await requestGeminiImage({
+    const result = await generateImageWithFallback({
       prompt: promptText,
       referenceImages,
       imageConfig: {
         aspectRatio: imageConfig.aspectRatio || '3:4',
         imageSize: imageConfig.imageSize || '1K'
-      }
+      },
+      generatorName: 'ShootGenerator'
     });
 
     if (!result.ok) {

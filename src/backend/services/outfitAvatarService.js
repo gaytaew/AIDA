@@ -12,7 +12,7 @@
  * 5. Avatar is used instead of raw clothing refs in final generation
  */
 
-import { requestGeminiImage } from '../providers/geminiClient.js';
+import { generateImageWithFallback } from './resilientImageGenerator.js';
 import { buildCollage } from '../utils/imageCollage.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -175,13 +175,14 @@ export async function generateOutfitAvatar({
     console.log('[OutfitAvatarService] Generating outfit avatar with Gemini...');
 
     // Generate with Gemini (Nano Banana Pro)
-    const result = await requestGeminiImage({
+    const result = await generateImageWithFallback({
       prompt: finalPrompt,
       referenceImages,
       imageConfig: {
         aspectRatio: '9:16', // Portrait for full-body
         imageSize: '1K'
-      }
+      },
+      generatorName: 'OutfitAvatarService'
     });
 
     if (!result.ok) {

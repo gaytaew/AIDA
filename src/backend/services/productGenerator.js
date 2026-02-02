@@ -5,7 +5,7 @@
  * Формирует промпты и вызывает AI API.
  */
 
-import { requestGeminiImage } from '../providers/geminiClient.js';
+import { generateImageWithFallback } from './resilientImageGenerator.js';
 import { generateImageId } from '../schema/customShoot.js';
 
 // Импорт схемы V1 (legacy)
@@ -450,13 +450,14 @@ LAYOUT RULES:
         console.log(`[ProductGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 500)}...`);
 
         // 7. Call AI
-        const result = await requestGeminiImage({
+        const result = await generateImageWithFallback({
             prompt: promptText,
             referenceImages: validImages,
             imageConfig: {
                 aspectRatio: params.aspectRatio || sanitizedParams.aspectRatio || '1:1',
                 imageSize: params.quality || sanitizedParams.imageSize || '2k'
-            }
+            },
+            generatorName: 'ProductGenerator'
         });
 
         if (!result || !result.base64) {

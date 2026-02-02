@@ -12,7 +12,7 @@
  * 4. Reference tokens integration
  */
 
-import { requestGeminiImage } from '../providers/geminiClient.js';
+import { generateImageWithFallback } from './resilientImageGenerator.js';
 import { buildVirtualCameraPrompt, getVirtualCameraKeywords, validateVirtualCamera, getDefaultVirtualCamera } from '../schema/virtualCamera.js';
 import { buildLightingPrompt, getLightingKeywords, validateLighting, getDefaultLighting } from '../schema/lightingManager.js';
 import { createReferenceCollection, buildReferencePrompt, getImagesForApi, validateCollection } from '../schema/referenceHandler.js';
@@ -83,14 +83,14 @@ export function buildVirtualStudioPrompt(config) {
     identityDescription = '',
     clothingDescriptions = []
   } = config;
-  
+
   // Create reference collection
   const refCollection = createReferenceCollection(references);
   const hasSubjectRef = refCollection.slots[1] != null;
   const hasStyleRef = refCollection.slots[2] != null;
   const hasClothingRef = refCollection.slots[3] != null || refCollection.slots[4] != null;
   const hasPoseRef = refCollection.slots[6] != null;
-  
+
   // Build prompt JSON structure
   const promptJson = {
     format: 'virtual_studio_v1',
@@ -106,23 +106,23 @@ export function buildVirtualStudioPrompt(config) {
     hasClothingRef,
     hasPoseRef
   };
-  
+
   // Build text prompt with reasoning structure
   const sections = [];
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 1: ROLE ASSIGNMENT
   // ═══════════════════════════════════════════════════════════════
-  
+
   sections.push(`ROLE: World-class Cinematographer & Art Director.
 
 You are an expert in visual storytelling, combining technical mastery with artistic vision.
 Your task is to generate a photorealistic fashion photograph that could appear in a major publication.`);
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 2: TASK DEFINITION
   // ═══════════════════════════════════════════════════════════════
-  
+
   sections.push(`
 TASK: Analyze the constraints and generate a photorealistic image.
 
@@ -131,88 +131,88 @@ OUTPUT REQUIREMENTS:
 - Natural skin texture and fabric behavior
 - Authentic optical characteristics
 - No watermarks, logos, or text overlays`);
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 3: REASONING STEPS
   // ═══════════════════════════════════════════════════════════════
-  
+
   const reasoningSteps = [];
-  
+
   reasoningSteps.push(`1. LIGHTING ANALYSIS: Determine the optimal lighting ratio for "${mood}" mood.
    - Primary source: ${lighting.primarySource || 'natural'}
    - Light quality and direction will define the emotional tone.`);
-  
+
   reasoningSteps.push(`2. OPTICAL CHARACTERISTICS: Apply the properties of ${virtualCamera.focalLength || 'PORTRAIT'} focal length.
    - This affects perspective, compression, and depth of field.`);
-  
+
   if (hasSubjectRef) {
     reasoningSteps.push(`3. IDENTITY MATCHING: The person in [$1] MUST appear with exact facial features.
    - Face shape, eyes, nose, lips — all must match precisely.
    - Do NOT beautify or modify the identity.`);
   }
-  
+
   if (hasClothingRef) {
     reasoningSteps.push(`${hasSubjectRef ? '4' : '3'}. CLOTHING ACCURACY: Recreate garments from reference images exactly.
    - Match silhouette, proportions, colors, and construction.
    - Fabric should behave naturally in the pose.`);
   }
-  
+
   if (hasStyleRef) {
     reasoningSteps.push(`${hasSubjectRef && hasClothingRef ? '5' : hasSubjectRef || hasClothingRef ? '4' : '3'}. STYLE APPLICATION: Apply visual treatment from [$2].
    - Color grading, lighting mood, texture treatment.
    - This defines the overall "look" of the image.`);
   }
-  
+
   sections.push(`
 REASONING STEPS (analyze before generating):
 
 ${reasoningSteps.join('\n\n')}`);
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 4: SCENE DESCRIPTION
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (sceneDescription) {
     sections.push(`
 SCENE DESCRIPTION:
 
 ${sceneDescription}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 5: TECHNICAL SPECIFICATIONS (VirtualCamera)
   // ═══════════════════════════════════════════════════════════════
-  
+
   const cameraPrompt = buildVirtualCameraPrompt(virtualCamera);
   sections.push(`
 TECHNICAL SPECIFICATIONS — CAMERA:
 
 ${cameraPrompt}`);
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 6: LIGHTING SETUP
   // ═══════════════════════════════════════════════════════════════
-  
+
   const lightingPrompt = buildLightingPrompt(lighting);
   sections.push(`
 TECHNICAL SPECIFICATIONS — LIGHTING:
 
 ${lightingPrompt}`);
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 7: REFERENCE IMAGES
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (refCollection.images.length > 0) {
     const refPrompt = buildReferencePrompt(refCollection);
     sections.push(`
 ${refPrompt}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 8: IDENTITY RULES (if subject reference)
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (hasSubjectRef) {
     sections.push(`
 IDENTITY PRESERVATION (CRITICAL — [$1]):
@@ -235,11 +235,11 @@ FORBIDDEN:
 
 ${identityDescription ? `Additional identity notes: ${identityDescription}` : ''}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 9: CLOTHING RULES (if clothing reference)
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (hasClothingRef) {
     sections.push(`
 CLOTHING ACCURACY (CRITICAL):
@@ -253,26 +253,26 @@ MUST MATCH:
 - Construction details (seams, buttons, zippers, pockets)
 - Fabric behavior (structured vs flowing)
 
-${clothingDescriptions.length > 0 ? 
-`USER DESCRIPTIONS:
+${clothingDescriptions.length > 0 ?
+        `USER DESCRIPTIONS:
 ${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}` : ''}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 10: EXTRA INSTRUCTIONS
   // ═══════════════════════════════════════════════════════════════
-  
+
   if (extraInstructions) {
     sections.push(`
 ADDITIONAL INSTRUCTIONS:
 
 ${extraInstructions}`);
   }
-  
+
   // ═══════════════════════════════════════════════════════════════
   // SECTION 11: ANTI-AI AUTHENTICITY
   // ═══════════════════════════════════════════════════════════════
-  
+
   sections.push(`
 AUTHENTICITY MARKERS (Anti-AI):
 
@@ -291,10 +291,10 @@ AVOID:
 - Overly smooth textures
 - Empty, lifeless eyes
 - HDR or hyper-processed look`);
-  
+
   // Combine all sections
   const prompt = sections.join('\n\n');
-  
+
   return {
     prompt,
     promptJson,
@@ -317,28 +317,28 @@ export async function generateVirtualStudioImage(config) {
     aspectRatio = '3:4',
     references = []
   } = config;
-  
+
   // Validate configuration
   const cameraValidation = validateVirtualCamera(config.virtualCamera || {});
   const lightingValidation = validateLighting(config.lighting || {});
-  
+
   if (!cameraValidation.valid) {
     return {
       ok: false,
       error: `VirtualCamera validation failed: ${cameraValidation.errors.join(', ')}`
     };
   }
-  
+
   if (!lightingValidation.valid) {
     return {
       ok: false,
       error: `Lighting validation failed: ${lightingValidation.errors.join(', ')}`
     };
   }
-  
+
   // Build the prompt
   const { prompt, promptJson, refCollection } = buildVirtualStudioPrompt(config);
-  
+
   // Validate references
   const refValidation = validateCollection(refCollection);
   if (!refValidation.valid) {
@@ -347,39 +347,40 @@ export async function generateVirtualStudioImage(config) {
       error: `Reference validation failed: ${refValidation.errors.join(', ')}`
     };
   }
-  
+
   // Get quality settings
   const quality = QUALITY_MODES[qualityMode] || QUALITY_MODES.DRAFT;
   const aspectRatioConfig = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS['3:4'];
-  
+
   // Get reference images for API
   const referenceImages = getImagesForApi(refCollection);
-  
+
   // Build image config
   const imageConfig = {
     aspectRatio: aspectRatioConfig.apiValue,
     imageSize: quality.imageSize
   };
-  
+
   console.log('[VirtualStudio] Generating with:', {
     qualityMode,
     imageConfig,
     referenceCount: referenceImages.length,
     promptLength: prompt.length
   });
-  
+
   try {
     const startTime = Date.now();
-    
+
     // Call Gemini
-    const result = await requestGeminiImage({
+    const result = await generateImageWithFallback({
       prompt,
       referenceImages,
-      imageConfig
+      imageConfig,
+      generatorName: 'VirtualStudioGenerator'
     });
-    
+
     const generationTime = ((Date.now() - startTime) / 1000).toFixed(1);
-    
+
     if (!result.ok) {
       return {
         ok: false,
@@ -387,7 +388,7 @@ export async function generateVirtualStudioImage(config) {
         errorCode: result.errorCode
       };
     }
-    
+
     return {
       ok: true,
       image: {
@@ -405,7 +406,7 @@ export async function generateVirtualStudioImage(config) {
         aspectRatio: aspectRatioConfig.apiValue
       }
     };
-    
+
   } catch (error) {
     console.error('[VirtualStudio] Generation error:', error);
     return {
@@ -437,15 +438,15 @@ export function getVirtualStudioOptions() {
  */
 export function getConfigKeywords(config) {
   const keywords = [];
-  
+
   if (config.virtualCamera) {
     keywords.push(getVirtualCameraKeywords(config.virtualCamera));
   }
-  
+
   if (config.lighting) {
     keywords.push(getLightingKeywords(config.lighting));
   }
-  
+
   return keywords.filter(k => k).join(', ');
 }
 
@@ -455,16 +456,16 @@ export function getConfigKeywords(config) {
 export function validateVirtualStudioConfig(config) {
   const errors = [];
   const warnings = [];
-  
+
   // Validate camera
   const cameraValidation = validateVirtualCamera(config.virtualCamera || {});
   errors.push(...cameraValidation.errors);
-  
+
   // Validate lighting
   const lightingValidation = validateLighting(config.lighting || {});
   errors.push(...lightingValidation.errors);
   warnings.push(...lightingValidation.warnings);
-  
+
   // Validate references if present
   if (config.references && config.references.length > 0) {
     const refCollection = createReferenceCollection(config.references);
@@ -472,17 +473,17 @@ export function validateVirtualStudioConfig(config) {
     errors.push(...refValidation.errors);
     warnings.push(...refValidation.warnings);
   }
-  
+
   // Validate quality mode
   if (config.qualityMode && !QUALITY_MODES[config.qualityMode]) {
     errors.push(`Invalid qualityMode: ${config.qualityMode}`);
   }
-  
+
   // Validate aspect ratio
   if (config.aspectRatio && !ASPECT_RATIOS[config.aspectRatio]) {
     errors.push(`Invalid aspectRatio: ${config.aspectRatio}`);
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
