@@ -5,7 +5,7 @@
  * Uses clean JSON prompt format (like shootGenerator) to avoid safety blocks.
  */
 
-import { generateImageWithFallback } from './resilientImageGenerator.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildIdentityCollage } from '../utils/imageCollage.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -183,7 +183,7 @@ export async function generateAvatarShots(identityImages, options = {}) {
       const promptJson = buildAvatarPromptJson(shot, extraPrompt);
       const prompt = jsonToPromptText(promptJson);
 
-      const result = await generateImageWithFallback({
+      const result = await requestGeminiImage({
         prompt,
         referenceImages: identityImages,
         imageConfig: {
@@ -270,7 +270,7 @@ export async function generateSingleShot(identityImages, shotId, options = {}) {
   const promptJson = buildAvatarPromptJson(shot, options.extraPrompt);
   const prompt = jsonToPromptText(promptJson);
 
-  const result = await generateImageWithFallback({
+  const result = await requestGeminiImage({
     prompt,
     referenceImages: identityImages,
     imageConfig: {

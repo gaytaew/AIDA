@@ -10,7 +10,7 @@
  * - Reasoning-based prompt structure
  */
 
-import { generateImageWithFallback } from './resilientImageGenerator.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage, buildCollageMapPrompt } from '../utils/imageCollage.js';
 import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
@@ -1478,8 +1478,8 @@ export async function generateCustomShootFrame({
 
     const geminiStartTime = Date.now();
 
-    // Call AI with automatic fallback (resilientImageGenerator)
-    const result = await generateImageWithFallback({
+    // Call Gemini API
+    const result = await requestGeminiImage({
       prompt,
       referenceImages,
       imageConfig,
@@ -1708,7 +1708,7 @@ Apply the change seamlessly.`;
       mimeType: mimeType
     };
 
-    const result = await generateImageWithFallback({
+    const result = await requestGeminiImage({
       prompt: systemPrompt,
       referenceImages: [imagePayload],
       imageConfig: {

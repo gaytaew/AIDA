@@ -5,7 +5,7 @@
  * Формирует промпты и вызывает AI API.
  */
 
-import { generateImageWithFallback } from './resilientImageGenerator.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import { generateImageId } from '../schema/customShoot.js';
 
 // Импорт схемы V1 (legacy)
@@ -450,7 +450,7 @@ LAYOUT RULES:
         console.log(`[ProductGenerator] ${genId} Prompt Preview:\n${promptText.substring(0, 500)}...`);
 
         // 7. Call AI
-        const result = await generateImageWithFallback({
+        const result = await requestGeminiImage({
             prompt: promptText,
             referenceImages: validImages,
             imageConfig: {

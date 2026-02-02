@@ -12,7 +12,7 @@
  * Промпт собирается в JSON-формате из модулей.
  */
 
-import { generateImageWithFallback } from './resilientImageGenerator.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildCollage } from '../utils/imageCollage.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
 import {
@@ -1060,7 +1060,7 @@ export async function generateShootFrame({
     console.log(`[ShootGenerator] Sending ${referenceImages.length} reference images to Gemini`);
 
     // Generate with Gemini
-    const result = await generateImageWithFallback({
+    const result = await requestGeminiImage({
       prompt: promptText,
       referenceImages,
       imageConfig: {

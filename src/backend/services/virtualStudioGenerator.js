@@ -12,7 +12,7 @@
  * 4. Reference tokens integration
  */
 
-import { generateImageWithFallback } from './resilientImageGenerator.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import { buildVirtualCameraPrompt, getVirtualCameraKeywords, validateVirtualCamera, getDefaultVirtualCamera } from '../schema/virtualCamera.js';
 import { buildLightingPrompt, getLightingKeywords, validateLighting, getDefaultLighting } from '../schema/lightingManager.js';
 import { createReferenceCollection, buildReferencePrompt, getImagesForApi, validateCollection } from '../schema/referenceHandler.js';
@@ -372,7 +372,7 @@ export async function generateVirtualStudioImage(config) {
     const startTime = Date.now();
 
     // Call Gemini
-    const result = await generateImageWithFallback({
+    const result = await requestGeminiImage({
       prompt,
       referenceImages,
       imageConfig,

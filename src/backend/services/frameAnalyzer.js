@@ -8,7 +8,7 @@
  */
 
 import config from '../config.js';
-import { generateImageWithFallback } from './resilientImageGenerator.js';
+import { requestGeminiImage } from '../providers/geminiClient.js';
 import { convertToJpeg } from '../utils/imageConverter.js';
 import {
   SHOT_SIZE_OPTIONS,
@@ -263,7 +263,7 @@ export async function generatePoseSketch(technical = {}, referenceImage = null) 
   // Include reference image if provided
   const referenceImages = referenceImage ? [referenceImage] : [];
 
-  const result = await generateImageWithFallback({
+  const result = await requestGeminiImage({
     prompt,
     referenceImages,
     imageConfig: {
