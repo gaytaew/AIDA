@@ -129,16 +129,32 @@ function initEventListeners() {
     elements.btnRefreshCollage.addEventListener('click', refreshCollage);
   }
 
-  // Delegated events for individual generate buttons
+  // Delegated events for individual generate and upload buttons
   if (elements.avatarGrid) {
     elements.avatarGrid.addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn-generate-shot');
-      if (btn) {
-        const shotId = btn.dataset.shotId;
+      const generateBtn = e.target.closest('.btn-generate-shot');
+      if (generateBtn) {
+        const shotId = generateBtn.dataset.shotId;
         generateSingleAvatarShot(shotId);
+        return;
+      }
+
+      const uploadBtn = e.target.closest('.btn-upload-shot');
+      if (uploadBtn) {
+        const shotId = uploadBtn.dataset.shotId;
+        triggerShotUpload(shotId);
+        return;
       }
     });
   }
+
+  // Upload handlers for each shot
+  AVATAR_SHOTS_CONFIG.forEach(shot => {
+    const input = document.getElementById(`upload-shot-${shot.id}`);
+    if (input) {
+      input.addEventListener('change', (e) => handleShotUpload(shot.id, e.target.files[0]));
+    }
+  });
   elements.btnSave.addEventListener('click', saveModel);
   elements.btnClear.addEventListener('click', clearForm);
 }
@@ -375,12 +391,21 @@ function renderAvatarGrid() {
         </div>
 
         <div style="display: flex; gap: 6px;">
-          <button class="btn btn-sm btn-select-shot btn-generate-shot" 
+          <button class="btn btn-sm btn-upload-shot" 
             data-shot-id="${shot.id}"
             style="flex: 1; font-size: 11px;"
+            title="Загрузить готовое фото"
             ${isLoading ? 'disabled' : ''}
           >
-            ${hasImage ? '🔄 Переделать' : '✨ Создать'}
+            📷 Загрузить
+          </button>
+          <button class="btn btn-sm btn-generate-shot" 
+            data-shot-id="${shot.id}"
+            style="flex: 1; font-size: 11px;"
+            title="Сгенерировать с AI"
+            ${isLoading ? 'disabled' : ''}
+          >
+            ${hasImage ? '🔄' : '✨'} AI
           </button>
         </div>
         
@@ -427,6 +452,45 @@ async function generateSingleAvatarShot(shotId) {
 
   } catch (error) {
     console.error(`Generate ${shotId} error:`, error);
+    updateShotState(shotId, 'error', null, error.message);
+  }
+}
+
+/**
+ * Trigger file input for a specific shot
+ */
+function triggerShotUpload(shotId) {
+  const input = document.getElementById(`upload-shot-${shotId}`);
+  if (input) {
+    input.click();
+  }
+}
+
+/**
+ * Handle file upload for a specific shot
+ */
+async function handleShotUpload(shotId, file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showStatus('statusAvatars', 'Выберите изображение', 'error');
+    return;
+  }
+
+  updateShotState(shotId, 'loading');
+
+  try {
+    const compressed = await compressImage(file);
+    console.log(`[Model] Uploaded shot ${shotId}: ${Math.round(file.size / 1024)}KB → ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
+
+    // Update state with the uploaded image
+    updateShotState(shotId, 'ok', compressed.previewUrl);
+
+    // Check if all shots are done
+    checkCollageStatus();
+
+    showStatus('statusAvatars', `✅ Фото для "${AVATAR_SHOTS_CONFIG.find(s => s.id === shotId)?.label}" загружено`, 'success');
+
+  } catch (error) {
+    console.error(`Upload ${shotId} error:`, error);
     updateShotState(shotId, 'error', null, error.message);
   }
 }

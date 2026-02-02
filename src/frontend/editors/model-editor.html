@@ -274,13 +274,19 @@
                 style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--color-border);">
                 <div class="panel-title" style="margin-bottom: 16px;">
                   <span class="panel-title-icon">🎭</span>
-                  <span>Шаг 2: Генерация ракурсов</span>
+                  <span>Шаг 2: Референсы ракурсов</span>
                 </div>
 
                 <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 16px;">
-                  Сгенерируйте 4 обязательных ракурса для создания Identity Collage. Можно генерировать по одному или
-                  все сразу.
+                  <strong>Загрузите готовые фото</strong> или <strong>сгенерируйте с AI</strong> для каждого ракурса.
+                  Можно комбинировать оба варианта.
                 </p>
+
+                <!-- Hidden file inputs for each shot -->
+                <input type="file" id="upload-shot-straight-on-front" accept="image/*" style="display: none;">
+                <input type="file" id="upload-shot-three-quarter-left" accept="image/*" style="display: none;">
+                <input type="file" id="upload-shot-three-quarter-right" accept="image/*" style="display: none;">
+                <input type="file" id="upload-shot-left-profile-90" accept="image/*" style="display: none;">
 
                 <div class="avatar-grid" id="avatar-grid"
                   style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
