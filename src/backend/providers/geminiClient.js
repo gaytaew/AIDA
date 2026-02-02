@@ -141,6 +141,15 @@ async function callGeminiOnce(body) {
     if (data.promptFeedback?.blockReason) {
       const pf = data.promptFeedback;
       console.error(`[Gemini v${GEMINI_CLIENT_VERSION}] Blocked:`, pf.blockReason);
+      // Детальное логирование для диагностики
+      console.error(`[Gemini v${GEMINI_CLIENT_VERSION}] Full promptFeedback:`, JSON.stringify(pf, null, 2));
+      if (pf.safetyRatings) {
+        pf.safetyRatings.forEach(sr => {
+          if (sr.probability !== 'NEGLIGIBLE' && sr.probability !== 'LOW') {
+            console.error(`[Gemini] ⚠️ ${sr.category}: ${sr.probability}`);
+          }
+        });
+      }
       return {
         ok: false,
         error: `Gemini blocked: ${pf.blockReason}`,
