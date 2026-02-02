@@ -96,7 +96,17 @@ function classifyError(result) {
         return { isTransient: true, reason: 'NETWORK_ERROR' };
     }
 
-    // Non-transient errors (quota, blocked, etc.)
+    // Blocked: OTHER часто бывает ложноположительным в Gemini
+    // Классификатор нестабильный — тот же запрос может пройти при повторе
+    const isBlockedOther =
+        errorCode === 'blocked' &&
+        /OTHER/i.test(errorMsg);
+
+    if (isBlockedOther) {
+        return { isTransient: true, reason: 'BLOCKED_OTHER' };
+    }
+
+    // Non-transient errors (quota, blocked:SAFETY, etc.)
     return { isTransient: false, reason: null };
 }
 
