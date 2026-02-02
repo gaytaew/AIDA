@@ -70,7 +70,8 @@ async function callGeminiOnce(body) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
+        'x-goog-api-key': apiKey,
+        'Connection': 'close' // Force fresh connection each time (Stateless/Siege mode)
       },
       body: bodyStr,
       signal: controller.signal
@@ -264,11 +265,11 @@ async function callGeminiWithRetrySingle(body) {
 }
 
 async function callGeminiWithRetry(body) {
-  // UPDATED: No internal retries for 503/500 - fallback handled by resilientImageGenerator
-  // This allows fast fallback to Vertex AI when Gemini is overloaded
-  const rounds = 1;
-  const baseDelayMs = 2000;
-  const maxDelayMs = 30000;
+  // UPDATED: Включаем "Осаду" (Soft Siege Mode)
+  // Пытаемся пробиться через Gemini 5 раз перед тем, как сдаться или уйти на Vertex.
+  const rounds = 5;
+  const baseDelayMs = 1500; // Начинаем с 1.5 сек
+  const maxDelayMs = 15000; // Не ждем больше 15 сек за раз
 
   let attempt = 0;
   let lastResult = null;
@@ -280,29 +281,35 @@ async function callGeminiWithRetry(body) {
     const code = lastResult && lastResult.errorCode ? String(lastResult.errorCode) : '';
     const httpStatus = lastResult && lastResult.httpStatus ? Number(lastResult.httpStatus) : null;
 
-    // Explicitly handle 503 (Overloaded) and 500 (Internal) which standard retry skips
+    // Retry Overloaded (503), Internal (500), AND Quota (429)
     const isOverloaded = code === 'api_overloaded' || httpStatus === 503;
     const isInternal = code === 'internal_error' || httpStatus === 500;
+    const isQuota = code === 'quota_exceeded' || httpStatus === 429;
 
-    if (isOverloaded || isInternal) {
+    if (isOverloaded || isInternal || isQuota) {
       attempt++;
-      const jitter = Math.floor(Math.random() * 250);
-      const delay = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, Math.min(4, attempt - 1))) + jitter;
+      // Экспоненциальный отступ + Jitter
+      // 1.5s -> 3s -> 6s -> 12s...
+      const jitter = Math.floor(Math.random() * 500);
+      const delay = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, attempt - 1)) + jitter;
+
       console.warn(
-        `[Gemini] TRANSIENT (${isOverloaded ? 'api_overloaded/503' : 'internal_error/500'}) (attempt ${attempt}/${rounds}). Waiting ${delay}ms.`
+        `[Gemini] ⚠️ ${isOverloaded ? 'OVERLOADED' : isQuota ? 'QUOTA' : 'INTERNAL'} (attempt ${attempt}/${rounds}). Waiting ${delay}ms...`
       );
+
       await sleep(delay);
       continue;
     }
 
-    return lastResult; // Valid error (quota, blocked, etc) or success
+    // Если ошибка не 503/500/429 (например, 400 Bad Request), выходим сразу
+    return lastResult;
   }
 
   return (
     lastResult || {
       ok: false,
       error: 'Gemini did not respond after all retries.',
-      errorCode: 'internal_error'
+      errorCode: 'internal_error' // Для триггера fallback
     }
   );
 }
@@ -342,7 +349,15 @@ function createGeminiBody(prompt, processedImages, imageConfig) {
         aspectRatio,
         imageSize
       }
-    }
+    },
+    // ВАЖНО: Отключаем фильтры безопасности для портретов
+    // Иначе Gemini блокирует генерацию людей (Blocked: OTHER)
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+    ]
   };
 }
 
