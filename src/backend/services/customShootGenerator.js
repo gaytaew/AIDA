@@ -456,22 +456,11 @@ HARD RULES:
 2. Natural skin texture, believable fabric behavior, real optics.
 3. No watermarks, no text overlays, no logos.
 
-═══════════════════════════════════════════════════════════════
-⚠️ MANDATORY REALISM (READ FIRST — HIGHEST PRIORITY)
-═══════════════════════════════════════════════════════════════
-
-${HARDCODED_REALISM.HYPER_REAL_SKIN}
-
-${HARDCODED_REALISM.HYPER_REAL_EYES}
-
-CRITICAL ANTI-AI RULES:
-- MUST show visible skin pores on face, especially forehead, nose, cheeks
-- MUST include natural skin imperfections: fine lines, subtle discoloration, vellus hair
-- NEVER smooth skin artificially — preserve all texture
-- Teeth MUST have natural variation (slight color, size differences)
-- Eyes MUST have realistic moisture, blood vessels in sclera
-- Hair MUST have flyaways, frizz, individual strands
-- Fabric MUST show wear, wrinkles, lint, real physics
+REALISM REQUIREMENTS:
+- Natural skin with visible texture (no plastic look)
+- Realistic eyes with natural detail
+- Hair with natural flyaways and texture
+- Fabric with real physics and wear
 
 ${HARDCODED_REALISM.GLOBAL_NEG}`);
 
