@@ -250,23 +250,23 @@ async function callGeminiWithRetrySingle(body) {
       throw new Error(result.error || 'Network error');
     },
     {
-      maxRetries: 3,
+      maxRetries: 1, // UPDATED: Fast fail, fallback handled by resilientImageGenerator
       initialDelay: 2000,
       maxDelay: 10000,
       multiplier: 2,
       shouldRetry: (error) => isRetryableNetworkError(error),
       onRetry: (attempt, error, delay) => {
         const errorMsg = error.message || String(error);
-        console.warn(`[Gemini] Retry ${attempt}/3 in ${delay}ms. Error: ${errorMsg.slice(0, 100)}`);
+        console.warn(`[Gemini] Retry ${attempt}/1 in ${delay}ms. Error: ${errorMsg.slice(0, 100)}`);
       }
     }
   );
 }
 
 async function callGeminiWithRetry(body) {
-  // Reference Implementation: 6 rounds, max 30s delay
-  // This covers ~1-2 minutes of outage
-  const rounds = 6;
+  // UPDATED: No internal retries for 503/500 - fallback handled by resilientImageGenerator
+  // This allows fast fallback to Vertex AI when Gemini is overloaded
+  const rounds = 1;
   const baseDelayMs = 2000;
   const maxDelayMs = 30000;
 

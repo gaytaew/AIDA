@@ -10,8 +10,7 @@
  * - Reasoning-based prompt structure
  */
 
-import { requestGeminiImage } from '../providers/geminiClient.js';
-import { requestVertexImage } from '../providers/vertexClient.js';
+import { generateImageWithFallback } from './resilientImageGenerator.js';
 import { buildCollage, buildCollageMapPrompt } from '../utils/imageCollage.js';
 import { loadImageBuffer, isStoredImagePath } from '../store/imageStore.js';
 import { getEmotionById, buildEmotionPrompt, GLOBAL_EMOTION_RULES } from '../schema/emotion.js';
@@ -1490,113 +1489,27 @@ export async function generateCustomShootFrame({
 
     const geminiStartTime = Date.now();
 
-    // Call Gemini
-    const result = await requestGeminiImage({
+    // Call AI with automatic fallback (resilientImageGenerator)
+    const result = await generateImageWithFallback({
       prompt,
       referenceImages,
-      imageConfig
+      imageConfig,
+      generatorName: 'CustomShootGenerator'
     });
 
     const generationTime = ((Date.now() - geminiStartTime) / 1000).toFixed(1);
 
-    log('GEMINI_RESPONSE', { ok: result.ok, duration: generationTime });
+    log('AI_RESPONSE', { ok: result.ok, duration: generationTime, provider: result.provider });
 
     if (!result.ok) {
-      const errorMsg = result.error || '';
-
-      // Условия для переключения на Vertex AI:
-      // 1. API перегружен (503, overloaded)
-      // 2. Таймаут (timed out)
-      // 3. Сетевые ошибки (network error)
-      const isOverloaded =
-        result.errorCode === 'api_overloaded' ||
-        result.httpStatus === 503 ||
-        /overloaded/i.test(errorMsg) ||
-        /service unavailable/i.test(errorMsg);
-
-      const isTimeout =
-        result.errorCode === 'timeout' ||
-        /timed out/i.test(errorMsg) ||
-        /timeout/i.test(errorMsg);
-
-      const isNetworkError =
-        result.errorCode === 'internal_error' || // Fallback on internal errors too
-        /network error/i.test(errorMsg) ||
-        /ECONNRESET/i.test(errorMsg) ||
-        /network error/i.test(errorMsg) ||
-        /ECONNRESET/i.test(errorMsg) ||
-        /ETIMEDOUT/i.test(errorMsg) ||
-        /socket hang up/i.test(errorMsg) ||
-        /fetch failed/i.test(errorMsg); // Common undici error
-
-      /* 
-      VERTEX FALLBACK ENABLED:
-      When Gemini is overloaded, times out, or has network issues,
-      we fallback to Vertex AI for reliability.
-      NOTE: Vertex currently uses gemini-2.0-flash-exp (lower quality than Nano Banana Pro)
-      but stable generation is better than no generation.
-      */
-      const shouldFallbackToVertex = isOverloaded || isTimeout || isNetworkError;
-
-      if (shouldFallbackToVertex) {
-        const reason = isOverloaded ? 'OVERLOADED' : isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR';
-        console.warn(`[CustomShootGenerator] ⚠️ Gemini issue detected (${reason}). Falling back to Vertex AI...`);
-        log('GEMINI_UNAVAILABLE', { error: errorMsg, reason, action: 'FALLBACK_VERTEX' });
-
-        const vertexResult = await requestVertexImage({
-          prompt,
-          referenceImages,
-          imageConfig
-        });
-
-        if (vertexResult.ok) {
-          log('VERTEX_SUCCESS', { duration: ((Date.now() - geminiStartTime) / 1000).toFixed(1) });
-          // Map Vertex result to standard result format (it matches already)
-          // But ensure we log this success clearly
-
-          return {
-            ok: true,
-            image: {
-              mimeType: vertexResult.mimeType,
-              base64: vertexResult.base64,
-              dataUrl: `data:${vertexResult.mimeType};base64,${vertexResult.base64}`
-            },
-            prompt,
-            promptJson,
-            generationTime: ((Date.now() - geminiStartTime) / 1000).toFixed(1),
-            paramsSnapshot: {
-              useVirtualStudio,
-              useUniverse: !!universeParams,
-              virtualCamera,
-              lighting,
-              universeParams,
-              qualityMode,
-              aspectRatio: effectiveAspectRatio,
-              poseAdherence,
-              referenceCount: referenceImages.length,
-              provider: 'vertex_fallback',
-              // CRITICAL: V5 params for Style Lock Variation Mode
-              resolvedV5Params: promptJson?.resolvedParams || null
-            }
-          };
-        } else {
-          log('VERTEX_ERROR', { error: vertexResult.error });
-          // If fallback fails, return original error or combined error
-          return {
-            ok: false,
-            error: `Gemini Overloaded AND Vertex Failed. Gemini: ${errorMsg}. Vertex: ${vertexResult.error}`
-          };
-        }
-      }
-
-      log('GEMINI_ERROR', { error: result.error?.slice(0, 200) });
+      log('AI_ERROR', { error: result.error?.slice(0, 200), provider: result.provider });
       return {
         ok: false,
         error: result.error
       };
     }
 
-    log('GEMINI_SUCCESS', { duration: generationTime });
+    log('AI_SUCCESS', { duration: generationTime, provider: result.provider });
 
     log('RETURNING_RESULT');
     return {
@@ -1619,6 +1532,7 @@ export async function generateCustomShootFrame({
         aspectRatio: effectiveAspectRatio,
         poseAdherence,
         referenceCount: referenceImages.length,
+        provider: result.provider,
         // CRITICAL: V5 params for Style Lock Variation Mode
         resolvedV5Params: promptJson?.resolvedParams || null
       }
@@ -1799,33 +1713,21 @@ USER INSTRUCTION: "${instruction}"
 
 Apply the change seamlessly.`;
 
-    // 4. Call Gemini (or fallback Vertex)
+    // 4. Call AI with automatic fallback
     const imagePayload = {
       base64: imageBuffer.toString('base64'),
       mimeType: mimeType
     };
 
-    let result = await requestGeminiImage({
+    const result = await generateImageWithFallback({
       prompt: systemPrompt,
       referenceImages: [imagePayload],
       imageConfig: {
         aspectRatio: sourceImage.aspectRatio || '3:4',
         imageSize: sourceImage.imageSize || '2K'
-      }
+      },
+      generatorName: 'CustomShootRefinement'
     });
-
-    // Check for overload and fallback to Vertex
-    if (!result.ok && result.errorCode === 'api_overloaded') {
-      console.warn(`[CustomShootGenerator] [${genId}] Gemini overloaded, falling back to Vertex AI`);
-      result = await requestVertexImage({
-        prompt: systemPrompt,
-        referenceImages: [imagePayload],
-        imageConfig: {
-          aspectRatio: sourceImage.aspectRatio || '3:4',
-          imageSize: sourceImage.imageSize || '2K'
-        }
-      });
-    }
 
     if (!result.ok) {
       throw new Error(result.error || 'Generation failed');
