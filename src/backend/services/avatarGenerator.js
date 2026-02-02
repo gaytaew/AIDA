@@ -1,8 +1,8 @@
 /**
- * Avatar Generator Service
+ * Avatar Generator Service v2
  * 
- * Generates model avatars from different angles using Gemini (Nano Banana Pro).
- * The results are packed into a single identity collage.
+ * Generates model avatars from different angles.
+ * Uses clean JSON prompt format (like shootGenerator) to avoid safety blocks.
  */
 
 import { generateImageWithFallback } from './resilientImageGenerator.js';
@@ -16,144 +16,143 @@ export const AVATAR_SHOTS = [
   {
     id: 'left-profile-90',
     label: 'Left profile (90°)',
-    shot: 'SHOT: Full left profile (90° turn). Head level, eyes looking forward, ear fully visible. Preserve ALL micro-details: skin pores, fine wrinkles, vellus hair on cheek and jaw. Render ear with anatomical precision (cartilage texture, inner shadow). IDENTITY LOCK: SAME person, SAME age, SAME skin texture. Only the viewing angle changes.'
+    angle: 'Full left profile, 90 degree turn. Head level, looking forward.',
+    direction: 'left_profile'
   },
   {
     id: 'three-quarter-left',
     label: '3/4 left',
-    shot: 'SHOT: Three-quarter left view (45° turn left). Slight head turn, eyes looking slightly past camera. Preserve ALL micro-details: pores, asymmetries, iris texture, lash separation. Render eye/cheek transition with correct subsurface scattering. IDENTITY LOCK: IDENTICAL person — preserve exact age, skin materiality, and all facial features.'
+    angle: 'Three-quarter left view, 45 degree turn. Slight head turn, relaxed gaze.',
+    direction: 'three_quarter_left'
   },
   {
     id: 'straight-on-front',
     label: 'Straight-on front',
-    shot: 'SHOT: Straight-on front view (0°). Symmetrical framing, direct gaze to camera. This is the PRIMARY identity anchor — maximize micro-detail: pores, texture variations, natural asymmetry between left/right face, iris patterns, individual lash separation. IDENTITY LOCK: EXACTLY the person in reference — same age, same skin texture, same features.'
+    angle: 'Straight-on front view, direct gaze to camera. Primary identity anchor.',
+    direction: 'front'
   },
   {
     id: 'three-quarter-right',
     label: '3/4 right',
-    shot: 'SHOT: Three-quarter right view (45° turn right). Slight head turn, eyes looking slightly past camera. Preserve ALL micro-details: skin texture variations, matte/oily zones, micro-shadows in expression lines. IDENTITY LOCK: Generate the SAME individual — no age change, no beautification, no smoothing.'
+    angle: 'Three-quarter right view, 45 degree turn. Slight head turn, relaxed gaze.',
+    direction: 'three_quarter_right'
   }
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// MASTER PROMPT (Nano Banana Pro style)
+// PROMPT BUILDER (Clean JSON format)
 // ═══════════════════════════════════════════════════════════════
 
-const MASTER_PROMPT = `CRITICAL IDENTITY PRESERVATION (STRICT BIOMETRIC MODE):
+function buildAvatarPromptJson(shot, extraPrompt = '') {
+  return {
+    format: 'AIDA_AVATAR',
+    formatVersion: '2.0',
 
-You are generating MULTIPLE ANGLES of THE EXACT SAME PERSON from the reference photo(s).
-This is NOT a "similar looking person" — it MUST be the IDENTICAL individual.
+    task: 'Generate a portrait of the SAME person from the reference photo(s), but from a different viewing angle.',
 
-STEP 1 — DEEP FACIAL ANALYSIS:
-Before generating, study the reference photo(s) with forensic precision and memorize:
-- EXACT age appearance (wrinkles, skin condition, neck aging signs)
-- EXACT face structure (skull shape, bone prominence, fat distribution)
-- EXACT nose geometry (bridge width, tip shape, nostril visibility, profile angle)
-- EXACT eye shape, size, spacing, eyelid type, orbital depth
-- EXACT eyebrow shape, thickness, arch position, hair direction
-- EXACT lip shape + thickness (upper vs lower lip ratio, vermillion border)
-- EXACT jawline, chin shape, and neck definition
-- ALL skin texture details: freckles, moles, pores, fine lines, spots, scars
-- ANY asymmetries or unique marks — these are CRITICAL identity anchors
-- EXACT hair color, texture, hairline position, density, and style
+    hardRules: [
+      'This is the SAME individual as in references — not similar, IDENTICAL.',
+      'Preserve face structure, features, and proportions exactly.',
+      'Preserve apparent age — no rejuvenation, no aging.',
+      'Preserve skin characteristics and any distinguishing marks.',
+      'Preserve hair color, texture, and style.',
+      'Preserve eye color.'
+    ],
 
-STEP 2 — GENERATE WITH IDENTITY LOCK:
-Generate THE SAME person from a different angle. Every facial feature MUST match.
-If reference shows 40-year-old with specific wrinkles — generate with SAME wrinkles.
-If reference shows 25-year-old with smooth skin — generate with smooth skin.
-NEVER modify the apparent age. NO rejuvenation. NO aging.
+    shot: {
+      label: shot.label,
+      angle: shot.angle,
+      direction: shot.direction
+    },
 
-HYPER-REALISTIC SKIN RENDERING (CRITICAL):
-Amplify all facial imperfections with high micro-detail accuracy:
-- AUTHENTIC pores with natural depth and distribution
-- SUBTLE texture variations across skin zones
-- FINE wrinkles and micro-creases (expression lines)
-- NATURAL asymmetry (left/right side differences)
-- BARELY visible scars, birthmarks, sun damage
-- FRECKLES in exact original positions and density
-- VELLUS HAIR (peach fuzz) on cheeks, forehead, upper lip
-- REAL surface irregularities — skin is NOT smooth plastic
+    style: {
+      type: 'Studio casting portrait',
+      background: 'Clean off-white seamless',
+      lighting: 'Soft, even, daylight-balanced studio light',
+      clothing: 'Plain dark crewneck t-shirt',
+      crop: 'Head and shoulders, centered'
+    },
 
-SKIN MATERIAL RESPONSE (CRITICAL):
-Apply realistic skin materiality:
-- MATTE/OILY zone separation (T-zone vs cheeks)
-- NATURAL specularity (subtle highlights, not glossy)
-- MICRO-SHADOWS in pores and fine lines
-- SUBSURFACE SCATTERING on thinner skin areas (ears, nose tip, eyelids)
-- NO smoothing, NO softening, NO plastic artifacts
-- Correct only elements that appear broken or AI-distorted
-STRICTLY PRESERVE original color grading exactly as input.
+    camera: {
+      lens: '85mm equivalent',
+      perspective: 'Natural, no wide-angle distortion',
+      focus: 'Sharp on face',
+      resolution: '2K output'
+    },
 
-HYPER-REALISTIC EYE RENDERING (CRITICAL):
-Amplify eyes with high micro-detail fidelity:
-- SHARP iris texture with visible collagen fibers
-- NATURAL radial patterns unique to this person's iris
-- SUBTLE chromatic variations (not uniform color)
-- CORRECT subsurface light response (depth, glow)
-- PROPER limbal ring definition
-- Render eyelids, lashes, tear ducts with ANATOMICAL precision:
-  * INDIVIDUAL lash separation (not clumps)
-  * NATURAL moisture level (not dry, not wet)
-  * MICRO-SHADOWS on eyelid creases
-  * REALISTIC translucency (blood vessels visible where natural)
-- PRESERVE authentic asymmetry of eyes
-- NO artificial glow, NO over-sharpening, NO plastic shine
-- Correct only distorted/broken elements
-STRICTLY PRESERVE original color grading exactly as input.
+    quality: {
+      skinRendering: 'Photo-realistic with natural texture',
+      eyeRendering: 'Sharp, natural detail',
+      overall: 'Editorial quality, clean studio shot'
+    },
 
-IDENTITY ANCHORS (non-negotiable):
-- Face proportions: IDENTICAL to reference
-- Age appearance: IDENTICAL to reference (NO rejuvenation)
-- Skin texture/marks: PRESERVE ALL (freckles, moles, lines, pores)
-- Hair: SAME color, texture, style, length
-- Eye color: EXACT match
-- Asymmetries: PRESERVE (they ARE identity markers)
+    avoid: [
+      'HDR look',
+      'Glossy or plastic appearance',
+      'Over-smoothed skin',
+      'Artificial glow',
+      'CGI or stylized look',
+      'Age modification',
+      'Feature alteration'
+    ],
 
-MULTI-VIEW REFERENCE HANDLING:
-If reference is a collage/grid of multiple photos — these are ALL the SAME person.
-Study ALL tiles to understand the complete 3D structure of this specific face.
-Use information from every tile to maintain consistency across angles.
+    extra: extraPrompt || null
+  };
+}
 
-STYLE:
-Clean casting/editorial studio portrait on neutral off-white seamless background.
-Soft, even, daylight-balanced studio lighting, minimal shadows.
-Photo-realistic skin with full natural texture (NO smoothing, NO airbrushing).
-Sharp detailed eyes with natural catchlights.
-Plain dark crewneck t-shirt.
-Hair exactly as in reference.
+function jsonToPromptText(promptJson) {
+  const sections = [];
 
-CAMERA:
-Head-and-shoulders portrait, tight crop, centered.
-85mm lens perspective, no wide-angle distortion.
-2K resolution output. Natural perspective. Tack-sharp focus on face.
+  sections.push(`FORMAT: ${promptJson.format} v${promptJson.formatVersion}`);
+  sections.push('');
 
-ABSOLUTE PROHIBITIONS:
-- NO age change (do NOT make younger or older)
-- NO face reshaping or "improvement"
-- NO skin smoothing, softening, or plastic look
-- NO symmetry correction — asymmetry IS identity
-- NO changing skin texture, marks, freckles position
-- NO changing hair color, texture, or style
-- NO HDR or glossy AI look
-- NO cartoon/CGI/stylization
-- NO artificial catchlight enhancement`;
+  sections.push(`TASK: ${promptJson.task}`);
+  sections.push('');
 
-// ═══════════════════════════════════════════════════════════════
-// PROMPT BUILDER
-// ═══════════════════════════════════════════════════════════════
+  sections.push('HARD RULES:');
+  promptJson.hardRules.forEach((rule, i) => {
+    sections.push(`${i + 1}. ${rule}`);
+  });
+  sections.push('');
 
-function buildAvatarPrompt(shotId, extraPrompt = '') {
-  const shot = AVATAR_SHOTS.find(s => s.id === shotId);
-  if (!shot) {
-    throw new Error(`Unknown shotId: ${shotId}`);
+  sections.push('SHOT:');
+  sections.push(`- View: ${promptJson.shot.label}`);
+  sections.push(`- Angle: ${promptJson.shot.angle}`);
+  sections.push('');
+
+  sections.push('STYLE:');
+  sections.push(`- Type: ${promptJson.style.type}`);
+  sections.push(`- Background: ${promptJson.style.background}`);
+  sections.push(`- Lighting: ${promptJson.style.lighting}`);
+  sections.push(`- Clothing: ${promptJson.style.clothing}`);
+  sections.push(`- Crop: ${promptJson.style.crop}`);
+  sections.push('');
+
+  sections.push('CAMERA:');
+  sections.push(`- Lens: ${promptJson.camera.lens}`);
+  sections.push(`- Perspective: ${promptJson.camera.perspective}`);
+  sections.push(`- Focus: ${promptJson.camera.focus}`);
+  sections.push(`- Resolution: ${promptJson.camera.resolution}`);
+  sections.push('');
+
+  sections.push('QUALITY:');
+  sections.push(`- Skin: ${promptJson.quality.skinRendering}`);
+  sections.push(`- Eyes: ${promptJson.quality.eyeRendering}`);
+  sections.push(`- Overall: ${promptJson.quality.overall}`);
+  sections.push('');
+
+  sections.push('AVOID:');
+  promptJson.avoid.forEach(item => {
+    sections.push(`- ${item}`);
+  });
+
+  if (promptJson.extra) {
+    sections.push('');
+    sections.push('ADDITIONAL:');
+    sections.push(promptJson.extra);
   }
 
-  const extra = String(extraPrompt || '').trim();
-  const extraBlock = extra
-    ? `\n\nEDIT REQUEST (apply if possible):\n${extra}`
-    : '';
-
-  return `${MASTER_PROMPT}${extraBlock}\n\n${shot.shot}`;
+  return sections.join('\n');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -161,8 +160,8 @@ function buildAvatarPrompt(shotId, extraPrompt = '') {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Generate avatar shots from reference images using Gemini
- * @param {Array<{mimeType: string, base64: string}>} identityImages - Reference photos of the model
+ * Generate avatar shots from reference images
+ * @param {Array<{mimeType: string, base64: string}>} identityImages - Reference photos
  * @param {Object} options
  * @returns {Promise<{shots: Array, collage: Object|null}>}
  */
@@ -173,7 +172,7 @@ export async function generateAvatarShots(identityImages, options = {}) {
 
   const { extraPrompt = '', delayMs = 2000 } = options;
 
-  console.log(`[AvatarGenerator] Starting generation of ${AVATAR_SHOTS.length} shots using Gemini`);
+  console.log(`[AvatarGenerator] Starting generation of ${AVATAR_SHOTS.length} shots`);
 
   const results = [];
 
@@ -181,10 +180,9 @@ export async function generateAvatarShots(identityImages, options = {}) {
     try {
       console.log(`[AvatarGenerator] Generating: ${shot.label}`);
 
-      // Build prompt with shot specifics
-      const prompt = buildAvatarPrompt(shot.id, extraPrompt);
+      const promptJson = buildAvatarPromptJson(shot, extraPrompt);
+      const prompt = jsonToPromptText(promptJson);
 
-      // Call Gemini with identity images as reference
       const result = await generateImageWithFallback({
         prompt,
         referenceImages: identityImages,
@@ -217,7 +215,6 @@ export async function generateAvatarShots(identityImages, options = {}) {
         });
       }
 
-      // Delay between requests to avoid rate limits
       if (delayMs > 0) {
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
@@ -256,7 +253,7 @@ export async function generateAvatarShots(identityImages, options = {}) {
 }
 
 /**
- * Generate a single avatar shot using Gemini
+ * Generate a single avatar shot
  */
 export async function generateSingleShot(identityImages, shotId, options = {}) {
   const shot = AVATAR_SHOTS.find(s => s.id === shotId);
@@ -270,7 +267,8 @@ export async function generateSingleShot(identityImages, shotId, options = {}) {
 
   console.log(`[AvatarGenerator] Generating single shot: ${shot.label}`);
 
-  const prompt = buildAvatarPrompt(shotId, options.extraPrompt);
+  const promptJson = buildAvatarPromptJson(shot, options.extraPrompt);
+  const prompt = jsonToPromptText(promptJson);
 
   const result = await generateImageWithFallback({
     prompt,
