@@ -1733,5 +1733,160 @@ router.post('/:id/generate-v3', async (req, res) => {
   }
 });
 
+
+// ═══════════════════════════════════════════════════════════════
+// SHOOT COMPOSER ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/shoots/:id/universe
+ * Set the universe for a shoot
+ */
+router.post('/:id/universe', async (req, res) => {
+  try {
+    const { universeId } = req.body;
+    if (!universeId) return res.status(400).json({ ok: false, error: 'universeId required' });
+
+    // Import universe store dynamically to avoid circular deps if any
+    const { getUniverseById } = await import('../store/universeStore.js');
+    const universe = await getUniverseById(universeId);
+
+    if (!universe) return res.status(404).json({ ok: false, error: 'Universe not found' });
+
+    // Update shoot
+    const shoot = await getCustomShootById(req.params.id);
+    if (!shoot) return res.status(404).json({ ok: false, error: 'Shoot not found' });
+
+    // Store localized universe snapshot in shoot
+    // This ensures consistency even if global universe changes
+    shoot.universe = {
+      id: universe.id,
+      label: universe.label,
+      tech: universe.tech,
+      era: universe.era,
+      mood: universe.mood,
+      color: universe.color,
+      lens: universe.lens,
+      prompt: universe.prompt || `${universe.tech || ''} ${universe.era || ''} ${universe.color || ''} ${universe.lens || ''}`.trim()
+    };
+
+    await saveCustomShoot(shoot);
+    res.json({ ok: true, data: shoot });
+
+  } catch (err) {
+    console.error('Error setting universe:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/shoots/:id/generate-frame
+ * Generate a specific frame using Universe + Scene + Model logic
+ */
+router.post('/:id/generate-frame', async (req, res) => {
+  try {
+    const { frameIndex, extraPrompt } = req.body;
+    const shootId = req.params.id;
+
+    const shoot = await getCustomShootById(shootId);
+    if (!shoot) return res.status(404).json({ ok: false, error: 'Shoot not found' });
+
+    // 1. Get Scene
+    if (!shoot.frames || !shoot.frames[frameIndex]) {
+      return res.status(400).json({ ok: false, error: 'Invalid frame index' });
+    }
+    const scene = shoot.frames[frameIndex];
+
+    // 2. Get Universe
+    const universe = shoot.universe || {};
+
+    // 3. Compose Prompt
+    // LOGIC: [Technique] [Scene Action] [Mood] [Details]
+    const parts = [];
+
+    // Technique/Era/Lens (from Universe)
+    if (universe.tech) parts.push(universe.tech);
+    if (universe.era) parts.push(universe.era);
+    if (universe.color) parts.push(universe.color);
+    if (universe.lens) parts.push(universe.lens);
+
+    // Scene Action & Space
+    if (scene.action) parts.push(scene.action);
+    if (scene.space) parts.push(`in ${scene.space}`);
+    if (scene.lighting) parts.push(`${scene.lighting} lighting`);
+
+    // Mood & Emotion
+    if (universe.mood) parts.push(universe.mood);
+    if (scene.emotion) parts.push(scene.emotion);
+
+    // Details
+    if (scene.clothingFocus) parts.push(`Focus on ${scene.clothingFocus}`);
+    if (scene.texture) parts.push(`Texture: ${scene.texture}`);
+    if (scene.pose) parts.push(`Pose: ${scene.pose}`);
+
+    // Extra manual prompt
+    if (extraPrompt) parts.push(extraPrompt);
+
+    // Model description (if models selected)
+    // NOTE: In V3 logic, identity is handled via reference images + visual prompt injection.
+    // For text prompt, we add a placeholder or rely on "fashion model" default if no specific text provided.
+
+    const finalPrompt = parts.join('. ') + '.';
+
+    console.log(`[Composer] Generating Frame ${frameIndex} for Shoot ${shootId}`);
+    console.log(`[Composer] Prompt: ${finalPrompt}`);
+
+    // 4. Prepare References (Models, Clothing)
+    // Logic: Pull active models for this shoot from shoot.models
+    // We assume shoot.models contains { modelId, ... } references.
+    const referenceImages = [];
+
+    // Add models (up to 3)
+    if (shoot.models && shoot.models.length > 0) {
+      // We'll need to fetch model images. logic omitted for brevity, 
+      // relying on 'generateCustomShootFrame' or similar lower level if needed.
+      // For now, let's use the basic 'requestGeminiImage' directly or reuse a V3 builder if we want strict control.
+    }
+
+    // 5. Call Generation Service
+    // We reuse requestGeminiImage directly for maximum control over this specific logic
+    // OR we can map this to 'generateCustomShootFrame' if we want to reuse that pipeline.
+    // Given the specific "Universe + Scene" requirement, direct call might be safer to ensure exact prompt construction.
+
+    // However, to keep it simple and reusable, let's use requestGeminiImage
+    const genResult = await requestGeminiImage({
+      prompt: finalPrompt,
+      referenceImages: [], // TODO: Populate references
+      imageConfig: {
+        aspectRatio: scene.aspectRatio || '3:4',
+        imageSize: '1K'
+      }
+    });
+
+    if (!genResult.ok) {
+      return res.status(500).json({ ok: false, error: genResult.error });
+    }
+
+    // 6. Save Result
+    const imageId = generateImageId();
+    const imageData = {
+      id: imageId,
+      imageUrl: `data:${genResult.mimeType};base64,${genResult.base64}`,
+      frameId: scene.id,
+      frameLabel: scene.label,
+      prompt: finalPrompt,
+      createdAt: new Date().toISOString()
+    };
+
+    await addImageToShoot(shootId, imageData);
+
+    res.json({ ok: true, data: imageData });
+
+  } catch (err) {
+    console.error('Error generating frame:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 export default router;
 
