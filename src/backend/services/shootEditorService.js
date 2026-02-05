@@ -1,4 +1,4 @@
-import { requestJsonFromOpenAI, requestShootFromPrompt } from '../../utils/openaiClient.js';
+import { requestJsonFromOpenAI, requestShootFromPrompt } from '../providers/openaiClient.js';
 import { buildAnalysisSystemPrompt, buildAnalysisUserPrompt } from '../prompts/shootEditor/analysisPrompt.js';
 import { buildSeriesSystemPrompt, buildSeriesUserPrompt } from '../prompts/shootEditor/seriesPrompt.js';
 import { buildFinalPromptForShootEditor } from '../prompts/shootEditor/finalPrompt.js';

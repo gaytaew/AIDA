@@ -76,3 +76,107 @@ export async function requestOpenAIText({ prompt, images = [] }) {
         };
     }
 }
+/**
+ * Request JSON object from OpenAI
+ */
+export async function requestJsonFromOpenAI({
+    system,
+    user,
+    images = [],
+    temperature = 0.7,
+    maxTokens = 4000
+}) {
+    try {
+        const openai = getOpenAI();
+        const messages = [];
+
+        if (system) {
+            messages.push({ role: 'system', content: system });
+        }
+
+        const userContent = [];
+        if (user) userContent.push({ type: 'text', text: user });
+
+        if (Array.isArray(images) && images.length > 0) {
+            images.forEach(img => {
+                if (!img || !img.base64) return;
+                const url = `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}`;
+                userContent.push({
+                    type: 'image_url',
+                    image_url: { url, detail: 'high' }
+                });
+            });
+        }
+
+        messages.push({ role: 'user', content: userContent });
+
+        const response = await openai.chat.completions.create({
+            model: config.OPENAI_TEXT_MODEL || 'gpt-4o',
+            messages,
+            temperature,
+            max_tokens: maxTokens,
+            response_format: { type: 'json_object' }
+        });
+
+        const content = response.choices[0].message.content;
+        let json = null;
+        try {
+            json = JSON.parse(content);
+        } catch (e) {
+            return { ok: false, error: 'Failed to parse JSON response' };
+        }
+
+        return { ok: true, json };
+
+    } catch (error) {
+        console.error('[OpenAI] JSON Request error:', error);
+        return { ok: false, error: error.message };
+    }
+}
+
+/**
+ * Request Shoot from Prompt (Quick Mode helper)
+ * Uses a default system prompt for creating a shoot structure.
+ */
+export async function requestShootFromPrompt(prompt) {
+    const system = `You are an AI assistant that generates photoshoot plans in JSON format.
+Output strictly valid JSON with formatting:
+{
+  "id": "SHOOT_...",
+  "label": "Brief Title",
+  "shortDescription": "...",
+  "universe": {
+    "tech": "...",
+    "era": "...",
+    "color": "...",
+    "lens": "...",
+    "mood": "..."
+  },
+  "scenes": [
+    {
+      "id": "SCENE_1",
+      "label": "...",
+      "role": "...",
+      "space": "...",
+      "lighting": "...",
+      "camera": "...",
+      "pose": "...",
+      "emotion": "...",
+      "action": "...",
+      "clothingFocus": "...",
+      "texture": "...",
+      "antiAi": { "poseProfile": "auto" }
+    }
+  ]
+}
+No markdown. No commentary.`;
+
+    const result = await requestJsonFromOpenAI({
+        system,
+        user: prompt,
+        temperature: 0.7
+    });
+
+    if (!result.ok) return result;
+    return { ok: true, shoot: result.json };
+}
