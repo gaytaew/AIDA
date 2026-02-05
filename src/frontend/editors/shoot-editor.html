@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Редактор съёмок (AIDA)</title>
+    <!-- AIDA Global Styles -->
+    <link rel="stylesheet" href="../styles/main.css" />
+    <style>
+        /* Embedded styles from MVP for Shoot Editor specific layout */
+        .editor-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 24px 20px 28px;
+            color: #333;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .editor-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .editor-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .editor-btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .editor-btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .editor-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .editor-btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .editor-btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .editor-btn-danger:hover {
+            background: #c82333;
+        }
+
+        .shoots-list {
+            margin-bottom: 32px;
+        }
+
+        .shoot-card {
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e6e6e6;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .shoot-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+        }
+
+        .shoot-card h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .shoot-card p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .editor-form {
+            display: none;
+        }
+
+        .editor-form.active {
+            display: block;
+        }
+
+        .form-section {
+            margin-bottom: 32px;
+            padding: 24px;
+            border: 1px solid #e6e6e6;
+            border-radius: 12px;
+            background: #fafafa;
+        }
+
+        .form-section h2 {
+            margin: 0 0 20px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group textarea.large {
+            min-height: 120px;
+        }
+
+        .validation-error {
+            margin-top: 6px;
+            padding: 8px 12px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .validation-success {
+            margin-top: 6px;
+            padding: 8px 12px;
+            background: #d4edda;
+            border: 1px solid #28a745;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #155724;
+        }
+
+        .scene-item {
+            margin-bottom: 24px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .scene-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .scene-item-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .scene-item-remove {
+            padding: 6px 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .scene-item-remove:hover {
+            background: #c82333;
+        }
+
+        .add-scene-btn {
+            padding: 12px 24px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .add-scene-btn:hover {
+            background: #218838;
+        }
+
+        .message {
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .message-success {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            color: #155724;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- AIDA Sidebar Placeholder (Managed by sidebar-nav.js) -->
+    <div id="sidebar-placeholder"></div>
+
+    <div class="editor-container">
+        <div class="editor-header">
+            <h1>Редактор съёмок AIDA</h1>
+            <div class="editor-actions">
+                <button id="btn-generate-shoot" class="editor-btn editor-btn-primary">
+                    Сгенерировать из промпта
+                </button>
+                <button id="btn-new-shoot" class="editor-btn editor-btn-primary">
+                    Новая съёмка
+                </button>
+                <button id="btn-back" class="editor-btn editor-btn-secondary">
+                    Назад
+                </button>
+            </div>
+        </div>
+
+        <div id="message-container"></div>
+
+        <div id="prompt-generator" class="form-section" style="display: none;">
+            <h2>Генерация из промпта</h2>
+            <div class="form-group">
+                <label for="shoot-prompt">Опишите съёмку</label>
+                <textarea id="shoot-prompt" class="large"
+                    placeholder="Например: Авангардная съёмка в стиле Vogue Japan в токийских переулках, с широкоугольными искажениями, голландскими углами, жёсткой вспышкой и зерном 35мм плёнки..."></textarea>
+            </div>
+            <div class="editor-actions">
+                <button type="button" id="btn-generate-from-prompt" class="editor-btn editor-btn-primary">
+                    Сгенерировать съёмку
+                </button>
+                <button type="button" id="btn-cancel-prompt" class="editor-btn editor-btn-secondary">
+                    Отмена
+                </button>
+            </div>
+            <div id="prompt-generator-status" style="margin-top: 16px;"></div>
+        </div>
+
+        <div class="form-section" style="padding: 16px 24px; margin-bottom: 18px;">
+            <h2 style="margin-bottom: 12px;">Пользовательские съёмки</h2>
+            <div id="shoots-list" class="shoots-list"></div>
+        </div>
+
+        <div id="editor-form" class="editor-form">
+            <form id="shoot-form">
+                <div class="form-section">
+                    <h2>Основная информация</h2>
+                    <div class="form-group">
+                        <label for="shoot-id">ID съёмки *</label>
+                        <input type="text" id="shoot-id" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="shoot-label">Название *</label>
+                        <input type="text" id="shoot-label" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="shoot-description">Краткое описание</label>
+                        <textarea id="shoot-description" class="large"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Вселенная</h2>
+                    <div class="form-group">
+                        <label for="universe-tech">Техника съёмки *</label>
+                        <textarea id="universe-tech" class="large" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="universe-era">Эпоха / стиль *</label>
+                        <textarea id="universe-era" class="large" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="universe-color">Цветовая палитра *</label>
+                        <textarea id="universe-color" class="large" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="universe-lens">Линза и камера *</label>
+                        <textarea id="universe-lens" class="large" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="universe-mood">Настроение *</label>
+                        <textarea id="universe-mood" class="large" required></textarea>
+                    </div>
+                    <p style="margin-top: 20px; font-size: 13px; color: #666;">
+                        <strong>Примечание:</strong> Внешность модели (тип тела, лицо) задаётся только в настройках
+                        аватара модели, а не в вселенной съёмки.
+                    </p>
+                </div>
+
+                <div class="form-section">
+                    <h2>Анти‑ИИшность (общие правила для всей съёмки)</h2>
+                    <p style="margin: 0 0 14px; font-size: 13px; color: #666;">
+                        Эти параметры применяются ко всем кадрам при генерации изображений.
+                    </p>
+
+                    <div class="form-group">
+                        <label for="anti-ai-pose-profile">Профиль позирования (авто‑вкл/выкл для каждой сцены)</label>
+                        <select id="anti-ai-pose-profile" class="catalog-control-select">
+                            <option value="auto" selected>Auto (по тексту сцены/настроению)</option>
+                            <option value="natural">Живые позы (candid / между позами)</option>
+                            <option value="posed">Прямое позирование (direct posing)</option>
+                            <option value="off">Off (не вмешиваться в позы)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="anti-ai-level">Интенсивность</label>
+                        <select id="anti-ai-level" class="catalog-control-select">
+                            <option value="off">Off (не навязывать)</option>
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High (максимально анти‑стерильно)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="anti-ai-key-light">Главный источник света (предпочтение)</label>
+                        <select id="anti-ai-key-light" class="catalog-control-select">
+                            <option value="auto" selected>Auto</option>
+                            <option value="window">Окно / дневной</option>
+                            <option value="flash">Вспышка</option>
+                            <option value="practical">Практикалсы (бра/лампы)</option>
+                            <option value="neon">Неон</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display:flex; gap:10px; align-items:center;">
+                            <input type="checkbox" id="anti-ai-exposure-errors" checked />
+                            Разрешать “реальные” ошибки экспозиции (клиппинг бликов / фон темнее / провалы)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; gap:10px; align-items:center;">
+                            <input type="checkbox" id="anti-ai-mixed-wb" checked />
+                            Разрешать смешанный баланс белого (flash + tungsten + зелёные тени)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; gap:10px; align-items:center;">
+                            <input type="checkbox" id="anti-ai-micro-defects" checked />
+                            Микродефекты материалов (поры/ткань/пыль/царапины)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; gap:10px; align-items:center;">
+                            <input type="checkbox" id="anti-ai-candid-composition" checked />
+                            Композиция “как поймали” (лёгкий tilt/обрезы/помехи переднего плана)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; gap:10px; align-items:center;">
+                            <input type="checkbox" id="anti-ai-imperfect-focus" checked />
+                            Реальная ГРИП и допустим микропромах фокуса
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; gap:10px; align-items:center;">
+                            <input type="checkbox" id="anti-ai-flares" checked />
+                            Флэр/отражения/грязные стёкла (физично, без “одинакового кино-флэра”)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; gap:10px; align-items:center;">
+                            <input type="checkbox" id="anti-ai-motion-moment" checked />
+                            Момент/движение важнее позы (микродвижение, dragged shutter допускается)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; gap:10px; align-items:center;">
+                            <input type="checkbox" id="anti-ai-film-scan" checked />
+                            Плёночность/скан как слой (зерно тонкое, редкая пыль)
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="anti-ai-forbidden">Запрещённые слова/вибы (по одному на строку)</label>
+                        <textarea id="anti-ai-forbidden"
+                            placeholder="ultra clean&#10;perfect skin&#10;HDR&#10;airbrushed"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="anti-ai-notes">Доп. пояснения (опционально)</label>
+                        <textarea id="anti-ai-notes" class="large"
+                            placeholder="Например: зерно только в тенях, фон чуть недодержан, отражения грязнее, без симметрии..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Сцены</h2>
+                    <div id="scenes-container"></div>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                        <button type="button" id="btn-add-scene" class="add-scene-btn">
+                            + Добавить сцену
+                        </button>
+                    </div>
+                </div>
+
+                <div class="editor-actions" style="margin-top: 32px">
+                    <button type="submit" class="editor-btn editor-btn-primary">
+                        Сохранить
+                    </button>
+                    <button type="button" id="btn-smart-edit" class="editor-btn"
+                        style="background:#6f42c1; color:white;">
+                        ✨ Smart Edit (AI)
+                    </button>
+                    <button type="button" id="btn-validate" class="editor-btn editor-btn-secondary">
+                        Проверить
+                    </button>
+                    <button type="button" id="btn-export" class="editor-btn editor-btn-secondary">
+                        Экспорт JSON
+                    </button>
+                    <button type="button" id="btn-delete-shoot" class="editor-btn editor-btn-danger"
+                        style="display:none;">
+                        Удалить съёмку
+                    </button>
+                    <button type="button" id="btn-cancel" class="editor-btn editor-btn-secondary">
+                        Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Smart Edit Modal (Simple overlay) -->
+        <div id="smart-edit-overlay"
+            style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:white; padding:24px; border-radius:12px; width:500px; max-width:90%;">
+                <h2 style="margin-top:0;">Smart Edit (AI)</h2>
+                <p style="color:#666; font-size:14px;">Опишите, что нужно изменить в текущей съёмке.</p>
+                <textarea id="smart-edit-prompt"
+                    style="width:100%; height:100px; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:16px;"
+                    placeholder="Пример: Смени настроение на мрачное, добавь сцену в лифте, убедись что везде используется вспышка..."></textarea>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" id="btn-cancel-smart-edit"
+                        class="editor-btn editor-btn-secondary">Отмена</button>
+                    <button type="button" id="btn-apply-smart-edit"
+                        class="editor-btn editor-btn-primary">Применить</button>
+                </div>
+                <div id="smart-edit-status" style="margin-top:10px;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Sidebar and Main Script -->
+    <script type="module" src="../shared/sidebar-nav.js"></script>
+    <script type="module" src="shoot-editor.js"></script>
+</body>
+
+</html>

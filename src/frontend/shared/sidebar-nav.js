@@ -27,6 +27,8 @@ const NAV_ITEMS = [
       { href: '/editors/location-editor.html', icon: '📍', label: 'Локации' },
       { href: '/editors/frame-editor.html', icon: '🖼️', label: 'Каталог кадров' },
       { href: '/editors/model-editor.html', icon: '👤', label: 'Модели' },
+      { href: '/editors/shoot-editor.html', icon: '📸', label: 'Shoot Editor (MVP)' },
+      { href: '/editors/look-editor.html', icon: '👔', label: 'Образы (Looks)' },
       { href: '/editors/look-editor.html', icon: '👔', label: 'Образы (Looks)' },
       { href: '/editors/food-editor.html', icon: '🍔', label: 'Food Shoot' },
       { href: '/editors/product-editor.html', icon: '📦', label: 'Предметная съёмка' },

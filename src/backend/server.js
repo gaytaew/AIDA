@@ -31,6 +31,7 @@ import stylesRoutes from './routes/stylesRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import productShootRoutes from './routes/productShootRoutes.js';
 import shootPresetRoutes from './routes/shootPresetRoutes.js';
+import { shootEditorRouter } from './routes/shootEditorRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -160,6 +161,7 @@ app.use('/api/styles', stylesRoutes);
 app.use('/api/product', productRoutes);
 app.use('/api/product-shoots', productShootRoutes);
 app.use('/api/shoot-presets', shootPresetRoutes);
+app.use('/api/shoot-editor', shootEditorRouter);
 
 // Static files (style preset images)
 const stylesStorePath = path.resolve(__dirname, 'store/style-presets');
