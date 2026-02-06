@@ -276,7 +276,7 @@ router.get('/:id', async (req, res) => {
 
 /**
  * PUT /api/custom-shoots/:id
- * Update a custom shoot
+ * Update a custom shoot (UPSERT: creates if not exists)
  */
 router.put('/:id', async (req, res) => {
   const startTime = Date.now();
@@ -288,7 +288,29 @@ router.put('/:id', async (req, res) => {
     // TIMEOUT: 30 seconds max for PUT operations
     const PUT_TIMEOUT_MS = 30000;
 
-    const updatePromise = updateShootParams(shootId, req.body);
+    // UPSERT LOGIC: Check if shoot exists, if not create it first
+    const existingShoot = await getCustomShootById(shootId);
+
+    let updatePromise;
+    if (!existingShoot) {
+      // Shoot doesn't exist - create it first with the provided data
+      console.log(`[CustomShootRoutes] Shoot ${shootId} not found, creating new...`);
+      const newShoot = {
+        id: shootId,
+        label: req.body.label || 'New Shoot',
+        shortDescription: req.body.shortDescription || '',
+        createdAt: new Date().toISOString(),
+        ...(req.body)
+      };
+      await saveCustomShoot(newShoot);
+      console.log(`[CustomShootRoutes] Shoot ${shootId} created`);
+      // Now update with full params
+      updatePromise = updateShootParams(shootId, req.body);
+    } else {
+      // Shoot exists - just update
+      updatePromise = updateShootParams(shootId, req.body);
+    }
+
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('PUT operation timeout after 30 seconds')), PUT_TIMEOUT_MS);
     });
@@ -302,7 +324,7 @@ router.put('/:id', async (req, res) => {
   } catch (err) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    // Handle not found
+    // Handle not found (shouldn't happen anymore with upsert, but keep for safety)
     if (err.message.includes('not found')) {
       return res.status(404).json({ ok: false, error: 'Shoot not found' });
     }
