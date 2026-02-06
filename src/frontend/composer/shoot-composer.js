@@ -19,7 +19,7 @@
 const state = {
   currentStep: 'shoot',
   currentShoot: null,
-  
+
   // Available entities (loaded from API)
   shoots: [],
   universes: [],
@@ -28,16 +28,16 @@ const state = {
   locations: [],
   emotions: [],         // <-- Added: emotion presets
   emotionCategories: [], // <-- Added: emotion category names
-  
+
   // Selected for current shoot
   selectedModels: [null, null, null],
   clothingByModel: [[], [], []],
   outfitAvatars: [null, null, null],
   selectedFrames: [],
-  
+
   // Generated frames history (all generated images, not replaced on regenerate)
   generatedFrames: [],
-  
+
   // Current generation settings
   selectedLocationId: null
 };
@@ -53,23 +53,23 @@ const elements = {};
 
 function initElements() {
   elements.serverStatus = document.getElementById('server-status');
-  
+
   // Step navigation
   elements.stepItems = document.querySelectorAll('.step-item');
   elements.stepPanels = document.querySelectorAll('.step-panel');
-  
+
   // Step 1: Shoot
   elements.shootsList = document.getElementById('shoots-list');
   elements.btnNewShoot = document.getElementById('btn-new-shoot');
   elements.btnNextToUniverse = document.getElementById('btn-next-to-universe');
   elements.stepShootStatus = document.getElementById('step-shoot-status');
-  
+
   // Step 2: Universe
   elements.universesGrid = document.getElementById('universes-grid');
   elements.btnBackToShoot = document.getElementById('btn-back-to-shoot');
   elements.btnNextToModels = document.getElementById('btn-next-to-models');
   elements.stepUniverseStatus = document.getElementById('step-universe-status');
-  
+
   // Step 3: Models
   elements.modelSlots = document.getElementById('model-slots');
   elements.modelsGrid = document.getElementById('models-grid');
@@ -77,20 +77,20 @@ function initElements() {
   elements.btnBackToUniverse = document.getElementById('btn-back-to-universe');
   elements.btnNextToClothing = document.getElementById('btn-next-to-clothing');
   elements.stepModelsStatus = document.getElementById('step-models-status');
-  
+
   // Step 4: Clothing
   elements.clothingSections = document.getElementById('clothing-sections');
   elements.btnBackToModels = document.getElementById('btn-back-to-models');
   elements.btnNextToFrames = document.getElementById('btn-next-to-frames');
   elements.stepClothingStatus = document.getElementById('step-clothing-status');
-  
+
   // Step 5: Frames
   elements.selectedFrames = document.getElementById('selected-frames');
   elements.framesGrid = document.getElementById('frames-grid');
   elements.btnBackToClothing = document.getElementById('btn-back-to-clothing');
   elements.btnNextToSummary = document.getElementById('btn-next-to-summary');
   elements.stepFramesStatus = document.getElementById('step-frames-status');
-  
+
   // Step 6: Summary
   elements.shootSummary = document.getElementById('shoot-summary');
   elements.summaryWarnings = document.getElementById('summary-warnings');
@@ -102,7 +102,7 @@ function initElements() {
   elements.imagesGallery = document.getElementById('images-gallery');
   elements.generationCount = document.getElementById('generation-count');
   elements.stepSummaryStatus = document.getElementById('step-summary-status');
-  
+
   // Generation controls
   elements.genLocation = document.getElementById('gen-location');
   elements.genFrame = document.getElementById('gen-frame');
@@ -116,7 +116,7 @@ function initElements() {
   elements.genEmotion = document.getElementById('gen-emotion');
   elements.emotionDescription = document.getElementById('emotion-description');
   elements.framesToGenerate = document.getElementById('frames-to-generate');
-  
+
   // Summary values
   elements.summaryUniverse = document.getElementById('summary-universe');
   elements.summaryModels = document.getElementById('summary-models');
@@ -137,33 +137,33 @@ function initEventListeners() {
       }
     });
   });
-  
+
   // Step 1: Shoot
   elements.btnNewShoot.addEventListener('click', createNewShoot);
   elements.btnNextToUniverse.addEventListener('click', () => goToStep('universe'));
-  
+
   // Step 2: Universe
   elements.btnBackToShoot.addEventListener('click', () => goToStep('shoot'));
   elements.btnNextToModels.addEventListener('click', () => goToStep('models'));
-  
+
   // Step 3: Models
   elements.btnBackToUniverse.addEventListener('click', () => goToStep('universe'));
   elements.btnNextToClothing.addEventListener('click', () => goToStep('clothing'));
-  
+
   // Step 4: Clothing
   elements.btnBackToModels.addEventListener('click', () => goToStep('models'));
   elements.btnNextToFrames.addEventListener('click', () => goToStep('frames'));
-  
+
   // Step 5: Frames
   elements.btnBackToClothing.addEventListener('click', () => goToStep('clothing'));
   elements.btnNextToSummary.addEventListener('click', () => goToStep('summary'));
-  
+
   // Step 6: Summary
   elements.btnBackToFrames.addEventListener('click', () => goToStep('frames'));
   elements.btnExportJson.addEventListener('click', exportShootJson);
   elements.btnGenerateOne.addEventListener('click', generateOneFrame);
   elements.btnClearHistory.addEventListener('click', clearGenerationHistory);
-  
+
   // Emotion selection - show description on change
   if (elements.genEmotion) {
     elements.genEmotion.addEventListener('change', onEmotionChange);
@@ -176,43 +176,43 @@ function initEventListeners() {
 async function onEmotionChange() {
   const emotionId = elements.genEmotion?.value;
   const descriptionEl = elements.emotionDescription;
-  
+
   if (!descriptionEl) return;
-  
+
   if (!emotionId) {
     descriptionEl.style.display = 'none';
     return;
   }
-  
+
   // Fetch emotion details from API
   try {
     const res = await fetch(`/api/emotions/${emotionId}`);
     const data = await res.json();
-    
+
     if (data.ok && data.data) {
       const emotion = data.data;
-      
+
       // Build avoid list if available
       const avoidHtml = emotion.avoid && emotion.avoid.length > 0
         ? `<div style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; font-size: 11px;">
              <strong style="color: #EF4444;">❌ Избегать:</strong> ${emotion.avoid.join(', ')}
            </div>`
         : '';
-      
+
       // Build authenticity key if available
       const keyHtml = emotion.authenticityKey
         ? `<div style="margin-top: 8px; padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; font-size: 11px;">
              <strong style="color: #22C55E;">🔑 Ключ:</strong> ${emotion.authenticityKey}
            </div>`
         : '';
-      
+
       // Build intensity badge
       const intensityBadge = emotion.defaultIntensity
         ? `<span style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: var(--color-surface); border-radius: 10px; font-size: 10px;">
              ${emotion.defaultIntensity}/5
            </span>`
         : '';
-      
+
       descriptionEl.innerHTML = `
         <div style="margin-bottom: 8px;">
           <strong>${emotion.label}</strong>${intensityBadge}<br>
@@ -240,7 +240,7 @@ async function onEmotionChange() {
 
 function goToStep(stepId) {
   state.currentStep = stepId;
-  
+
   // Update step items
   elements.stepItems.forEach(item => {
     item.classList.remove('active');
@@ -248,7 +248,7 @@ function goToStep(stepId) {
       item.classList.add('active');
     }
   });
-  
+
   // Update step panels
   elements.stepPanels.forEach(panel => {
     panel.classList.remove('active');
@@ -256,7 +256,7 @@ function goToStep(stepId) {
       panel.classList.add('active');
     }
   });
-  
+
   // Run step-specific logic
   switch (stepId) {
     case 'universe':
@@ -277,7 +277,7 @@ function goToStep(stepId) {
       renderSummary();
       break;
   }
-  
+
   updateStepStatuses();
 }
 
@@ -288,12 +288,12 @@ function updateStepStatuses() {
   const hasModels = state.selectedModels.filter(m => m !== null).length > 0;
   const modelCount = state.selectedModels.filter(m => m !== null).length;
   const frameCount = state.selectedFrames.length;
-  
+
   // Update step lock status
   elements.stepItems.forEach(item => {
     const step = item.dataset.step;
     let locked = false;
-    
+
     switch (step) {
       case 'shoot':
         locked = false;
@@ -314,10 +314,10 @@ function updateStepStatuses() {
         locked = !hasModels;
         break;
     }
-    
+
     item.classList.toggle('locked', locked);
   });
-  
+
   // Update status badges
   if (hasShoot) {
     elements.stepShootStatus.textContent = state.currentShoot.label;
@@ -326,7 +326,7 @@ function updateStepStatuses() {
     elements.stepShootStatus.textContent = 'Не выбрано';
     elements.stepShootStatus.className = 'step-status pending';
   }
-  
+
   if (hasUniverse) {
     elements.stepUniverseStatus.textContent = state.currentShoot.universe.label || 'Выбрана';
     elements.stepUniverseStatus.className = 'step-status ready';
@@ -334,10 +334,10 @@ function updateStepStatuses() {
     elements.stepUniverseStatus.textContent = 'Не выбрано';
     elements.stepUniverseStatus.className = 'step-status pending';
   }
-  
+
   elements.stepModelsStatus.textContent = `${modelCount} / 3`;
   elements.stepModelsStatus.className = modelCount > 0 ? 'step-status ready' : 'step-status pending';
-  
+
   // Check if outfit avatars are required
   const hasClothing = state.clothingByModel.some(c => c.length > 0);
   if (modelCount >= 2 && hasClothing) {
@@ -350,10 +350,10 @@ function updateStepStatuses() {
     elements.stepClothingStatus.textContent = 'Опционально';
     elements.stepClothingStatus.className = 'step-status pending';
   }
-  
+
   elements.stepFramesStatus.textContent = `${frameCount} кадров`;
   elements.stepFramesStatus.className = frameCount > 0 ? 'step-status ready' : 'step-status pending';
-  
+
   // Update navigation buttons
   elements.btnNextToUniverse.disabled = !hasShoot;
   elements.btnNextToModels.disabled = !hasShoot;
@@ -390,7 +390,7 @@ function renderShootsList() {
     `;
     return;
   }
-  
+
   elements.shootsList.innerHTML = state.shoots.map(shoot => `
     <div class="shoot-card ${state.currentShoot?.id === shoot.id ? 'selected' : ''}" 
          data-shoot-id="${shoot.id}">
@@ -409,7 +409,7 @@ function renderShootsList() {
       </button>
     </div>
   `).join('');
-  
+
   // Add click handlers
   elements.shootsList.querySelectorAll('.shoot-card').forEach(card => {
     card.addEventListener('click', (e) => {
@@ -418,7 +418,7 @@ function renderShootsList() {
       selectShoot(card.dataset.shootId);
     });
   });
-  
+
   // Add delete handlers
   elements.shootsList.querySelectorAll('.btn-delete-shoot').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -430,15 +430,15 @@ function renderShootsList() {
 
 async function deleteShoot(shootId) {
   if (!confirm('Удалить эту съёмку? Это действие нельзя отменить.')) return;
-  
+
   try {
     const res = await fetch(`/api/shoots/${shootId}`, { method: 'DELETE' });
     const data = await res.json();
-    
+
     if (data.ok) {
       // Remove from state
       state.shoots = state.shoots.filter(s => s.id !== shootId);
-      
+
       // Clear current shoot if it was deleted
       if (state.currentShoot?.id === shootId) {
         state.currentShoot = null;
@@ -447,7 +447,7 @@ async function deleteShoot(shootId) {
         state.selectedFrames = [];
         state.generatedFrames = [];
       }
-      
+
       renderShootsList();
       updateStepStatuses();
     } else {
@@ -462,7 +462,7 @@ async function deleteShoot(shootId) {
 async function createNewShoot() {
   const label = prompt('Название съёмки:', 'Новая съёмка');
   if (!label) return;
-  
+
   try {
     const res = await fetch('/api/shoots', {
       method: 'POST',
@@ -490,7 +490,7 @@ async function selectShoot(shootId) {
     const data = await res.json();
     if (data.ok) {
       state.currentShoot = data.data;
-      
+
       // Load shoot data into state
       state.selectedModels = [null, null, null];
       if (state.currentShoot.models) {
@@ -500,7 +500,7 @@ async function selectShoot(shootId) {
           }
         });
       }
-      
+
       state.clothingByModel = [[], [], []];
       if (state.currentShoot.clothing) {
         state.currentShoot.clothing.forEach(c => {
@@ -509,13 +509,13 @@ async function selectShoot(shootId) {
           }
         });
       }
-      
+
       state.selectedFrames = state.currentShoot.frames || [];
-      
+
       // DON'T load generatedImages here (they're in separate files now)
       // They will be loaded lazily when summary step is shown
       state.generatedFrames = [];
-      
+
       renderShootsList();
       updateStepStatuses();
     }
@@ -541,6 +541,28 @@ async function loadUniverses() {
 }
 
 function renderUniverses() {
+  const currentUniverse = state.currentShoot?.universe;
+
+  // If shoot has its own embedded universe setup (from Shoot Editor)
+  if (currentUniverse && (currentUniverse.tech || currentUniverse.mood)) {
+    elements.universesGrid.innerHTML = `
+      <div class="selection-card selected" style="grid-column: 1 / -1; cursor: default;">
+        <div class="selection-card-preview" style="background:#2d3436; display:flex; align-items:center; justify-content:center; font-size:48px;">
+           🌌
+        </div>
+        <div class="selection-card-title">${escapeHtml(currentUniverse.label || 'Настройки из Shoot Editor')}</div>
+        <div class="selection-card-desc">
+          ${escapeHtml(currentUniverse.mood || '')}<br>
+          <small style="opacity:0.7">${escapeHtml(currentUniverse.tech || '')}</small>
+        </div>
+        <div style="padding: 10px; opacity: 0.6; font-size: 12px;">
+           Эти настройки вселенной встроены в съемку.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   if (state.universes.length === 0) {
     elements.universesGrid.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1;">
@@ -553,9 +575,9 @@ function renderUniverses() {
     `;
     return;
   }
-  
+
   const selectedId = state.currentShoot?.universe?.id;
-  
+
   elements.universesGrid.innerHTML = state.universes.map(u => `
     <div class="selection-card ${u.id === selectedId ? 'selected' : ''}" data-universe-id="${u.id}">
       ${u.previewSrc ? `
@@ -567,7 +589,7 @@ function renderUniverses() {
       <div class="selection-card-desc">${escapeHtml(u.colorScience?.dominantPalette || 'Без описания')}</div>
     </div>
   `).join('');
-  
+
   elements.universesGrid.querySelectorAll('.selection-card').forEach(card => {
     card.addEventListener('click', () => selectUniverse(card.dataset.universeId));
   });
@@ -575,7 +597,7 @@ function renderUniverses() {
 
 async function selectUniverse(universeId) {
   if (!state.currentShoot) return;
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/universe`, {
       method: 'POST',
@@ -611,10 +633,10 @@ async function loadModels() {
 
 function renderModelSlots() {
   const slots = elements.modelSlots.querySelectorAll('.model-slot');
-  
+
   slots.forEach((slot, index) => {
     const model = state.selectedModels[index];
-    
+
     if (model) {
       slot.classList.add('filled');
       slot.innerHTML = `
@@ -631,7 +653,7 @@ function renderModelSlots() {
         <div class="model-slot-label">Модель ${index + 1}${index > 0 ? ' (опц.)' : ''}</div>
       `;
     }
-    
+
     // Click to add/select model
     slot.onclick = () => {
       if (!state.selectedModels[index]) {
@@ -639,7 +661,7 @@ function renderModelSlots() {
       }
     };
   });
-  
+
   // Remove handlers
   elements.modelSlots.querySelectorAll('.model-slot-remove').forEach(btn => {
     btn.onclick = (e) => {
@@ -663,14 +685,14 @@ function renderAvailableModels() {
     `;
     return;
   }
-  
+
   // Show available models section
   elements.availableModels.style.display = 'block';
-  
+
   // Filter out already selected models
   const selectedIds = state.selectedModels.filter(m => m).map(m => m.id);
   const availableModels = state.models.filter(m => !selectedIds.includes(m.id));
-  
+
   if (availableModels.length === 0) {
     elements.modelsGrid.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 30px;">
@@ -679,7 +701,7 @@ function renderAvailableModels() {
     `;
     return;
   }
-  
+
   elements.modelsGrid.innerHTML = availableModels.map(m => `
     <div class="selection-card" data-model-id="${m.id}">
       ${m.previewSrc ? `
@@ -691,7 +713,7 @@ function renderAvailableModels() {
       <div class="selection-card-desc">${escapeHtml(m.label || '')}</div>
     </div>
   `).join('');
-  
+
   elements.modelsGrid.querySelectorAll('.selection-card').forEach(card => {
     card.addEventListener('click', () => {
       const modelId = card.dataset.modelId;
@@ -707,12 +729,12 @@ function showModelPicker(slotIndex) {
   // Show a simple picker using available models
   const selectedIds = state.selectedModels.filter(m => m).map(m => m.id);
   const availableModels = state.models.filter(m => !selectedIds.includes(m.id));
-  
+
   if (availableModels.length === 0) {
     alert('Нет доступных моделей. Создайте модели в редакторе.');
     return;
   }
-  
+
   // For simplicity, just add the first available model
   // In a real UI, you'd show a dropdown or modal
   addModel(slotIndex, availableModels[0]);
@@ -729,7 +751,7 @@ function addModelToFirstEmptySlot(model) {
 
 async function addModel(slotIndex, model) {
   if (!state.currentShoot) return;
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/models`, {
       method: 'POST',
@@ -752,7 +774,7 @@ async function addModel(slotIndex, model) {
 async function removeModel(slotIndex) {
   const model = state.selectedModels[slotIndex];
   if (!model || !state.currentShoot) return;
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/models/${model.id}`, {
       method: 'DELETE'
@@ -780,7 +802,7 @@ function renderClothingSections() {
   const activeModels = state.selectedModels.filter(m => m !== null);
   const modelCount = activeModels.length;
   const requiresOutfitAvatar = modelCount >= 2;
-  
+
   if (modelCount === 0) {
     elements.clothingSections.innerHTML = `
       <div class="empty-state">
@@ -791,13 +813,13 @@ function renderClothingSections() {
     `;
     return;
   }
-  
+
   elements.clothingSections.innerHTML = state.selectedModels.map((model, index) => {
     if (!model) return '';
-    
+
     const clothing = state.clothingByModel[index] || [];
     const outfitAvatar = state.currentShoot?.outfitAvatars?.find(a => a.forModelIndex === index);
-    
+
     return `
       <div class="clothing-section" data-model-index="${index}">
         <div class="clothing-section-header">
@@ -835,9 +857,9 @@ function renderClothingSections() {
                 </div>
                 <div class="outfit-avatar-actions">
                   <div class="outfit-avatar-status ${outfitAvatar.status}">
-                    ${outfitAvatar.status === 'approved' ? '✓ Утверждён' : 
-                      outfitAvatar.status === 'ok' ? '⏳ Ожидает утверждения' : 
-                      outfitAvatar.status === 'error' ? '✕ Ошибка' : '⏳ Генерация...'}
+                    ${outfitAvatar.status === 'approved' ? '✓ Утверждён' :
+            outfitAvatar.status === 'ok' ? '⏳ Ожидает утверждения' :
+              outfitAvatar.status === 'error' ? '✕ Ошибка' : '⏳ Генерация...'}
                   </div>
                   ${outfitAvatar.status === 'ok' ? `
                     <button class="btn btn-primary btn-approve-avatar" data-index="${index}" style="margin-top: 8px;">
@@ -859,45 +881,45 @@ function renderClothingSections() {
       </div>
     `;
   }).join('');
-  
+
   // Add event listeners
   elements.clothingSections.querySelectorAll('.clothing-input').forEach(input => {
     input.addEventListener('change', (e) => handleClothingUpload(e, parseInt(input.dataset.index)));
   });
-  
+
   elements.clothingSections.querySelectorAll('.image-thumb-remove').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       removeClothingItem(parseInt(btn.dataset.model), parseInt(btn.dataset.clothing));
     });
   });
-  
+
   elements.clothingSections.querySelectorAll('.btn-generate-avatar').forEach(btn => {
     btn.addEventListener('click', () => generateOutfitAvatar(parseInt(btn.dataset.index)));
   });
-  
+
   elements.clothingSections.querySelectorAll('.btn-approve-avatar').forEach(btn => {
     btn.addEventListener('click', () => approveOutfitAvatar(parseInt(btn.dataset.index)));
   });
-  
+
   elements.clothingSections.querySelectorAll('.btn-regenerate-avatar').forEach(btn => {
     btn.addEventListener('click', () => generateOutfitAvatar(parseInt(btn.dataset.index)));
   });
-  
+
   // Drag and drop for upload zones
   elements.clothingSections.querySelectorAll('.upload-zone').forEach(zone => {
     const input = zone.querySelector('.clothing-input');
     const modelIndex = parseInt(input.dataset.index);
-    
+
     zone.addEventListener('dragover', e => {
       e.preventDefault();
       zone.classList.add('dragover');
     });
-    
+
     zone.addEventListener('dragleave', () => {
       zone.classList.remove('dragover');
     });
-    
+
     zone.addEventListener('drop', e => {
       e.preventDefault();
       zone.classList.remove('dragover');
@@ -915,7 +937,7 @@ async function handleClothingUpload(event, modelIndex) {
 
 async function handleClothingFiles(files, modelIndex) {
   const newImages = [];
-  
+
   for (const file of files) {
     const compressed = await compressImageAndGetBase64(file);
     console.log(`[Composer] Compressed clothing ${file.name}: ${Math.round(file.size / 1024)}KB → ${Math.round(compressed.base64.length * 0.75 / 1024)}KB`);
@@ -924,21 +946,21 @@ async function handleClothingFiles(files, modelIndex) {
       base64: compressed.base64
     });
   }
-  
+
   if (newImages.length === 0) return;
-  
+
   // IMPORTANT: Combine NEW images with EXISTING ones (don't replace!)
   const existingClothing = state.clothingByModel[modelIndex] || [];
   const existingImages = existingClothing.map(c => {
     const match = c.url.match(/^data:([^;]+);base64,(.+)$/);
     return match ? { mimeType: match[1], base64: match[2] } : null;
   }).filter(Boolean);
-  
+
   // Combine: existing + new
   const allImages = [...existingImages, ...newImages];
-  
+
   console.log(`[Composer] Clothing: ${existingImages.length} existing + ${newImages.length} new = ${allImages.length} total`);
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/clothing`, {
       method: 'POST',
@@ -962,13 +984,13 @@ async function handleClothingFiles(files, modelIndex) {
 async function removeClothingItem(modelIndex, clothingIndex) {
   const clothing = [...state.clothingByModel[modelIndex]];
   clothing.splice(clothingIndex, 1);
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/clothing`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        modelIndex, 
+      body: JSON.stringify({
+        modelIndex,
         images: clothing.map(c => {
           const match = c.url.match(/^data:([^;]+);base64,(.+)$/);
           return match ? { mimeType: match[1], base64: match[2] } : null;
@@ -994,7 +1016,7 @@ async function generateOutfitAvatar(modelIndex) {
     btn.disabled = true;
     btn.textContent = '⏳ Генерация...';
   }
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/outfit-avatar`, {
       method: 'POST',
@@ -1002,13 +1024,13 @@ async function generateOutfitAvatar(modelIndex) {
       body: JSON.stringify({ modelIndex })
     });
     const data = await res.json();
-    
+
     if (data.ok) {
       state.currentShoot = data.data.shoot;
     } else {
       alert('Ошибка генерации: ' + data.error);
     }
-    
+
     renderClothingSections();
     updateStepStatuses();
   } catch (e) {
@@ -1091,12 +1113,12 @@ async function loadEmotions() {
  */
 async function loadGeneratedImages() {
   if (!state.currentShoot) return;
-  
+
   try {
     console.log('[Composer] Loading generated images for shoot:', state.currentShoot.id);
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/images`);
     const data = await res.json();
-    
+
     if (data.ok) {
       // Data comes sorted from server (newest first), keep that order
       state.generatedFrames = (data.data || []).map(img => ({
@@ -1138,7 +1160,7 @@ function renderSelectedFrames() {
     `;
     return;
   }
-  
+
   elements.selectedFrames.innerHTML = state.selectedFrames.map((sf, index) => {
     const frame = state.frames.find(f => f.id === sf.frameId);
     return `
@@ -1161,7 +1183,7 @@ function renderSelectedFrames() {
       </div>
     `;
   }).join('');
-  
+
   elements.selectedFrames.querySelectorAll('[data-remove-frame]').forEach(btn => {
     btn.addEventListener('click', () => removeFrame(parseInt(btn.dataset.removeFrame)));
   });
@@ -1180,7 +1202,7 @@ function renderFramesCatalog() {
     `;
     return;
   }
-  
+
   elements.framesGrid.innerHTML = state.frames.map(f => `
     <div class="selection-card" data-frame-id="${f.id}">
       ${f.sketchUrl ? `
@@ -1192,7 +1214,7 @@ function renderFramesCatalog() {
       <div class="selection-card-desc">${escapeHtml(f.shotSize || '')} ${escapeHtml(f.cameraAngle || '')}</div>
     </div>
   `).join('');
-  
+
   elements.framesGrid.querySelectorAll('.selection-card').forEach(card => {
     card.addEventListener('click', () => addFrame(card.dataset.frameId));
   });
@@ -1200,7 +1222,7 @@ function renderFramesCatalog() {
 
 async function addFrame(frameId) {
   if (!state.currentShoot) return;
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/frames`, {
       method: 'POST',
@@ -1222,7 +1244,7 @@ async function addFrame(frameId) {
 async function removeFrame(index) {
   const frame = state.selectedFrames[index];
   if (!frame || !state.currentShoot) return;
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/frames/${frame.frameId}`, {
       method: 'DELETE'
@@ -1245,38 +1267,38 @@ async function removeFrame(index) {
 
 async function renderSummary() {
   if (!state.currentShoot) return;
-  
+
   const modelCount = state.selectedModels.filter(m => m !== null).length;
   const frameCount = state.selectedFrames.length;
   const hasClothing = state.clothingByModel.some(c => c.length > 0);
-  
+
   elements.summaryUniverse.textContent = state.currentShoot.universe?.label || 'Не выбрана';
-  elements.summaryModels.textContent = modelCount > 0 ? 
+  elements.summaryModels.textContent = modelCount > 0 ?
     state.selectedModels.filter(m => m).map(m => m.name).join(', ') : 'Не выбраны';
   elements.summaryFrames.textContent = frameCount > 0 ? `${frameCount} шаблонов` : 'По умолчанию';
   elements.summaryClothing.textContent = hasClothing ? 'Загружена' : 'Без одежды';
-  
+
   // Lazy-load generated images (they are stored in separate files now)
   if (state.generatedFrames.length === 0) {
     await loadGeneratedImages();
   }
-  
+
   // Populate location dropdown
   elements.genLocation.innerHTML = '<option value="">Из вселенной (по умолчанию)</option>';
   state.locations.forEach(loc => {
     elements.genLocation.innerHTML += `<option value="${loc.id}">${escapeHtml(loc.label)}</option>`;
   });
-  
+
   // Populate hidden frame dropdown (for compatibility)
   elements.genFrame.innerHTML = '<option value="">По умолчанию</option>';
   state.frames.forEach(frame => {
     elements.genFrame.innerHTML += `<option value="${frame.id}">${escapeHtml(frame.label)}</option>`;
   });
-  
+
   // Populate emotion dropdown (grouped by category)
   if (elements.genEmotion) {
     elements.genEmotion.innerHTML = '<option value="">Нейтральное выражение</option>';
-    
+
     // Category labels in Russian (v3 - simplified)
     const categoryLabels = {
       'neutral': '😌 Спокойные',
@@ -1284,51 +1306,51 @@ async function renderSummary() {
       'intense': '🔥 Интенсивные',
       'subtle': '🎭 Тонкие'
     };
-    
+
     for (const category of state.emotionCategories) {
       const categoryEmotions = state.emotions.filter(e => e.category === category);
       if (categoryEmotions.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = categoryLabels[category] || category;
-        
+
         categoryEmotions.forEach(e => {
           const option = document.createElement('option');
           option.value = e.id;
           option.textContent = `${e.label} (${e.defaultIntensity || 2}/5)`;
           optgroup.appendChild(option);
         });
-        
+
         elements.genEmotion.appendChild(optgroup);
       }
     }
-    
+
     console.log(`[Composer] Populated emotion dropdown with ${state.emotions.length} emotions`);
   }
-  
+
   // Render selected frames as clickable cards for generation
   renderFramesToGenerate();
-  
+
   // Check readiness
   const warnings = [];
-  
+
   if (!state.currentShoot.universe) {
     warnings.push('⚠️ Вселенная не выбрана — будут использованы базовые настройки');
   }
-  
+
   if (modelCount === 0) {
     warnings.push('❌ Модели не добавлены — генерация невозможна');
   }
-  
+
   // Check outfit avatars
   if (modelCount >= 2 && hasClothing) {
-    const needsApproval = state.currentShoot.outfitAvatars?.some(a => 
+    const needsApproval = state.currentShoot.outfitAvatars?.some(a =>
       a.status === 'ok' || a.status === 'pending' || a.status === 'empty'
     );
     if (needsApproval) {
       warnings.push('⚠️ Нужно утвердить аватары луков для всех моделей');
     }
   }
-  
+
   if (warnings.length > 0) {
     elements.summaryWarnings.innerHTML = warnings.map(w => `
       <div style="padding: 12px 16px; background: ${w.startsWith('❌') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; border-radius: 8px; margin-bottom: 8px; color: ${w.startsWith('❌') ? '#EF4444' : '#F59E0B'};">
@@ -1340,7 +1362,7 @@ async function renderSummary() {
     elements.summaryWarnings.innerHTML = '';
     elements.btnGenerateOne.disabled = false;
   }
-  
+
   // Render existing generated frames
   renderGeneratedHistory();
 }
@@ -1350,7 +1372,7 @@ async function renderSummary() {
  */
 function renderFramesToGenerate() {
   if (!elements.framesToGenerate) return;
-  
+
   // If no frames selected — show default option only
   if (state.selectedFrames.length === 0) {
     elements.framesToGenerate.innerHTML = `
@@ -1378,11 +1400,11 @@ function renderFramesToGenerate() {
     const frameCards = state.selectedFrames.map((sf, idx) => {
       const frame = state.frames.find(f => f.id === sf.frameId);
       if (!frame) return '';
-      
-      const sketchImg = frame.sketchUrl 
+
+      const sketchImg = frame.sketchUrl
         ? `<img src="${frame.sketchUrl}" alt="sketch" style="width: 100%; height: 100%; object-fit: contain;">`
         : '<span style="font-size: 24px;">🖼️</span>';
-      
+
       return `
         <div class="frame-gen-card" data-frame-id="${frame.id}" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;">
           <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
@@ -1398,7 +1420,7 @@ function renderFramesToGenerate() {
         </div>
       `;
     }).join('');
-    
+
     elements.framesToGenerate.innerHTML = `
       <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
         <h4 style="margin-bottom: 12px; font-size: 14px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации (${state.selectedFrames.length})</h4>
@@ -1418,11 +1440,11 @@ function renderFramesToGenerate() {
       </div>
     `;
   }
-  
+
   // Add click handlers for generation buttons
   const buttons = elements.framesToGenerate.querySelectorAll('.btn-gen-frame');
   console.log('[Composer] Found', buttons.length, 'generation buttons');
-  
+
   buttons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1438,37 +1460,37 @@ function renderFramesToGenerate() {
  */
 async function generateFrameById(frameId) {
   console.log('[Composer] generateFrameById called with:', frameId);
-  
+
   if (!state.currentShoot) {
     console.error('[Composer] No current shoot!');
     return;
   }
-  
+
   const modelCount = state.selectedModels.filter(m => m !== null).length;
   if (modelCount === 0) {
     alert('Сначала добавьте модель');
     return;
   }
-  
+
   // Set the hidden select value
   elements.genFrame.value = frameId;
-  
+
   // Call the existing generate function
   await generateOneFrame();
 }
 
 function exportShootJson() {
   if (!state.currentShoot) return;
-  
+
   const exportData = {
     ...state.currentShoot,
     generatedFrames: state.generatedFrames
   };
-  
+
   const json = JSON.stringify(exportData, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
+
   const a = document.createElement('a');
   a.href = url;
   a.download = `shoot-${state.currentShoot.id}.json`;
@@ -1489,13 +1511,13 @@ function renderGeneratedHistory() {
   // Count only ready frames (not generating ones)
   const readyCount = state.generatedFrames.filter(f => f.status !== 'generating').length;
   const generatingCount = state.generatedFrames.filter(f => f.status === 'generating').length;
-  
+
   if (generatingCount > 0) {
     elements.generationCount.textContent = `${readyCount} изображений, ${generatingCount} генерируется...`;
   } else {
     elements.generationCount.textContent = `${readyCount} изображений`;
   }
-  
+
   if (state.generatedFrames.length === 0) {
     elements.imagesGallery.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
@@ -1506,11 +1528,11 @@ function renderGeneratedHistory() {
     `;
     return;
   }
-  
+
   // Render frames (newest first - already sorted from server, new ones added to beginning)
   elements.imagesGallery.innerHTML = state.generatedFrames.map((frame, idx) => {
     const timestamp = frame.timestamp ? new Date(frame.timestamp).toLocaleTimeString() : '';
-    
+
     // Check if this is a generating placeholder
     if (frame.status === 'generating') {
       return `
@@ -1530,7 +1552,7 @@ function renderGeneratedHistory() {
         </div>
       `;
     }
-    
+
     // Check if this is an error
     if (frame.status === 'error') {
       return `
@@ -1557,30 +1579,30 @@ function renderGeneratedHistory() {
         </div>
       `;
     }
-    
+
     // Normal ready frame
     // Build refs HTML
     const refs = frame.refs || [];
     const refsHtml = refs.length > 0
       ? `<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px;">
           ${refs.map(r => {
-            const url = r.previewUrl || '';
-            const label = r.label || r.kind || 'ref';
-            if (!url) return '';
-            return `
+        const url = r.previewUrl || '';
+        const label = r.label || r.kind || 'ref';
+        if (!url) return '';
+        return `
               <div style="text-align: center;">
                 <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${escapeHtml(label)}</div>
                 <img src="${url}" alt="${escapeHtml(label)}" 
                      style="width:100%; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--color-border);">
               </div>
             `;
-          }).join('')}
+      }).join('')}
         </div>`
       : '';
-    
+
     // Build settings summary for this frame
     const settingsHtml = buildFrameSettingsHtml(frame);
-    
+
     return `
       <div class="selection-card generated-frame-card" data-frame-index="${idx}" style="cursor: default;">
         <div class="selection-card-preview btn-open-lightbox" data-frame-index="${idx}" style="aspect-ratio: 3/4; cursor: pointer;" title="Клик для просмотра">
@@ -1634,7 +1656,7 @@ function renderGeneratedHistory() {
       </div>
     `;
   }).join('');
-  
+
   // Attach handlers
   attachHistoryActionHandlers();
 }
@@ -1644,17 +1666,17 @@ function attachHistoryActionHandlers() {
   elements.imagesGallery.querySelectorAll('.btn-open-lightbox').forEach(btn => {
     btn.addEventListener('click', () => openLightbox(parseInt(btn.dataset.frameIndex)));
   });
-  
+
   // Regenerate buttons
   elements.imagesGallery.querySelectorAll('.btn-regenerate-from-history').forEach(btn => {
     btn.addEventListener('click', () => regenerateFromHistory(parseInt(btn.dataset.frameIndex)));
   });
-  
+
   // Upscale buttons
   elements.imagesGallery.querySelectorAll('.btn-upscale-from-history').forEach(btn => {
     btn.addEventListener('click', () => upscaleFromHistory(parseInt(btn.dataset.frameIndex)));
   });
-  
+
   // Delete buttons
   elements.imagesGallery.querySelectorAll('.btn-delete-from-history').forEach(btn => {
     btn.addEventListener('click', () => deleteFromHistory(parseInt(btn.dataset.frameIndex)));
@@ -1664,12 +1686,12 @@ function attachHistoryActionHandlers() {
 async function regenerateFromHistory(frameIndex) {
   const frame = state.generatedFrames[frameIndex];
   if (!frame) return;
-  
+
   // Use the same settings as the original frame
   elements.genLocation.value = frame.locationId || '';
   elements.genFrame.value = frame.frameId || '';
   elements.genExtraPrompt.value = frame.extraPrompt || '';
-  
+
   // Generate new frame (will be added to history)
   await generateOneFrame();
 }
@@ -1677,24 +1699,24 @@ async function regenerateFromHistory(frameIndex) {
 async function upscaleFromHistory(frameIndex) {
   const frame = state.generatedFrames[frameIndex];
   if (!frame || !state.currentShoot) return;
-  
+
   const btn = elements.imagesGallery.querySelector(`.btn-upscale-from-history[data-frame-index="${frameIndex}"]`);
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳';
-  
+
   try {
     const match = frame.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!match) throw new Error('Invalid image format');
-    
+
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/upscale`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageBase64: match[2], mimeType: match[1], targetSize: '4K' })
     });
-    
+
     const data = await res.json();
-    
+
     if (data.ok && data.data) {
       // Add upscaled as NEW frame in history (at beginning)
       state.generatedFrames.unshift({
@@ -1720,7 +1742,7 @@ async function upscaleFromHistory(frameIndex) {
 async function deleteFromHistory(frameIndex) {
   const frame = state.generatedFrames[frameIndex];
   if (!frame || !state.currentShoot) return;
-  
+
   // If frame has ID, delete from server
   if (frame.id) {
     try {
@@ -1731,24 +1753,24 @@ async function deleteFromHistory(frameIndex) {
       console.error('Failed to delete from server:', e);
     }
   }
-  
+
   state.generatedFrames.splice(frameIndex, 1);
   renderGeneratedHistory();
 }
 
 async function generateOneFrame() {
   if (!state.currentShoot) return;
-  
+
   const btn = elements.btnGenerateOne;
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ Генерация...';
-  
+
   // Get selected options
   const locationId = elements.genLocation.value || null;
   const frameId = elements.genFrame.value || null;
   const extraPrompt = elements.genExtraPrompt.value.trim();
-  
+
   // New artistic controls
   const captureStyle = elements.genCaptureStyle?.value || 'none';
   const cameraSignature = elements.genCameraSignature?.value || 'none';
@@ -1757,16 +1779,16 @@ async function generateOneFrame() {
   const imageSize = elements.genImageSize?.value || '1K';
   const poseAdherence = parseInt(elements.genPoseAdherence?.value) || 2;
   const emotionId = elements.genEmotion?.value || null;
-  
+
   // Get labels for the placeholder card
   const location = state.locations.find(l => l.id === locationId);
   const frame = state.frames.find(f => f.id === frameId);
   const frameLabel = frame?.label || 'Кадр';
   const locationLabel = location?.label || null;
-  
+
   // Create placeholder ID
   const placeholderId = `pending_${Date.now()}`;
-  
+
   // Add placeholder card IMMEDIATELY
   const placeholderFrame = {
     id: placeholderId,
@@ -1779,11 +1801,11 @@ async function generateOneFrame() {
     status: 'generating',  // Special status for placeholder
     timestamp: new Date().toISOString()
   };
-  
+
   // Add to beginning (newest first)
   state.generatedFrames.unshift(placeholderFrame);
   renderGeneratedHistory();
-  
+
   // Find frame index if a frame from shoot is selected (for backward compat)
   let frameIndex = undefined;
   if (frameId) {
@@ -1792,12 +1814,12 @@ async function generateOneFrame() {
       frameIndex = idx;
     }
   }
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/generate-frame`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         frameIndex,
         frameId,  // <-- Pass frameId directly!
         locationId,
@@ -1811,12 +1833,12 @@ async function generateOneFrame() {
         emotionId
       })
     });
-    
+
     const data = await res.json();
-    
+
     // Find and update the placeholder
     const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
-    
+
     if (data.ok && data.data) {
       // Replace placeholder with real data
       if (placeholderIndex >= 0) {
@@ -1844,10 +1866,10 @@ async function generateOneFrame() {
           timestamp: new Date().toISOString()
         };
       }
-      
+
       // Clear extra prompt after successful generation
       elements.genExtraPrompt.value = '';
-      
+
       renderGeneratedHistory();
     } else {
       // Mark placeholder as failed
@@ -1860,7 +1882,7 @@ async function generateOneFrame() {
     }
   } catch (e) {
     console.error('Error generating frame:', e);
-    
+
     // Mark placeholder as failed
     const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
     if (placeholderIndex >= 0) {
@@ -1868,7 +1890,7 @@ async function generateOneFrame() {
       state.generatedFrames[placeholderIndex].error = e.message;
       renderGeneratedHistory();
     }
-    
+
     alert('Ошибка сети: ' + e.message);
   } finally {
     btn.disabled = false;
@@ -1885,22 +1907,22 @@ function attachFrameActionHandlers() {
   elements.imagesGallery.querySelectorAll('.btn-regenerate').forEach(btn => {
     btn.addEventListener('click', () => regenerateFrame(parseInt(btn.dataset.frameIndex)));
   });
-  
+
   // Edit prompt buttons
   elements.imagesGallery.querySelectorAll('.btn-edit-prompt').forEach(btn => {
     btn.addEventListener('click', () => showEditPromptForm(parseInt(btn.dataset.frameIndex)));
   });
-  
+
   // Cancel edit buttons
   elements.imagesGallery.querySelectorAll('.btn-cancel-edit').forEach(btn => {
     btn.addEventListener('click', () => hideEditPromptForm(parseInt(btn.dataset.frameIndex)));
   });
-  
+
   // Apply edit buttons
   elements.imagesGallery.querySelectorAll('.btn-apply-edit').forEach(btn => {
     btn.addEventListener('click', () => applyEditPrompt(parseInt(btn.dataset.frameIndex)));
   });
-  
+
   // Upscale buttons
   elements.imagesGallery.querySelectorAll('.btn-upscale').forEach(btn => {
     btn.addEventListener('click', () => upscaleFrame(parseInt(btn.dataset.frameIndex)));
@@ -1923,26 +1945,26 @@ function hideEditPromptForm(frameIndex) {
 
 async function regenerateFrame(frameIndex) {
   if (!state.currentShoot || !state.generatedFrames) return;
-  
+
   const frame = state.generatedFrames[frameIndex];
   if (!frame) return;
-  
+
   const btn = elements.imagesGallery.querySelector(`.btn-regenerate[data-frame-index="${frameIndex}"]`);
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳...';
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/generate-frame`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         frameIndex: state.selectedFrames.findIndex(sf => sf.frameId === frame.frameId)
       })
     });
-    
+
     const data = await res.json();
-    
+
     if (data.ok && data.data) {
       // Update the frame in state
       state.generatedFrames[frameIndex] = {
@@ -1952,7 +1974,7 @@ async function regenerateFrame(frameIndex) {
         promptJson: data.data.promptJson,
         refs: data.data.refs
       };
-      
+
       // Update the image in DOM
       const card = elements.imagesGallery.querySelector(`.generated-frame-card[data-frame-index="${frameIndex}"]`);
       if (card) {
@@ -1975,36 +1997,36 @@ async function regenerateFrame(frameIndex) {
 
 async function applyEditPrompt(frameIndex) {
   if (!state.currentShoot || !state.generatedFrames) return;
-  
+
   const frame = state.generatedFrames[frameIndex];
   if (!frame) return;
-  
+
   const form = elements.imagesGallery.querySelector(`.edit-prompt-form[data-frame-index="${frameIndex}"]`);
   const textarea = form.querySelector('.edit-prompt-textarea');
   const extraPrompt = textarea.value.trim();
-  
+
   if (!extraPrompt) {
     alert('Введите дополнительный промпт');
     return;
   }
-  
+
   const btn = form.querySelector('.btn-apply-edit');
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳...';
-  
+
   try {
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/generate-frame`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         frameIndex: state.selectedFrames.findIndex(sf => sf.frameId === frame.frameId),
         extraPrompt
       })
     });
-    
+
     const data = await res.json();
-    
+
     if (data.ok && data.data) {
       // Update the frame in state
       state.generatedFrames[frameIndex] = {
@@ -2014,7 +2036,7 @@ async function applyEditPrompt(frameIndex) {
         promptJson: data.data.promptJson,
         refs: data.data.refs
       };
-      
+
       // Update the image in DOM
       const card = elements.imagesGallery.querySelector(`.generated-frame-card[data-frame-index="${frameIndex}"]`);
       if (card) {
@@ -2023,7 +2045,7 @@ async function applyEditPrompt(frameIndex) {
           img.src = data.data.imageUrl;
         }
       }
-      
+
       // Hide the form
       hideEditPromptForm(frameIndex);
       textarea.value = '';
@@ -2041,41 +2063,41 @@ async function applyEditPrompt(frameIndex) {
 
 async function upscaleFrame(frameIndex) {
   if (!state.currentShoot || !state.generatedFrames) return;
-  
+
   const frame = state.generatedFrames[frameIndex];
   if (!frame) return;
-  
+
   const btn = elements.imagesGallery.querySelector(`.btn-upscale[data-frame-index="${frameIndex}"]`);
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳...';
-  
+
   try {
     // Extract base64 from data URL
     const match = frame.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!match) {
       throw new Error('Invalid image format');
     }
-    
+
     const res = await fetch(`/api/shoots/${state.currentShoot.id}/upscale`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         imageBase64: match[2],
         mimeType: match[1],
         targetSize: '4K'
       })
     });
-    
+
     const data = await res.json();
-    
+
     if (data.ok && data.data) {
       // Update with upscaled image
       state.generatedFrames[frameIndex] = {
         ...state.generatedFrames[frameIndex],
         imageUrl: data.data.imageUrl
       };
-      
+
       // Update the image in DOM
       const card = elements.imagesGallery.querySelector(`.generated-frame-card[data-frame-index="${frameIndex}"]`);
       if (card) {
@@ -2089,7 +2111,7 @@ async function upscaleFrame(frameIndex) {
           downloadLink.href = data.data.imageUrl;
         }
       }
-      
+
       btn.textContent = '✓ Апскейл выполнен';
       setTimeout(() => {
         btn.textContent = originalText;
@@ -2121,20 +2143,20 @@ function compressImageAndGetBase64(file) {
     const img = new Image();
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
+
     img.onload = () => {
       let { width, height } = img;
-      
+
       if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
         const ratio = Math.min(MAX_IMAGE_SIZE / width, MAX_IMAGE_SIZE / height);
         width = Math.round(width * ratio);
         height = Math.round(height * ratio);
       }
-      
+
       canvas.width = width;
       canvas.height = height;
       ctx.drawImage(img, 0, 0, width, height);
-      
+
       const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
       const base64 = dataUrl.split(',')[1];
       resolve({
@@ -2143,9 +2165,9 @@ function compressImageAndGetBase64(file) {
         dataUrl
       });
     };
-    
+
     img.onerror = () => reject(new Error('Failed to load image'));
-    
+
     const reader = new FileReader();
     reader.onload = () => { img.src = reader.result; };
     reader.onerror = reject;
@@ -2231,43 +2253,43 @@ const IMAGE_SIZE_LABELS = {
 
 function buildFrameSettingsHtml(frame) {
   const items = [];
-  
+
   // Image format (aspect ratio + size)
   const aspectLabel = ASPECT_RATIO_LABELS[frame.aspectRatio] || frame.aspectRatio || '3:4';
   const sizeLabel = IMAGE_SIZE_LABELS[frame.imageSize] || frame.imageSize || '1K';
   items.push(`<div><strong>📐 Формат:</strong> ${aspectLabel}, ${sizeLabel}</div>`);
-  
+
   // Capture style
   if (frame.captureStyle && frame.captureStyle !== 'none') {
     items.push(`<div><strong>📷 Захват:</strong> ${CAPTURE_STYLE_LABELS[frame.captureStyle] || frame.captureStyle}</div>`);
   }
-  
+
   // Camera signature
   if (frame.cameraSignature && frame.cameraSignature !== 'none') {
     items.push(`<div><strong>📸 Камера:</strong> ${CAMERA_SIGNATURE_LABELS[frame.cameraSignature] || frame.cameraSignature}</div>`);
   }
-  
+
   // Skin texture
   if (frame.skinTexture && frame.skinTexture !== 'none') {
     items.push(`<div><strong>✨ Кожа:</strong> ${SKIN_TEXTURE_LABELS[frame.skinTexture] || frame.skinTexture}</div>`);
   }
-  
+
   // Pose adherence
   if (frame.poseAdherence) {
     items.push(`<div><strong>🎯 Поза:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}</div>`);
   }
-  
+
   // Emotion
   if (frame.emotionId) {
     const emotion = state.emotions.find(e => e.id === frame.emotionId);
     items.push(`<div><strong>😊 Эмоция:</strong> ${emotion?.label || frame.emotionId}</div>`);
   }
-  
+
   // Extra prompt
   if (frame.extraPrompt) {
     items.push(`<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em>${escapeHtml(frame.extraPrompt)}</em></div>`);
   }
-  
+
   return items.join('');
 }
 
@@ -2325,16 +2347,16 @@ function initLightbox() {
   lightbox.zoomHint = document.getElementById('lightbox-zoom-hint');
   lightbox.prevBtn = document.getElementById('lightbox-prev');
   lightbox.nextBtn = document.getElementById('lightbox-next');
-  
+
   if (!lightbox.overlay) return;
-  
+
   // Close button
   document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
-  
+
   // Navigation buttons
   lightbox.prevBtn.addEventListener('click', () => navigateLightbox(-1));
   lightbox.nextBtn.addEventListener('click', () => navigateLightbox(1));
-  
+
   // Click on image to zoom
   lightbox.image.addEventListener('click', (e) => {
     // Don't zoom if we just finished dragging
@@ -2344,13 +2366,13 @@ function initLightbox() {
     }
     toggleZoom();
   });
-  
+
   // Drag to pan when zoomed
   lightbox.container.addEventListener('mousedown', startDrag);
   lightbox.container.addEventListener('mousemove', onDrag);
   lightbox.container.addEventListener('mouseup', endDrag);
   lightbox.container.addEventListener('mouseleave', endDrag);
-  
+
   // Touch support for mobile
   lightbox.container.addEventListener('touchstart', (e) => {
     if (e.touches.length === 1) {
@@ -2364,18 +2386,18 @@ function initLightbox() {
     }
   });
   lightbox.container.addEventListener('touchend', endDrag);
-  
+
   // Click on overlay to close (not on image or container)
   lightbox.overlay.addEventListener('click', (e) => {
     if (e.target === lightbox.overlay) {
       closeLightbox();
     }
   });
-  
+
   // Keyboard navigation
   document.addEventListener('keydown', (e) => {
     if (!lightbox.overlay.classList.contains('active')) return;
-    
+
     switch (e.key) {
       case 'Escape':
         closeLightbox();
@@ -2398,7 +2420,7 @@ function initLightbox() {
 function startDrag(e) {
   // Only drag when zoomed
   if (lightbox.zoomLevel === 1) return;
-  
+
   lightbox.isDragging = true;
   lightbox.dragStartX = e.clientX;
   lightbox.dragStartY = e.clientY;
@@ -2409,10 +2431,10 @@ function startDrag(e) {
 
 function onDrag(e) {
   if (!lightbox.isDragging) return;
-  
+
   const dx = e.clientX - lightbox.dragStartX;
   const dy = e.clientY - lightbox.dragStartY;
-  
+
   lightbox.container.scrollLeft = lightbox.scrollStartX - dx;
   lightbox.container.scrollTop = lightbox.scrollStartY - dy;
 }
@@ -2438,19 +2460,19 @@ function openLightbox(imageIndex) {
       url: f.imageUrl,
       label: f.frameLabel || 'Кадр'
     }));
-  
+
   if (lightbox.images.length === 0) return;
-  
+
   // Find the actual index in filtered array
   const readyFrames = state.generatedFrames.filter(f => f.imageUrl && f.status !== 'generating' && f.status !== 'error');
   const actualIndex = readyFrames.findIndex((_, idx) => {
     const originalIdx = state.generatedFrames.indexOf(readyFrames[idx]);
     return originalIdx === imageIndex;
   });
-  
+
   lightbox.currentIndex = actualIndex >= 0 ? actualIndex : 0;
   lightbox.zoomLevel = 1;
-  
+
   updateLightboxImage();
   lightbox.overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -2464,42 +2486,42 @@ function closeLightbox() {
 
 function navigateLightbox(direction) {
   lightbox.currentIndex += direction;
-  
+
   // Clamp to valid range
   if (lightbox.currentIndex < 0) lightbox.currentIndex = 0;
   if (lightbox.currentIndex >= lightbox.images.length) lightbox.currentIndex = lightbox.images.length - 1;
-  
+
   // Reset zoom when navigating
   lightbox.zoomLevel = 1;
-  
+
   updateLightboxImage();
 }
 
 function toggleZoom() {
   lightbox.zoomLevel++;
   if (lightbox.zoomLevel > 3) lightbox.zoomLevel = 1;
-  
+
   updateLightboxZoom();
 }
 
 function updateLightboxImage() {
   const img = lightbox.images[lightbox.currentIndex];
   if (!img) return;
-  
+
   lightbox.image.src = img.url;
   lightbox.info.textContent = `${img.label} — ${lightbox.currentIndex + 1} / ${lightbox.images.length}`;
-  
+
   // Update navigation buttons
   lightbox.prevBtn.disabled = lightbox.currentIndex === 0;
   lightbox.nextBtn.disabled = lightbox.currentIndex === lightbox.images.length - 1;
-  
+
   updateLightboxZoom();
 }
 
 function updateLightboxZoom() {
   // Update image class
   lightbox.image.className = `lightbox-image zoomed-${lightbox.zoomLevel}x`;
-  
+
   // Update container class for drag cursor
   if (lightbox.zoomLevel > 1) {
     lightbox.container.classList.add('zoomed');
@@ -2513,7 +2535,7 @@ function updateLightboxZoom() {
     lightbox.container.scrollLeft = 0;
     lightbox.container.scrollTop = 0;
   }
-  
+
   // Update hint
   let zoomText;
   if (lightbox.zoomLevel === 1) {
@@ -2530,9 +2552,9 @@ async function init() {
   initElements();
   initEventListeners();
   initLightbox();  // Initialize lightbox
-  
+
   await checkServerStatus();
-  
+
   // Load all data in parallel
   await Promise.all([
     loadShoots(),
@@ -2542,7 +2564,7 @@ async function init() {
     loadLocations(),
     loadEmotions()
   ]);
-  
+
   updateStepStatuses();
 }
 

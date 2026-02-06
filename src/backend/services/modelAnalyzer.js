@@ -108,7 +108,7 @@ async function callOpenAIVision(messages) {
     body: JSON.stringify({
       model: 'gpt-4o',
       messages,
-      max_tokens: 2500,
+      max_completion_tokens: 2500,
       temperature: 0.5,
       response_format: { type: 'json_object' }
     })

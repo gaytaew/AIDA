@@ -219,7 +219,7 @@ IMPORTANT RULES:
  */
 export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '') {
   const apiKey = config.OPENAI_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
@@ -266,7 +266,7 @@ export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '
     body: JSON.stringify({
       model: 'gpt-4o',
       messages,
-      max_tokens: 6000,
+      max_completion_tokens: 1000,
       temperature: 0.4,
       response_format: { type: 'json_object' }
     })
@@ -296,7 +296,7 @@ export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '
 
   // Merge with template to ensure all fields exist
   const template = createEmptyUniverse(parsed.label || 'AI Generated Universe');
-  
+
   const universe = {
     ...template,
     label: parsed.label || template.label,
@@ -336,16 +336,16 @@ export async function analyzeReferencesAndGenerateUniverse(images, userNotes = '
  */
 function processLocations(rawLocations, universeId) {
   if (!Array.isArray(rawLocations)) return [];
-  
+
   const now = new Date().toISOString();
-  
+
   return rawLocations.slice(0, 10).map((loc, idx) => {
     // Validate category
     let category = loc.category || 'urban';
     if (!LOCATION_CATEGORIES.includes(category)) {
       category = 'urban';
     }
-    
+
     return {
       id: generateLocationId(loc.label || `Location ${idx + 1}`),
       label: loc.label || `Location ${idx + 1}`,

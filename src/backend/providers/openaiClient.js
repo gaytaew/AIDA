@@ -114,7 +114,7 @@ export async function requestJsonFromOpenAI({
             model: config.OPENAI_TEXT_MODEL || 'gpt-4o',
             messages,
             temperature,
-            max_tokens: maxTokens,
+            max_completion_tokens: maxTokens,
             response_format: { type: 'json_object' }
         });
 
