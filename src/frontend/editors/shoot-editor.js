@@ -111,7 +111,8 @@ async function loadShoots() {
         const data = await res.json();
         if (!data.ok) throw new Error(data.error);
 
-        renderShootsList(data.data || []);
+        // API returns { ok: true, shoots: [...] }
+        renderShootsList(data.shoots || data.data || []);
     } catch (error) {
         showMessage('Ошибка загрузки съёмок: ' + error.message, 'error');
     }
