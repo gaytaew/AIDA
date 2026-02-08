@@ -2535,6 +2535,113 @@ async function saveGenerationSettings() {
 }
 
 /**
+ * Body Focus → Shot Size / Camera Angle auto-sync
+ * When user changes body focus, auto-adjust shot size and camera angle to match.
+ * Also warns about conflicts when manually changing shot size / camera angle.
+ */
+const BODY_FOCUS_PRESETS = {
+  face: { shotSize: 'close', cameraAngle: 'eye_level' },
+  upper_body: { shotSize: 'medium', cameraAngle: 'eye_level' },
+  hands: { shotSize: 'medium', cameraAngle: 'eye_level' },
+  legs: { shotSize: 'full', cameraAngle: 'eye_level' },
+  feet: { shotSize: 'full', cameraAngle: 'low' },
+  back: { shotSize: '3/4', cameraAngle: 'eye_level' },
+  full_outfit: { shotSize: 'full', cameraAngle: 'eye_level' }
+};
+
+// Conflicting shot sizes per body focus (these will crop the focused area)
+const BODY_FOCUS_SHOT_CONFLICTS = {
+  feet: ['medium', 'close', 'extreme_close', '3/4'],
+  legs: ['close', 'extreme_close'],
+  face: ['full'],  // face too small on full shot
+  full_outfit: ['close', 'extreme_close'],
+  back: ['extreme_close'],
+  hands: [],
+  upper_body: []
+};
+
+// Conflicting camera angles per body focus
+const BODY_FOCUS_ANGLE_CONFLICTS = {
+  feet: ['high'],   // can't show feet from above
+  face: [],
+  legs: ['high'],
+  back: [],
+  hands: [],
+  upper_body: [],
+  full_outfit: []
+};
+
+function onBodyFocusChange() {
+  const bodyFocus = elements.genBodyFocus?.value || 'none';
+  if (bodyFocus === 'none') return;
+
+  const preset = BODY_FOCUS_PRESETS[bodyFocus];
+  if (!preset) return;
+
+  // Auto-set shot size
+  if (elements.genShotSize && preset.shotSize) {
+    const oldValue = elements.genShotSize.value;
+    elements.genShotSize.value = preset.shotSize;
+    if (oldValue !== preset.shotSize) {
+      console.log(`[BodyFocus] Auto-set shot size: ${oldValue} → ${preset.shotSize} (for ${bodyFocus})`);
+    }
+  }
+
+  // Auto-set camera angle
+  if (elements.genCameraAngle && preset.cameraAngle) {
+    const oldValue = elements.genCameraAngle.value;
+    elements.genCameraAngle.value = preset.cameraAngle;
+    if (oldValue !== preset.cameraAngle) {
+      console.log(`[BodyFocus] Auto-set camera angle: ${oldValue} → ${preset.cameraAngle} (for ${bodyFocus})`);
+    }
+  }
+
+  // Save settings
+  saveGenerationSettings();
+}
+
+/**
+ * Check if current shot size / camera angle conflicts with body focus
+ * Called when user manually changes shot size or camera angle
+ */
+function checkBodyFocusConflict(changedParam) {
+  const bodyFocus = elements.genBodyFocus?.value || 'none';
+  if (bodyFocus === 'none') return;
+
+  const focusLabels = {
+    face: 'Лицо', upper_body: 'Верх тела', hands: 'Руки',
+    legs: 'Ноги', feet: 'Обувь/Ступни', back: 'Спина', full_outfit: 'Полный образ'
+  };
+
+  if (changedParam === 'shotSize') {
+    const conflicts = BODY_FOCUS_SHOT_CONFLICTS[bodyFocus] || [];
+    const currentShot = elements.genShotSize?.value;
+    if (conflicts.includes(currentShot)) {
+      const preset = BODY_FOCUS_PRESETS[bodyFocus];
+      const msg = `⚠️ План "${currentShot}" может конфликтовать с фокусом "${focusLabels[bodyFocus]}". Рекомендуется: "${preset.shotSize}"`;
+      console.warn('[BodyFocus]', msg);
+      // Show brief toast/notification if available
+      if (typeof showToast === 'function') {
+        showToast(msg, 'warning');
+      }
+    }
+  }
+
+  if (changedParam === 'cameraAngle') {
+    const conflicts = BODY_FOCUS_ANGLE_CONFLICTS[bodyFocus] || [];
+    const currentAngle = elements.genCameraAngle?.value;
+    if (conflicts.includes(currentAngle)) {
+      const preset = BODY_FOCUS_PRESETS[bodyFocus];
+      const msg = `⚠️ Угол камеры "${currentAngle}" может конфликтовать с фокусом "${focusLabels[bodyFocus]}". Рекомендуется: "${preset.cameraAngle}"`;
+      console.warn('[BodyFocus]', msg);
+      if (typeof showToast === 'function') {
+        showToast(msg, 'warning');
+      }
+    }
+  }
+}
+
+/**
  * Initialize event listeners for auto-saving generation settings
  * NOTE: Only per-frame settings are tracked here
  */
@@ -2558,6 +2665,19 @@ function initSettingsAutoSave() {
       el.addEventListener('change', saveGenerationSettings);
     }
   });
+
+  // Body Focus → auto-adjust Shot Size + Camera Angle
+  if (elements.genBodyFocus) {
+    elements.genBodyFocus.addEventListener('change', onBodyFocusChange);
+  }
+
+  // Shot Size / Camera Angle → check conflicts with Body Focus
+  if (elements.genShotSize) {
+    elements.genShotSize.addEventListener('change', () => checkBodyFocusConflict('shotSize'));
+  }
+  if (elements.genCameraAngle) {
+    elements.genCameraAngle.addEventListener('change', () => checkBodyFocusConflict('cameraAngle'));
+  }
 
   // Add input listener to extra prompt (with debounce already in saveGenerationSettings)
   if (elements.genExtraPrompt) {
