@@ -2540,29 +2540,29 @@ async function saveGenerationSettings() {
  * Also warns about conflicts when manually changing shot size / camera angle.
  */
 const BODY_FOCUS_PRESETS = {
-  face: { shotSize: 'close', cameraAngle: 'eye_level' },
+  face: { shotSize: 'detail_close', cameraAngle: 'eye_level' },
   upper_body: { shotSize: 'medium', cameraAngle: 'eye_level' },
-  hands: { shotSize: 'medium', cameraAngle: 'eye_level' },
-  legs: { shotSize: 'full', cameraAngle: 'eye_level' },
-  feet: { shotSize: 'full', cameraAngle: 'low' },
+  hands: { shotSize: 'detail_close', cameraAngle: 'eye_level' },
+  legs: { shotSize: 'lower_body', cameraAngle: 'eye_level' },
+  feet: { shotSize: 'lower_body', cameraAngle: 'low' },
   back: { shotSize: '3/4', cameraAngle: 'eye_level' },
   full_outfit: { shotSize: 'full', cameraAngle: 'eye_level' }
 };
 
 // Conflicting shot sizes per body focus (these will crop the focused area)
 const BODY_FOCUS_SHOT_CONFLICTS = {
-  feet: ['medium', 'close', 'extreme_close', '3/4'],
-  legs: ['close', 'extreme_close'],
-  face: ['full'],  // face too small on full shot
-  full_outfit: ['close', 'extreme_close'],
+  feet: ['medium', 'close', 'extreme_close'],
+  legs: ['close', 'extreme_close', 'medium'],
+  face: ['full', 'lower_body'],
+  full_outfit: ['close', 'extreme_close', 'detail_close', 'lower_body'],
   back: ['extreme_close'],
   hands: [],
-  upper_body: []
+  upper_body: ['lower_body']
 };
 
 // Conflicting camera angles per body focus
 const BODY_FOCUS_ANGLE_CONFLICTS = {
-  feet: ['high'],   // can't show feet from above
+  feet: ['high'],
   face: [],
   legs: ['high'],
   back: [],

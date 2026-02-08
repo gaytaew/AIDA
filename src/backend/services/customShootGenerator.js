@@ -479,7 +479,34 @@ ${visualPrompt}`);
 
     // Identity preservation
     if (hasIdentityRefs) {
-      v7Sections.push(`
+      // When body focus is NOT on face, we relax facial requirements
+      const facelessFocusZones = ['feet', 'legs', 'hands', 'back'];
+      const isFacelessFocus = bodyFocus && facelessFocusZones.includes(bodyFocus);
+
+      if (isFacelessFocus) {
+        // Relaxed identity: match body type but face may be out of frame
+        v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+IDENTITY PRESERVATION (BODY ONLY — [$1])
+═══════════════════════════════════════════════════════════════
+
+The generated image should show the SAME PERSON as in reference [$1].
+However, the FACE MAY NOT BE VISIBLE in this shot (body focus: ${bodyFocus}).
+
+MATCH FROM REFERENCE:
+- Body proportions, skin tone, body shape
+- Hair color and length (if visible)
+- General physical build
+
+FACE RULES:
+- The face does NOT need to be in the frame.
+- If partially visible, it should match the reference, but it's OK to crop it.
+- Do NOT force the face into the frame — prioritize the BODY FOCUS zone.
+
+${modelDescription ? `Additional notes: ${modelDescription}` : ''}`);
+      } else {
+        // Standard identity preservation (face required)
+        v7Sections.push(`
 ═══════════════════════════════════════════════════════════════
 IDENTITY PRESERVATION (CRITICAL — [$1])
 ═══════════════════════════════════════════════════════════════
@@ -495,6 +522,7 @@ STRICT STYLE ISOLATION:
 - IGNORE lighting/style from [$1] — use the VISUAL STYLE section above.
 
 ${modelDescription ? `Additional notes: ${modelDescription}` : ''}`);
+      }
     }
 
     // Clothing
@@ -608,6 +636,73 @@ Angle: ${composition.cameraAngle || 'eye level'}
 Gaze: ${gazeDesc}`);
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // BODY FOCUS (V8 — targeted area emphasis for V7 prompt)
+    // ═══════════════════════════════════════════════════════════════
+    if (bodyFocus && bodyFocus !== 'none') {
+      const V7_BODY_FOCUS = {
+        face: {
+          zone: 'FACE / HEAD',
+          framing: 'The face must be the dominant element. Close-up framing centered on the face. Use shallow DOF with face razor-sharp.',
+          crop: 'Frame from shoulders up. Show skin texture, makeup, and facial features in detail.',
+          exclude: ''
+        },
+        upper_body: {
+          zone: 'UPPER BODY',
+          framing: 'Frame from waist up. Focus on shoulders, arms, chest area, and upper clothing.',
+          crop: 'Waist-up framing. Upper body centered and prominent.',
+          exclude: ''
+        },
+        hands: {
+          zone: 'HANDS / ACCESSORIES',
+          framing: 'Hands must be the visual focal point. Show rings, bracelets, nails clearly.',
+          crop: 'Position hands prominently in the frame — touching face, on hip, or extended. Shallow DOF focusing on hands.',
+          exclude: ''
+        },
+        legs: {
+          zone: 'LEGS',
+          framing: 'Frame the shot to show LEGS prominently. Camera at a low angle. Legs are the visual center.',
+          crop: 'CROP FROM WAIST DOWN or from hips down. The face may be partially visible at the top of frame or not visible at all. Legs should dominate the composition.',
+          exclude: 'Do NOT center the composition on the face.'
+        },
+        feet: {
+          zone: 'FEET / SHOES',
+          framing: 'LOW ANGLE CAMERA at ground/ankle level. Feet and footwear are the DOMINANT visual element, occupying at least 40-50% of the frame.',
+          crop: 'CRITICAL: Frame from KNEES DOWN or even ANKLES DOWN. The face should NOT be visible in the frame. Show full shoes — do not crop toes or heels. If the model\'s body is visible, it should be from the waist or knees down only.',
+          exclude: 'ABSOLUTELY NO FACE in frame. If any body is visible above the knees, it must be a minor element at the very top edge. The focus is ENTIRELY on feet and shoes.'
+        },
+        back: {
+          zone: 'BACK (rear view)',
+          framing: 'Camera BEHIND the model. Show the back, shoulders from behind, hair from behind.',
+          crop: 'The model is turned AWAY from camera. Face is NOT visible (looking away).',
+          exclude: 'Do NOT show the front of the model. The back MUST face the camera.'
+        },
+        full_outfit: {
+          zone: 'FULL OUTFIT (head to toe)',
+          framing: 'FULL BODY shot from head to toe. Every clothing item clearly visible.',
+          crop: 'Full body with small margin. All garments visible from hat/hair to shoes.',
+          exclude: ''
+        }
+      };
+
+      const focus = V7_BODY_FOCUS[bodyFocus];
+      if (focus) {
+        v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+BODY FOCUS: ${focus.zone} (HIGHEST PRIORITY)
+═══════════════════════════════════════════════════════════════
+
+FRAMING: ${focus.framing}
+
+CROP GUIDE: ${focus.crop}
+
+${focus.exclude ? `⚠️ EXCLUSIONS: ${focus.exclude}` : ''}
+
+This body focus directive OVERRIDES composition/framing if they conflict.
+The focused body zone MUST be the sharpest and most prominent element in the image.`);
+      }
+    }
+
     // Emotion
     if (emotionId) {
       const emotion = getEmotionById(emotionId);
@@ -689,7 +784,8 @@ Before outputting, verify:
       extraPrompt,
       composition,
       qualityMode,
-      mood
+      mood,
+      bodyFocus
     };
 
     return { prompt: v7Prompt, promptJson };
@@ -987,6 +1083,8 @@ ${adherence.forbid ? `⛔ ${adherence.forbid}` : ''}`);
       medium_closeup: 'MEDIUM CLOSE-UP: Chest and up. Upper body focus. NO legs visible.',
       medium: 'MEDIUM SHOT: Waist and up. Hands may be visible. NO knees or below.',
       medium_full: 'MEDIUM FULL: Knees and up. Most of body visible. Feet may be cropped.',
+      lower_body: 'LOWER BODY: Frame from WAIST DOWN or HIPS DOWN. Show legs, feet, lower clothing. Face is NOT visible or barely visible at top edge. Camera focused on lower half of the body.',
+      detail_close: 'DETAIL CLOSE-UP: Tight crop on the specific body zone of focus. Only the focused area fills the frame. Other body parts are cropped out or heavily blurred.',
       full: 'FULL SHOT: ENTIRE body from head to feet. All limbs visible.',
       full_body: 'FULL BODY: ENTIRE body from head to feet. All limbs visible.',
       wide: 'WIDE SHOT: Full body PLUS significant environment context around subject.'
