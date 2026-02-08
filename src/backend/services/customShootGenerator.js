@@ -480,8 +480,8 @@ VISUAL STYLE (from user)
 ${visualPrompt}`);
     }
 
-    // Identity preservation
-    if (hasIdentityRefs) {
+    // Identity preservation (V9: skipped in exact_frame — only sketch matters)
+    if (mode !== 'exact_frame' && hasIdentityRefs) {
       // When body focus is NOT on face, we relax facial requirements
       const facelessFocusZones = ['feet', 'legs', 'hands', 'back'];
       const isFacelessFocus = bodyFocus && facelessFocusZones.includes(bodyFocus);
@@ -590,8 +590,8 @@ Match the setting, atmosphere, lighting conditions, and spatial context.
 The model should be naturally placed within this environment.`);
     }
 
-    // Style Lock
-    if (hasStyleRef && locks?.style?.enabled) {
+    // Style Lock (V9: skipped in exact_frame — style from visual prompt only)
+    if (mode !== 'exact_frame' && hasStyleRef && locks?.style?.enabled) {
       const styleLockPrompt = buildStyleLockPrompt(locks.style);
       if (styleLockPrompt) {
         v7Sections.push(`
@@ -599,8 +599,8 @@ ${styleLockPrompt}`);
       }
     }
 
-    // Pose sketch
-    if (hasPoseSketch) {
+    // Pose sketch (V9: the regular pose sketch section is replaced by EXACT FRAME below)
+    if (mode !== 'exact_frame' && hasPoseSketch) {
       const POSE_ADHERENCE_MAP = {
         1: { label: 'Creative Freedom', instruction: 'Use pose as loose inspiration only.' },
         2: { label: 'Natural Variation', instruction: 'Follow general pose but allow natural adjustments.' },
@@ -744,8 +744,8 @@ ${emotion.physicalHints ? `Physical cues: ${Array.isArray(emotion.physicalHints)
       }
     }
 
-    // Body Pose (only if no pose sketch)
-    if (!hasPoseSketch && poseId) {
+    // Body Pose (V9: skipped in exact_frame — pose from sketch only)
+    if (mode !== 'exact_frame' && !hasPoseSketch && poseId) {
       const pose = getPoseById(poseId);
       if (pose) {
         // CONFLICT RESOLUTION: Shot Size vs Pose
@@ -775,8 +775,8 @@ ADHERENCE: 2/4 — Follow the general idea, natural adjustments welcome.`);
       }
     }
 
-    // Extra prompt
-    if (extraPrompt) {
+    // Extra prompt (V9: skipped in exact_frame — no extra instructions)
+    if (mode !== 'exact_frame' && extraPrompt) {
       v7Sections.push(`
 ═══════════════════════════════════════════════════════════════
 ADDITIONAL INSTRUCTIONS
