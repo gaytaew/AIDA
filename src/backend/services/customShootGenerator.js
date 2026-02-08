@@ -424,6 +424,9 @@ export function buildCustomShootPrompt({
   locationPrompt = '',        // User-written location description
   locationRefPath = null,     // Path to uploaded location reference image
 
+  // Body Focus (V8)
+  bodyFocus = 'none',         // 'none', 'face', 'upper_body', 'hands', 'legs', 'feet', 'back', 'full_outfit'
+
   // Quality settings
   qualityMode = 'DRAFT',
   mood = 'natural'
@@ -1045,6 +1048,97 @@ GAZE DIRECTION: ${gazeDesc}`;
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // SECTION 9C: BODY FOCUS — targeted area emphasis
+  // ═══════════════════════════════════════════════════════════════
+
+  if (bodyFocus && bodyFocus !== 'none') {
+    const BODY_FOCUS_DIRECTIVES = {
+      face: {
+        zone: 'FACE / HEAD',
+        instruction: 'The primary focus of this image is the MODEL\'S FACE. ' +
+          'Ensure the face occupies significant portion of the frame. ' +
+          'Show skin texture details, makeup if any, facial features clearly. ' +
+          'Use shallow depth of field with face as sharpest point.',
+        dof: 'Background and body should have subtle bokeh, face razor-sharp.',
+        framing: 'Frame to emphasize facial features. Hair, ears, jawline visible.',
+        donts: 'Do NOT crop the face. Do NOT blur facial details. Do NOT put face at frame edge.'
+      },
+      upper_body: {
+        zone: 'UPPER BODY (shoulders, chest, arms)',
+        instruction: 'Focus on the upper body: shoulders, chest area, upper arms. ' +
+          'Show clothing details on the upper body clearly. ' +
+          'Neckline, collar, sleeves should be prominent and sharp.',
+        dof: 'Upper body in focus, lower body softly blurred if visible.',
+        framing: 'Waist-up framing recommended. Upper body centered.',
+        donts: 'Do NOT make the upper body a small part of the frame.'
+      },
+      hands: {
+        zone: 'HANDS / FINGERS / WRISTS',
+        instruction: 'The primary focus is the MODEL\'S HANDS. ' +
+          'Show rings, bracelets, nail art, or hand poses in sharp detail. ' +
+          'Hands should be prominent, well-lit, and clearly visible.',
+        dof: 'Hands are the sharpest element. Face and body secondary.',
+        framing: 'Position hands prominently — touching face, on hip, holding object, or extended.',
+        donts: 'Do NOT hide hands behind body. Do NOT blur or crop hands.'
+      },
+      legs: {
+        zone: 'LEGS / THIGHS / KNEES',
+        instruction: 'Focus on the MODEL\'S LEGS. ' +
+          'Show leg shape, stockings, pants, or leg accessories clearly. ' +
+          'Legs should be the visual center of the composition.',
+        dof: 'Legs sharp and detailed. Face may be partially visible but secondary.',
+        framing: 'Frame from mid-thigh to include full legs. Camera from lower angle preferred.',
+        donts: 'Do NOT crop legs out. Do NOT make legs a minor part of the frame.'
+      },
+      feet: {
+        zone: 'FEET / SHOES / ANKLES',
+        instruction: 'The primary focus is the MODEL\'S FEET AND FOOTWEAR. ' +
+          'Show shoes, sandals, boots, or bare feet in sharp detail. ' +
+          'Shoe design, texture, sole, heel, and ankle details must be clearly visible. ' +
+          'Feet should be the dominant visual element.',
+        dof: 'Feet and shoes are razor-sharp. Everything else progressively blurred.',
+        framing: 'LOW ANGLE REQUIRED. Camera at ground level or ankle height. ' +
+          'Feet occupy at least 40% of the frame. ' +
+          'Full shoe visible — do not crop toes or heels.',
+        donts: 'NEVER shoot from above if feet are the focus. NEVER crop feet partially. ' +
+          'Do NOT make feet tiny/distant in the frame.'
+      },
+      back: {
+        zone: 'BACK / SHOULDERS (rear view)',
+        instruction: 'Show the model FROM BEHIND, emphasizing the back. ' +
+          'Shoulder blades, spine area, back of the outfit, hair from behind. ' +
+          'The model should be turned away from camera.',
+        dof: 'Back in sharp focus. Background softly blurred.',
+        framing: 'Camera behind the model. Back centered in frame.',
+        donts: 'Do NOT show the front of the model. The back MUST face the camera.'
+      },
+      full_outfit: {
+        zone: 'FULL OUTFIT (head to toe)',
+        instruction: 'Show the COMPLETE OUTFIT clearly from head to toe. ' +
+          'Every clothing item must be visible and well-lit. ' +
+          'This is a fashion/look photo — outfit is the star.',
+        dof: 'Entire outfit in sharp focus. Minimal depth-of-field blur.',
+        framing: 'FULL BODY shot required. Head to feet visible with small margin.',
+        donts: 'Do NOT crop any part of the outfit. Do NOT use extreme close-ups.'
+      }
+    };
+
+    const focusConfig = BODY_FOCUS_DIRECTIVES[bodyFocus];
+    if (focusConfig) {
+      sections.push(`
+=== BODY FOCUS: ${focusConfig.zone} (MANDATORY) ===
+${focusConfig.instruction}
+
+DEPTH OF FIELD: ${focusConfig.dof}
+FRAMING: ${focusConfig.framing}
+
+⚠️ ${focusConfig.donts}
+
+This body focus directive takes priority over general composition if they conflict.`);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // SECTION 10: EMOTION
   // ═══════════════════════════════════════════════════════════════
 
@@ -1292,7 +1386,10 @@ export async function generateCustomShootFrame({
   antiAi = null,
   ambient = null,
   modelBehavior = null,
-  lensFocalLength = null
+  lensFocalLength = null,
+
+  // Body Focus (V8)
+  bodyFocus = 'none'          // 'none', 'face', 'upper_body', 'hands', 'legs', 'feet', 'back', 'full_outfit'
 }) {
   const genId = `gen_${Date.now() % 100000}`;
   const startTime = Date.now();
@@ -1447,6 +1544,7 @@ export async function generateCustomShootFrame({
         hasPoseSketch: !!poseSketchImage,
         poseAdherence,
         composition,
+        bodyFocus,
         qualityMode,
         mood
       });

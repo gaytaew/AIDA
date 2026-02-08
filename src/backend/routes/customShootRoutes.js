@@ -523,7 +523,12 @@ router.post('/:id/generate', async (req, res) => {
       // ═══════════════════════════════════════════════════════════════
       locationMode,      // 'none', 'reference', 'prompt'
       locationPrompt,    // User-written location description
-      locationRefPath    // Path to uploaded location reference image
+      locationRefPath,   // Path to uploaded location reference image
+
+      // ═══════════════════════════════════════════════════════════════
+      // Body Focus (V8)
+      // ═══════════════════════════════════════════════════════════════
+      bodyFocus          // 'none', 'face', 'upper_body', 'hands', 'legs', 'feet', 'back', 'full_outfit'
     } = req.body;
 
     console.log('[CustomShootRoutes] Generate request for shoot:', shoot.id);
@@ -842,7 +847,12 @@ router.post('/:id/generate', async (req, res) => {
       // ═══════════════════════════════════════════════════════════════
       locationMode: locationMode || 'none',
       locationPrompt: locationPrompt || '',
-      locationRefPath: locationRefPath || null
+      locationRefPath: locationRefPath || null,
+
+      // ═══════════════════════════════════════════════════════════════
+      // Body Focus (V8)
+      // ═══════════════════════════════════════════════════════════════
+      bodyFocus: bodyFocus || 'none'
     });
 
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);

@@ -188,6 +188,7 @@ function initElements() {
   elements.genShotSize = document.getElementById('gen-shot-size');
   elements.genCameraAngle = document.getElementById('gen-camera-angle');
   elements.genGazeDirection = document.getElementById('gen-gaze-direction');
+  elements.genBodyFocus = document.getElementById('gen-body-focus');
 
   // Frame Settings controls
   elements.btnSaveFrame = document.getElementById('btn-save-frame');
@@ -2428,6 +2429,9 @@ function collectGenerationSettings() {
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
     gazeDirection: elements.genGazeDirection?.value || 'camera',
 
+    // Body focus (target area)
+    bodyFocus: elements.genBodyFocus?.value || 'none',
+
     // Body pose (only when no pose sketch)
     poseId: document.getElementById('gen-body-pose')?.value || '',
 
@@ -2472,6 +2476,9 @@ function applyGenerationSettings(settings) {
   }
   if (settings.gazeDirection && elements.genGazeDirection) {
     elements.genGazeDirection.value = settings.gazeDirection;
+  }
+  if (settings.bodyFocus && elements.genBodyFocus) {
+    elements.genBodyFocus.value = settings.bodyFocus;
   }
 
   // Extra prompt
@@ -2541,7 +2548,8 @@ function initSettingsAutoSave() {
     elements.genPoseAdherence,
     // Per-frame composition
     elements.genShotSize,
-    elements.genCameraAngle
+    elements.genCameraAngle,
+    elements.genBodyFocus
   ];
 
   // Add change listeners to all select elements
@@ -2885,6 +2893,7 @@ async function generateFrame(frameId) {
       cameraAngle: elements.genCameraAngle?.value || 'eye_level',
       gazeDirection: elements.genGazeDirection?.value || 'camera'
     },
+    bodyFocus: elements.genBodyFocus?.value || 'none',
     // Body pose (only when no pose sketch - ignored on backend if sketch present)
     poseId: document.getElementById('gen-body-pose')?.value || null,  // empty string becomes null
     // Location settings
@@ -2930,6 +2939,8 @@ async function generateFrame(frameId) {
       poseAdherence: params.poseAdherence,
       universeParams: params.universeParams,
       composition: params.composition,
+      // Body focus
+      bodyFocus: params.bodyFocus || 'none',
       // Location
       locationMode: params.locationMode,
       locationPrompt: params.locationPrompt,
@@ -4365,6 +4376,7 @@ function saveCurrentAsFrame() {
     shotSize: elements.genShotSize?.value || 'medium',
     cameraAngle: elements.genCameraAngle?.value || 'eye_level',
     gazeDirection: elements.genGazeDirection?.value || 'camera',
+    bodyFocus: elements.genBodyFocus?.value || 'none',
     poseId: document.getElementById('gen-body-pose')?.value || ''
   };
 
@@ -4394,6 +4406,9 @@ function loadSavedFrame(frameId) {
   }
   if (elements.genGazeDirection && frame.gazeDirection) {
     elements.genGazeDirection.value = frame.gazeDirection;
+  }
+  if (elements.genBodyFocus && frame.bodyFocus) {
+    elements.genBodyFocus.value = frame.bodyFocus;
   }
   const poseSelect = document.getElementById('gen-body-pose');
   if (poseSelect && frame.poseId) {

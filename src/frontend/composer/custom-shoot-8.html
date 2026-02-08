@@ -839,6 +839,25 @@
                     </select>
                   </div>
 
+                  <!-- Фокус на части тела -->
+                  <div class="form-group" style="margin: 0; grid-column: span 2;">
+                    <label for="gen-body-focus" style="font-size: 12px; margin-bottom: 4px; display: block;">👟
+                      Фокус на части тела</label>
+                    <select id="gen-body-focus"
+                      style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px;">
+                      <option value="none" selected>Без фокуса (стандартная съёмка)</option>
+                      <option value="face">👤 Лицо (макияж, кожа, детали)</option>
+                      <option value="upper_body">💪 Верхняя часть тела</option>
+                      <option value="hands">🤲 Руки (аксессуары, кольца)</option>
+                      <option value="legs">🦵 Ноги</option>
+                      <option value="feet">👟 Обувь / Ступни</option>
+                      <option value="back">🔙 Спина</option>
+                      <option value="full_outfit">👗 Полный образ (вся одежда)</option>
+                    </select>
+                    <div style="font-size: 10px; color: var(--color-text-muted); margin-top: 2px;">Камера сфокусируется
+                      на выбранной зоне</div>
+                  </div>
+
                   <!-- Поза тела (disabled when pose sketch selected) -->
                   <div class="form-group" style="margin: 0; grid-column: span 2;">
                     <label for="gen-body-pose" style="font-size: 12px; margin-bottom: 4px; display: block;">🧍
