@@ -17,7 +17,8 @@ const NAV_ITEMS = [
       { href: '/composer/custom-shoot-5.html', icon: '🏔️', label: 'Custom Shoot 5' },
       { href: '/composer/custom-shoot-v6.html', icon: '🎬', label: 'Custom Shoot V6', style: 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' },
       { href: '/composer/custom-shoot-7.html', icon: '✏️', label: 'Custom Shoot V7', style: 'background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white;' },
-      { href: '/composer/custom-shoot-8.html', icon: '🚀', label: 'Custom Shoot V8', style: 'background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: white;' }
+      { href: '/composer/custom-shoot-8.html', icon: '🚀', label: 'Custom Shoot V8', style: 'background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: white;' },
+      { href: '/composer/custom-shoot-9.html', icon: '🎯', label: 'Exact Frame V9', style: 'background: linear-gradient(135deg, #10b981 0%, #3B82F6 100%); color: white;' }
     ]
   },
   {

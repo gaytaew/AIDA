@@ -528,7 +528,12 @@ router.post('/:id/generate', async (req, res) => {
       // ═══════════════════════════════════════════════════════════════
       // Body Focus (V8)
       // ═══════════════════════════════════════════════════════════════
-      bodyFocus          // 'none', 'face', 'upper_body', 'hands', 'legs', 'feet', 'back', 'full_outfit'
+      bodyFocus,         // 'none', 'face', 'upper_body', 'hands', 'legs', 'feet', 'back', 'full_outfit'
+
+      // ═══════════════════════════════════════════════════════════════
+      // Generation Mode (V9)
+      // ═══════════════════════════════════════════════════════════════
+      mode               // 'exact_frame' for V9 Exact Frame Copy
     } = req.body;
 
     console.log('[CustomShootRoutes] Generate request for shoot:', shoot.id);
@@ -852,7 +857,12 @@ router.post('/:id/generate', async (req, res) => {
       // ═══════════════════════════════════════════════════════════════
       // Body Focus (V8)
       // ═══════════════════════════════════════════════════════════════
-      bodyFocus: bodyFocus || 'none'
+      bodyFocus: bodyFocus || 'none',
+
+      // ═══════════════════════════════════════════════════════════════
+      // Generation Mode (V9)
+      // ═══════════════════════════════════════════════════════════════
+      mode: mode || null
     });
 
     const genDuration = ((Date.now() - genStartTime) / 1000).toFixed(1);

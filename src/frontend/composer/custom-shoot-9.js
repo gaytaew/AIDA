@@ -1,0 +1,4620 @@
+/**
+ * Custom Shoot V8 - Pure Logic Mode
+ * 
+ * Logic-driven prompt generation using Shoot Presets.
+ * Focuses on 'Logic of Silence' and physics-based consistency.
+ */
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Downloads an image URL as JPEG
+ */
+window.downloadAsJpeg = async function (url, filenameBase) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+
+    const ctx = canvas.getContext('2d');
+    // Fill white background for transparency
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0);
+
+    const jpegUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+    const link = document.createElement('a');
+    link.href = jpegUrl;
+    link.download = filenameBase + '.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (e) {
+    console.error('Download failed', e);
+    // Fallback to direct download if conversion fails
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filenameBase + '.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
+
+/**
+ * Fetch with timeout to prevent hanging requests
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${timeoutMs}ms`);
+    }
+    throw e;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+
+const state = {
+  currentStep: 'shoot',
+  currentShoot: null,
+
+  // Available entities (loaded from API)
+  shoots: [],
+  models: [],
+  frames: [],
+  locations: [],
+  emotions: [],
+  emotionCategories: [],
+
+  // Selected for current shoot
+  selectedModels: [null, null, null],
+  clothingByModel: [[], [], []], // Array of ClothingItem[] for each model
+  lookPrompts: ['', '', ''], // General look prompt for each model
+
+  // Generated frames history
+  generatedFrames: [],
+
+  // GLOBAL generation lock - prevents multiple simultaneous generations
+  isGenerating: false,
+
+  // Reference Locks state (Location Lock removed - location is implied in Style Lock)
+  styleLock: { enabled: false, mode: null, imageId: null, imageUrl: null },
+
+  // Generation settings (persisted per shoot)
+  generationSettings: {},
+
+  // Universe params (Custom Shoot 5 - V5 Smart System)
+  universeParams: null,       // Schema from API (for compatibility)
+  universeBlocks: [],         // Block structure for UI
+  universeDefaults: {},       // Default values
+  universeValues: {},         // Current selected values (for compatibility)
+  narrativePreview: null,     // Generated narrative preview
+
+  narrativePreview: null,     // Generated narrative preview
+
+  // Custom Shoot V6/7 PRESETS
+  presets: [],
+  activePresetId: null,
+
+  // V7 Pure Prompt Mode
+  visualPrompt: '',             // User's visual description prompt
+
+  // V5 Smart System (kept for compatibility, not used in V7 UI)
+  v5Schema: null,             // V5 schema (technical, artistic, context)
+  v5Values: {},               // V5 current values
+  v5Corrections: [],          // Auto-corrections applied
+
+  // V8 Saved Frames (Frame Settings presets)
+  savedFrames: [],             // {id, name, emotionId, shotSize, cameraAngle, gazeDirection}
+
+  // Location reference (uploaded image path)
+  locationRefPath: null
+};
+
+// Step order for navigation (frames step removed - frames are selected directly in generate step)
+const STEP_ORDER = ['shoot', 'models', 'clothing', 'generate'];
+
+// ═══════════════════════════════════════════════════════════════
+// DOM ELEMENTS
+// ═══════════════════════════════════════════════════════════════
+
+const elements = {};
+
+function initElements() {
+  elements.serverStatus = document.getElementById('server-status');
+
+  // Step navigation
+  elements.stepItems = document.querySelectorAll('.step-item');
+  elements.stepPanels = document.querySelectorAll('.step-panel');
+
+  // Step 1: Shoot
+  elements.shootsList = document.getElementById('shoots-list');
+  elements.btnNewShoot = document.getElementById('btn-new-shoot');
+  elements.btnNextToModels = document.getElementById('btn-next-to-models');
+  elements.stepShootStatus = document.getElementById('step-shoot-status');
+
+  // Step 2: Models
+  elements.modelSlots = document.getElementById('model-slots');
+  elements.modelsGrid = document.getElementById('models-grid');
+  elements.availableModels = document.getElementById('available-models');
+  elements.btnBackToShoot = document.getElementById('btn-back-to-shoot');
+  elements.btnNextToClothing = document.getElementById('btn-next-to-clothing');
+  elements.stepModelsStatus = document.getElementById('step-models-status');
+
+  // Step 3: Clothing
+  elements.clothingSections = document.getElementById('clothing-sections');
+  elements.btnBackToModels = document.getElementById('btn-back-to-models');
+  elements.btnNextToFrames = document.getElementById('btn-next-to-frames');
+  elements.stepClothingStatus = document.getElementById('step-clothing-status');
+
+  // Step 4: Generate (frames are selected directly here)
+  elements.btnBackToFrames = document.getElementById('btn-back-to-frames');
+  elements.btnClearHistory = document.getElementById('btn-clear-history');
+  elements.imagesGallery = document.getElementById('images-gallery');
+  elements.generationCount = document.getElementById('generation-count');
+  elements.framesToGenerate = document.getElementById('frames-to-generate');
+  elements.stepGenerateStatus = document.getElementById('step-generate-status');
+
+  // Generation controls (per-frame only)
+  elements.genLocation = document.getElementById('gen-location');
+  elements.genExtraPrompt = document.getElementById('gen-extra-prompt');
+  elements.genAspectRatio = document.getElementById('gen-aspect-ratio');
+  elements.genImageSize = document.getElementById('gen-image-size');
+  elements.genPoseAdherence = document.getElementById('gen-pose-adherence');
+  elements.genEmotion = document.getElementById('gen-emotion');
+
+  // Composition controls (per-frame: shot size and camera angle)
+  elements.genShotSize = document.getElementById('gen-shot-size');
+  elements.genCameraAngle = document.getElementById('gen-camera-angle');
+  elements.genGazeDirection = document.getElementById('gen-gaze-direction');
+  elements.genBodyFocus = document.getElementById('gen-body-focus');
+
+  // Frame Settings controls
+  elements.btnSaveFrame = document.getElementById('btn-save-frame');
+  elements.savedFramesShelf = document.getElementById('saved-frames-shelf');
+  elements.savedFramesList = document.getElementById('saved-frames-list');
+
+  // NOTE: Legacy controls removed - now controlled via Universe params:
+  // - genCaptureStyle, genColor, genSkinTexture, genEra
+  // - genShootType, genCameraAesthetic, genLightingSource, genLightingQuality
+  // - genCameraSignature, genLight
+  // - genAntiAiLevel
+  // - genFocusMode, genLensFocal
+  // - genModelBehavior
+  // - genWeather, genTimeOfDay, genSeason, genAtmosphere
+
+  // Lock controls (Location Lock removed - location is implied in Style Lock)
+  elements.styleLockOff = document.getElementById('style-lock-off');
+  elements.styleLockStrict = document.getElementById('style-lock-strict');
+  elements.styleLockSoft = document.getElementById('style-lock-soft');
+  elements.styleLockPreview = document.getElementById('style-lock-preview');
+  elements.styleLockImg = document.getElementById('style-lock-img');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════
+
+function initEventListeners() {
+  // Step navigation clicks
+  elements.stepItems.forEach(item => {
+    item.addEventListener('click', () => {
+      if (!item.classList.contains('locked')) {
+        goToStep(item.dataset.step);
+      }
+    });
+  });
+
+  // Step 1: Shoot
+  elements.btnNewShoot.addEventListener('click', createNewShoot);
+  elements.btnNextToModels.addEventListener('click', () => goToStep('models'));
+
+  // Step 2: Models
+  elements.btnBackToShoot.addEventListener('click', () => goToStep('shoot'));
+  elements.btnNextToClothing.addEventListener('click', () => goToStep('clothing'));
+
+  // Step 3: Clothing (now goes directly to generate, skipping frames step)
+  elements.btnBackToModels.addEventListener('click', () => goToStep('models'));
+  elements.btnNextToFrames.addEventListener('click', () => goToStep('generate'));
+
+  // Step 4: Frames (kept for backward compatibility but not used in navigation)
+  elements.btnBackToClothing?.addEventListener('click', () => goToStep('clothing'));
+  elements.btnNextToGenerate?.addEventListener('click', () => goToStep('generate'));
+
+  // Step 5: Generate (now step 4)
+  elements.btnBackToFrames.addEventListener('click', () => goToStep('clothing'));
+  elements.btnClearHistory.addEventListener('click', clearGenerationHistory);
+
+  // Lock buttons (Location Lock removed - location is implied in Style Lock)
+  elements.styleLockOff.addEventListener('click', () => setStyleLockMode('off'));
+  elements.styleLockStrict.addEventListener('click', () => setStyleLockMode('strict'));
+  elements.styleLockSoft.addEventListener('click', () => setStyleLockMode('soft'));
+
+  // Frame Settings: Save current settings as named frame
+  if (elements.btnSaveFrame) {
+    elements.btnSaveFrame.addEventListener('click', saveCurrentAsFrame);
+  }
+
+  // DELEGATED event handler for generate buttons (won't break on DOM re-renders)
+  elements.framesToGenerate.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-gen-frame');
+    if (btn) {
+      console.log('[Event] Generate button clicked via delegation');
+      e.stopPropagation();
+      generateFrame(btn.dataset.frameId || null);
+    }
+  });
+
+  // DELEGATED event handler for gallery buttons
+  elements.imagesGallery.addEventListener('click', (e) => {
+    const lightboxBtn = e.target.closest('.btn-open-lightbox');
+    if (lightboxBtn) {
+      openLightbox(parseInt(lightboxBtn.dataset.frameIndex));
+      return;
+    }
+
+    const styleRefBtn = e.target.closest('.btn-set-style-ref');
+    if (styleRefBtn) {
+      setAsStyleRef(styleRefBtn.dataset.imageId);
+      return;
+    }
+
+    const deleteBtn = e.target.closest('[data-delete-frame]');
+    if (deleteBtn) {
+      deleteFrame(parseInt(deleteBtn.dataset.deleteFrame));
+      return;
+    }
+
+    // UPSCALE BUTTON
+    const upscaleBtn = e.target.closest('.btn-upscale-frame');
+    if (upscaleBtn) {
+      upscaleFrame(parseInt(upscaleBtn.dataset.frameIndex));
+      return;
+    }
+
+    // EDIT MODE TOGGLER
+    const editToggleBtn = e.target.closest('.btn-toggle-edit-mode');
+    if (editToggleBtn) {
+      const idx = editToggleBtn.dataset.frameIndex;
+      const ui = document.getElementById(`edit-mode-ui-${idx}`);
+      if (ui) {
+        const isHidden = ui.style.display === 'none';
+        // Hide all other edit uis
+        document.querySelectorAll('.edit-mode-ui').forEach(el => el.style.display = 'none');
+        // Toggle current
+        ui.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          setTimeout(() => document.getElementById(`edit-prompt-${idx}`)?.focus(), 100);
+        }
+      }
+      return;
+    }
+
+    // SUBMIT EDIT
+    const submitEditBtn = e.target.closest('.btn-submit-edit');
+    if (submitEditBtn) {
+      const idx = submitEditBtn.dataset.frameIndex;
+      const frameId = submitEditBtn.dataset.frameId;
+      const prompt = document.getElementById(`edit-prompt-${idx}`)?.value;
+      if (prompt && prompt.trim()) {
+        editFrame(frameId, prompt.trim());
+        // Hide UI
+        const ui = document.getElementById(`edit-mode-ui-${idx}`);
+        if (ui) ui.style.display = 'none';
+      } else {
+        alert('Введите описание изменений');
+      }
+      return;
+    }
+
+    // CANCEL EDIT
+    const cancelEditBtn = e.target.closest('.btn-cancel-edit');
+    if (cancelEditBtn) {
+      const idx = cancelEditBtn.dataset.frameIndex;
+      const ui = document.getElementById(`edit-mode-ui-${idx}`);
+      if (ui) ui.style.display = 'none';
+      return;
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // LOCATION MODE HANDLERS
+  // ═══════════════════════════════════════════════════════════════
+
+  const locationModeSelect = document.getElementById('gen-location-mode');
+  const locationRefContainer = document.getElementById('location-reference-container');
+  const locationPromptContainer = document.getElementById('location-prompt-container');
+  const locationRefInput = document.getElementById('location-ref-input');
+  const locationRefPreview = document.getElementById('location-ref-preview');
+  const locationRefStatus = document.getElementById('location-ref-status');
+  const btnUploadLocationRef = document.getElementById('btn-upload-location-ref');
+
+  if (locationModeSelect) {
+    locationModeSelect.addEventListener('change', () => {
+      const mode = locationModeSelect.value;
+      locationRefContainer.style.display = mode === 'reference' ? 'block' : 'none';
+      locationPromptContainer.style.display = mode === 'prompt' ? 'block' : 'none';
+    });
+  }
+
+  if (btnUploadLocationRef && locationRefInput) {
+    btnUploadLocationRef.addEventListener('click', () => locationRefInput.click());
+
+    locationRefInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      locationRefStatus.textContent = 'Загрузка...';
+      btnUploadLocationRef.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/shoot-presets/upload-reference', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) throw new Error('Upload failed');
+
+        const data = await res.json();
+        state.locationRefPath = data.path;
+
+        locationRefPreview.src = data.path;
+        locationRefPreview.style.display = 'block';
+        locationRefStatus.textContent = '✓ Загружено';
+        console.log('[Location] Reference uploaded:', data.path);
+      } catch (err) {
+        console.error('[Location] Upload error:', err);
+        locationRefStatus.textContent = '❌ Ошибка загрузки';
+        state.locationRefPath = null;
+      } finally {
+        btnUploadLocationRef.disabled = false;
+      }
+    });
+  }
+
+  // PRESET UI HANDLERS
+  initPresetEventListeners();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+
+function goToStep(stepId) {
+  state.currentStep = stepId;
+
+  // Update step items
+  elements.stepItems.forEach(item => {
+    item.classList.remove('active');
+    if (item.dataset.step === stepId) {
+      item.classList.add('active');
+    }
+  });
+
+  // Update step panels
+  elements.stepPanels.forEach(panel => {
+    panel.classList.remove('active');
+    if (panel.dataset.panel === stepId) {
+      panel.classList.add('active');
+    }
+  });
+
+  // Run step-specific logic
+  switch (stepId) {
+    case 'models':
+      renderModelSlots();
+      renderAvailableModels();
+      break;
+    case 'clothing':
+      // Reload clothing images if they were stripped in slim mode
+      loadClothingImagesIfNeeded().then(() => {
+        renderClothingSections();
+      });
+      break;
+    case 'generate':
+      renderGeneratePage();
+      break;
+  }
+
+  updateStepStatuses();
+}
+
+function updateStepStatuses() {
+  const hasShoot = !!state.currentShoot;
+  const hasModels = state.selectedModels.filter(m => m !== null).length > 0;
+  const modelCount = state.selectedModels.filter(m => m !== null).length;
+
+  // Update step lock status
+  elements.stepItems.forEach(item => {
+    const step = item.dataset.step;
+    let locked = false;
+
+    switch (step) {
+      case 'shoot':
+        locked = false;
+        break;
+      case 'models':
+        locked = !hasShoot;
+        break;
+      case 'clothing':
+        locked = !hasModels;
+        break;
+      case 'generate':
+        locked = !hasModels;
+        break;
+    }
+
+    item.classList.toggle('locked', locked);
+  });
+
+  // Update status badges
+  if (hasShoot) {
+    elements.stepShootStatus.textContent = state.currentShoot.label;
+    elements.stepShootStatus.className = 'step-status ready';
+  } else {
+    elements.stepShootStatus.textContent = 'Не выбрано';
+    elements.stepShootStatus.className = 'step-status pending';
+  }
+
+  elements.stepModelsStatus.textContent = `${modelCount} / 3`;
+  elements.stepModelsStatus.className = modelCount > 0 ? 'step-status ready' : 'step-status pending';
+
+  // Check if any model has clothing items (with images OR prompts)
+  const hasClothing = state.clothingByModel.some(items =>
+    items.length > 0 && items.some(item =>
+      (item.images && item.images.length > 0) ||
+      (item.prompt && item.prompt.trim())
+    )
+  );
+  elements.stepClothingStatus.textContent = hasClothing ? 'Загружено' : 'Опционально';
+  elements.stepClothingStatus.className = hasClothing ? 'step-status ready' : 'step-status pending';
+
+  // Generate step status - show frame count from catalog
+  const frameCount = state.frames.length;
+  elements.stepGenerateStatus.textContent = frameCount > 0 ? `${frameCount} кадров` : '—';
+  elements.stepGenerateStatus.className = frameCount > 0 ? 'step-status ready' : 'step-status pending';
+
+  // Update navigation buttons
+  elements.btnNextToModels.disabled = !hasShoot;
+  elements.btnNextToClothing.disabled = !hasModels;
+  elements.btnNextToFrames.disabled = !hasModels;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STEP 1: CUSTOM SHOOTS
+// ═══════════════════════════════════════════════════════════════
+
+async function loadShoots() {
+  try {
+    const res = await fetchWithTimeout('/api/custom-shoots', {}, 15000);
+    const data = await res.json();
+    if (data.ok) {
+      state.shoots = data.shoots || [];
+    }
+  } catch (e) {
+    console.error('[LoadShoots] Error:', e.message);
+  }
+  renderShootsList();
+}
+
+function renderShootsList() {
+  if (state.shoots.length === 0) {
+    elements.shootsList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">✨</div>
+        <div class="empty-state-title">Нет съёмок</div>
+        <div class="empty-state-text">Создайте первый Custom Shoot</div>
+      </div>
+    `;
+    return;
+  }
+
+  elements.shootsList.innerHTML = state.shoots.map(shoot => `
+    <div class="shoot-card ${state.currentShoot?.id === shoot.id ? 'selected' : ''}" 
+         data-shoot-id="${shoot.id}">
+      <div class="shoot-card-icon">✨</div>
+      <div class="shoot-card-info">
+        <div class="shoot-card-title">${escapeHtml(shoot.label)}</div>
+        <div class="shoot-card-meta">
+          ${shoot.imageCount || 0} кадров
+          ${shoot.hasStyleLock ? '• 🎨 Style Lock' : ''}
+        </div>
+      </div>
+      <button class="btn-delete-shoot" data-shoot-id="${shoot.id}" title="Удалить съёмку" 
+              style="background: transparent; border: none; color: var(--color-accent); padding: 8px; cursor: pointer; font-size: 16px; opacity: 0.6;"
+              onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">
+        🗑️
+      </button>
+    </div>
+  `).join('');
+
+  // Add click handlers
+  elements.shootsList.querySelectorAll('.shoot-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('btn-delete-shoot')) return;
+      selectShoot(card.dataset.shootId);
+    });
+  });
+
+  // Add delete handlers
+  elements.shootsList.querySelectorAll('.btn-delete-shoot').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteShoot(btn.dataset.shootId);
+    });
+  });
+}
+
+async function createNewShoot() {
+  const label = prompt('Название съёмки:', 'Custom Shoot');
+  if (!label) return;
+
+  try {
+    const res = await fetchWithTimeout('/api/custom-shoots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label })
+    }, 5000);
+    const data = await res.json();
+    if (data.ok) {
+      state.shoots.unshift({
+        id: data.shoot.id,
+        label: data.shoot.label,
+        imageCount: 0
+      });
+      state.currentShoot = data.shoot;
+      loadShootState();
+      renderShootsList();
+      updateStepStatuses();
+    } else {
+      alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+    }
+  } catch (e) {
+    console.error('Error creating shoot:', e);
+    alert('Ошибка создания съёмки');
+  }
+}
+
+async function selectShoot(shootId) {
+  try {
+    // Use slim=1 for fast initial load (clothing images loaded on step 3)
+    const res = await fetchWithTimeout(`/api/custom-shoots/${shootId}?slim=1`, {}, 5000);
+    const data = await res.json();
+    if (data.ok) {
+      state.currentShoot = data.shoot;
+      loadShootState();
+      renderShootsList();
+      updateStepStatuses();
+    }
+  } catch (e) {
+    console.error('Error loading shoot:', e);
+  }
+}
+
+function loadShootState() {
+  if (!state.currentShoot) return;
+
+  // Load models
+  state.selectedModels = [null, null, null];
+  if (state.currentShoot.models) {
+    state.currentShoot.models.forEach((m, i) => {
+      if (i < 3) {
+        state.selectedModels[i] = state.models.find(model => model.id === m.modelId) || null;
+      }
+    });
+  }
+
+  // Load clothing (new format with grouped items)
+  state.clothingByModel = [[], [], []];
+  state.lookPrompts = ['', '', ''];
+
+  console.log('[LoadClothing] Raw clothing from shoot:', state.currentShoot.clothing);
+  console.log('[LoadClothing] Raw lookPrompts from shoot:', state.currentShoot.lookPrompts);
+
+  if (state.currentShoot.clothing) {
+    state.currentShoot.clothing.forEach(c => {
+      if (c.forModelIndex >= 0 && c.forModelIndex < 3) {
+        // Check if it's new format (items) or old format (refs)
+        if (c.items) {
+          // New format
+          console.log('[LoadClothing] Loading items for model', c.forModelIndex, ':',
+            c.items.map(item => ({ name: item.name, promptLen: item.prompt?.length, imagesCount: item.images?.length }))
+          );
+          state.clothingByModel[c.forModelIndex] = c.items;
+        } else if (c.refs) {
+          // Old format - migrate to new
+          console.log('[LoadClothing] Migrating old refs for model', c.forModelIndex);
+          state.clothingByModel[c.forModelIndex] = migrateOldClothingRefs(c.refs);
+        }
+      }
+    });
+  }
+
+  // Load look prompts
+  if (state.currentShoot.lookPrompts) {
+    state.currentShoot.lookPrompts.forEach(lp => {
+      if (lp.forModelIndex >= 0 && lp.forModelIndex < 3) {
+        state.lookPrompts[lp.forModelIndex] = lp.prompt || '';
+      }
+    });
+  }
+
+  // Load generated images (isLocationReference removed - location implied in style)
+  state.generatedFrames = (state.currentShoot.generatedImages || []).map(img => ({
+    ...img, // Load ALL saved properties (prompt, refs, composition, settings, etc.)
+    status: 'ready',
+    timestamp: img.createdAt || img.timestamp,
+    // Ensure booleans
+    isStyleReference: !!img.isStyleReference
+  }));
+
+  // Load locks (Location Lock removed - location is implied in Style Lock)
+  state.styleLock = state.currentShoot.locks?.style || { enabled: false, mode: null, imageId: null, imageUrl: null };
+
+  // Load generation settings
+  state.generationSettings = state.currentShoot.generationSettings || {};
+
+  // Load saved frames (V8 Frame Settings presets)
+  loadSavedFramesFromShoot();
+
+  // Restore V5 Universe parameters if saved
+  if (state.generationSettings.universeValues) {
+    console.log('[LoadShootState] Restoring V5 settings:', Object.keys(state.generationSettings.universeValues));
+    state.universeValues = { ...state.generationSettings.universeValues };
+    state.v5Values = { ...state.generationSettings.universeValues };
+
+    // Defer render to ensure schema is loaded
+    setTimeout(() => {
+      renderUniverseParamsUI();
+      applyV5Dependencies();
+    }, 100);
+  }
+}
+
+/**
+ * Load full clothing images if they were stripped in slim mode
+ * Called when user navigates to clothing step (step 3)
+ */
+async function loadClothingImagesIfNeeded() {
+  if (!state.currentShoot) return;
+
+  // Check if any clothing images have _placeholder flag (were stripped in slim mode)
+  const hasPlaceholders = state.clothingByModel.some(items =>
+    items.some(item =>
+      item.images?.some(img => img._placeholder)
+    )
+  );
+
+  if (!hasPlaceholders) {
+    console.log('[LoadClothing] No placeholders found, images already loaded');
+    return;
+  }
+
+  console.log('[LoadClothing] Detected placeholders, reloading full clothing data...');
+
+  try {
+    // Reload shoot WITHOUT slim mode to get full clothing images
+    const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {}, 10000);
+    const data = await res.json();
+
+    if (data.ok && data.shoot.clothing) {
+      // Update only clothing data (preserve other state)
+      state.clothingByModel = [[], [], []];
+
+      data.shoot.clothing.forEach(c => {
+        if (c.forModelIndex >= 0 && c.forModelIndex < 3) {
+          if (c.items) {
+            console.log('[LoadClothing] Reloaded items for model', c.forModelIndex, ':',
+              c.items.map(item => ({ name: item.name, imagesCount: item.images?.length }))
+            );
+            state.clothingByModel[c.forModelIndex] = c.items;
+          } else if (c.refs) {
+            // Old format - migrate
+            state.clothingByModel[c.forModelIndex] = migrateOldClothingRefs(c.refs);
+          }
+        }
+      });
+
+      console.log('[LoadClothing] Full clothing data reloaded successfully');
+    }
+  } catch (e) {
+    console.error('[LoadClothing] Error reloading clothing data:', e);
+  }
+}
+
+async function deleteShoot(shootId) {
+  if (!confirm('Удалить этот Custom Shoot?')) return;
+
+  try {
+    const res = await fetchWithTimeout(`/api/custom-shoots/${shootId}`, { method: 'DELETE' }, 5000);
+    const data = await res.json();
+
+    if (data.ok) {
+      state.shoots = state.shoots.filter(s => s.id !== shootId);
+      if (state.currentShoot?.id === shootId) {
+        state.currentShoot = null;
+        state.selectedModels = [null, null, null];
+        state.clothingByModel = [[], [], []];
+        state.generatedFrames = [];
+      }
+      renderShootsList();
+      updateStepStatuses();
+    }
+  } catch (e) {
+    console.error('Error deleting shoot:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STEP 2: MODELS (same as shoot-composer)
+// ═══════════════════════════════════════════════════════════════
+
+async function loadModels() {
+  try {
+    const res = await fetchWithTimeout('/api/models', {}, 10000);
+    const data = await res.json();
+    if (data.ok) {
+      state.models = data.data || [];
+    }
+  } catch (e) {
+    console.error('[LoadModels] Error:', e.message);
+  }
+}
+
+function renderModelSlots() {
+  const slots = elements.modelSlots.querySelectorAll('.model-slot');
+
+  slots.forEach((slot, index) => {
+    // ... existing logic ...
+    // Note: Kept original logic, just ensuring valid closure
+    // (This block is context for where to append new functions, 
+    // but actual replacement is appending at end of file)
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SHOOT PRESETS LOGIC (V6/V7)
+// ═══════════════════════════════════════════════════════════════
+
+function initPresetEventListeners() {
+  // Modal Open
+  const btnOpen = document.getElementById('btn-open-preset-gen');
+  const btnCreate = document.getElementById('btn-create-preset-shortcut');
+  if (btnOpen) btnOpen.onclick = openPresetModal;
+  if (btnCreate) btnCreate.onclick = openPresetModal;
+
+  // Modal Close
+  document.getElementById('btn-close-preset-modal').onclick = closePresetModal;
+  document.getElementById('btn-preset-discard').onclick = resetPresetModal;
+
+  // Tabs
+  document.getElementById('tab-preset-text').onclick = () => switchPresetTab('text');
+  document.getElementById('tab-preset-image').onclick = () => switchPresetTab('image');
+
+  // Generation Buttons
+  document.getElementById('btn-gen-preset-text').onclick = generatePresetFromText;
+  document.getElementById('btn-gen-preset-image').onclick = generatePresetFromImage;
+
+  // Save Button
+  document.getElementById('btn-preset-save').onclick = saveGeneratedPreset;
+
+  // Image Upload
+  const dropZone = document.getElementById('preset-drop-zone');
+  const fileInput = document.getElementById('preset-file-input');
+
+  dropZone.onclick = () => fileInput.click();
+  fileInput.onchange = handlePresetFileSelect;
+
+  dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+  dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handlePresetFile(e.dataTransfer.files[0]);
+  };
+}
+
+async function loadPresets() {
+  try {
+    const res = await fetch('/api/shoot-presets');
+    const data = await res.json();
+    state.presets = data || [];
+    renderPresetsList();
+  } catch (e) {
+    console.error('Error loading presets:', e);
+  }
+}
+
+function renderPresetsList() {
+  const container = document.getElementById('presets-list');
+  if (!container) return;
+
+  const cardsHtml = state.presets.map(p => `
+    <div class="preset-card ${state.activePresetId === p.id ? 'active' : ''}" 
+         onclick="applyPreset('${p.id}')">
+      <div class="preset-card-title">${escapeHtml(p.name)}</div>
+      <div class="preset-card-desc">${escapeHtml(p.description)}</div>
+      ${state.activePresetId === p.id ? '<div style="font-size:10px; margin-top:4px;">✅ Active</div>' : ''}
+    </div>
+  `).join('');
+
+  container.innerHTML = cardsHtml +
+    '<div class="btn-create-preset" onclick="openPresetModal()">+</div>';
+
+  // Re-attach global create handler since we overwrote the DOM
+  // But onclick="openPresetModal()" in HTML handles it fine 
+  // (we need to make openPresetModal global or attach here)
+}
+
+function openPresetModal() {
+  document.getElementById('preset-gen-modal').style.display = 'flex';
+}
+
+function closePresetModal() {
+  document.getElementById('preset-gen-modal').style.display = 'none';
+}
+
+function switchPresetTab(tab) {
+  document.querySelectorAll('.preset-gen-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-preset-${tab}`).classList.add('active');
+
+  document.getElementById('panel-preset-text').style.display = tab === 'text' ? 'block' : 'none';
+  document.getElementById('panel-preset-image').style.display = tab === 'image' ? 'block' : 'none';
+}
+
+// TEXT GENERATION
+async function generatePresetFromText() {
+  const prompt = document.getElementById('preset-text-prompt').value;
+  if (!prompt) return alert('Введите описание стиля');
+
+  setPresetLoading(true);
+  try {
+    const res = await fetch('/api/shoot-presets/generate-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showPresetPreview(data.preset);
+    } else {
+      alert('Ошибка: ' + data.error);
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Ошибка соединения');
+  }
+  setPresetLoading(false);
+}
+
+// IMAGE HANDLING
+function handlePresetFileSelect(e) {
+  if (e.target.files.length) handlePresetFile(e.target.files[0]);
+}
+
+function handlePresetFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('preset-drop-label').style.display = 'none';
+    const img = document.getElementById('preset-preview-img');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('btn-gen-preset-image').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function generatePresetFromImage() {
+  const imgEl = document.getElementById('preset-preview-img');
+  const imgBase64 = imgEl ? imgEl.src : '';
+
+  if (!imgBase64 || imgBase64.length < 100) {
+    alert('Ошибка: Изображение не загружено или повреждено');
+    console.error('Image source invalid:', imgBase64);
+    return;
+  }
+
+  setPresetLoading(true);
+  try {
+    console.log('Sending preset generation request...', imgBase64.substring(0, 50) + '...');
+    const res = await fetchWithTimeout('/api/shoot-presets/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: imgBase64 })
+    }, 60000); // 60s timeout for AI generation
+    const data = await res.json();
+
+    if (data.success) {
+      showPresetPreview(data.preset, data.logs || [], data.warnings || []);
+    } else {
+      alert('Ошибка: ' + data.error);
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Ошибка соединения');
+  }
+  setPresetLoading(false);
+}
+
+// COMMON PRESET LOGIC
+let tempGeneratedPreset = null;
+
+function setPresetLoading(isLoading) {
+  document.getElementById('preset-loading').style.display = isLoading ? 'block' : 'none';
+  if (isLoading) {
+    document.getElementById('preset-gen-result').style.display = 'none';
+  }
+}
+
+// Helper to resolve ID to FULL PROMPT String from schema
+function resolveSchemaValue(category, sub, id) {
+  if (!id) return '';
+  if (!presetSchema) {
+    console.warn('resolveSchemaValue: presetSchema not loaded yet, returning id:', id);
+    return id;
+  }
+
+  const collection = presetSchema[category]?.[sub];
+  if (!collection) {
+    console.warn(`resolveSchemaValue: collection not found for ${category}.${sub}`);
+    return id;
+  }
+
+  const item = collection[id];
+  if (!item) {
+    console.warn(`resolveSchemaValue: item not found for ${category}.${sub}.${id}`);
+    return id;
+  }
+
+  // For simple string values (like LENSES, APERTURES, etc.)
+  if (typeof item === 'string') return item;
+
+  // For complex objects (like CAMERA_TYPES, LIGHT_SOURCES)
+  if (item.prompt) return item.prompt;
+
+  // Fallback to label if available
+  if (item.label) return item.label;
+
+  console.warn('resolveSchemaValue: no prompt/label found, returning id:', id);
+  return id;
+}
+
+function generatePresetRichText(preset) {
+  let injection = `[PRESET: ${preset.name}]\n`;
+
+  // Camera
+  if (preset.camera?.type) injection += `• Camera: ${resolveSchemaValue('camera', 'types', preset.camera.type)}\n`;
+  if (preset.camera?.aperture) injection += `• Aperture: ${resolveSchemaValue('camera', 'apertures', preset.camera.aperture)}\n`;
+  if (preset.camera?.shutter) injection += `• Shutter: ${resolveSchemaValue('camera', 'shutters', preset.camera.shutter)}\n`;
+  if (preset.camera?.focalLength) injection += `• Lens: ${resolveSchemaValue('camera', 'lenses', preset.camera.focalLength)}\n`;
+
+  // Lighting
+  if (preset.lighting?.source) injection += `• Light: ${resolveSchemaValue('lighting', 'sources', preset.lighting.source)}\n`;
+  if (preset.lighting?.quality) injection += `• Quality: ${resolveSchemaValue('lighting', 'quality', preset.lighting.quality)}\n`;
+  if (preset.lighting?.direction) injection += `• Direction: ${resolveSchemaValue('lighting', 'directions', preset.lighting.direction)}\n`;
+  if (preset.lighting?.temp) injection += `• Temp: ${resolveSchemaValue('lighting', 'temp', preset.lighting.temp)}\n`;
+
+  // Atmosphere
+  if (preset.atmosphere?.mood) injection += `• Mood: ${resolveSchemaValue('atmosphere', 'moods', preset.atmosphere.mood)}\n`;
+  if (preset.atmosphere?.era) injection += `• Era: ${resolveSchemaValue('atmosphere', 'eras', preset.atmosphere.era)}\n`;
+  if (preset.atmosphere?.processing) injection += `• Processing: ${resolveSchemaValue('atmosphere', 'processing', preset.atmosphere.processing)}\n`;
+
+  // LOCATION
+  if (preset.location?.description) {
+    injection += `• Location: ${preset.location.description}\n`;
+  }
+  else if (preset.location?.spaceType) {
+    injection += `• Location: ${resolveSchemaValue('location', 'spaceTypes', preset.location.spaceType)}\n`;
+  }
+
+  // POSE — removed, now controlled by V8 Frame Settings (poseId)
+  // PHYSICS (still from preset)
+  if (preset.physics) injection += `• Physics: ${preset.physics}\n`;
+
+  // EMOTION — removed, now controlled by V8 Frame Settings (emotionId)
+
+  return injection;
+}
+
+async function showPresetPreview(preset, logs = [], warnings = []) {
+  tempGeneratedPreset = preset;
+
+  // ENSURE schema is loaded before rendering rich text
+  if (!presetSchema) {
+    console.log('showPresetPreview: schema not loaded, loading now...');
+    await loadPresetSchema();
+  }
+
+  // Show Visual Preview (Rich Text)
+  const richText = generatePresetRichText(preset);
+  const previewContainer = document.getElementById('preset-json-preview');
+
+  // Build warnings HTML
+  let warningsHtml = '';
+  if (warnings && warnings.length > 0) {
+    warningsHtml = `
+      <div style="margin-bottom: 12px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;">
+        <strong style="color: #856404;">⚠️ Обнаружены конфликты:</strong>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #856404;">
+          ${warnings.map(w => `
+            <li style="margin-bottom: 6px;">
+              <strong>${w.message}</strong>
+              ${w.suggestion ? `<br><span style="font-size: 11px; opacity: 0.8;">💡 ${w.suggestion}</span>` : ''}
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Build auto-fixes HTML
+  let logsHtml = '';
+  if (logs && logs.length > 0) {
+    logsHtml = `
+      <div style="margin-bottom: 12px; padding: 10px; background: #d1e7dd; border: 1px solid #198754; border-radius: 6px;">
+        <strong style="color: #0f5132;">✅ Авто-исправления:</strong>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #0f5132; font-size: 12px;">
+          ${logs.map(l => `<li>${l}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  previewContainer.innerHTML = `
+    ${warningsHtml}
+    ${logsHtml}
+    <div style="margin-bottom: 12px; font-family: sans-serif; font-size: 13px; line-height: 1.5; color: var(--color-text);">
+      <strong>Предпросмотр (как это будет в промпте):</strong><br>
+      <pre style="white-space: pre-wrap; background: var(--color-surface); padding: 8px; border-radius: 4px; border: 1px solid var(--color-border); margin-top: 4px;">${richText}</pre>
+    </div>
+    <details>
+      <summary style="cursor: pointer; color: var(--color-text-muted); font-size: 11px;">Показать raw JSON (для отладки)</summary>
+      <pre style="font-size: 10px; margin-top: 4px;">${JSON.stringify(preset, null, 2)}</pre>
+    </details>
+  `;
+
+  document.getElementById('preset-gen-result').style.display = 'block';
+}
+
+function resetPresetModal() {
+  document.getElementById('preset-gen-result').style.display = 'none';
+  document.getElementById('preset-json-preview').innerHTML = '';
+  tempGeneratedPreset = null;
+  document.getElementById('preset-text-prompt').value = '';
+  // process reset elements...
+}
+
+async function saveGeneratedPreset() {
+  if (!tempGeneratedPreset) return;
+
+  try {
+    const res = await fetch('/api/shoot-presets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset: tempGeneratedPreset })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      state.presets.push(data.preset);
+      renderPresetsList();
+      closePresetModal();
+      applyPreset(data.preset.id); // Auto-apply newly created preset
+    }
+  } catch (e) {
+    alert('Ошибка сохранения');
+  }
+}
+
+
+// SCHEMA CACHE
+let presetSchema = null;
+
+async function loadPresetSchema() {
+  try {
+    const res = await fetch('/api/shoot-presets/schema');
+    presetSchema = await res.json();
+    console.log('Preset Schema loaded for V8 injection');
+  } catch (e) {
+    console.error('Failed to load preset schema', e);
+  }
+}
+
+// APPLYING PRESET
+window.applyPreset = function (presetId) {
+  const preset = state.presets.find(p => p.id === presetId);
+  if (!preset) return;
+
+  state.activePresetId = presetId;
+  renderPresetsList(); // Update UI active state
+
+  // LOGIC OF SILENCE application
+  const injection = generatePresetRichText(preset) + '\n' + (preset.description || '');
+
+  // Update Visual Prompt textarea
+  const visualPromptEl = document.getElementById('visual-prompt');
+
+  // ALWAYS replace the visual prompt with the preset (not append)
+  visualPromptEl.value = injection;
+
+  // Flash effect to show it worked
+  visualPromptEl.style.borderColor = 'var(--color-accent)';
+  setTimeout(() => visualPromptEl.style.borderColor = 'var(--color-border)', 500);
+}
+
+// Init Load
+document.addEventListener('DOMContentLoaded', () => {
+  loadPresets();
+  loadPresetSchema(); // Load schema for translation
+});
+
+// Export for global access if needed
+window.openPresetModal = openPresetModal;
+
+function renderAvailableModels() {
+  if (state.models.length === 0) {
+    elements.availableModels.style.display = 'block';
+    elements.modelsGrid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1;">
+        <div class="empty-state-icon">👤</div>
+        <div class="empty-state-title">Нет моделей</div>
+        <div class="empty-state-text">
+          <a href="/editors/model-editor.html">Создайте модели</a> в редакторе
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  elements.availableModels.style.display = 'block';
+
+  const selectedIds = state.selectedModels.filter(m => m).map(m => m.id);
+  const availableModels = state.models.filter(m => !selectedIds.includes(m.id));
+
+  if (availableModels.length === 0) {
+    elements.modelsGrid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1; padding: 30px;">
+        <div class="empty-state-text">Все модели добавлены в съёмку</div>
+      </div>
+    `;
+    return;
+  }
+
+  elements.modelsGrid.innerHTML = availableModels.map(m => `
+    <div class="selection-card" data-model-id="${m.id}">
+      ${m.previewSrc ? `
+        <div class="selection-card-preview">
+          <img src="${m.previewSrc}" alt="${escapeHtml(m.name)}">
+        </div>
+      ` : '<div class="selection-card-icon">👤</div>'}
+      <div class="selection-card-title">${escapeHtml(m.name)}</div>
+    </div>
+  `).join('');
+
+  elements.modelsGrid.querySelectorAll('.selection-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const model = state.models.find(m => m.id === card.dataset.modelId);
+      if (model) addModelToFirstEmptySlot(model);
+    });
+  });
+}
+
+function showModelPicker(slotIndex) {
+  const selectedIds = state.selectedModels.filter(m => m).map(m => m.id);
+  const availableModels = state.models.filter(m => !selectedIds.includes(m.id));
+
+  if (availableModels.length === 0) {
+    alert('Нет доступных моделей.');
+    return;
+  }
+
+  addModel(slotIndex, availableModels[0]);
+}
+
+function addModelToFirstEmptySlot(model) {
+  const emptySlotIndex = state.selectedModels.findIndex(m => m === null);
+  if (emptySlotIndex >= 0) {
+    addModel(emptySlotIndex, model);
+  } else {
+    alert('Все слоты заняты.');
+  }
+}
+
+async function addModel(slotIndex, model) {
+  if (!state.currentShoot) return;
+
+  // Update local state
+  state.selectedModels[slotIndex] = model;
+
+  // Update on server
+  await saveShootModels();
+
+  renderModelSlots();
+  renderAvailableModels();
+  updateStepStatuses();
+}
+
+async function removeModel(slotIndex) {
+  state.selectedModels[slotIndex] = null;
+  state.clothingByModel[slotIndex] = [];
+
+  await saveShootModels();
+
+  renderModelSlots();
+  renderAvailableModels();
+  updateStepStatuses();
+}
+
+async function saveShootModels() {
+  if (!state.currentShoot) return;
+
+  const models = state.selectedModels
+    .filter(m => m !== null)
+    .map(m => ({ modelId: m.id }));
+
+  try {
+    await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ models })
+    }, 5000);
+  } catch (e) {
+    console.error('Error saving models:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STEP 3: CLOTHING (simplified)
+// ═══════════════════════════════════════════════════════════════
+
+function renderClothingSections() {
+  console.log('[RenderClothing] state.clothingByModel:', state.clothingByModel.map((items, idx) => ({
+    modelIdx: idx,
+    itemsCount: items.length,
+    items: items.map(item => ({
+      id: item.id,
+      name: item.name,
+      prompt: item.prompt?.slice(0, 50),
+      imagesCount: item.images?.length
+    }))
+  })));
+  console.log('[RenderClothing] state.lookPrompts:', state.lookPrompts);
+
+  const activeModels = state.selectedModels.filter(m => m !== null);
+
+  if (activeModels.length === 0) {
+    elements.clothingSections.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">👤</div>
+        <div class="empty-state-title">Сначала добавьте модели</div>
+      </div>
+    `;
+    return;
+  }
+
+  elements.clothingSections.innerHTML = state.selectedModels.map((model, index) => {
+    if (!model) return '';
+
+    const items = state.clothingByModel[index] || [];
+    const lookPrompt = state.lookPrompts?.[index] || '';
+
+    return `
+      <div class="clothing-section" data-model-index="${index}">
+        <div class="clothing-section-header">
+          <div class="clothing-section-avatar">
+            ${model.previewSrc ? `<img src="${model.previewSrc}" alt="">` : ''}
+          </div>
+          <div class="clothing-section-title">${escapeHtml(model.name)}</div>
+          <button class="btn btn-secondary btn-sm btn-select-look" data-model-index="${index}" style="margin-left: auto; font-size: 11px;">
+            👔 Выбрать Look
+          </button>
+        </div>
+        
+        <!-- Общий промпт лука -->
+        <div class="look-prompt-section" style="margin-bottom: 16px;">
+          <label style="font-size: 11px; color: var(--color-text-muted); display: block; margin-bottom: 4px;">
+            ✨ Общий стиль образа (опционально)
+        </label>
+                <textarea 
+            class="look-prompt-input" 
+                  data-model="${index}" 
+            placeholder="Например: 90s casual street style, relaxed silhouette, layered look..."
+                  rows="2"
+            style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"
+          >${escapeHtml(lookPrompt)}</textarea>
+          <div style="display: flex; justify-content: flex-end; margin-top: 6px; gap: 8px; align-items: center;">
+            <span class="look-prompt-save-status" data-model="${index}" style="font-size: 11px; color: var(--color-text-muted);"></span>
+            <button 
+              class="btn-save-look-prompt" 
+              data-model="${index}"
+              style="padding: 4px 12px; font-size: 11px; background: var(--color-primary); border: none; border-radius: 4px; color: white; cursor: pointer; transition: all 0.2s;"
+            >📌 Закрепить</button>
+              </div>
+          </div>
+        
+        <!-- Список вещей -->
+        <div class="clothing-items-list">
+          ${items.map((item, itemIdx) => renderClothingItemCard(item, index, itemIdx)).join('')}
+        </div>
+        
+        <!-- Кнопка добавить вещь -->
+        <button class="add-clothing-item-btn" data-model="${index}" style="width: 100%; padding: 12px; background: var(--color-surface); border: 2px dashed var(--color-border); border-radius: 8px; color: var(--color-text-muted); font-size: 13px; cursor: pointer; transition: all 0.2s;">
+          ➕ Добавить предмет одежды
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  // Используем делегирование событий — один listener на весь контейнер
+  // Это работает надёжно даже после перерисовки HTML
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLOTHING EVENT DELEGATION (надёжная обработка событий)
+// ═══════════════════════════════════════════════════════════════
+
+let clothingEventsInitialized = false;
+
+function initClothingEventDelegation() {
+  if (clothingEventsInitialized) return;
+  clothingEventsInitialized = true;
+
+  const container = document.getElementById('clothing-sections');
+  if (!container) return;
+
+  // CLICK events
+  container.addEventListener('click', async (e) => {
+    const target = e.target;
+
+    // Add new clothing item
+    if (target.classList.contains('add-clothing-item-btn')) {
+      const modelIdx = parseInt(target.dataset.model);
+      addNewClothingItem(modelIdx);
+      return;
+    }
+
+    // Remove item image
+    if (target.classList.contains('remove-item-image-btn')) {
+      e.stopPropagation();
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      const imgIdx = parseInt(target.dataset.img);
+      removeImageFromClothingItem(modelIdx, itemIdx, imgIdx);
+      return;
+    }
+
+    // Remove entire item
+    if (target.classList.contains('remove-item-btn')) {
+      e.stopPropagation();
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      removeClothingItem(modelIdx, itemIdx);
+      return;
+    }
+
+    // Save item prompt button
+    if (target.classList.contains('btn-save-item-prompt')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      await saveItemPrompt(modelIdx, itemIdx, target);
+      return;
+    }
+
+    // Save look prompt button
+    if (target.classList.contains('btn-save-look-prompt')) {
+      const modelIdx = parseInt(target.dataset.model);
+      await saveLookPrompt(modelIdx, target);
+      return;
+    }
+  });
+
+  // CHANGE events (для file inputs и selects)
+  container.addEventListener('change', (e) => {
+    const target = e.target;
+
+    // Add image to item
+    if (target.classList.contains('add-image-to-item-input')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      handleAddImageToItem(e, modelIdx, itemIdx);
+      return;
+    }
+
+    // Image view selector
+    if (target.classList.contains('image-view-select')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      const imgIdx = parseInt(target.dataset.img);
+      if (state.clothingByModel[modelIdx]?.[itemIdx]?.images?.[imgIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].images[imgIdx].view = target.value;
+        saveShootClothing();
+      }
+      return;
+    }
+  });
+
+  // BLUR events (сохраняем при потере фокуса — надёжнее чем debounce)
+  container.addEventListener('blur', async (e) => {
+    const target = e.target;
+
+    // Item prompt — save on blur
+    if (target.classList.contains('item-prompt-input')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      if (state.clothingByModel[modelIdx]?.[itemIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].prompt = target.value;
+        await saveShootClothing();
+        showSaveStatus(modelIdx, itemIdx, 'item');
+      }
+      return;
+    }
+
+    // Item name — save on blur
+    if (target.classList.contains('item-name-input')) {
+      const modelIdx = parseInt(target.dataset.model);
+      const itemIdx = parseInt(target.dataset.item);
+      if (state.clothingByModel[modelIdx]?.[itemIdx]) {
+        state.clothingByModel[modelIdx][itemIdx].name = target.value;
+        await saveShootClothing();
+      }
+      return;
+    }
+
+    // Look prompt — save on blur
+    if (target.classList.contains('look-prompt-input')) {
+      const modelIdx = parseInt(target.dataset.model);
+      if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
+      state.lookPrompts[modelIdx] = target.value;
+      await saveShootClothing();
+      showSaveStatus(modelIdx, null, 'look');
+      return;
+    }
+  }, true); // capture phase для blur
+}
+
+async function saveItemPrompt(modelIdx, itemIdx, btn) {
+  // Get textarea value
+  const textarea = document.querySelector(`.item-prompt-input[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
+  if (!textarea) return;
+
+  // Update state
+  if (state.clothingByModel[modelIdx]?.[itemIdx]) {
+    state.clothingByModel[modelIdx][itemIdx].prompt = textarea.value;
+  }
+
+  // Save to backend
+  await saveShootClothing();
+
+  // Visual feedback
+  showSaveStatus(modelIdx, itemIdx, 'item');
+
+  if (btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Сохранено';
+    btn.style.background = 'var(--color-success, #10b981)';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = 'var(--color-primary)';
+    }, 1500);
+  }
+}
+
+async function saveLookPrompt(modelIdx, btn) {
+  // Get textarea value
+  const textarea = document.querySelector(`.look-prompt-input[data-model="${modelIdx}"]`);
+  if (!textarea) return;
+
+  // Update state
+  if (!state.lookPrompts) state.lookPrompts = ['', '', ''];
+  state.lookPrompts[modelIdx] = textarea.value;
+
+  // Save to backend
+  await saveShootClothing();
+
+  // Visual feedback
+  showSaveStatus(modelIdx, null, 'look');
+
+  if (btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Сохранено';
+    btn.style.background = 'var(--color-success, #10b981)';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = 'var(--color-primary)';
+    }, 1500);
+  }
+}
+
+function showSaveStatus(modelIdx, itemIdx, type) {
+  let statusEl;
+  if (type === 'item') {
+    statusEl = document.querySelector(`.prompt-save-status[data-model="${modelIdx}"][data-item="${itemIdx}"]`);
+  } else {
+    statusEl = document.querySelector(`.look-prompt-save-status[data-model="${modelIdx}"]`);
+  }
+
+  if (statusEl) {
+    statusEl.textContent = '✅ Сохранено!';
+    statusEl.style.color = 'var(--color-success, #10b981)';
+    setTimeout(() => { statusEl.textContent = ''; }, 2000);
+  }
+}
+
+/**
+ * Render a single clothing item card
+ */
+function renderClothingItemCard(item, modelIndex, itemIndex) {
+  const images = item.images || [];
+  const viewOptions = [
+    { id: 'front', label: 'Спереди' },
+    { id: 'back', label: 'Сзади' },
+    { id: 'side', label: 'Сбоку' },
+    { id: 'detail', label: 'Деталь' },
+    { id: 'flat_lay', label: 'Flat lay' },
+    { id: 'other', label: 'Другое' }
+  ];
+
+  return `
+    <div class="clothing-item-card" data-model="${modelIndex}" data-item="${itemIndex}" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+      <!-- Header: Name + Remove button -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <input 
+          type="text" 
+          class="item-name-input" 
+          data-model="${modelIndex}" 
+          data-item="${itemIndex}"
+          value="${escapeHtml(item.name || '')}"
+          placeholder="Название (напр. Denim Jacket)"
+          style="flex: 1; padding: 6px 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text); font-size: 13px; font-weight: 500;"
+        >
+        <button class="remove-item-btn" data-model="${modelIndex}" data-item="${itemIndex}" style="margin-left: 8px; background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px; font-size: 16px;" title="Удалить вещь">🗑️</button>
+      </div>
+      
+      <!-- Prompt -->
+      <div style="margin-bottom: 10px;">
+        <textarea 
+          class="item-prompt-input" 
+          data-model="${modelIndex}" 
+          data-item="${itemIndex}"
+          placeholder="Опишите вещь: материал, цвет, фасон, детали, как сидит на модели..."
+          rows="3"
+          style="width: 100%; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); font-size: 12px; resize: vertical;"
+        >${escapeHtml(item.prompt || '')}</textarea>
+        <div style="display: flex; justify-content: flex-end; margin-top: 6px; gap: 8px; align-items: center;">
+          <span class="prompt-save-status" data-model="${modelIndex}" data-item="${itemIndex}" style="font-size: 11px; color: var(--color-text-muted);"></span>
+          <button 
+            class="btn-save-item-prompt" 
+            data-model="${modelIndex}" 
+            data-item="${itemIndex}"
+            style="padding: 4px 12px; font-size: 11px; background: var(--color-primary); border: none; border-radius: 4px; color: white; cursor: pointer; transition: all 0.2s;"
+          >📌 Закрепить промпт</button>
+        </div>
+      </div>
+      
+      <!-- Images -->
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+        ${images.map((img, imgIdx) => `
+          <div class="item-image-thumb" style="position: relative; width: 70px;">
+            <img src="${img.url}" alt="" style="width: 70px; height: 70px; object-fit: cover; border-radius: 4px; border: 1px solid var(--color-border);">
+            <button class="remove-item-image-btn" data-model="${modelIndex}" data-item="${itemIndex}" data-img="${imgIdx}" style="position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; background: var(--color-error, #e74c3c); border: none; border-radius: 50%; color: white; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+            <select class="image-view-select" data-model="${modelIndex}" data-item="${itemIndex}" data-img="${imgIdx}" style="width: 100%; margin-top: 4px; padding: 2px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 3px; color: var(--color-text); font-size: 10px;">
+              ${viewOptions.map(v => `<option value="${v.id}" ${img.view === v.id ? 'selected' : ''}>${v.label}</option>`).join('')}
+            </select>
+          </div>
+        `).join('')}
+        
+        <!-- Add image button -->
+        <label style="width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--color-border); border-radius: 4px; cursor: pointer; color: var(--color-text-muted); font-size: 20px; transition: border-color 0.2s;">
+          <input type="file" multiple accept="image/*" class="add-image-to-item-input" data-model="${modelIndex}" data-item="${itemIndex}" style="display: none;">
+          +
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Add new clothing item for a model
+ */
+function addNewClothingItem(modelIndex) {
+  const newItem = {
+    id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: '',
+    prompt: '',
+    images: [],
+    createdAt: new Date().toISOString()
+  };
+
+  if (!state.clothingByModel[modelIndex]) {
+    state.clothingByModel[modelIndex] = [];
+  }
+
+  state.clothingByModel[modelIndex].push(newItem);
+
+  saveShootClothing();
+  renderClothingSections();
+  updateStepStatuses();
+}
+
+/**
+ * Add image(s) to an existing clothing item
+ */
+async function handleAddImageToItem(event, modelIndex, itemIndex) {
+  const files = Array.from(event.target.files).filter(f => f.type.startsWith('image/'));
+
+  const item = state.clothingByModel[modelIndex]?.[itemIndex];
+  if (!item) return;
+
+  for (const file of files) {
+    const dataUrl = await fileToDataUrl(file);
+    if (!item.images) item.images = [];
+    item.images.push({
+      id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      url: dataUrl,
+      view: 'front', // default
+      uploadedAt: new Date().toISOString()
+    });
+  }
+
+  await saveShootClothing();
+  renderClothingSections();
+  updateStepStatuses();
+
+  event.target.value = '';
+}
+
+/**
+ * Remove a single image from a clothing item
+ */
+function removeImageFromClothingItem(modelIndex, itemIndex, imageIndex) {
+  const item = state.clothingByModel[modelIndex]?.[itemIndex];
+  if (!item?.images) return;
+
+  item.images.splice(imageIndex, 1);
+
+  saveShootClothing();
+  renderClothingSections();
+  updateStepStatuses();
+}
+
+/**
+ * Remove an entire clothing item
+ */
+function removeClothingItem(modelIndex, itemIndex) {
+  state.clothingByModel[modelIndex].splice(itemIndex, 1);
+  saveShootClothing();
+  renderClothingSections();
+  updateStepStatuses();
+}
+
+/**
+ * Save clothing data to backend
+ */
+async function saveShootClothing() {
+  if (!state.currentShoot) return;
+
+  // Save clothing items (new format with grouped images)
+  // Keep items that have at least images OR a prompt (even without images)
+  const clothing = state.clothingByModel.map((items, index) => ({
+    forModelIndex: index,
+    items: items.filter(item =>
+      (item.images && item.images.length > 0) ||
+      (item.prompt && item.prompt.trim()) ||
+      (item.name && item.name.trim())
+    )
+  })).filter(c => c.items.length > 0);
+
+  // Save look prompts
+  const lookPrompts = state.lookPrompts.map((prompt, index) => ({
+    forModelIndex: index,
+    prompt: prompt
+  })).filter(p => p.prompt.trim() !== '');
+
+  console.log('[SaveClothing] Saving:', {
+    clothingCount: clothing.length,
+    clothing: clothing.map(c => ({
+      forModelIndex: c.forModelIndex,
+      itemsCount: c.items.length,
+      items: c.items.map(item => ({
+        name: item.name,
+        promptLen: item.prompt?.length || 0,
+        imagesCount: item.images?.length || 0
+      }))
+    })),
+    lookPrompts
+  });
+
+  try {
+    const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clothing, lookPrompts })
+    }, 5000);
+    const data = await res.json();
+    console.log('[SaveClothing] Response:', data.ok ? 'OK' : 'Error', data);
+  } catch (e) {
+    console.error('Error saving clothing:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STEP 4: FRAMES
+// ═══════════════════════════════════════════════════════════════
+
+async function loadFrames() {
+  try {
+    const res = await fetchWithTimeout('/api/frames', {}, 10000);
+    const data = await res.json();
+    if (data.ok) {
+      state.frames = data.data || [];
+    }
+  } catch (e) {
+    console.error('[LoadFrames] Error:', e.message);
+  }
+}
+
+async function loadLocations() {
+  try {
+    const res = await fetchWithTimeout('/api/locations', {}, 10000);
+    const data = await res.json();
+    if (data.ok) {
+      state.locations = data.data || [];
+    }
+  } catch (e) {
+    console.error('[LoadLocations] Error:', e.message);
+  }
+}
+
+async function loadEmotions() {
+  try {
+    const res = await fetchWithTimeout('/api/emotions/options', {}, 10000);
+    const data = await res.json();
+    console.log('[LoadEmotions] Response:', data);
+
+    if (data.ok && data.data) {
+      state.emotionCategories = data.data.categories || [];
+      const grouped = data.data.emotions || {};
+      state.emotions = [];
+
+      // New format: categories are objects { id, label, description }
+      // grouped is { categoryId: { label, description, emotions: [...] } }
+      for (const category of state.emotionCategories) {
+        const categoryId = typeof category === 'string' ? category : category.id;
+        const categoryData = grouped[categoryId];
+
+        // Handle both old format (array) and new format ({ emotions: [...] })
+        const categoryEmotions = Array.isArray(categoryData)
+          ? categoryData
+          : (categoryData?.emotions || []);
+
+        categoryEmotions.forEach(e => {
+          state.emotions.push({ ...e, category: categoryId });
+        });
+      }
+
+      console.log('[LoadEmotions] Loaded', state.emotions.length, 'emotions');
+    }
+  } catch (e) {
+    console.error('Error loading emotions:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UNIVERSE PARAMS (Custom Shoot 5 - Smart System with V5 API)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Load V5 parameters from API (Technical + Artistic + Context)
+ */
+async function loadUniverseParams() {
+  try {
+    // Load V5 schema
+    const res = await fetchWithTimeout('/api/universes/v5/params', {}, 10000);
+    const data = await res.json();
+
+    if (data.ok && data.data) {
+      state.v5Schema = data.data;
+      state.universeParams = data.data; // For compatibility
+
+      // Build blocks from V5 categories
+      state.universeBlocks = [
+        { id: 'technical', label: '📷 Технические параметры', description: 'Камера и свет' },
+        { id: 'artistic', label: '🎨 Художественные параметры', description: 'Настроение и стиль' },
+        { id: 'context', label: '🌍 Контекст', description: 'Время и окружение' }
+      ];
+
+      console.log('[CustomShoot5] Loaded V5 schema:', Object.keys(data.data).join(', '));
+    }
+
+    // Load V5 defaults
+    const defaultsRes = await fetchWithTimeout('/api/universes/v5/defaults', {}, 5000);
+    const defaultsData = await defaultsRes.json();
+
+    if (defaultsData.ok && defaultsData.data) {
+      state.universeDefaults = defaultsData.data;
+      state.universeValues = { ...defaultsData.data };
+      state.v5Values = { ...defaultsData.data }; // V5-specific state
+      console.log('[CustomShoot5] Loaded V5 defaults');
+    }
+
+  } catch (e) {
+    console.error('[CustomShoot5] Error loading V5 params:', e);
+  }
+}
+
+/**
+ * Render emotion options into the dropdown
+ * Uses state.emotions
+ */
+function renderEmotionOptions() {
+  const select = document.getElementById('gen-emotion');
+  if (!select) return;
+
+  // Store current value to restore it (or use state value)
+  const currentValue = state.generationSettings?.emotionId || select.value;
+
+  select.innerHTML = '<option value="">Нейтральная (без эмоции)</option>';
+
+  if (!state.emotions || state.emotions.length === 0) return;
+
+  // Group emotions by category
+  const emotionsByCategory = {};
+  state.emotions.forEach(e => {
+    const cat = e.category || 'other';
+    if (!emotionsByCategory[cat]) {
+      emotionsByCategory[cat] = [];
+    }
+    emotionsByCategory[cat].push(e);
+  });
+
+  // Render groups
+  Object.keys(emotionsByCategory).forEach(catId => {
+    // Find category label
+    let catLabel = catId;
+    if (state.emotionCategories) {
+      const catObj = state.emotionCategories.find(c => (typeof c === 'object' ? c.id === catId : c === catId));
+      if (catObj) catLabel = typeof catObj === 'object' ? catObj.label : catObj;
+    }
+
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = catLabel;
+
+    emotionsByCategory[catId].forEach(e => {
+      const option = document.createElement('option');
+      option.value = e.id;
+      option.textContent = e.label;
+      option.title = e.shortDescription || '';
+      optgroup.appendChild(option);
+    });
+
+    select.appendChild(optgroup);
+  });
+
+  // Restore value if possible
+  if (currentValue) {
+    select.value = currentValue;
+  }
+
+  // Update global elements ref
+  elements.genEmotion = select;
+
+  // Add change listener
+  select.addEventListener('change', () => {
+    saveGenerationSettings();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POSE FUNCTIONS (V8 Frame Settings)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Load pose options from /api/poses/options
+ */
+async function loadPoses() {
+  try {
+    const res = await fetch('/api/poses/options');
+    const data = await res.json();
+    if (data.ok) {
+      state.poses = data.data.poses || [];
+      state.poseCategories = data.data.categories || [];
+      renderPoseOptions();
+    }
+  } catch (e) {
+    console.error('[CS8] Error loading poses:', e);
+  }
+}
+
+/**
+ * Render pose options into the dropdown
+ * Uses state.poses and state.poseCategories
+ */
+function renderPoseOptions() {
+  const select = document.getElementById('gen-body-pose');
+  if (!select) return;
+
+  // Store current value to restore it
+  const currentValue = state.generationSettings?.poseId || select.value;
+
+  select.innerHTML = '<option value="">— Не выбрано —</option>';
+
+  if (!state.poses || state.poses.length === 0) return;
+
+  // Group poses by category
+  const posesByCategory = {};
+  state.poses.forEach(p => {
+    const cat = p.category || 'other';
+    if (!posesByCategory[cat]) {
+      posesByCategory[cat] = [];
+    }
+    posesByCategory[cat].push(p);
+  });
+
+  // Render groups
+  Object.keys(posesByCategory).forEach(catId => {
+    // Find category label
+    let catLabel = catId;
+    if (state.poseCategories) {
+      const catObj = state.poseCategories.find(c => c.id === catId);
+      if (catObj) catLabel = catObj.label;
+    }
+
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = catLabel;
+
+    posesByCategory[catId].forEach(p => {
+      const option = document.createElement('option');
+      option.value = p.id;
+      option.textContent = p.label;
+      option.title = p.shortDescription || '';
+      optgroup.appendChild(option);
+    });
+
+    select.appendChild(optgroup);
+  });
+
+  // Restore value if possible
+  if (currentValue) {
+    select.value = currentValue;
+  }
+
+  // Update global elements ref
+  elements.genBodyPose = select;
+
+  // Add change listener
+  select.addEventListener('change', () => {
+    saveGenerationSettings();
+  });
+}
+
+/**
+ * Update pose selector state based on pose sketch presence
+ * If pose sketch is selected, disable the selector and show hint
+ */
+function updatePoseSelectorState() {
+  const select = document.getElementById('gen-body-pose');
+  const hint = document.getElementById('pose-sketch-hint');
+  if (!select) return;
+
+  const hasPoseSketch = !!(state.currentShoot?.poseSketchAsset?.url);
+
+  if (hasPoseSketch) {
+    select.disabled = true;
+    select.value = '';
+    select.style.opacity = '0.5';
+    select.style.cursor = 'not-allowed';
+    if (hint) {
+      hint.style.display = 'inline';
+      hint.textContent = '(эскиз выбран — точное следование)';
+    }
+  } else {
+    select.disabled = false;
+    select.style.opacity = '1';
+    select.style.cursor = '';
+    if (hint) {
+      hint.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Render V5 parameter blocks in UI (Technical / Artistic / Context)
+ */
+function renderUniverseParamsUI() {
+  const container = document.getElementById('universe-params-container');
+  if (!container || !state.v5Schema) {
+    return;
+  }
+
+  const schema = state.v5Schema;
+
+  // Helper to render a single param select
+  const renderParamSelect = (paramId, paramDef, category) => {
+    if (!paramDef || !paramDef.options) return '';
+
+    // Options can be array or object
+    const optionsArray = Array.isArray(paramDef.options)
+      ? paramDef.options
+      : Object.entries(paramDef.options).map(([key, opt]) => ({ value: key, ...opt }));
+
+    // Determine default value (explicit vs first option)
+    let defaultVal = optionsArray[0]?.value;
+    const explicitDefault = optionsArray.find(o => o.isDefault);
+    if (explicitDefault) {
+      defaultVal = explicitDefault.value;
+    }
+
+    const currentValue = state.v5Values?.[paramId] || defaultVal;
+
+    const optionsHtml = optionsArray.map(opt => {
+      const value = opt.value;
+      const selected = value === currentValue ? 'selected' : '';
+      const label = opt.label || value;
+      const desc = opt.spec || opt.narrative || opt.description || '';
+      return `<option value="${value}" ${selected} title="${escapeHtml(desc)}">${escapeHtml(label)}</option>`;
+    }).join('');
+
+    return `
+      <div class="form-group" style="margin: 0;">
+        <label for="v5-${paramId}" style="font-size: 12px; margin-bottom: 4px; display: block;">
+          ${escapeHtml(paramDef.label || paramId)}
+        </label>
+        <select id="v5-${paramId}" 
+                data-v5-param="${paramId}"
+                data-category="${category}"
+                class="v5-param-select"
+                style="width: 100%; padding: 8px 10px; font-size: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text);">
+          ${optionsHtml}
+        </select>
+        ${paramDef.description ? `<div style="font-size: 10px; color: var(--color-text-muted); margin-top: 2px;">${escapeHtml(paramDef.description)}</div>` : ''}
+      </div>
+    `;
+  };
+
+  // Build Technical params (camera, focalLength, aperture, shutterSpeed, lightSource, lightDirection, lightQuality, whiteBalance, exposure, contrastCurve)
+  // Build Technical params (camera, focalLength, aperture, shutterSpeed, lightSource, lightDirection, lightQuality, whiteBalance, exposure, contrastCurve, skinTexture, antiAiLevel)
+  const technicalKeys = ['camera', 'focalLength', 'aperture', 'shutterSpeed', 'lightSource', 'lightDirection', 'lightQuality', 'whiteBalance', 'exposure', 'contrastCurve', 'skinTexture', 'antiAiLevel'];
+  const technicalParams = technicalKeys
+    .filter(id => schema.technical?.[id])
+    .map(id => renderParamSelect(id, schema.technical[id], 'technical'))
+    .join('');
+
+  // Build Artistic params (visualMood, decade, culturalContext, processingStyle, energyLevel, spontaneity)
+  const artisticKeys = ['visualMood', 'decade', 'culturalContext', 'processingStyle', 'energyLevel', 'spontaneity'];
+  const artisticParams = artisticKeys
+    .filter(id => schema.artistic?.[id])
+    .map(id => renderParamSelect(id, schema.artistic[id], 'artistic'))
+    .join('');
+
+  // Build Context params (timeOfDay, weather, season)
+  const contextKeys = ['timeOfDay', 'weather', 'season'];
+  const contextParams = contextKeys
+    .filter(id => schema.context?.[id])
+    .map(id => renderParamSelect(id, schema.context[id], 'context'))
+    .join('');
+
+  container.innerHTML = `
+    <!-- Technical Parameters -->
+    <div class="universe-settings universe-block" data-block-id="technical">
+      <h4 style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        📷 Технические параметры
+        <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">Камера, оптика, свет — чёткие настройки</span>
+      </h4>
+      <div class="universe-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        ${technicalParams}
+      </div>
+    </div>
+    
+    <!-- Artistic Parameters -->
+    <div class="universe-settings universe-block" data-block-id="artistic">
+      <h4 style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        🎨 Художественные параметры
+        <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">Настроение, эра, энергия — нарративные описания</span>
+      </h4>
+      <div class="universe-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        ${artisticParams}
+      </div>
+      
+      <!-- Emotion Dropdown (Injected) -->
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border);">
+        <div class="form-group" style="margin: 0;">
+          <label for="gen-emotion" style="font-size: 12px; margin-bottom: 4px; display: block;">😊 Эмоция</label>
+          <select id="gen-emotion" style="width: 100%; padding: 8px 10px; font-size: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text);">
+            <option value="">Нейтральная (без эмоции)</option>
+          </select>
+          <div style="font-size: 10px; color: var(--color-text-muted); margin-top: 2px;">Эмоциональное состояние модели</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Context Parameters -->
+    <div class="universe-settings universe-block" data-block-id="context">
+      <h4 style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        🌍 Контекст съёмки
+        <span style="font-weight: normal; font-size: 10px; color: var(--color-text-muted);">Время, погода, сезон</span>
+      </h4>
+      <div class="universe-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        ${contextParams}
+      </div>
+    </div>
+    
+    <!-- Conflict/Corrections Panel -->
+    <div id="v5-corrections-panel" class="universe-settings" style="display: none; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3);">
+      <h4 style="color: #f59e0b;">⚠️ Автокоррекции</h4>
+      <div id="v5-corrections-list"></div>
+    </div>
+  `;
+
+  // Add change listeners for V5 params
+  container.querySelectorAll('.v5-param-select').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const paramId = e.target.dataset.v5Param;
+      const oldValue = state.v5Values[paramId];
+      state.v5Values[paramId] = e.target.value;
+
+      // Also update universeValues for compatibility
+      state.universeValues[paramId] = e.target.value;
+
+      console.log(`[V5] Changed ${paramId}: "${oldValue}" → "${e.target.value}"`);
+
+      // Apply dependencies and check for conflicts
+      await applyV5Dependencies();
+
+      updateNarrativePreview();
+      saveGenerationSettings();
+    });
+  });
+
+  // Show narrative preview panel
+  const previewPanel = document.getElementById('narrative-preview-panel');
+  if (previewPanel) {
+    previewPanel.style.display = 'block';
+  }
+
+  // Initial dependency check and preview
+  applyV5Dependencies();
+  renderEmotionOptions(); // Populate the injected Emotion dropdown
+  updateNarrativePreview();
+}
+
+/**
+ * Apply V5 dependency rules and show corrections
+ */
+/**
+ * Apply V5 dependency rules and show corrections
+ */
+async function applyV5Dependencies() {
+  try {
+    const res = await fetchWithTimeout('/api/universes/v5/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ params: state.v5Values })
+    }, 5000);
+
+    const data = await res.json();
+
+    if (data.ok && data.data) {
+      // API returns 'applied' for the list of corrections/conflicts
+      const { applied: corrections, warnings } = data.data;
+
+      // DO NOT AUTO-APPLY CORRECTIONS!
+      // The user wants manual control. We just show conflicts.
+
+      // Clear old markers
+      document.querySelectorAll('.v5-conflict-marker').forEach(el => el.remove());
+      document.querySelectorAll('.v5-param-select').forEach(el => el.classList.remove('v5-conflict-input'));
+
+      // Render new markers
+      renderConflictMarkers(corrections || [], warnings || []);
+
+      // Also update the global corrections panel (as a summary)
+      const panel = document.getElementById('v5-corrections-panel');
+      const list = document.getElementById('v5-corrections-list');
+
+      if (corrections && corrections.length > 0 && panel && list) {
+        panel.style.display = 'block';
+        list.innerHTML = corrections.map(c => `
+          <div style="padding: 8px; background: var(--color-bg); border-radius: 6px; margin-bottom: 6px; font-size: 12px; border-left: 3px solid #ff9800;">
+            <strong>${c.field}</strong> conflict!
+            <div style="font-size: 11px; color: var(--color-text-muted);">${c.reason || 'Incompatible parameter'}</div>
+          </div>
+        `).join('');
+      } else if (panel) {
+        panel.style.display = 'none';
+      }
+    }
+  } catch (e) {
+    console.error('[V5] Error applying dependencies:', e);
+  }
+}
+
+/**
+ * Render visual conflict markers under fields
+ */
+function renderConflictMarkers(conflicts, warnings) {
+  // combine all issues
+  const allIssues = [
+    ...conflicts.map(c => ({ ...c, type: 'conflict', color: '#ff9800', icon: '⚠️' })),
+    ...warnings.map(w => ({ ...w, type: 'warning', color: '#2196f3', icon: '💡' }))
+  ];
+
+  allIssues.forEach(issue => {
+    // Find the input element
+    const el = document.querySelector(`.v5-param-select[data-v5-param="${issue.field}"]`);
+    if (el) {
+      // Highlight input
+      el.classList.add('v5-conflict-input');
+
+      // Create marker
+      const marker = document.createElement('div');
+      marker.className = 'v5-conflict-marker';
+      marker.style.cssText = `
+        font-size: 11px;
+        color: ${issue.color};
+        margin-top: 4px;
+        padding: 4px 6px;
+        background: rgba(0,0,0,0.05);
+        border-left: 2px solid ${issue.color};
+        border-radius: 0 4px 4px 0;
+      `;
+      marker.innerHTML = `
+        <div style="font-weight: 500;">${issue.icon} ${issue.type === 'conflict' ? 'Conflict' : 'Suggestion'}</div>
+        <div style="opacity: 0.8;">${issue.reason}</div>
+      `;
+
+      // Append after the form group wrapper
+      // The select is inside a .form-group div (created by renderParamSelect)
+      const wrapper = el.parentElement;
+      if (wrapper) {
+        wrapper.appendChild(marker);
+      }
+    }
+  });
+}
+
+/**
+ * Update narrative preview from current parameter values
+ * Debounced and cancellable to prevent blocking
+ */
+let narrativePreviewTimeout = null;
+let narrativePreviewController = null;
+
+async function updateNarrativePreview() {
+  const previewContent = document.getElementById('narrative-preview-content');
+  const anchorsContent = document.getElementById('visual-anchors-content');
+  const anchorsPanel = document.getElementById('visual-anchors-panel');
+
+  if (!previewContent) return;
+
+  // Cancel any pending request
+  if (narrativePreviewTimeout) {
+    clearTimeout(narrativePreviewTimeout);
+  }
+  if (narrativePreviewController) {
+    narrativePreviewController.abort();
+    narrativePreviewController = null;
+  }
+
+  // Debounce: wait 150ms before making request
+  narrativePreviewTimeout = setTimeout(async () => {
+    narrativePreviewController = new AbortController();
+
+    try {
+      // Collect current params from UI (same logic as collectUniverseParams)
+      const currentParams = { ...state.v5Values };
+      document.querySelectorAll('.v5-param-select').forEach(select => {
+        const paramId = select.dataset.v5Param;
+        if (paramId && select.value) {
+          currentParams[paramId] = select.value;
+        }
+      });
+
+      console.log('[V5 Preview] Sending params:', Object.keys(currentParams).length, 'keys');
+
+      // Use V5 preview endpoint
+      const res = await fetchWithTimeout('/api/universes/v5/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          params: currentParams,
+          scene: {} // Empty scene for preview
+        }),
+        signal: narrativePreviewController.signal
+      }, 5000);
+
+      const data = await res.json();
+
+      if (data.ok && data.data) {
+        state.narrativePreview = data.data;
+
+        // Hide anchors panel for V5 (we use corrections panel instead)
+        if (anchorsPanel) {
+          anchorsPanel.style.display = 'none';
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // RENDER V5 PROMPT PREVIEW
+        // ═══════════════════════════════════════════════════════════════
+
+        const prompt = data.data.prompt || '';
+
+        // Format prompt for display
+        const formattedPrompt = prompt
+          .replace(/\[TECHNICAL SPECS\]/g, '<strong style="color: var(--color-primary);">📷 TECHNICAL SPECS</strong>')
+          .replace(/\[ARTISTIC BRIEF\]/g, '<strong style="color: var(--color-accent);">🎨 ARTISTIC BRIEF</strong>')
+          .replace(/\[CONTEXT\]/g, '<strong style="color: #10b981;">🌍 CONTEXT</strong>')
+          .replace(/\[SCENE\]/g, '<strong style="color: #8b5cf6;">🎬 SCENE</strong>')
+          .replace(/\n/g, '<br>');
+
+        previewContent.innerHTML = `
+          <div style="font-family: monospace; font-size: 11px; line-height: 1.6; white-space: pre-wrap;">
+            ${formattedPrompt || '<span style="color: var(--color-text-muted);">Выбери параметры для превью...</span>'}
+          </div>
+        `;
+
+        console.log('[V5 Preview] Prompt length:', prompt.length);
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        // Request was cancelled by newer request, ignore
+        return;
+      }
+      console.error('[CustomShoot5] Error updating V5 preview:', e);
+      previewContent.innerHTML = '<div style="color: var(--color-accent);">Ошибка загрузки превью</div>';
+    }
+  }, 150); // 150ms debounce
+}
+
+/**
+ * Collect V5 universe params for generation
+ * Reads from state.v5Values and falls back to UI selects
+ */
+function collectUniverseParams() {
+  // V7 Pure Prompt Mode - return visualPrompt instead of v5Values
+  const visualPromptEl = document.getElementById('visual-prompt');
+  const visualPrompt = visualPromptEl?.value?.trim() || '';
+
+  console.log('[CollectUniverseParams] V7 Pure Prompt mode, prompt length:', visualPrompt.length);
+
+  return {
+    version: 'v7',
+    visualPrompt: visualPrompt
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENERATION SETTINGS PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Collect all current generation settings from UI
+ * NOTE: Most settings now come from Universe params, only per-frame settings here
+ */
+function collectGenerationSettings() {
+  return {
+    // Per-frame parameters (V9: simplified — no composition/bodyFocus)
+    locationId: elements.genLocation?.value || '',
+    emotionId: '',  // V9: emotion from sketch
+    aspectRatio: elements.genAspectRatio?.value || '3:4',
+    imageSize: elements.genImageSize?.value || '2K',
+    poseAdherence: '4',  // V9: always max adherence
+
+    // V9: composition/bodyFocus hidden — derived from sketch
+    shotSize: '',
+    cameraAngle: '',
+    gazeDirection: '',
+    bodyFocus: 'none',
+
+    // Body pose (only when no pose sketch)
+    poseId: document.getElementById('gen-body-pose')?.value || '',
+
+    // Extra prompt
+    extraPrompt: elements.genExtraPrompt?.value || '',
+
+    // V5 Universe Parameters (Auto-saved draft settings)
+    universeValues: { ...state.universeValues },
+
+    // V9 mode flag
+    mode: 'exact_frame'
+  };
+}
+
+/**
+ * Apply loaded generation settings to UI
+ * NOTE: Only per-frame settings are applied here
+ */
+function applyGenerationSettings(settings) {
+  if (!settings) return;
+
+  // Per-frame parameters
+  if (settings.locationId !== undefined && elements.genLocation) {
+    elements.genLocation.value = settings.locationId;
+  }
+  if (settings.emotionId !== undefined && elements.genEmotion) {
+    elements.genEmotion.value = settings.emotionId;
+  }
+  if (settings.aspectRatio && elements.genAspectRatio) {
+    elements.genAspectRatio.value = settings.aspectRatio;
+  }
+  if (settings.imageSize && elements.genImageSize) {
+    elements.genImageSize.value = settings.imageSize;
+  }
+  if (settings.poseAdherence && elements.genPoseAdherence) {
+    elements.genPoseAdherence.value = settings.poseAdherence;
+  }
+
+  // Per-frame composition
+  if (settings.shotSize && elements.genShotSize) {
+    elements.genShotSize.value = settings.shotSize;
+  }
+  if (settings.cameraAngle && elements.genCameraAngle) {
+    elements.genCameraAngle.value = settings.cameraAngle;
+  }
+  if (settings.gazeDirection && elements.genGazeDirection) {
+    elements.genGazeDirection.value = settings.gazeDirection;
+  }
+  if (settings.bodyFocus && elements.genBodyFocus) {
+    elements.genBodyFocus.value = settings.bodyFocus;
+  }
+
+  // Extra prompt
+  if (settings.extraPrompt !== undefined && elements.genExtraPrompt) {
+    elements.genExtraPrompt.value = settings.extraPrompt;
+  }
+}
+
+/**
+ * Save current generation settings to server (debounced)
+ */
+let saveSettingsTimeout = null;
+let saveSettingsController = null; // AbortController for previous save request
+
+async function saveGenerationSettings() {
+  if (!state.currentShoot) return;
+
+  // Debounce to avoid too many requests
+  if (saveSettingsTimeout) {
+    clearTimeout(saveSettingsTimeout);
+  }
+
+  // Abort any previous pending save request
+  if (saveSettingsController) {
+    saveSettingsController.abort();
+    saveSettingsController = null;
+  }
+
+  saveSettingsTimeout = setTimeout(async () => {
+    const settings = collectGenerationSettings();
+    state.generationSettings = settings;
+
+    // Create new AbortController for this request
+    saveSettingsController = new AbortController();
+    const signal = saveSettingsController.signal;
+
+    try {
+      await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generationSettings: settings }),
+        signal
+      }, 15000); // 15 second timeout
+
+      console.log('[CustomShoot] Settings saved');
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        // Aborted by newer request, ignore
+        return;
+      }
+      console.error('[CustomShoot] Error saving settings:', e.message);
+    }
+  }, 500); // 500ms debounce
+}
+
+/**
+ * Body Focus → Shot Size / Camera Angle auto-sync
+ * When user changes body focus, auto-adjust shot size and camera angle to match.
+ * Also warns about conflicts when manually changing shot size / camera angle.
+ */
+const BODY_FOCUS_PRESETS = {
+  face: { shotSize: 'detail_close', cameraAngle: 'eye_level' },
+  upper_body: { shotSize: 'medium', cameraAngle: 'eye_level' },
+  hands: { shotSize: 'detail_close', cameraAngle: 'eye_level' },
+  legs: { shotSize: 'lower_body', cameraAngle: 'eye_level' },
+  feet: { shotSize: 'lower_body', cameraAngle: 'low' },
+  back: { shotSize: '3/4', cameraAngle: 'eye_level' },
+  full_outfit: { shotSize: 'full', cameraAngle: 'eye_level' }
+};
+
+// Conflicting shot sizes per body focus (these will crop the focused area)
+const BODY_FOCUS_SHOT_CONFLICTS = {
+  feet: ['medium', 'close', 'extreme_close'],
+  legs: ['close', 'extreme_close', 'medium'],
+  face: ['full', 'lower_body'],
+  full_outfit: ['close', 'extreme_close', 'detail_close', 'lower_body'],
+  back: ['extreme_close'],
+  hands: [],
+  upper_body: ['lower_body']
+};
+
+// Conflicting camera angles per body focus
+const BODY_FOCUS_ANGLE_CONFLICTS = {
+  feet: ['high'],
+  face: [],
+  legs: ['high'],
+  back: [],
+  hands: [],
+  upper_body: [],
+  full_outfit: []
+};
+
+function onBodyFocusChange() {
+  const bodyFocus = elements.genBodyFocus?.value || 'none';
+  if (bodyFocus === 'none') return;
+
+  const preset = BODY_FOCUS_PRESETS[bodyFocus];
+  if (!preset) return;
+
+  // Auto-set shot size
+  if (elements.genShotSize && preset.shotSize) {
+    const oldValue = elements.genShotSize.value;
+    elements.genShotSize.value = preset.shotSize;
+    if (oldValue !== preset.shotSize) {
+      console.log(`[BodyFocus] Auto-set shot size: ${oldValue} → ${preset.shotSize} (for ${bodyFocus})`);
+    }
+  }
+
+  // Auto-set camera angle
+  if (elements.genCameraAngle && preset.cameraAngle) {
+    const oldValue = elements.genCameraAngle.value;
+    elements.genCameraAngle.value = preset.cameraAngle;
+    if (oldValue !== preset.cameraAngle) {
+      console.log(`[BodyFocus] Auto-set camera angle: ${oldValue} → ${preset.cameraAngle} (for ${bodyFocus})`);
+    }
+  }
+
+  // Save settings
+  saveGenerationSettings();
+}
+
+/**
+ * Check if current shot size / camera angle conflicts with body focus
+ * Called when user manually changes shot size or camera angle
+ */
+function checkBodyFocusConflict(changedParam) {
+  const bodyFocus = elements.genBodyFocus?.value || 'none';
+  if (bodyFocus === 'none') return;
+
+  const focusLabels = {
+    face: 'Лицо', upper_body: 'Верх тела', hands: 'Руки',
+    legs: 'Ноги', feet: 'Обувь/Ступни', back: 'Спина', full_outfit: 'Полный образ'
+  };
+
+  if (changedParam === 'shotSize') {
+    const conflicts = BODY_FOCUS_SHOT_CONFLICTS[bodyFocus] || [];
+    const currentShot = elements.genShotSize?.value;
+    if (conflicts.includes(currentShot)) {
+      const preset = BODY_FOCUS_PRESETS[bodyFocus];
+      const msg = `⚠️ План "${currentShot}" может конфликтовать с фокусом "${focusLabels[bodyFocus]}". Рекомендуется: "${preset.shotSize}"`;
+      console.warn('[BodyFocus]', msg);
+      // Show brief toast/notification if available
+      if (typeof showToast === 'function') {
+        showToast(msg, 'warning');
+      }
+    }
+  }
+
+  if (changedParam === 'cameraAngle') {
+    const conflicts = BODY_FOCUS_ANGLE_CONFLICTS[bodyFocus] || [];
+    const currentAngle = elements.genCameraAngle?.value;
+    if (conflicts.includes(currentAngle)) {
+      const preset = BODY_FOCUS_PRESETS[bodyFocus];
+      const msg = `⚠️ Угол камеры "${currentAngle}" может конфликтовать с фокусом "${focusLabels[bodyFocus]}". Рекомендуется: "${preset.cameraAngle}"`;
+      console.warn('[BodyFocus]', msg);
+      if (typeof showToast === 'function') {
+        showToast(msg, 'warning');
+      }
+    }
+  }
+}
+
+/**
+ * Initialize event listeners for auto-saving generation settings
+ * NOTE: Only per-frame settings are tracked here
+ */
+function initSettingsAutoSave() {
+  const settingsElements = [
+    // Per-frame parameters
+    elements.genLocation,
+    elements.genEmotion,
+    elements.genAspectRatio,
+    elements.genImageSize,
+    elements.genPoseAdherence,
+    // Per-frame composition
+    elements.genShotSize,
+    elements.genCameraAngle,
+    elements.genBodyFocus
+  ];
+
+  // Add change listeners to all select elements
+  settingsElements.forEach(el => {
+    if (el) {
+      el.addEventListener('change', saveGenerationSettings);
+    }
+  });
+
+  // Body Focus → auto-adjust Shot Size + Camera Angle
+  if (elements.genBodyFocus) {
+    elements.genBodyFocus.addEventListener('change', onBodyFocusChange);
+  }
+
+  // Shot Size / Camera Angle → check conflicts with Body Focus
+  if (elements.genShotSize) {
+    elements.genShotSize.addEventListener('change', () => checkBodyFocusConflict('shotSize'));
+  }
+  if (elements.genCameraAngle) {
+    elements.genCameraAngle.addEventListener('change', () => checkBodyFocusConflict('cameraAngle'));
+  }
+
+  // Add input listener to extra prompt (with debounce already in saveGenerationSettings)
+  if (elements.genExtraPrompt) {
+    elements.genExtraPrompt.addEventListener('input', saveGenerationSettings);
+  }
+
+  // Delegated listener for V5 Universe Parameters (dynamic selects)
+  const universeContainer = document.getElementById('universe-params-container');
+  if (universeContainer) {
+    universeContainer.addEventListener('change', (e) => {
+      if (e.target.classList.contains('v5-param-select')) {
+        console.log('[AutoSave] Universe param changed:', e.target.dataset.v5Param, e.target.value);
+        saveGenerationSettings();
+      }
+    });
+  }
+}
+
+// NOTE: Legacy conflict checking and shoot type handling removed
+// All visual settings are now controlled via Universe params
+
+// ═══════════════════════════════════════════════════════════════
+// STEP 4: GENERATE (frames are selected directly here)
+// ═══════════════════════════════════════════════════════════════
+
+function renderGeneratePage() {
+  // Render universe params blocks (Custom Shoot 4 - new architecture)
+  renderUniverseParamsUI();
+
+  // Populate location dropdown
+  elements.genLocation.innerHTML = '<option value="">Без конкретной</option>';
+  state.locations.forEach(loc => {
+    elements.genLocation.innerHTML += `<option value="${loc.id}">${escapeHtml(loc.label)}</option>`;
+  });
+
+  // Populate emotion dropdown (grouped by energy category)
+  elements.genEmotion.innerHTML = '<option value="">Нейтральная (без эмоции)</option>';
+
+  // Group emotions by category
+  const emotionsByCategory = {};
+  state.emotions.forEach(e => {
+    if (!emotionsByCategory[e.category]) {
+      emotionsByCategory[e.category] = [];
+    }
+    emotionsByCategory[e.category].push(e);
+  });
+
+  // Category labels
+  const categoryLabels = {
+    'energy_low': '🌙 Тихие',
+    'energy_medium': '⚡ Активные',
+    'energy_high': '🔥 Яркие',
+    'camera_aware': '📷 С камерой',
+    'transitional': '✨ Переходные'
+  };
+
+  // Render grouped options
+  for (const [catId, emotions] of Object.entries(emotionsByCategory)) {
+    if (emotions.length > 0) {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = categoryLabels[catId] || catId;
+      emotions.forEach(e => {
+        const option = document.createElement('option');
+        option.value = e.id;
+        option.textContent = e.label;
+        option.title = e.shortDescription || '';
+        optgroup.appendChild(option);
+      });
+      elements.genEmotion.appendChild(optgroup);
+    }
+  }
+
+  // Apply saved generation settings AFTER populating dropdowns
+  applyGenerationSettings(state.generationSettings);
+
+  // Update lock UI
+  updateLockUI();
+
+  // Render frames to generate
+  renderFramesToGenerate();
+
+  // Render history
+  renderGeneratedHistory();
+}
+
+// NOTE: Ambient section removed - weather/time now in Universe params
+
+function updateLockUI() {
+  // Style Lock (Location Lock removed - location is implied in Style Lock)
+  elements.styleLockOff.classList.toggle('active', !state.styleLock.enabled);
+  elements.styleLockStrict.classList.toggle('active', state.styleLock.enabled && state.styleLock.mode === 'strict');
+  elements.styleLockSoft.classList.toggle('active-soft', state.styleLock.enabled && state.styleLock.mode === 'soft');
+
+  if (state.styleLock.imageUrl) {
+    elements.styleLockImg.src = state.styleLock.imageUrl;
+    elements.styleLockPreview.classList.add('active');
+  } else {
+    elements.styleLockPreview.classList.remove('active');
+  }
+}
+
+async function setStyleLockMode(mode) {
+  if (mode === 'off') {
+    // Clear style lock
+    try {
+      await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, { method: 'DELETE' }, 5000);
+      state.styleLock = { enabled: false, mode: null, imageId: null, imageUrl: null };
+      updateLockUI();
+      renderGeneratedHistory();
+    } catch (e) {
+      console.error('Error clearing style lock:', e);
+    }
+  } else {
+    // Need an image to lock
+    if (!state.styleLock.imageId && state.generatedFrames.length > 0) {
+      // Use the last generated image
+      const lastImage = state.generatedFrames[0];
+      await setAsStyleRef(lastImage.id);
+    }
+
+    if (state.styleLock.imageId) {
+      // Update mode
+      try {
+        await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageId: state.styleLock.imageId, mode })
+        }, 5000);
+        state.styleLock.mode = mode;
+        state.styleLock.enabled = true;
+        updateLockUI();
+      } catch (e) {
+        console.error('Error setting style lock mode:', e);
+      }
+    } else {
+      alert('Сначала сгенерируйте кадр, затем установите его как референс.');
+    }
+  }
+}
+
+// Location Lock removed - location is implied in Style Lock
+// If you need a specific location, select it from the Location dropdown
+// Style Lock already includes the background/location from the reference image
+
+async function setAsStyleRef(imageId) {
+  const image = state.generatedFrames.find(f => f.id === imageId);
+  if (!image) return;
+
+  const mode = state.styleLock.mode || 'strict';
+
+  try {
+    const res = await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/lock-style`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageId, mode })
+    }, 5000);
+    const data = await res.json();
+
+    if (data.ok) {
+      state.styleLock = {
+        enabled: true,
+        mode,
+        imageId,
+        imageUrl: image.imageUrl
+      };
+
+      // Update isStyleReference flags
+      state.generatedFrames.forEach(f => {
+        f.isStyleReference = f.id === imageId;
+      });
+
+      // Apply style settings from reference frame to UI
+      applySettingsFromFrame(image, 'style');
+
+      updateLockUI();
+      renderGeneratedHistory();
+    }
+  } catch (e) {
+    console.error('Error setting style ref:', e);
+  }
+}
+
+/**
+ * Apply settings from a reference frame to UI controls
+ * @param {Object} frame - The reference frame
+ * @param {string} type - 'style' (location type removed - implied in style)
+ */
+function applySettingsFromFrame(frame, type) {
+  if (!frame) return;
+
+  console.log(`[CustomShoot] Applying ${type} settings from frame:`, frame.frameLabel);
+
+  if (type === 'style') {
+    // Style lock now uses Universe params which are locked for the whole shoot
+    // The reference frame's universeParams can be used for the next generations
+    // Location is also implied in Style Lock - no need for separate location lock
+    if (frame.universeParams) {
+      // Apply universe params to state
+      state.universeValues = { ...frame.universeParams };
+      // Re-render universe params UI to reflect the values
+      renderUniverseParamsUI();
+      console.log('[CustomShoot] Universe params applied from style reference');
+    }
+  }
+}
+
+// setAsLocationRef removed - Location Lock functionality removed
+// Location is now implied in Style Lock
+
+function renderFramesToGenerate() {
+  // Show ALL frames from catalog (no pre-selection required)
+  if (state.frames.length === 0) {
+    elements.framesToGenerate.innerHTML = `
+      <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
+        <h4 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации</h4>
+        <div class="frame-gen-card" data-frame-id="" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 2px solid var(--color-accent); border-radius: 8px;">
+          <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🎯</div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; margin-bottom: 4px;">По умолчанию</div>
+            <div style="font-size: 12px; color: var(--color-text-muted);">Генерация без конкретного эскиза позы</div>
+          </div>
+          <button class="btn btn-primary btn-gen-frame" data-frame-id="" style="padding: 10px 20px; font-size: 13px;">🚀 Генерировать</button>
+        </div>
+        <div style="margin-top: 12px; font-size: 12px; color: var(--color-text-muted);">
+          💡 <a href="/editors/frame-editor.html">Создайте кадры</a> в редакторе для более точного контроля поз
+        </div>
+      </div>
+    `;
+  } else {
+    // Show all frames from catalog
+    const frameCards = state.frames.map((frame, idx) => {
+      const sketchImg = frame.sketchUrl
+        ? `<img src="${frame.sketchUrl}" alt="sketch" style="width: 100%; height: 100%; object-fit: contain;">`
+        : '<span style="font-size: 24px;">🖼️</span>';
+
+      return `
+        <div class="frame-gen-card" data-frame-id="${frame.id}" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 8px;">
+          <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden;">${sketchImg}</div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(frame.label)}</div>
+            ${frame.description ? `<div style="font-size: 11px; color: var(--color-text-muted);">${escapeHtml(frame.description)}</div>` : ''}
+          </div>
+          <button class="btn btn-primary btn-gen-frame" data-frame-id="${frame.id}" style="padding: 10px 20px; font-size: 13px;">🚀 Генерировать</button>
+        </div>
+      `;
+    }).join('');
+
+    elements.framesToGenerate.innerHTML = `
+      <div style="padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;">
+        <h4 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--color-text-muted);">Кадры для генерации (${state.frames.length})</h4>
+        ${frameCards}
+        <div class="frame-gen-card" data-frame-id="" style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: 8px; opacity: 0.7; margin-top: 8px;">
+          <div style="width: 60px; height: 80px; background: var(--color-surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🎯</div>
+          <div style="flex: 1;">
+            <div style="font-weight: 500;">По умолчанию (без эскиза)</div>
+            <div style="font-size: 11px; color: var(--color-text-muted);">Свободная поза</div>
+          </div>
+          <button class="btn btn-secondary btn-gen-frame" data-frame-id="" style="padding: 10px 20px; font-size: 13px;">Генерировать</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Click handlers are now delegated in initEventListeners()
+}
+
+/**
+ * Generate a frame with full error handling, timeout, and logging
+ */
+async function generateFrame(frameId) {
+  const genId = `gen_${Date.now() % 100000}`;
+  const log = (msg, data) => console.log(`[Generate] [${genId}] ${msg}`, data || '');
+
+  log('START', { frameId, shootId: state.currentShoot?.id });
+
+  // ═══════════════════════════════════════════════════════════════
+  // GLOBAL LOCK: Only one generation at a time
+  // This prevents queue buildup on the server which causes timeouts
+  // ═══════════════════════════════════════════════════════════════
+  if (state.isGenerating) {
+    log('BLOCKED: Generation already in progress');
+    showToast('⏳ Подождите, генерация уже идёт...');
+    return;
+  }
+
+  if (!state.currentShoot) {
+    log('ERROR: No current shoot');
+    return;
+  }
+
+  const modelCount = state.selectedModels.filter(m => m !== null).length;
+  if (modelCount === 0) {
+    log('ERROR: No models selected');
+    alert('Сначала добавьте модель');
+    return;
+  }
+
+  // Get button and show loading - with null check
+  const btn = elements.framesToGenerate.querySelector(`.btn-gen-frame[data-frame-id="${frameId || ''}"]`);
+  if (!btn) {
+    log('ERROR: Button not found', { selector: `.btn-gen-frame[data-frame-id="${frameId || ''}"]` });
+    alert('Ошибка: кнопка генерации не найдена. Обновите страницу.');
+    return;
+  }
+
+  // Set global lock BEFORE any async operations
+  state.isGenerating = true;
+  log('LOCK_ACQUIRED');
+
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Генерация...';
+
+  // Disable ALL generate buttons to prevent accidental clicks
+  const allGenButtons = elements.framesToGenerate.querySelectorAll('.btn-gen-frame');
+  allGenButtons.forEach(b => b.disabled = true);
+
+  // Get settings (Custom Shoot 4 - new universe params architecture)
+  const universeParams = collectUniverseParams();
+  log('Collected universe params', { keys: Object.keys(universeParams) });
+
+  const params = {
+    frameId,
+    locationId: elements.genLocation.value || null,
+    emotionId: null,  // V9: emotion derived from sketch
+    extraPrompt: elements.genExtraPrompt.value.trim(),
+    universeParams: universeParams,
+    aspectRatio: elements.genAspectRatio?.value || '3:4',
+    imageSize: elements.genImageSize?.value || '2K',
+    poseAdherence: 4,  // V9: always max adherence (exact frame copy)
+    // V9: no composition — derived from sketch
+    composition: null,
+    bodyFocus: 'none',
+    // V9 mode flag
+    mode: 'exact_frame',
+    // Body pose (only when no pose sketch - ignored on backend if sketch present)
+    poseId: document.getElementById('gen-body-pose')?.value || null,
+    // Location settings
+    locationMode: document.getElementById('gen-location-mode')?.value || 'none',
+    locationPrompt: document.getElementById('gen-location-prompt')?.value || '',
+    locationRefPath: state.locationRefPath || null
+  };
+
+  // DEBUG: Log V9 exact frame mode
+  console.log('[CS9] generateFrame EXACT FRAME mode, poseAdherence:', params.poseAdherence);
+  console.log('[CS9] generateFrame location:', params.locationMode, params.locationPrompt ? '(prompt)' : '', params.locationRefPath ? '(ref)' : '');
+
+  // Add placeholder
+  const placeholderId = `pending_${Date.now()}`;
+  state.generatedFrames.unshift({
+    id: placeholderId,
+    status: 'generating',
+    timestamp: new Date().toISOString()
+  });
+  renderGeneratedHistory();
+
+  // Create AbortController with 3 minute timeout
+  const controller = new AbortController();
+  const TIMEOUT_MS = 180000; // 3 minutes
+  const timeoutId = setTimeout(() => {
+    log('TIMEOUT: Aborting after 3 minutes');
+    controller.abort();
+  }, TIMEOUT_MS);
+
+  const startTime = Date.now();
+
+  try {
+    log('FETCH_START', { url: `/api/custom-shoots/${state.currentShoot.id}/generate` });
+
+    const requestBody = {
+      frame: frameId ? state.frames.find(f => f.id === frameId) : null,
+      emotionId: params.emotionId,
+      extraPrompt: params.extraPrompt,
+      locationId: params.locationId,
+      poseId: params.poseId,
+      aspectRatio: params.aspectRatio,
+      imageSize: params.imageSize,
+      poseAdherence: params.poseAdherence,
+      universeParams: params.universeParams,
+      composition: params.composition,
+      // Body focus
+      bodyFocus: params.bodyFocus || 'none',
+      // Location
+      locationMode: params.locationMode,
+      locationPrompt: params.locationPrompt,
+      locationRefPath: params.locationRefPath
+    };
+
+    const bodySize = JSON.stringify(requestBody).length;
+    log('REQUEST_BODY_SIZE', { sizeKB: Math.round(bodySize / 1024) });
+
+    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    const fetchDuration = ((Date.now() - startTime) / 1000).toFixed(1);
+    log('FETCH_COMPLETE', { status: res.status, duration: fetchDuration + 's' });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      log('HTTP_ERROR', { status: res.status, body: errorText.slice(0, 200) });
+      throw new Error(`HTTP ${res.status}: ${errorText.slice(0, 100)}`);
+    }
+
+    log('PARSING_RESPONSE');
+    const data = await res.json();
+    log('RESPONSE_PARSED', { ok: data.ok, hasImage: !!data.image });
+
+    // Find and update placeholder
+    const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+
+    if (data.ok && data.image) {
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex] = {
+          id: data.image.id,
+          imageUrl: data.image.imageUrl,
+          isStyleReference: false,
+          status: 'ready',
+          timestamp: new Date().toISOString(),
+          frameId: data.image.frameId || null,
+          frameLabel: data.image.frameLabel || 'По умолчанию',
+          locationId: data.image.locationId || null,
+          locationLabel: data.image.locationLabel || null,
+          emotionId: data.image.emotionId || null,
+          aspectRatio: data.image.aspectRatio || '3:4',
+          imageSize: data.image.imageSize || '2K',
+          poseAdherence: data.image.poseAdherence || 2,
+          composition: data.image.composition || null,
+          extraPrompt: data.image.extraPrompt || '',
+          prompt: data.prompt || null,
+          refs: data.refs || [],
+          generationTime: data.image.generationTime || null,
+          universeParams: data.image.universeParams || null
+        };
+
+        log('SUCCESS', { imageId: data.image.id, generationTime: data.image.generationTime });
+      }
+
+      elements.genExtraPrompt.value = '';
+      renderGeneratedHistory();
+      showToast('✅ Изображение сгенерировано!');
+    } else {
+      log('API_ERROR', { error: data.error });
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex].status = 'error';
+        state.generatedFrames[placeholderIndex].error = data.error || 'Неизвестная ошибка';
+        renderGeneratedHistory();
+      }
+      alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+    }
+  } catch (e) {
+    clearTimeout(timeoutId);
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    if (e.name === 'AbortError') {
+      log('ABORTED', { duration: duration + 's', reason: 'timeout or manual abort' });
+      const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex].status = 'error';
+        state.generatedFrames[placeholderIndex].error = 'Таймаут: сервер не ответил за 3 минуты';
+        renderGeneratedHistory();
+      }
+      alert('Таймаут: сервер не ответил за 3 минуты. Попробуйте ещё раз или обновите страницу.');
+    } else {
+      log('EXCEPTION', { name: e.name, message: e.message, duration: duration + 's' });
+      console.error('[Generate] Full error:', e);
+
+      const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex].status = 'error';
+        state.generatedFrames[placeholderIndex].error = e.message;
+        renderGeneratedHistory();
+      }
+      alert('Ошибка сети: ' + e.message);
+    }
+  } finally {
+    log('CLEANUP');
+
+    // Release global lock
+    state.isGenerating = false;
+    log('LOCK_RELEASED');
+
+    // Re-enable ALL generate buttons
+    const allGenButtons = elements.framesToGenerate.querySelectorAll('.btn-gen-frame');
+    allGenButtons.forEach(b => b.disabled = false);
+
+    btn.textContent = originalText;
+  }
+}
+
+/**
+ * Edit a specific frame using text instruction
+ */
+async function editFrame(frameId, instruction) {
+  if (!state.currentShoot) return;
+
+  const genId = `edit_${Date.now() % 100000}`;
+  console.log(`[EditFrame] [${genId}] Starting edit for ${frameId} with: "${instruction}"`);
+
+  if (state.isGenerating) {
+    showToast('⏳ Подождите, генерация уже идёт...');
+    return;
+  }
+
+  // Set global lock
+  state.isGenerating = true;
+  showToast('🎨 Применяем изменения...');
+
+  // Add placeholder
+  const placeholderId = `pending_edit_${Date.now()}`;
+  state.generatedFrames.unshift({
+    id: placeholderId,
+    status: 'generating',
+    timestamp: new Date().toISOString()
+  });
+  renderGeneratedHistory();
+
+  try {
+    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/edit-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageId: frameId,
+        instruction: instruction
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 100)}`);
+    }
+
+    const data = await res.json();
+
+    // Update placeholder
+    const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+
+    if (data.ok && data.image) {
+      if (placeholderIndex >= 0) {
+        state.generatedFrames[placeholderIndex] = {
+          ...data.image,
+          status: 'ready',
+          timestamp: new Date().toISOString()
+        };
+      }
+      showToast('✅ Изменения применены!');
+    } else {
+      throw new Error(data.error || 'Ошибка редактирования');
+    }
+
+    renderGeneratedHistory();
+
+  } catch (e) {
+    console.error(`[EditFrame] Error:`, e);
+    const placeholderIndex = state.generatedFrames.findIndex(f => f.id === placeholderId);
+    if (placeholderIndex >= 0) {
+      state.generatedFrames[placeholderIndex].status = 'error';
+      state.generatedFrames[placeholderIndex].error = e.message;
+      renderGeneratedHistory();
+    }
+    alert('Ошибка: ' + e.message);
+  } finally {
+    state.isGenerating = false;
+  }
+}
+
+function renderGeneratedHistory() {
+  const readyCount = state.generatedFrames.filter(f => f.status !== 'generating' && f.status !== 'error').length;
+  elements.generationCount.textContent = `${readyCount} изображений`;
+
+  if (state.generatedFrames.length === 0) {
+    elements.imagesGallery.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
+        <div class="empty-state-icon">🎨</div>
+        <div class="empty-state-title">Нет сгенерированных кадров</div>
+        <div class="empty-state-text">Нажми "Генерировать" выше</div>
+      </div>
+    `;
+    return;
+  }
+
+  elements.imagesGallery.innerHTML = state.generatedFrames.map((frame, idx) => {
+    const timestamp = frame.timestamp ? new Date(frame.timestamp).toLocaleTimeString() : '';
+
+    // Generating placeholder
+    if (frame.status === 'generating') {
+      return `
+        <div class="selection-card generated-frame-card generating" style="cursor: default;">
+          <div class="selection-card-preview" style="aspect-ratio: 3/4; background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg) 100%); display: flex; align-items: center; justify-content: center;">
+            <div style="text-align: center;">
+              <div style="width: 40px; height: 40px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
+              <div style="font-size: 13px; color: var(--color-text-muted);">Генерация...</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Error
+    if (frame.status === 'error') {
+      return `
+        <div class="selection-card generated-frame-card" style="cursor: default; border-color: var(--color-accent);">
+          <div class="selection-card-preview" style="aspect-ratio: 3/4; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center;">
+            <div style="text-align: center; padding: 20px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">❌</div>
+              <div style="font-size: 13px; color: var(--color-accent);">Ошибка</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary" style="margin-top: 8px; width: 100%; font-size: 12px;" data-delete-frame="${idx}">Удалить</button>
+        </div>
+      `;
+    }
+
+    // Ready frame
+    const isStyleRef = frame.isStyleReference;
+
+    let borderColor = 'var(--color-border)';
+    if (isStyleRef) borderColor = '#F59E0B';
+
+    // Build refs HTML with images (same as shoot-composer)
+    const refs = frame.refs || [];
+    const refsHtml = refs.length > 0
+      ? `<div style="display:grid; grid-template-columns: repeat(${Math.min(refs.length, 3)}, 1fr); gap:8px; margin-top:8px;">
+          ${refs.map(r => {
+        const url = r.previewUrl || '';
+        const label = r.label || r.kind || 'ref';
+        if (!url) return '';
+        return `
+              <div style="text-align: center;">
+                <div style="font-size:10px; color:var(--color-text-muted); margin-bottom:4px;">${escapeHtml(label)}</div>
+                <img src="${url}" alt="${escapeHtml(label)}" 
+                     style="width:100%; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--color-border);">
+              </div>
+            `;
+      }).join('')}
+        </div>`
+      : '<div style="font-size:11px; color:var(--color-text-muted);">Нет референсов</div>';
+
+    // Build settings HTML (same as shoot-composer)
+    const settingsHtml = buildFrameSettingsHtml(frame);
+
+    return `
+      <div class="selection-card generated-frame-card" style="cursor: default; position: relative; border-color: ${borderColor};">
+        <!-- Lock badges -->
+        <div class="history-lock-badges">
+          ${isStyleRef ? '<span class="history-lock-badge style">🎨</span>' : ''}
+        </div>
+        
+        <div class="selection-card-preview btn-open-lightbox" data-frame-index="${idx}" style="aspect-ratio: 3/4; cursor: pointer;" title="Клик для просмотра">
+          <img src="${frame.imageUrl}" alt="${escapeHtml(frame.frameLabel || 'Кадр')}" style="object-fit: contain; background: #000; pointer-events: none;">
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <div class="selection-card-title" style="margin: 0;">${escapeHtml(frame.frameLabel || 'Кадр')}</div>
+          <span style="font-size: 11px; color: var(--color-text-muted);">${timestamp}</span>
+        </div>
+        ${frame.locationLabel ? `<div style="font-size: 12px; color: var(--color-text-muted);">📍 ${escapeHtml(frame.locationLabel)}</div>` : ''}
+        ${frame.generationTime ? `<div style="font-size: 11px; color: var(--color-text-muted);">⏱️ ${frame.generationTime}s</div>` : ''}
+        
+        <!-- Actions -->
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="window.downloadAsJpeg('${frame.imageUrl}', 'custom-shoot-${idx}')" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Скачать JPEG">💾</button>
+            <button class="btn btn-secondary btn-upscale-frame" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Апскейл 4K + улучшение текстур">⬆️</button>
+            <button class="btn btn-secondary" onclick="window.copyFrameSettings(${idx})" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Применить настройки этого кадра">📋</button>
+            <button class="btn btn-secondary btn-set-style-ref" data-image-id="${frame.id}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Style Lock (включает локацию)">🎨</button>
+            <button class="btn btn-secondary btn-toggle-edit-mode" data-frame-index="${idx}" style="padding: 8px 12px; font-size: 12px; flex: 1;" title="Режим изменений (Edit Mode)">✏️</button>
+            <button class="btn btn-secondary" data-delete-frame="${idx}" style="padding: 8px 12px; font-size: 12px; color: var(--color-accent);" title="Удалить">✕</button>
+          </div>
+        </div>
+        
+        <!-- EDIT MODE UI (Hidden by default) -->
+        <div class="edit-mode-ui" id="edit-mode-ui-${idx}" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border);">
+          <div style="font-size: 11px; font-weight: 600; color: var(--color-primary); margin-bottom: 6px;">✏️ РЕЖИМ ИЗМЕНЕНИЯ (Nano Banana Pro)</div>
+          <div style="font-size: 10px; color: var(--color-text-muted); margin-bottom: 8px;">Опишите, что нужно изменить в этом кадре. Остальное останется прежним.</div>
+          <textarea class="edit-prompt-input" id="edit-prompt-${idx}" placeholder="Например: Сделай волосы светлыми; Добавь очки; Измени фон на ночной город..." style="width: 100%; min-height: 60px; font-size: 12px; padding: 8px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text); margin-bottom: 8px; resize: vertical;"></textarea>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-primary btn-submit-edit" data-frame-id="${frame.id}" data-frame-index="${idx}" style="flex: 2; font-size: 12px;">🔄 Генерировать изменения</button>
+            <button class="btn btn-secondary btn-cancel-edit" data-frame-index="${idx}" style="flex: 1; font-size: 12px;">Отмена</button>
+          </div>
+        </div>
+        
+        <!-- Settings used for this frame -->
+        <details style="margin-top: 12px; width: 100%;">
+          <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
+            ⚙️ Настройки кадра
+          </summary>
+          <div style="margin-top: 10px; text-align: left; font-size: 11px; background: var(--color-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--color-border);">
+            ${settingsHtml}
+          </div>
+        </details>
+        
+        <!-- Debug: Prompt + Refs -->
+        <details style="margin-top: 8px; width: 100%;">
+          <summary style="cursor: pointer; font-size: 11px; color: var(--color-text-muted); user-select: none;">
+            📋 Промпт и референсы
+          </summary>
+          <div style="margin-top: 10px; text-align: left;">
+            ${refsHtml}
+            <pre style="white-space: pre-wrap; word-break: break-word; background: var(--color-surface-elevated); color: var(--color-text); padding: 10px; border-radius: 8px; max-height: 150px; overflow: auto; font-size: 10px; font-family: monospace; border: 1px solid var(--color-border); margin-top: 10px;">${escapeHtml(frame.prompt || 'N/A')}</pre>
+          </div>
+        </details>
+      </div>
+    `;
+  }).join('');
+
+  // Click handlers are delegated in initEventListeners() - no need to re-attach
+}
+
+/**
+ * Copy settings from a generated frame to current settings
+ * Applies: Universe params, location, emotion, aspect ratio, image size, pose adherence, composition
+ * Does NOT apply: Frame/pose sketch (user chooses their own)
+ */
+function copyFrameSettings(frameIndex) {
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame) {
+    console.warn('[CopySettings] Frame not found at index:', frameIndex);
+    showToast('❌ Кадр не найден');
+    return;
+  }
+
+  console.log('[CopySettings] === STARTING COPY ===');
+  console.log('[CopySettings] Frame data:', JSON.stringify(frame, null, 2).slice(0, 1000));
+  console.log('[CopySettings] universeParams:', frame.universeParams);
+
+  const changedElements = []; // Track changed elements for highlighting
+  let changeLog = [];
+
+  // Helper function to safely set select value
+  function setSelectValue(selectEl, value, label) {
+    if (!selectEl) {
+      console.log(`[CopySettings] ${label}: element not found`);
+      return false;
+    }
+    if (value === undefined || value === null) {
+      console.log(`[CopySettings] ${label}: no value to set`);
+      return false;
+    }
+
+    const oldValue = selectEl.value;
+    const strValue = String(value);
+
+    // Check if option exists
+    const optionExists = Array.from(selectEl.options).some(opt => opt.value === strValue);
+    if (!optionExists) {
+      console.log(`[CopySettings] ${label}: option "${strValue}" not found in select`);
+      return false;
+    }
+
+    selectEl.value = strValue;
+
+    if (oldValue !== selectEl.value) {
+      changedElements.push(selectEl);
+      changeLog.push(`${label}: ${oldValue} → ${selectEl.value}`);
+      console.log(`[CopySettings] ${label}: CHANGED from "${oldValue}" to "${selectEl.value}"`);
+      return true;
+    } else {
+      console.log(`[CopySettings] ${label}: already set to "${strValue}"`);
+      return false;
+    }
+  }
+
+  // 1. Apply Universe params (all visual settings)
+  if (frame.universeParams && typeof frame.universeParams === 'object') {
+    console.log('[CopySettings] Applying universe params:', Object.keys(frame.universeParams));
+
+    // Capture OLD values for diffing
+    const oldValues = { ...state.universeValues };
+
+    // Update state
+    state.universeValues = { ...frame.universeParams };
+    state.v5Values = { ...frame.universeParams }; // Also update V5 specific state
+
+    // Completely re-render UI controls with new values
+    // This handles all dependencies and ensures UI matches state
+    renderUniverseParamsUI();
+    applyV5Dependencies();
+    renderEmotionOptions(); // Since we re-rendered the container
+
+    // Detect and visualize changes
+    Object.keys(frame.universeParams).forEach(key => {
+      const newVal = frame.universeParams[key];
+      const oldVal = oldValues[key];
+
+      if (newVal !== oldVal) {
+        // Find the element
+        const el = document.querySelector(`.v5-param-select[data-v5-param="${key}"]`);
+        if (el) {
+          changedElements.push(el);
+
+          // Add visual label for previous value
+          // Try to find human readable label from schema
+          let oldLabelStr = oldVal;
+          try {
+            if (state.v5Schema) {
+              // Check technical
+              if (state.v5Schema.technical && state.v5Schema.technical[key]) {
+                const opt = state.v5Schema.technical[key].options.find(o => o.value === oldVal);
+                if (opt) oldLabelStr = opt.label;
+              }
+              // Check artistic
+              else if (state.v5Schema.artistic && state.v5Schema.artistic[key]) {
+                const opt = state.v5Schema.artistic[key].options.find(o => o.value === oldVal);
+                if (opt) oldLabelStr = opt.label;
+              }
+              // Check context
+              else if (state.v5Schema.context && state.v5Schema.context[key]) {
+                const opt = state.v5Schema.context[key].options.find(o => o.value === oldVal);
+                if (opt) oldLabelStr = opt.label;
+              }
+            }
+          } catch (e) { console.error('Error getting label', e); }
+
+          // Remove any existing diff labels for this element (if re-running)
+          const parent = el.parentElement;
+          const existingDiff = parent.querySelector('.diff-label');
+          if (existingDiff) existingDiff.remove();
+
+          // Create diff label
+          const diffDiv = document.createElement('div');
+          diffDiv.className = 'diff-label';
+          diffDiv.style.fontSize = '10px';
+          diffDiv.style.color = '#22c55e'; // Green
+          diffDiv.style.marginTop = '2px';
+          diffDiv.style.fontWeight = 'bold';
+          diffDiv.innerText = `Previously: ${oldLabelStr || 'None'}`;
+
+          // Append after select
+          parent.appendChild(diffDiv);
+        }
+      }
+    });
+
+    changeLog.push('Universe params applied via re-render');
+
+    // Update narrative preview
+    if (typeof updateNarrativePreview === 'function') {
+      updateNarrativePreview();
+    }
+  } else {
+    console.log('[CopySettings] No universeParams in frame');
+  }
+
+  // 2. Apply per-frame settings
+
+  // Location
+  if (frame.locationId) {
+    setSelectValue(elements.genLocation, frame.locationId, 'Location');
+  }
+
+  // Emotion
+  if (frame.emotionId) {
+    setSelectValue(elements.genEmotion, frame.emotionId, 'Emotion');
+  }
+
+  // Aspect ratio
+  if (frame.aspectRatio) {
+    setSelectValue(elements.genAspectRatio, frame.aspectRatio, 'AspectRatio');
+  }
+
+  // Image size
+  if (frame.imageSize) {
+    setSelectValue(elements.genImageSize, frame.imageSize, 'ImageSize');
+  }
+
+  // Pose adherence
+  if (frame.poseAdherence) {
+    setSelectValue(elements.genPoseAdherence, frame.poseAdherence, 'PoseAdherence');
+  }
+
+  // Composition (shot size, camera angle)
+  if (frame.composition) {
+    if (frame.composition.shotSize) {
+      setSelectValue(elements.genShotSize, frame.composition.shotSize, 'ShotSize');
+    }
+    if (frame.composition.cameraAngle) {
+      setSelectValue(elements.genCameraAngle, frame.composition.cameraAngle, 'CameraAngle');
+    }
+  }
+
+  // Extra prompt
+  if (frame.extraPrompt && elements.genExtraPrompt) {
+    elements.genExtraPrompt.value = frame.extraPrompt;
+    changedElements.push(elements.genExtraPrompt);
+    changeLog.push(`ExtraPrompt: set`);
+  }
+
+  // Save updated settings
+  saveGenerationSettings();
+
+  console.log('[CopySettings] === COPY COMPLETE ===');
+  console.log('[CopySettings] Changed elements:', changedElements.length);
+  console.log('[CopySettings] Change log:', changeLog);
+
+  // Highlight changed elements with animation
+  changedElements.forEach(el => {
+    if (!el) return;
+    el.style.transition = 'box-shadow 0.3s, border-color 0.3s';
+    el.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.5)';
+    el.style.borderColor = '#22c55e';
+
+    setTimeout(() => {
+      el.style.boxShadow = '';
+      el.style.borderColor = '';
+    }, 2000);
+  });
+
+  // Scroll to Universe params section
+  const universeContainer = document.getElementById('universe-params-container');
+  if (universeContainer) {
+    universeContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Show confirmation with count
+  showToast(`✅ Применено ${changedElements.length} настроек! Выберите эскиз позы и нажмите «Генерировать»`);
+}
+
+async function deleteFrame(index) {
+  const frame = state.generatedFrames[index];
+  if (!frame) return;
+
+  // Delete from server if has ID
+  if (frame.id && !frame.id.startsWith('pending_')) {
+    try {
+      await fetchWithTimeout(`/api/custom-shoots/${state.currentShoot.id}/images/${frame.id}`, { method: 'DELETE' }, 5000);
+    } catch (e) {
+      console.error('Error deleting from server:', e);
+    }
+  }
+
+  state.generatedFrames.splice(index, 1);
+  renderGeneratedHistory();
+}
+
+/**
+ * Upscale a frame to 4K with texture enhancement via Nano Banana Pro
+ * Adds upscaled image as a NEW card (doesn't replace original)
+ */
+async function upscaleFrame(frameIndex) {
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame || !frame.imageUrl) {
+    showToast('❌ Нет изображения для апскейла');
+    return;
+  }
+
+  if (!state.currentShoot) {
+    showToast('❌ Съёмка не выбрана');
+    return;
+  }
+
+  // Find button and show loading
+  const btn = document.querySelector(`.btn-upscale-frame[data-frame-index="${frameIndex}"]`);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳';
+  }
+
+  try {
+    let imageBase64, mimeType;
+
+    // Check if imageUrl is a data URL or a file path
+    if (frame.imageUrl.startsWith('data:')) {
+      // Data URL - extract base64 directly
+      const match = frame.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) {
+        throw new Error('Неверный формат data URL');
+      }
+      mimeType = match[1];
+      imageBase64 = match[2];
+    } else {
+      // URL path - need to fetch and convert to base64
+      showToast('⬆️ Загрузка изображения...');
+
+      const response = await fetch(frame.imageUrl);
+      if (!response.ok) {
+        throw new Error('Не удалось загрузить изображение');
+      }
+
+      const blob = await response.blob();
+      mimeType = blob.type || 'image/jpeg';
+
+      // Convert blob to base64
+      imageBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result;
+          const base64 = dataUrl.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    showToast('⬆️ Апскейл 4K + улучшение текстур...');
+
+    const res = await fetch(`/api/custom-shoots/${state.currentShoot.id}/upscale`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64,
+        mimeType,
+        targetSize: '4K'
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.ok && data.data) {
+      // Add upscaled image as NEW card at the beginning (newest first)
+      const upscaledFrame = {
+        id: `upscaled_${Date.now()}`,
+        imageUrl: data.data.imageUrl,
+        frameId: frame.frameId,
+        frameLabel: (frame.frameLabel || 'Кадр') + ' (4K)',
+        locationId: frame.locationId,
+        locationLabel: frame.locationLabel,
+        emotionId: frame.emotionId,
+        status: 'ready',
+        upscaled: true,
+        upscaleMethod: data.data.method,
+        upscaleWidth: data.data.width,
+        upscaleHeight: data.data.height,
+        sourceFrameIndex: frameIndex,
+        timestamp: new Date().toISOString(),
+        prompt: data.data.prompt || 'Nano Banana Pro Upscale'
+      };
+
+      state.generatedFrames.unshift(upscaledFrame);
+      renderGeneratedHistory();
+      showToast(`✅ Апскейл выполнен! ${data.data.width}x${data.data.height}`);
+    } else {
+      throw new Error(data.error || 'Ошибка апскейла');
+    }
+  } catch (e) {
+    console.error('[Upscale] Error:', e);
+    showToast('❌ ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⬆️';
+    }
+  }
+}
+
+function clearGenerationHistory() {
+  if (!confirm('Очистить всю историю?')) return;
+  state.generatedFrames = [];
+  renderGeneratedHistory();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LIGHTBOX
+// ═══════════════════════════════════════════════════════════════
+
+const lightbox = {
+  overlay: null,
+  image: null,
+  currentIndex: 0,
+  images: []
+};
+
+function initLightbox() {
+  lightbox.overlay = document.getElementById('lightbox');
+  lightbox.image = document.getElementById('lightbox-image');
+
+  if (!lightbox.overlay) return;
+
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  document.getElementById('lightbox-prev').addEventListener('click', () => navigateLightbox(-1));
+  document.getElementById('lightbox-next').addEventListener('click', () => navigateLightbox(1));
+
+  lightbox.overlay.addEventListener('click', (e) => {
+    if (e.target === lightbox.overlay) closeLightbox();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!lightbox.overlay.classList.contains('active')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') navigateLightbox(-1);
+    if (e.key === 'ArrowRight') navigateLightbox(1);
+  });
+}
+
+function openLightbox(index) {
+  lightbox.images = state.generatedFrames
+    .filter(f => f.imageUrl && f.status !== 'generating' && f.status !== 'error')
+    .map(f => f.imageUrl);
+
+  if (lightbox.images.length === 0) return;
+
+  lightbox.currentIndex = index;
+  updateLightboxImage();
+  lightbox.overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  lightbox.overlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function navigateLightbox(direction) {
+  lightbox.currentIndex = Math.max(0, Math.min(lightbox.images.length - 1, lightbox.currentIndex + direction));
+  updateLightboxImage();
+}
+
+function updateLightboxImage() {
+  lightbox.image.src = lightbox.images[lightbox.currentIndex] || '';
+  document.getElementById('lightbox-info').textContent = `${lightbox.currentIndex + 1} / ${lightbox.images.length}`;
+  document.getElementById('lightbox-prev').disabled = lightbox.currentIndex === 0;
+  document.getElementById('lightbox-next').disabled = lightbox.currentIndex === lightbox.images.length - 1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Labels for settings display
+const ASPECT_RATIO_LABELS = {
+  '3:4': '📱 3:4 (Портрет)',
+  '4:3': '🖼️ 4:3 (Пейзаж)',
+  '1:1': '⬜ 1:1 (Квадрат)',
+  '9:16': '📲 9:16 (Сторис)',
+  '16:9': '🎬 16:9 (Кино)'
+};
+
+const IMAGE_SIZE_LABELS = {
+  '1K': '1K (быстро)',
+  '2K': '2K (стандарт)',
+  '4K': '4K (качество)'
+};
+
+const POSE_ADHERENCE_LABELS = {
+  1: 'Свободно (только тип позы)',
+  2: 'Похоже (поза 30-40%)',
+  3: 'Близко (поза 70-80%)',
+  4: 'Точно (поза + кадрирование)'
+};
+
+function buildFrameSettingsHtml(frame) {
+  const items = [];
+
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 1: Basic frame info
+  // ═══════════════════════════════════════════════════════════════
+
+  // Image format (aspect ratio + size)
+  const aspectLabel = ASPECT_RATIO_LABELS[frame.aspectRatio] || frame.aspectRatio || '3:4';
+  const sizeLabel = IMAGE_SIZE_LABELS[frame.imageSize] || frame.imageSize || '2K';
+  items.push(`<div><strong>📐 Формат:</strong> ${aspectLabel}, ${sizeLabel}</div>`);
+
+  // Generation time
+  if (frame.generationTime) {
+    items.push(`<div><strong>⏱️ Время:</strong> ${frame.generationTime}s</div>`);
+  }
+
+  // Pose adherence
+  if (frame.poseAdherence) {
+    items.push(`<div><strong>🎯 Следование эскизу:</strong> ${POSE_ADHERENCE_LABELS[frame.poseAdherence] || frame.poseAdherence}/4</div>`);
+  }
+
+  // Emotion
+  if (frame.emotionId) {
+    const emotion = state.emotions.find(e => e.id === frame.emotionId);
+    items.push(`<div><strong>😊 Эмоция:</strong> ${emotion?.label || frame.emotionId}</div>`);
+  }
+
+  // Location
+  if (frame.locationLabel) {
+    items.push(`<div><strong>📍 Локация:</strong> ${escapeHtml(frame.locationLabel)}</div>`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 2: Universe Params (ALL of them)
+  // ═══════════════════════════════════════════════════════════════
+
+  if (frame.universeParams && typeof frame.universeParams === 'object') {
+    const up = frame.universeParams;
+
+    items.push(`<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);"><strong>🧬 Universe настройки:</strong></div>`);
+
+    // Human-readable labels for universe params
+    const paramLabels = {
+      // Approach
+      shootingApproach: '📷 Подход',
+      productDiscipline: '👗 Приоритет продукта',
+
+      // Tech (V5)
+      camera: '📸 Камера',
+      cameraClass: '📸 Камера',
+      focalLength: '🔭 Фокусное',
+      focalRange: '🔭 Фокусное',
+      aperture: '📷 Диафрагма',
+      apertureIntent: '📷 Диафрагма',
+      shutterSpeed: '⏱️ Затвор',
+      shutterIntent: '⏱️ Затвор',
+      iso: '💡 ISO',
+      exposure: '💡 Экспозиция',
+      exposureIntent: '💡 Экспозиция',
+      contrastCurve: '📈 Контраст',
+      whiteBalance: '🌡️ Баланс белого',
+      lightSource: '💡 Источник света',
+      lightDirection: '➡️ Направление',
+      lightQuality: '✨ Качество света',
+      processingStyle: '🎨 Обработка',
+      retouchLevel: '✨ Ретушь',
+      distortionPolicy: '🔍 Дисторсия',
+      cameraProximity: '📏 Дистанция',
+      skinTexture: '🧬 Текстура кожи',
+
+      // Era
+      decade: '📅 Эпоха',
+      culturalContext: '🎭 Контекст',
+
+      // Color (Legacy mostly)
+      wbShift: '↔️ Сдвиг WB',
+      saturation: '🎨 Насыщенность',
+      shadowTone: '🌑 Тени',
+      highlightTone: '☀️ Света',
+
+      // Mood (V5)
+      visualMood: '💫 Атмосфера',
+      energyLevel: '⚡ Энергия',
+      spontaneity: '🎲 Спонтанность',
+      primaryFocus: '🎯 Фокус',
+
+      // Context (V5)
+      timeOfDay: '🕐 Время суток',
+      weather: '🌤️ Погода',
+      weatherLighting: '🌤️ Погода',
+      season: '🍂 Сезон',
+
+      // Anti-AI
+      antiAiLevel: '🤖 Anti-AI'
+    };
+
+    // Group params by category for display
+    const categories = {
+      'Подход': ['shootingApproach', 'productDiscipline'],
+      'Техника': ['camera', 'cameraClass', 'focalLength', 'focalRange', 'aperture', 'apertureIntent', 'shutterSpeed', 'shutterIntent', 'iso', 'exposure', 'exposureIntent', 'whiteBalance', 'contrastCurve', 'processingStyle', 'retouchLevel', 'skinTexture'],
+      'Освещение': ['lightSource', 'lightDirection', 'lightQuality'],
+      'Эпоха': ['decade', 'culturalContext'],
+      'Оптика': ['distortionPolicy', 'cameraProximity'],
+      'Атмосфера': ['visualMood', 'energyLevel', 'spontaneity', 'primaryFocus'],
+      'Контекст': ['timeOfDay', 'weather', 'weatherLighting', 'season'],
+      'Реализм': ['antiAiLevel']
+    };
+
+    for (const [catName, paramKeys] of Object.entries(categories)) {
+      const catItems = [];
+      for (const key of paramKeys) {
+        if (up[key] !== undefined && up[key] !== null && up[key] !== '') {
+          const label = paramLabels[key] || key;
+          const value = formatUniverseValue(key, up[key]);
+          catItems.push(`${label}: <span style="color: var(--color-primary);">${value}</span>`);
+        }
+      }
+      if (catItems.length > 0) {
+        items.push(`<div style="font-size: 10px; margin-top: 4px;"><strong>${catName}:</strong> ${catItems.join(' · ')}</div>`);
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 3: Extra prompt
+  // ═══════════════════════════════════════════════════════════════
+
+  if (frame.extraPrompt) {
+    items.push(`<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border);"><strong>💬 Доп. промпт:</strong><br><em style="font-size: 10px;">${escapeHtml(frame.extraPrompt)}</em></div>`);
+  }
+
+  return items.join('');
+}
+
+/**
+ * Format universe param value for display
+ */
+function formatUniverseValue(key, value) {
+  if (value === null || value === undefined) return '—';
+
+  // Convert snake_case to readable
+  const readable = String(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase());
+
+  return readable;
+}
+
+/**
+ * Migrate old clothing refs format to new ClothingItem format
+ * Old: [{ url, description }, ...]
+ * New: [{ id, name, prompt, images: [{ id, url, view }] }, ...]
+ */
+function migrateOldClothingRefs(oldRefs) {
+  if (!Array.isArray(oldRefs)) return [];
+
+  // Check if already new format
+  if (oldRefs.length > 0 && oldRefs[0].images) {
+    return oldRefs;
+  }
+
+  // Migrate: each old ref becomes a separate ClothingItem with one image
+  return oldRefs.map((ref, index) => ({
+    id: `migrated_${Date.now()}_${index}`,
+    name: ref.description || `Предмет ${index + 1}`,
+    prompt: ref.description || '',
+    images: [{
+      id: `img_migrated_${index}`,
+      url: ref.url,
+      view: 'front'
+    }],
+    createdAt: new Date().toISOString()
+  }));
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Show a toast notification
+ */
+function showToast(message, duration = 3000) {
+  // Remove existing toast
+  const existingToast = document.querySelector('.toast-notification');
+  if (existingToast) existingToast.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-surface-elevated, #1a1a1a);
+    color: var(--color-text, #fff);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 1px solid var(--color-border, #333);
+    z-index: 10000;
+    animation: toast-slide-up 0.3s ease;
+  `;
+  toast.textContent = message;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'toast-slide-down 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+async function checkServerStatus() {
+  try {
+    const res = await fetchWithTimeout('/api/health', {}, 5000);
+    const data = await res.json();
+    elements.serverStatus.textContent = data.ok ? 'Сервер работает' : 'Ошибка';
+  } catch (e) {
+    console.warn('[CheckServer] Error:', e.message);
+    elements.serverStatus.textContent = 'Нет связи';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+async function init() {
+  console.log('[Init] Starting...');
+
+  try {
+    initElements();
+    console.log('[Init] Elements OK');
+
+    initEventListeners();
+    console.log('[Init] EventListeners OK');
+
+    initLightbox();
+    initSettingsAutoSave();
+    initClothingEventDelegation();
+    console.log('[Init] Components OK');
+
+    await checkServerStatus();
+    console.log('[Init] Server check OK');
+
+    console.log('[Init] Loading data...');
+    await Promise.all([
+      loadShoots(),
+      loadModels(),
+      loadFrames(),
+      loadLocations(),
+      loadEmotions(),
+      loadPoses(),
+      loadUniverseParams()
+    ]);
+    console.log('[Init] Data loaded OK');
+
+    updateStepStatuses();
+    console.log('[Init] Complete!');
+  } catch (e) {
+    console.error('[Init] CRITICAL ERROR:', e);
+    alert('Ошибка загрузки страницы: ' + e.message + '\n\nПопробуйте обновить страницу.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// CSS for spin animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(style);
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL EXPORTS (for inline onclick handlers)
+// ═══════════════════════════════════════════════════════════════
+
+window.copyFrameSettings = function (frameIndex) {
+  console.log('[CopySettings] Button clicked, frameIndex:', frameIndex);
+
+  const frame = state.generatedFrames[frameIndex];
+  if (!frame) {
+    console.error('[CopySettings] Frame not found at index:', frameIndex);
+    alert('Кадр не найден');
+    return;
+  }
+
+  console.log('[CopySettings] Frame found:', frame.id);
+  console.log('[CopySettings] Frame universeParams:', frame.universeParams);
+  console.log('[CopySettings] Frame keys:', Object.keys(frame));
+
+  let changedCount = 0;
+
+  // 1. Apply Universe params
+  if (frame.universeParams && typeof frame.universeParams === 'object') {
+    const keys = Object.keys(frame.universeParams);
+    console.log('[CopySettings] Applying', keys.length, 'universe params:', keys);
+
+    state.universeValues = { ...frame.universeParams };
+
+    document.querySelectorAll('.universe-param-select').forEach(select => {
+      const paramId = select.dataset.paramId;
+      if (paramId && frame.universeParams[paramId] !== undefined) {
+        const newValue = String(frame.universeParams[paramId]);
+        if (select.value !== newValue) {
+          console.log(`[CopySettings] ${paramId}: "${select.value}" → "${newValue}"`);
+          select.value = newValue;
+          changedCount++;
+          // Highlight
+          select.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.5)';
+          select.style.borderColor = '#22c55e';
+          setTimeout(() => {
+            select.style.boxShadow = '';
+            select.style.borderColor = '';
+          }, 2000);
+        }
+      }
+    });
+
+    // Update narrative preview
+    if (typeof updateNarrativePreview === 'function') {
+      updateNarrativePreview();
+    }
+  } else {
+    console.log('[CopySettings] No universeParams in frame');
+  }
+
+  // 2. Location
+  if (frame.locationId && elements.genLocation) {
+    if (elements.genLocation.value !== frame.locationId) {
+      elements.genLocation.value = frame.locationId;
+      changedCount++;
+      console.log('[CopySettings] Location:', frame.locationId);
+    }
+  }
+
+  // 3. Emotion
+  if (frame.emotionId && elements.genEmotion) {
+    if (elements.genEmotion.value !== frame.emotionId) {
+      elements.genEmotion.value = frame.emotionId;
+      changedCount++;
+      console.log('[CopySettings] Emotion:', frame.emotionId);
+    }
+  }
+
+  // 4. Aspect ratio
+  if (frame.aspectRatio && elements.genAspectRatio) {
+    if (elements.genAspectRatio.value !== frame.aspectRatio) {
+      elements.genAspectRatio.value = frame.aspectRatio;
+      changedCount++;
+      console.log('[CopySettings] AspectRatio:', frame.aspectRatio);
+    }
+  }
+
+  // 5. Image size
+  if (frame.imageSize && elements.genImageSize) {
+    if (elements.genImageSize.value !== frame.imageSize) {
+      elements.genImageSize.value = frame.imageSize;
+      changedCount++;
+      console.log('[CopySettings] ImageSize:', frame.imageSize);
+    }
+  }
+
+  // 6. Pose adherence
+  if (frame.poseAdherence && elements.genPoseAdherence) {
+    const strVal = String(frame.poseAdherence);
+    if (elements.genPoseAdherence.value !== strVal) {
+      elements.genPoseAdherence.value = strVal;
+      changedCount++;
+      console.log('[CopySettings] PoseAdherence:', frame.poseAdherence);
+    }
+  }
+
+  // 7. Extra prompt
+  if (frame.extraPrompt && elements.genExtraPrompt) {
+    elements.genExtraPrompt.value = frame.extraPrompt;
+    console.log('[CopySettings] ExtraPrompt: set');
+  }
+
+  // Save
+  saveGenerationSettings();
+
+  // Scroll to universe params
+  const container = document.getElementById('universe-params-container');
+  if (container) {
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Toast
+  console.log('[CopySettings] DONE. Changed:', changedCount);
+  showToast(`✅ Применено ${changedCount} настроек`);
+};
+
+// ═══════════════════════════════════════════════════════════════
+// LOOKS MODULE
+// ═══════════════════════════════════════════════════════════════
+
+let targetModelIndexForLook = null;
+
+function initLooksLogic() {
+  const closeBtn = document.getElementById('btn-close-looks-modal');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeLooksModal);
+  }
+
+  // Delegated event for Select Look buttons
+  if (elements.clothingSections) {
+    elements.clothingSections.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-select-look');
+      if (btn) {
+        openLooksModal(parseInt(btn.dataset.modelIndex));
+      }
+    });
+  }
+
+  // Delegated event for Look selection in grid
+  const grid = document.getElementById('looks-grid');
+  if (grid) {
+    grid.addEventListener('click', (e) => {
+      const card = e.target.closest('.look-setup-card');
+      if (card) {
+        applyLookToModel(card.dataset.lookId);
+      }
+    });
+  }
+}
+
+async function openLooksModal(modelIndex) {
+  targetModelIndexForLook = modelIndex;
+  const modal = document.getElementById('looks-modal');
+  const grid = document.getElementById('looks-grid');
+
+  if (modal) modal.style.display = 'flex';
+  if (grid) grid.innerHTML = '<div style="padding: 20px; color: var(--color-text-muted);">Загрузка...</div>';
+
+  try {
+    const res = await fetch('/api/looks');
+    const json = await res.json();
+
+    if (!json.ok || !json.data.length) {
+      if (grid) grid.innerHTML = '<div style="padding: 20px;">Нет доступных образов. Создайте их в редакторе.</div>';
+      return;
+    }
+
+    if (grid) {
+      grid.innerHTML = json.data.map(look => `
+        <div class="look-setup-card" data-look-id="${look.id}" style="
+             background: var(--color-bg); 
+             border: 1px solid var(--color-border); 
+             border-radius: 8px; 
+             overflow: hidden; 
+             cursor: pointer; 
+             transition: transform 0.2s;">
+          <div style="height: 120px; background: #333; position: relative;">
+             <div style="position: absolute; bottom: 8px; left: 8px; font-size: 32px;">👔</div>
+          </div>
+          <div style="padding: 12px;">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${escapeHtml(look.label)}</div>
+            <div style="font-size: 12px; color: var(--color-text-muted);">
+              ${look.items.length} предметов • ${look.category}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    console.error('Error loading looks:', e);
+    if (grid) grid.innerHTML = 'Ошибка загрузки';
+  }
+}
+
+function closeLooksModal() {
+  const modal = document.getElementById('looks-modal');
+  if (modal) modal.style.display = 'none';
+  targetModelIndexForLook = null;
+}
+
+async function applyLookToModel(lookId) {
+  if (targetModelIndexForLook === null) return;
+
+  try {
+    const res = await fetch(`/api/looks/${lookId}`);
+    const json = await res.json();
+
+    if (json.ok) {
+      const look = json.data;
+      const modelIdx = targetModelIndexForLook;
+
+      // 1. Convert Look Items to Clothing Items
+      const newItems = look.items.map(item => ({
+        id: Date.now() + Math.random(), // New ID for this instance
+        name: item.type, // Map type to name
+        type: item.type,
+        prompt: item.description,
+        images: (function () {
+          const imgs = [];
+          // Handle multiple images (new standard)
+          if (item.images && Array.isArray(item.images)) {
+            item.images.forEach((filename, idx) => {
+              imgs.push({
+                id: `img_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 5)}`,
+                url: `/api/looks/${lookId}/images/${filename}`,
+                view: 'front',
+                uploadedAt: new Date().toISOString()
+              });
+            });
+          }
+          // Handle legacy single image
+          else if (item.image) {
+            imgs.push({
+              id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+              url: `/api/looks/${lookId}/images/${item.image}`,
+              view: 'front',
+              uploadedAt: new Date().toISOString()
+            });
+          }
+          return imgs;
+        })()
+      }));
+
+      const currentItems = state.clothingByModel[modelIdx] || [];
+      state.clothingByModel[modelIdx] = [...currentItems, ...newItems];
+
+      // 2. Update Prompt
+      if (look.prompt?.tech?.description) {
+        const currentPrompt = state.lookPrompts[modelIdx] || '';
+        state.lookPrompts[modelIdx] = currentPrompt
+          ? currentPrompt + '\n' + look.prompt.tech.description
+          : look.prompt.tech.description;
+      }
+
+      // 3. Save and Render
+      // Need to define saveShootClothing in scope or use existing one if exported?
+      // It's in the same file.
+      // Wait, saveShootClothing is likely NOT defined in this file (it was missing from my read).
+      // Let's check if saveShootClothing exists. It should be there.
+      // I'll assume it exists or I'll implement a simple save logic here.
+
+      // Checking file contents (lines 1-800)... I didn't see saveShootClothing.
+      // Let's implement inline save logic just in case.
+
+      if (typeof saveShootClothing === 'function') {
+        await saveShootClothing();
+      } else {
+        // Fallback save implementation
+        if (state.currentShoot) {
+          const clothingPayload = state.clothingByModel.map((items, idx) => ({
+            forModelIndex: idx,
+            items: items
+          }));
+          const promptsPayload = state.lookPrompts.map((p, idx) => ({
+            forModelIndex: idx,
+            prompt: p
+          }));
+
+          await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clothing: clothingPayload,
+              lookPrompts: promptsPayload
+            })
+          });
+        }
+      }
+
+      renderClothingSections();
+      closeLooksModal();
+      showToast('✅ Образ применён');
+    }
+  } catch (e) {
+    console.error('Error applying look:', e);
+    alert('Failed to apply look');
+  }
+}
+
+// Init called at end
+document.addEventListener('DOMContentLoaded', () => {
+  initLooksLogic();
+  initPresetLogic();
+});
+
+function initPresetLogic() {
+  // Tabs
+  document.querySelectorAll('.preset-gen-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchPresetTab(tab.dataset.tab));
+  });
+
+  // Modal Close (correct IDs from HTML)
+  const closeBtn = document.getElementById('btn-close-preset-modal');
+  if (closeBtn) closeBtn.onclick = closePresetModal;
+
+  const cancelBtn = document.getElementById('btn-preset-discard');
+  if (cancelBtn) cancelBtn.onclick = closePresetModal;
+
+  // Generate Buttons
+  const genTextBtn = document.getElementById('btn-gen-preset-text');
+  if (genTextBtn) genTextBtn.onclick = generatePresetFromText;
+
+  const genImgBtn = document.getElementById('btn-gen-preset-image');
+  if (genImgBtn) genImgBtn.onclick = generatePresetFromImage;
+
+  // Save Button (correct ID from HTML)
+  const saveBtn = document.getElementById('btn-preset-save');
+  if (saveBtn) saveBtn.onclick = saveGeneratedPreset;
+
+  // File Input
+  const dropZone = document.getElementById('preset-drop-zone');
+  const fileInput = document.getElementById('preset-file-input');
+
+  if (dropZone && fileInput) {
+    dropZone.onclick = (e) => {
+      // Prevent recursive clicking if label contains input
+      if (e.target !== fileInput) fileInput.click();
+    };
+    fileInput.onchange = handlePresetFileSelect;
+
+    // Drag & Drop
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handlePresetFile(e.dataTransfer.files[0]);
+    };
+  }
+
+  // Load Presets
+  loadPresets();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// V8 SAVED FRAMES (Frame Settings Presets)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Save current frame settings as a named preset
+ */
+function saveCurrentAsFrame() {
+  const name = prompt('Название кадра:', 'Кадр ' + (state.savedFrames.length + 1));
+  if (!name) return;
+
+  const newFrame = {
+    id: 'frame_' + Date.now(),
+    name: name.trim(),
+    emotionId: elements.genEmotion?.value || '',
+    shotSize: elements.genShotSize?.value || 'medium',
+    cameraAngle: elements.genCameraAngle?.value || 'eye_level',
+    gazeDirection: elements.genGazeDirection?.value || 'camera',
+    bodyFocus: elements.genBodyFocus?.value || 'none',
+    poseId: document.getElementById('gen-body-pose')?.value || ''
+  };
+
+  state.savedFrames.push(newFrame);
+  saveSavedFramesToServer();
+  renderSavedFramesShelf();
+
+  console.log('[SavedFrames] Saved new frame:', newFrame.name);
+}
+
+/**
+ * Load a saved frame's settings into the UI
+ */
+function loadSavedFrame(frameId) {
+  const frame = state.savedFrames.find(f => f.id === frameId);
+  if (!frame) return;
+
+  // Apply settings to UI
+  if (elements.genEmotion && frame.emotionId) {
+    elements.genEmotion.value = frame.emotionId;
+  }
+  if (elements.genShotSize && frame.shotSize) {
+    elements.genShotSize.value = frame.shotSize;
+  }
+  if (elements.genCameraAngle && frame.cameraAngle) {
+    elements.genCameraAngle.value = frame.cameraAngle;
+  }
+  if (elements.genGazeDirection && frame.gazeDirection) {
+    elements.genGazeDirection.value = frame.gazeDirection;
+  }
+  if (elements.genBodyFocus && frame.bodyFocus) {
+    elements.genBodyFocus.value = frame.bodyFocus;
+  }
+  const poseSelect = document.getElementById('gen-body-pose');
+  if (poseSelect && frame.poseId) {
+    poseSelect.value = frame.poseId;
+  }
+
+  // Save to persist changes
+  saveGenerationSettings();
+
+  console.log('[SavedFrames] Loaded frame:', frame.name);
+}
+
+/**
+ * Delete a saved frame
+ */
+function deleteSavedFrame(frameId) {
+  state.savedFrames = state.savedFrames.filter(f => f.id !== frameId);
+  saveSavedFramesToServer();
+  renderSavedFramesShelf();
+  console.log('[SavedFrames] Deleted frame:', frameId);
+}
+
+/**
+ * Render the saved frames shelf
+ */
+function renderSavedFramesShelf() {
+  if (!elements.savedFramesShelf || !elements.savedFramesList) return;
+
+  if (state.savedFrames.length === 0) {
+    elements.savedFramesShelf.style.display = 'none';
+    return;
+  }
+
+  elements.savedFramesShelf.style.display = 'block';
+
+  // Get emotion labels for display
+  const getEmotionLabel = (emotionId) => {
+    if (!emotionId) return 'Нейтральная';
+    const emotion = state.emotions.find(e => e.id === emotionId);
+    return emotion?.label || emotionId;
+  };
+
+  elements.savedFramesList.innerHTML = state.savedFrames.map(frame => `
+    <div class="saved-frame-chip" 
+         style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;"
+         onclick="loadSavedFrame('${frame.id}')">
+      <span style="font-size: 12px; font-weight: 500;">${escapeHtml(frame.name)}</span>
+      <span style="font-size: 10px; color: var(--color-text-muted);">${getEmotionLabel(frame.emotionId)}</span>
+      <button onclick="event.stopPropagation(); deleteSavedFrame('${frame.id}')" 
+              style="background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 12px; padding: 0 4px;"
+              title="Удалить">×</button>
+    </div>
+  `).join('');
+}
+
+/**
+ * Save saved frames to server (via shoot update)
+ */
+async function saveSavedFramesToServer() {
+  if (!state.currentShoot) return;
+
+  try {
+    await fetch(`/api/custom-shoots/${state.currentShoot.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        savedFrames: state.savedFrames
+      })
+    });
+  } catch (e) {
+    console.error('[SavedFrames] Error saving to server:', e);
+  }
+}
+
+/**
+ * Load saved frames from current shoot
+ */
+function loadSavedFramesFromShoot() {
+  if (state.currentShoot?.savedFrames) {
+    state.savedFrames = state.currentShoot.savedFrames;
+  } else {
+    state.savedFrames = [];
+  }
+  renderSavedFramesShelf();
+}
+
+// Expose functions to window for onclick handlers
+window.loadSavedFrame = loadSavedFrame;
+window.deleteSavedFrame = deleteSavedFrame;

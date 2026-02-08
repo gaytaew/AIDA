@@ -427,6 +427,9 @@ export function buildCustomShootPrompt({
   // Body Focus (V8)
   bodyFocus = 'none',         // 'none', 'face', 'upper_body', 'hands', 'legs', 'feet', 'back', 'full_outfit'
 
+  // Generation Mode (V9)
+  mode = null,                // 'exact_frame' for V9 Exact Frame Copy
+
   // Quality settings
   qualityMode = 'DRAFT',
   mood = 'natural'
@@ -614,8 +617,32 @@ ADHERENCE LEVEL: ${poseAdherence}/4 (${adherence.label})
 ${adherence.instruction}`);
     }
 
-    // Composition
-    if (composition && (composition.shotSize !== 'default' || composition.cameraAngle !== 'eye_level' || composition.gazeDirection !== 'camera')) {
+    // ═══════════════════════════════════════════════════════════════
+    // V9 EXACT FRAME REPRODUCTION (overrides composition/bodyFocus/emotion)
+    // ═══════════════════════════════════════════════════════════════
+    if (mode === 'exact_frame' && hasPoseSketch) {
+      v7Sections.push(`
+═══════════════════════════════════════════════════════════════
+🎯 EXACT FRAME REPRODUCTION MODE (HIGHEST PRIORITY)
+═══════════════════════════════════════════════════════════════
+
+You MUST reproduce the EXACT composition, pose, framing, and camera angle from the pose sketch reference image [$6].
+
+CRITICAL RULES:
+1. The sketch [$6] is the PRIMARY compositional reference — do NOT deviate from it.
+2. MATCH ALL body proportions, limb positions, head angle, and torso orientation from [$6] EXACTLY.
+3. MATCH the framing and crop from [$6] — if the sketch shows full body, show full body. If it shows close-up, show close-up.
+4. MATCH the camera angle from [$6] — if it's shot from below, shoot from below. If eye level, keep it eye level.
+5. Only minimal natural variations are allowed: micro-expressions, subtle weight shifts, breathing.
+6. Do NOT add creative interpretation. Do NOT change the pose "for better composition".
+7. The EXACT position of hands, legs, head tilt, and body lean from [$6] must be preserved.
+
+The sketch defines: shot size, camera angle, body pose, limb positions, head direction, and overall framing.
+The visual prompt defines: visual style, lighting, color grading, atmosphere, and aesthetic.`);
+    }
+
+    // Composition (V9: skipped in exact_frame mode — derived from sketch)
+    if (mode !== 'exact_frame' && composition && (composition.shotSize !== 'default' || composition.cameraAngle !== 'eye_level' || composition.gazeDirection !== 'camera')) {
       const gazeMap = {
         'camera': 'looking directly into camera',
         'left': 'looking to the left (from viewer perspective)',
@@ -637,9 +664,9 @@ Gaze: ${gazeDesc}`);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // BODY FOCUS (V8 — targeted area emphasis for V7 prompt)
+    // BODY FOCUS (V9: skipped in exact_frame mode — derived from sketch)
     // ═══════════════════════════════════════════════════════════════
-    if (bodyFocus && bodyFocus !== 'none') {
+    if (mode !== 'exact_frame' && bodyFocus && bodyFocus !== 'none') {
       const V7_BODY_FOCUS = {
         face: {
           zone: 'FACE / HEAD',
@@ -703,8 +730,8 @@ The focused body zone MUST be the sharpest and most prominent element in the ima
       }
     }
 
-    // Emotion
-    if (emotionId) {
+    // Emotion (V9: skipped in exact_frame mode — derived from sketch)
+    if (mode !== 'exact_frame' && emotionId) {
       const emotion = getEmotionById(emotionId);
       if (emotion) {
         v7Sections.push(`
@@ -1487,7 +1514,10 @@ export async function generateCustomShootFrame({
   lensFocalLength = null,
 
   // Body Focus (V8)
-  bodyFocus = 'none'          // 'none', 'face', 'upper_body', 'hands', 'legs', 'feet', 'back', 'full_outfit'
+  bodyFocus = 'none',          // 'none', 'face', 'upper_body', 'hands', 'legs', 'feet', 'back', 'full_outfit'
+
+  // Generation Mode (V9)
+  mode = null                 // 'exact_frame' for V9 Exact Frame Copy
 }) {
   const genId = `gen_${Date.now() % 100000}`;
   const startTime = Date.now();
@@ -1643,6 +1673,7 @@ export async function generateCustomShootFrame({
         poseAdherence,
         composition,
         bodyFocus,
+        mode,
         qualityMode,
         mood
       });
