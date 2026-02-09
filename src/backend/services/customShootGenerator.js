@@ -442,6 +442,121 @@ export function buildCustomShootPrompt({
   const useUniverse = universeParams != null;
 
   // ═══════════════════════════════════════════════════════════════
+  // V9 EXACT FRAME MODE — DEDICATED MINIMAL PROMPT BUILDER
+  // Early return: bypasses ALL V5/V7 logic entirely
+  // Only includes: universe (visual style), clothing, location, exact frame
+  // ═══════════════════════════════════════════════════════════════
+  if (mode === 'exact_frame') {
+    const v9Sections = [];
+
+    // 1. Minimal realism rules
+    v9Sections.push(`ROLE: World-class Photographer.
+TASK: Reproduce the EXACT frame from the provided sketch, applying the visual style described below.
+
+HARD RULES:
+1. Photorealistic output ONLY (NO illustration, NO CGI, NO 3D render).
+2. Natural skin texture, real fabric physics, real optics.
+3. No watermarks, no text, no logos.
+
+${HARDCODED_REALISM.GLOBAL_NEG}`);
+
+    // 2. VISUAL STYLE (universe — camera, light, etc.)
+    const visualPrompt = universeParams?.visualPrompt || '';
+    if (visualPrompt) {
+      v9Sections.push(`
+═══════════════════════════════════════════════════════════════
+VISUAL STYLE
+═══════════════════════════════════════════════════════════════
+
+${visualPrompt}`);
+    }
+
+    // 3. CLOTHING (exact reproduction from refs)
+    if (hasClothingRefs) {
+      let clothingSection = `
+═══════════════════════════════════════════════════════════════
+CLOTHING (EXACT MATCH — [$3], [$4])
+═══════════════════════════════════════════════════════════════
+
+Reproduce garments from clothing reference images [$3], [$4] with MAXIMUM accuracy.
+Same silhouette, length, fit, colors, construction. No creative interpretation.`;
+
+      if (lookPrompt && lookPrompt.trim()) {
+        clothingSection += `\n\nOUTFIT STYLE: ${lookPrompt.trim()}`;
+      }
+
+      if (clothingItemPrompts && clothingItemPrompts.length > 0) {
+        clothingSection += `\n\nDETAILS:`;
+        clothingItemPrompts.forEach((item, i) => {
+          const name = item.name ? `${item.name}: ` : `Item ${i + 1}: `;
+          clothingSection += `\n• ${name}${item.prompt}`;
+        });
+      }
+
+      v9Sections.push(clothingSection);
+    }
+
+    // 4. LOCATION
+    if (locationMode === 'prompt' && locationPrompt && locationPrompt.trim()) {
+      v9Sections.push(`
+═══════════════════════════════════════════════════════════════
+LOCATION
+═══════════════════════════════════════════════════════════════
+
+${locationPrompt.trim()}`);
+    } else if (locationMode === 'reference' && locationRefPath) {
+      v9Sections.push(`
+═══════════════════════════════════════════════════════════════
+LOCATION (from reference [$LOC_REF])
+═══════════════════════════════════════════════════════════════
+
+Recreate the environment from [$LOC_REF]. Match setting, atmosphere, and spatial context.`);
+    }
+
+    // 5. EXACT FRAME from sketch (the core V9 directive)
+    if (hasPoseSketch) {
+      v9Sections.push(`
+═══════════════════════════════════════════════════════════════
+🎯 EXACT FRAME REPRODUCTION (HIGHEST PRIORITY — [$6])
+═══════════════════════════════════════════════════════════════
+
+The sketch [$6] is the ABSOLUTE authority for this image.
+
+COPY FROM SKETCH EXACTLY:
+• Body pose — every limb position, torso angle, head tilt
+• Camera angle — if sketch is from below, shoot from below
+• Framing / crop — if sketch shows full body, show full body
+• Composition — subject placement within the frame
+
+DO NOT deviate. DO NOT add creative interpretation. DO NOT "improve" the pose.
+Only minimal natural variation allowed: micro-expressions, breathing, subtle weight shift.
+
+PRIORITY ORDER:
+1. SKETCH [$6] → defines pose, framing, camera angle, composition
+2. VISUAL STYLE → defines lighting, color grading, atmosphere
+3. CLOTHING → defines garments (exact match)
+4. LOCATION → defines environment`);
+    }
+
+    const v9Prompt = v9Sections.join('\n');
+
+    console.log('[CustomShootGenerator] V9 EXACT FRAME prompt built, length:', v9Prompt.length);
+
+    return {
+      prompt: v9Prompt,
+      promptJson: {
+        format: 'custom_shoot_v9_exact_frame',
+        generatedAt: new Date().toISOString(),
+        version: 'v9',
+        mode: 'exact_frame',
+        hasClothingRefs,
+        hasPoseSketch,
+        locationMode
+      }
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // V7 LOGIC (Pure Prompt Mode)
   // User provides a visual description prompt instead of selecting parameters
   // ═══════════════════════════════════════════════════════════════
