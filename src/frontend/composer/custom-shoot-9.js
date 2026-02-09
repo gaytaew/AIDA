@@ -3064,7 +3064,9 @@ async function generateFrame(frameId) {
       // Location
       locationMode: params.locationMode,
       locationPrompt: params.locationPrompt,
-      locationRefPath: params.locationRefPath
+      locationRefPath: params.locationRefPath,
+      // V9: Exact Frame mode
+      mode: params.mode || null
     };
 
     const bodySize = JSON.stringify(requestBody).length;
