@@ -32,6 +32,7 @@ import productRoutes from './routes/productRoutes.js';
 import productShootRoutes from './routes/productShootRoutes.js';
 import shootPresetRoutes from './routes/shootPresetRoutes.js';
 import { shootEditorRouter } from './routes/shootEditorRoutes.js';
+import randomPhotoRoutes from './routes/randomPhotoRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -162,6 +163,7 @@ app.use('/api/product', productRoutes);
 app.use('/api/product-shoots', productShootRoutes);
 app.use('/api/shoot-presets', shootPresetRoutes);
 app.use('/api/shoot-editor', shootEditorRouter);
+app.use('/api/random-photos', randomPhotoRoutes);
 
 // Static files (style preset images)
 const stylesStorePath = path.resolve(__dirname, 'store/style-presets');
@@ -170,6 +172,10 @@ app.use('/api/styles/images', express.static(stylesStorePath));
 // Static files (look images)
 const looksStorePath = path.resolve(__dirname, 'store/looks');
 app.use('/api/looks/images', express.static(looksStorePath));
+
+// Static files (random photo images)
+const randomPhotoImagesPath = path.resolve(__dirname, 'store/random-photo-images');
+app.use('/api/random-photos/images', express.static(randomPhotoImagesPath));
 
 // Fallback: serve index.html for SPA-like navigation
 app.get('*', (req, res) => {

@@ -33,7 +33,8 @@ const NAV_ITEMS = [
       { href: '/editors/look-editor.html', icon: '👔', label: 'Образы (Looks)' },
       { href: '/editors/food-editor.html', icon: '🍔', label: 'Food Shoot' },
       { href: '/editors/product-editor.html', icon: '📦', label: 'Предметная съёмка' },
-      { href: '/editors/style-editor.html', icon: '🎬', label: 'V6 AI-Режиссёр', style: 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' }
+      { href: '/editors/style-editor.html', icon: '🎬', label: 'V6 AI-Режиссёр', style: 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' },
+      { href: '/editors/random-photo-editor.html', icon: '🎲', label: 'Рандом фото', style: 'background: linear-gradient(135deg, #e44d26 0%, #f7df1e 100%); color: white;' }
     ]
   }
 ];
