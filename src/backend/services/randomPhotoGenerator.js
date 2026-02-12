@@ -51,7 +51,7 @@ function getStyleSpec(styleValue) {
  * @returns {string} Complete prompt
  */
 function buildPrompt(params, refCount = 0) {
-    const { theme, style, customPrompt } = params;
+    const { theme, style, customPrompt, imageSize } = params;
 
     // Select base prompt
     let basePrompt;
@@ -63,6 +63,14 @@ function buildPrompt(params, refCount = 0) {
 
     // Style spec
     const styleSpec = getStyleSpec(style || 'photorealistic');
+
+    // Quality description
+    const qualityMap = {
+        '1k': 'Standard 1K resolution, quick draft quality',
+        '2k': 'High resolution 2K, publication-ready detail and sharpness',
+        '4k': 'Ultra high resolution 4K, maximum detail, extreme sharpness, every micro-texture visible'
+    };
+    const qualityDesc = qualityMap[imageSize] || qualityMap['2k'];
 
     // Reference handling
     let refBlock = '';
@@ -79,6 +87,8 @@ function buildPrompt(params, refCount = 0) {
 SUBJECT: ${basePrompt}
 
 ${styleSpec}
+
+OUTPUT QUALITY: ${qualityDesc}
 
 TECHNICAL REQUIREMENTS:
 - Professional quality, suitable for print and digital media
@@ -122,7 +132,7 @@ export async function generateRandomPhoto({ params, referenceImages = [] }) {
             referenceImages,
             imageConfig: {
                 aspectRatio: params.aspectRatio || '1:1',
-                imageSize: params.imageSize || '2k'
+                imageSize: (params.imageSize || '2k').toUpperCase()
             },
             generatorName: 'RandomPhotoGenerator'
         });
