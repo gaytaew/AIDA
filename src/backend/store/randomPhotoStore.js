@@ -226,7 +226,7 @@ export async function addSnapshot(shootId, base64Data, meta = {}) {
 
     const snapshot = {
         id: snapshotId,
-        imageUrl: `/api/random-photo-shoots/${shootId}/images/${snapshotId}`,
+        imageUrl: `/api/random-photos/shoots/${shootId}/images/${snapshotId}`,
         localPath: imagePath,
         prompt: meta.prompt || '',
         theme: meta.theme || '',
